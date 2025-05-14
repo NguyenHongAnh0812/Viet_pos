@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:provider/provider.dart';
 import 'screens/auth/login_screen.dart';
+import 'screens/auth/register_screen.dart';
 import 'screens/dashboard/dashboard_screen.dart';
 
 void main() async {
@@ -51,6 +52,7 @@ class MyApp extends StatelessWidget {
       home: const LoginScreen(),
       routes: {
         '/login': (context) => const LoginScreen(),
+        '/register': (context) => const RegisterScreen(),
         '/dashboard': (context) => const DashboardScreen(),
         // Thêm các route khác ở đây
       },

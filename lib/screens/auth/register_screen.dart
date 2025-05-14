@@ -1,17 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
-class LoginScreen extends StatefulWidget {
-  const LoginScreen({super.key});
+class RegisterScreen extends StatefulWidget {
+  const RegisterScreen({super.key});
 
   @override
-  State<LoginScreen> createState() => _LoginScreenState();
+  State<RegisterScreen> createState() => _RegisterScreenState();
 }
 
-class _LoginScreenState extends State<LoginScreen> {
+class _RegisterScreenState extends State<RegisterScreen> {
   final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
+  final _confirmPasswordController = TextEditingController();
   bool _isLoading = false;
   String? _errorMessage;
 
@@ -19,10 +20,11 @@ class _LoginScreenState extends State<LoginScreen> {
   void dispose() {
     _emailController.dispose();
     _passwordController.dispose();
+    _confirmPasswordController.dispose();
     super.dispose();
   }
 
-  Future<void> _login() async {
+  Future<void> _register() async {
     if (_formKey.currentState!.validate()) {
       setState(() {
         _isLoading = true;
@@ -30,24 +32,24 @@ class _LoginScreenState extends State<LoginScreen> {
       });
 
       try {
-        await FirebaseAuth.instance.signInWithEmailAndPassword(
+        await FirebaseAuth.instance.createUserWithEmailAndPassword(
           email: _emailController.text.trim(),
           password: _passwordController.text.trim(),
         );
-        // Đăng nhập thành công, chuyển đến màn hình chính
+        // Đăng ký thành công, chuyển đến màn hình chính
         if (mounted) {
           Navigator.pushReplacementNamed(context, '/dashboard');
         }
       } on FirebaseAuthException catch (e) {
         setState(() {
-          if (e.code == 'user-not-found') {
-            _errorMessage = 'Không tìm thấy tài khoản với email này';
-          } else if (e.code == 'wrong-password') {
-            _errorMessage = 'Mật khẩu không đúng';
+          if (e.code == 'email-already-in-use') {
+            _errorMessage = 'Email này đã được sử dụng';
+          } else if (e.code == 'weak-password') {
+            _errorMessage = 'Mật khẩu quá yếu';
           } else if (e.code == 'invalid-email') {
             _errorMessage = 'Email không hợp lệ';
           } else {
-            _errorMessage = e.message ?? 'Đã xảy ra lỗi khi đăng nhập';
+            _errorMessage = e.message ?? 'Đã xảy ra lỗi khi đăng ký';
           }
         });
       } finally {
@@ -63,6 +65,10 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      appBar: AppBar(
+        title: const Text('Đăng ký tài khoản'),
+        backgroundColor: Theme.of(context).colorScheme.inversePrimary,
+      ),
       body: Center(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(24.0),
@@ -73,17 +79,16 @@ class _LoginScreenState extends State<LoginScreen> {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 const Text(
-                  'VET-POS',
+                  'Tạo tài khoản mới',
                   style: TextStyle(
-                    fontSize: 32,
+                    fontSize: 24,
                     fontWeight: FontWeight.bold,
-                    color: Colors.blue,
                   ),
                   textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: 8),
                 const Text(
-                  'Đăng nhập để tiếp tục',
+                  'Vui lòng điền thông tin bên dưới để đăng ký',
                   style: TextStyle(
                     color: Colors.grey,
                     fontSize: 14,
@@ -117,12 +122,35 @@ class _LoginScreenState extends State<LoginScreen> {
                     labelText: 'Mật khẩu',
                     border: OutlineInputBorder(),
                     prefixIcon: Icon(Icons.lock),
-                    hintText: 'Nhập mật khẩu của bạn',
+                    hintText: 'Ít nhất 6 ký tự',
                   ),
                   obscureText: true,
                   validator: (value) {
                     if (value == null || value.isEmpty) {
                       return 'Vui lòng nhập mật khẩu';
+                    }
+                    if (value.length < 6) {
+                      return 'Mật khẩu phải có ít nhất 6 ký tự';
+                    }
+                    return null;
+                  },
+                ),
+                const SizedBox(height: 16),
+                TextFormField(
+                  controller: _confirmPasswordController,
+                  decoration: const InputDecoration(
+                    labelText: 'Xác nhận mật khẩu',
+                    border: OutlineInputBorder(),
+                    prefixIcon: Icon(Icons.lock_outline),
+                    hintText: 'Nhập lại mật khẩu',
+                  ),
+                  obscureText: true,
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return 'Vui lòng xác nhận mật khẩu';
+                    }
+                    if (value != _passwordController.text) {
+                      return 'Mật khẩu không khớp';
                     }
                     return null;
                   },
@@ -140,7 +168,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 ],
                 const SizedBox(height: 24),
                 ElevatedButton(
-                  onPressed: _isLoading ? null : _login,
+                  onPressed: _isLoading ? null : _register,
                   style: ElevatedButton.styleFrom(
                     padding: const EdgeInsets.symmetric(vertical: 16),
                     backgroundColor: Colors.blue,
@@ -149,7 +177,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   child: _isLoading
                       ? const CircularProgressIndicator(color: Colors.white)
                       : const Text(
-                          'Đăng nhập',
+                          'Đăng ký',
                           style: TextStyle(fontSize: 16),
                         ),
                 ),
@@ -157,9 +185,9 @@ class _LoginScreenState extends State<LoginScreen> {
                 TextButton(
                   onPressed: _isLoading
                       ? null
-                      : () => Navigator.pushNamed(context, '/register'),
+                      : () => Navigator.pushReplacementNamed(context, '/login'),
                   child: const Text(
-                    'Chưa có tài khoản? Đăng ký ngay',
+                    'Đã có tài khoản? Đăng nhập',
                     style: TextStyle(
                       color: Colors.blue,
                       fontSize: 14,
