@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import '../../widgets/main_layout.dart';
 
 class DashboardScreen extends StatelessWidget {
   const DashboardScreen({super.key});
@@ -23,141 +24,222 @@ class DashboardScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final user = FirebaseAuth.instance.currentUser;
 
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('VET-POS Dashboard'),
-        backgroundColor: Theme.of(context).colorScheme.inversePrimary,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.logout),
-            onPressed: () => _signOut(context),
-            tooltip: 'Đăng xuất',
-          ),
-        ],
-      ),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Card(
-              child: Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      'Thông tin tài khoản',
-                      style: TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    ListTile(
-                      leading: const Icon(Icons.email),
-                      title: const Text('Email'),
-                      subtitle: Text(user?.email ?? 'Không có email'),
-                    ),
-                    ListTile(
-                      leading: const Icon(Icons.person),
-                      title: const Text('ID người dùng'),
-                      subtitle: Text(user?.uid ?? 'Không có ID'),
-                    ),
-                    ListTile(
-                      leading: const Icon(Icons.verified_user),
-                      title: const Text('Trạng thái xác thực'),
-                      subtitle: Text(
-                        user?.emailVerified == true
-                            ? 'Đã xác thực email'
-                            : 'Chưa xác thực email',
-                      ),
-                    ),
-                  ],
-                ),
+    return MainLayout(
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          return SingleChildScrollView(
+            padding: const EdgeInsets.all(24),
+            child: ConstrainedBox(
+              constraints: BoxConstraints(
+                minWidth: 0,
+                maxWidth: constraints.maxWidth,
               ),
-            ),
-            const SizedBox(height: 24),
-            const Text(
-              'Chức năng chính',
-              style: TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            const SizedBox(height: 16),
-            Expanded(
-              child: GridView.count(
-                crossAxisCount: 2,
-                crossAxisSpacing: 16,
-                mainAxisSpacing: 16,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  _buildFeatureCard(
-                    context,
-                    'Quản lý sản phẩm',
-                    Icons.inventory_2,
-                    () {
-                      // TODO: Navigate to product management
+                  // Header content
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text(
+                        'Bảng Điều Khiển',
+                        style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.logout),
+                        tooltip: 'Đăng xuất',
+                        onPressed: () => _signOut(context),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 24),
+                  // Dashboard cards
+                  Builder(
+                    builder: (context) {
+                      final isMobile = MediaQuery.of(context).size.width < 600;
+                      if (isMobile) {
+                        return Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            _DashboardCard(
+                              title: 'Tổng Sản Phẩm',
+                              value: '5',
+                              icon: Icons.inventory_2,
+                              onTap: () {},
+                            ),
+                            const SizedBox(height: 3),
+                            _DashboardCard(
+                              title: 'Lịch Sử Kiểm Kê',
+                              value: '2',
+                              icon: Icons.history,
+                              onTap: () {},
+                            ),
+                          ],
+                        );
+                      } else {
+                        return Row(
+                          children: [
+                            Expanded(
+                              child: _DashboardCard(
+                                title: 'Tổng Sản Phẩm',
+                                value: '5',
+                                icon: Icons.inventory_2,
+                                onTap: () {},
+                              ),
+                            ),
+                            const SizedBox(width: 16),
+                            Expanded(
+                              child: _DashboardCard(
+                                title: 'Lịch Sử Kiểm Kê',
+                                value: '2',
+                                icon: Icons.history,
+                                onTap: () {},
+                              ),
+                            ),
+                          ],
+                        );
+                      }
                     },
                   ),
-                  _buildFeatureCard(
-                    context,
-                    'Bán hàng',
-                    Icons.point_of_sale,
-                    () {
-                      // TODO: Navigate to sales
-                    },
+                  // Cảnh báo sản phẩm sắp hết hàng
+                  const SizedBox(height: 3),
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: Colors.yellow[50],
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Row(
+                      children: const [
+                        Icon(Icons.warning, color: Colors.orange),
+                        SizedBox(width: 8),
+                        Expanded(child: Text('2 sản phẩm sắp hết hàng')),
+                        Text('Cần được xử lý', style: TextStyle(fontWeight: FontWeight.bold)),
+                      ],
+                    ),
                   ),
-                  _buildFeatureCard(
-                    context,
-                    'Báo cáo',
-                    Icons.bar_chart,
-                    () {
-                      // TODO: Navigate to reports
-                    },
+                  const SizedBox(height: 24),
+                  const Text(
+                    'Hoạt Động Gần Đây',
+                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
                   ),
-                  _buildFeatureCard(
-                    context,
-                    'Cài đặt',
-                    Icons.settings,
-                    () {
-                      // TODO: Navigate to settings
-                    },
+                  const SizedBox(height: 12),
+                  _RecentActivity(
+                    icon: Icons.event_available,
+                    title: 'Kiểm kê hoàn thành',
+                    subtitle: 'Đã kiểm tra 25 sản phẩm',
+                    time: '15/04/2024, 10:23',
+                  ),
+                  _RecentActivity(
+                    icon: Icons.add,
+                    title: 'Thêm mới sản phẩm',
+                    subtitle: 'Amoxicillin 250mg',
+                    time: '14/04/2024, 16:17',
+                  ),
+                  _RecentActivity(
+                    icon: Icons.warning,
+                    title: 'Cảnh báo hàng sắp hết',
+                    subtitle: '3 sản phẩm sắp hết hàng',
+                    time: '13/04/2024, 09:41',
                   ),
                 ],
               ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+}
+
+class _DashboardCard extends StatelessWidget {
+  final String title;
+  final String value;
+  final IconData icon;
+  final VoidCallback onTap;
+  const _DashboardCard({required this.title, required this.value, required this.icon, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      color: Colors.white,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      elevation: 1.5,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Bên trái: tiêu đề và số lượng
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(title, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 16)),
+                  const SizedBox(height: 12),
+                  Text(value, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 28)),
+                ],
+              ),
+            ),
+            // Bên phải: icon và xem chi tiết
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                Icon(icon, size: 28, color: Colors.grey[400]),
+                const SizedBox(height: 32),
+                InkWell(
+                  onTap: onTap,
+                  borderRadius: BorderRadius.circular(8),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: const [
+                      Text('Xem chi tiết', style: TextStyle(color: Colors.blue, fontWeight: FontWeight.w500)),
+                      SizedBox(width: 4),
+                      Icon(Icons.arrow_forward_ios, size: 16, color: Colors.blue),
+                    ],
+                  ),
+                ),
+              ],
             ),
           ],
         ),
       ),
     );
   }
+}
 
-  Widget _buildFeatureCard(
-    BuildContext context,
-    String title,
-    IconData icon,
-    VoidCallback onTap,
-  ) {
+class _RecentActivity extends StatelessWidget {
+  final IconData icon;
+  final String title;
+  final String subtitle;
+  final String time;
+  const _RecentActivity({required this.icon, required this.title, required this.subtitle, required this.time});
+
+  @override
+  Widget build(BuildContext context) {
     return Card(
-      child: InkWell(
-        onTap: onTap,
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
+      color: Colors.white,
+      margin: const EdgeInsets.only(bottom: 3),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+      elevation: 0.5,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Icon(
-              icon,
-              size: 48,
-              color: Theme.of(context).primaryColor,
-            ),
-            const SizedBox(height: 8),
-            Text(
-              title,
-              style: const TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
+            Icon(icon, color: Colors.blue, size: 24),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+                  const SizedBox(height: 2),
+                  Text(subtitle, style: const TextStyle(fontSize: 14, color: Colors.black87)),
+                  const SizedBox(height: 4),
+                  Text(time, style: const TextStyle(fontSize: 13, color: Colors.grey)),
+                ],
               ),
-              textAlign: TextAlign.center,
             ),
           ],
         ),
