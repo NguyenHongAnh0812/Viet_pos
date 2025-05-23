@@ -15,7 +15,8 @@ void main() async {
       storageBucket: "viet-pos-db.firebasestorage.app",
       messagingSenderId: "588886544003",
       appId: "1:588886544003:web:9a36b08e73f92846c2d5b6",
-      measurementId: "G-22K571YCDL"
+      measurementId: "G-22K571YCDL",
+      databaseURL: "https://viet-pos-db.firebaseio.com",
     ),
   );
   runApp(const MyApp());

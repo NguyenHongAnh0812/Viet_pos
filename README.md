@@ -179,3 +179,43 @@ Acceptance Criteria:
   - Lịch sử kiểm kê
 - Có thể lọc báo cáo theo thời gian: tháng này, 30 ngày gần nhất, tùy chọn khoảng thời gian.
 - Có thể xuất báo cáo ra PDF/Excel.
+
+## Cấu trúc giao diện tổng quát (Layout Overview)
+
+### 1. Tổng quan layout
+
+#### A. Header (AppBar)
+- Luôn nằm trên cùng, kéo dài toàn bộ chiều ngang màn hình.
+- Hiển thị logo/tên ứng dụng (VET-POS) và nút menu (hamburger).
+- Có thể chứa các nút chức năng khác (user, thông báo, v.v.).
+
+#### B. Sidebar (Navigation Drawer)
+- **Desktop:** Cố định bên trái, rộng 250px (hoặc 60px khi thu nhỏ).
+- **Mobile:** Overlay lên main content khi mở, ẩn hoàn toàn khi đóng.
+- Chứa các mục điều hướng: Trang chủ, Danh sách sản phẩm, Danh mục sản phẩm, Kiểm kê, Báo cáo, Cài đặt.
+- Hiệu ứng hover, bo góc, icon căn giữa khi thu nhỏ.
+
+#### C. Main Content (Body)
+- Nằm bên phải sidebar (desktop) hoặc chiếm toàn bộ màn hình (mobile).
+- Hiển thị nội dung chính của từng trang (Dashboard, Danh mục sản phẩm, v.v.).
+- Có thể chứa các card, bảng, danh sách, biểu đồ, v.v.
+
+#### D. Bottom Navigation Bar (Chỉ mobile)
+- Ghim cố định ở dưới cùng màn hình.
+- 4 block điều hướng nhanh: Trang chủ, Kiểm kê, Sản phẩm, Báo cáo.
+- Chỉ xuất hiện trên mobile, ẩn trên desktop.
+
+### 2. Sơ đồ tổng quát
+
+Scaffold
+├── AppBar/Header (trên cùng)
+├── Row (desktop) hoặc Stack (mobile)
+│   ├── Sidebar (trái, có thể thu nhỏ/ẩn)
+│   └── Main Content (phải)
+└── BottomNavigationBar (chỉ mobile)
+
+### 3. Ghi chú
+- Giao diện responsive, tối ưu cho cả desktop và mobile.
+- Sidebar có thể thu nhỏ hoặc ẩn hoàn toàn trên mobile.
+- Bottom navigation bar giúp thao tác nhanh trên mobile.
+- Dễ dàng mở rộng thêm các vùng như header phụ, thông báo, v.v.

@@ -1,8 +1,14 @@
 import 'package:flutter/material.dart';
+import '../screens/product_list_screen.dart';
+import '../screens/product_category_screen.dart';
+import '../screens/add_product_screen.dart';
+
+// Định nghĩa enum cho các trang
+enum MainPage { dashboard, productList, productCategory, addProduct, inventory, report, settings }
 
 class MainLayout extends StatefulWidget {
-  final Widget child;
-  const MainLayout({super.key, required this.child});
+  final Widget? child; // Không cần truyền child nữa, sẽ render theo _currentPage
+  const MainLayout({super.key, this.child});
 
   @override
   State<MainLayout> createState() => _MainLayoutState();
@@ -11,6 +17,8 @@ class MainLayout extends StatefulWidget {
 class _MainLayoutState extends State<MainLayout> {
   bool _sidebarOpen = true;
   int _selectedIndex = 0;
+  MainPage _currentPage = MainPage.productList; // Bắt đầu ở ProductListScreen
+  MainPage? _previousPage; // Lưu trang trước đó để xử lý nút back
 
   void _toggleSidebar() {
     setState(() {
@@ -18,10 +26,27 @@ class _MainLayoutState extends State<MainLayout> {
     });
   }
 
-  void _onNavTap(int index) {
+  void _onSidebarTap(MainPage page) {
     setState(() {
-      _selectedIndex = index;
-      // TODO: Điều hướng tới các trang tương ứng
+      _previousPage = _currentPage;
+      _currentPage = page;
+      // Đóng sidebar trên mobile sau khi chọn trang
+      if (MediaQuery.of(context).size.width < 600) {
+        _sidebarOpen = false;
+      }
+    });
+  }
+
+  // Phương thức quay lại trang trước
+  void _goBack() {
+    setState(() {
+      if (_previousPage != null) {
+        _currentPage = _previousPage!;
+        _previousPage = null; // Xóa trang trước đó sau khi quay lại
+      } else {
+        // Nếu không có trang trước, quay về trang mặc định (ví dụ: productList)
+        _currentPage = MainPage.productList;
+      }
     });
   }
 
@@ -36,8 +61,7 @@ class _MainLayoutState extends State<MainLayout> {
             child: isMobile
                 ? Stack(
                     children: [
-                      widget.child,
-                      // Hiệu ứng fade cho lớp mờ nền
+                      _buildMainContent(),
                       AnimatedOpacity(
                         opacity: _sidebarOpen ? 1.0 : 0.0,
                         duration: const Duration(milliseconds: 300),
@@ -51,14 +75,17 @@ class _MainLayoutState extends State<MainLayout> {
                               )
                             : const SizedBox.shrink(),
                       ),
-                      // Hiệu ứng trượt cho sidebar
                       AnimatedSlide(
                         offset: _sidebarOpen ? Offset(0, 0) : Offset(-1, 0),
                         duration: const Duration(milliseconds: 300),
                         curve: Curves.ease,
                         child: SizedBox(
                           width: 250,
-                          child: _Sidebar(isOpen: true),
+                          child: _Sidebar(
+                            isOpen: true,
+                            currentPage: _currentPage,
+                            onItemTap: _onSidebarTap,
+                          ),
                         ),
                       ),
                     ],
@@ -68,9 +95,13 @@ class _MainLayoutState extends State<MainLayout> {
                       AnimatedContainer(
                         duration: const Duration(milliseconds: 300),
                         width: _sidebarOpen ? 250 : 70,
-                        child: _Sidebar(isOpen: _sidebarOpen),
+                        child: _Sidebar(
+                          isOpen: _sidebarOpen,
+                          currentPage: _currentPage,
+                          onItemTap: _onSidebarTap,
+                        ),
                       ),
-                      Expanded(child: widget.child),
+                      Expanded(child: _buildMainContent()),
                     ],
                   ),
           ),
@@ -94,17 +125,65 @@ class _MainLayoutState extends State<MainLayout> {
                   label: 'Kiểm kê',
                 ),
                 BottomNavigationBarItem(
-                  icon: Icon(Icons.inventory_2),
+                  icon: Icon(Icons.inventory_2), // Product list or add product
                   label: 'Sản phẩm',
                 ),
                 BottomNavigationBarItem(
-                  icon: Icon(Icons.bar_chart),
+                  icon: Icon(Icons.bar_chart), // Report or product category
                   label: 'Báo cáo',
                 ),
               ],
             )
           : null,
     );
+  }
+
+  Widget _buildMainContent() {
+    switch (_currentPage) {
+      case MainPage.dashboard:
+        return Center(child: Text('Dashboard (chưa cài đặt)'));
+      case MainPage.productList:
+        return ProductListScreen(
+          onNavigate: _onSidebarTap,
+        );
+      case MainPage.productCategory:
+        return ProductCategoryScreen(
+           onNavigate: _onSidebarTap,
+        );
+      case MainPage.addProduct:
+        return AddProductScreen(
+          onBack: _goBack,
+        );
+      case MainPage.inventory:
+        return Center(child: Text('Kiểm kê (chưa cài đặt)'));
+      case MainPage.report:
+        return Center(child: Text('Báo cáo (chưa cài đặt)'));
+      case MainPage.settings:
+        return Center(child: Text('Cài đặt (chưa cài đặt)'));
+    }
+  }
+
+  void _onNavTap(int index) {
+    setState(() {
+      _selectedIndex = index;
+      // Logic điều hướng cho BottomNavigationBar
+      switch (index) {
+        case 0:
+          _onSidebarTap(MainPage.dashboard);
+          break;
+        case 1:
+          _onSidebarTap(MainPage.inventory);
+          break;
+        case 2:
+          // Khi nhấn Sản phẩm trên bottom nav, đi tới ProductList
+          _onSidebarTap(MainPage.productList);
+          break;
+        case 3:
+          // Khi nhấn Báo cáo trên bottom nav, đi tới Report
+          _onSidebarTap(MainPage.report);
+          break;
+      }
+    });
   }
 }
 
@@ -141,7 +220,9 @@ class _Header extends StatelessWidget {
 // Sidebar widget
 class _Sidebar extends StatelessWidget {
   final bool isOpen;
-  const _Sidebar({this.isOpen = true});
+  final MainPage currentPage;
+  final Function(MainPage) onItemTap;
+  const _Sidebar({this.isOpen = true, required this.currentPage, required this.onItemTap});
 
   @override
   Widget build(BuildContext context) {
@@ -151,43 +232,82 @@ class _Sidebar extends StatelessWidget {
       child: Column(
         children: [
           const SizedBox(height: 0),
-          _SidebarItem(icon: Icons.home, label: 'Trang chủ', selected: true, isOpen: isOpen),
-          _SidebarItem(icon: Icons.inventory_2, label: 'Danh sách sản phẩm', isOpen: isOpen),
-          _SidebarItem(icon: Icons.category, label: 'Danh mục sản phẩm', isOpen: isOpen),
-          _SidebarItem(icon: Icons.check_box, label: 'Kiểm kê', isOpen: isOpen),
-          _SidebarItem(icon: Icons.bar_chart, label: 'Báo cáo', isOpen: isOpen),
-          _SidebarItem(icon: Icons.settings, label: 'Cài đặt', isOpen: isOpen),
+          _SidebarItem(
+            icon: Icons.home,
+            label: 'Trang chủ',
+            selected: currentPage == MainPage.dashboard,
+            isOpen: isOpen,
+            onTap: () => onItemTap(MainPage.dashboard),
+          ),
+          _SidebarItem(
+            icon: Icons.inventory_2,
+            label: 'Danh sách sản phẩm',
+            selected: currentPage == MainPage.productList,
+            isOpen: isOpen,
+            onTap: () => onItemTap(MainPage.productList),
+          ),
+          _SidebarItem(
+            icon: Icons.category,
+            label: 'Danh mục sản phẩm',
+            selected: currentPage == MainPage.productCategory,
+            isOpen: isOpen,
+            onTap: () => onItemTap(MainPage.productCategory),
+          ),
+          _SidebarItem(
+            icon: Icons.check_box,
+            label: 'Kiểm kê',
+            selected: currentPage == MainPage.inventory,
+            isOpen: isOpen,
+            onTap: () => onItemTap(MainPage.inventory),
+          ),
+          _SidebarItem(
+            icon: Icons.bar_chart,
+            label: 'Báo cáo',
+            selected: currentPage == MainPage.report,
+            isOpen: isOpen,
+            onTap: () => onItemTap(MainPage.report),
+          ),
+          _SidebarItem(
+            icon: Icons.settings,
+            label: 'Cài đặt',
+            selected: currentPage == MainPage.settings,
+            isOpen: isOpen,
+            onTap: () => onItemTap(MainPage.settings),
+          ),
+          // Thêm mục Thêm sản phẩm mới vào Sidebar (tạm thời để test)
+          // _SidebarItem(
+          //   icon: Icons.add_circle_outline,
+          //   label: 'Thêm sản phẩm mới',
+          //   selected: currentPage == MainPage.addProduct,
+          //   isOpen: isOpen,
+          //   onTap: () => onItemTap(MainPage.addProduct),
+          // ),
         ],
       ),
     );
   }
 }
 
-class _SidebarItem extends StatefulWidget {
+class _SidebarItem extends StatelessWidget {
   final IconData icon;
   final String label;
   final bool selected;
   final bool isOpen;
+  final VoidCallback? onTap;
   const _SidebarItem({
     required this.icon,
     required this.label,
     this.selected = false,
     this.isOpen = true,
+    this.onTap,
   });
 
   @override
-  State<_SidebarItem> createState() => _SidebarItemState();
-}
-
-class _SidebarItemState extends State<_SidebarItem> {
-  bool _isHovering = false;
-
-  @override
   Widget build(BuildContext context) {
-    final bool showHighlight = widget.selected || _isHovering;
+    final bool showHighlight = selected;
     return MouseRegion(
-      onEnter: (_) => setState(() => _isHovering = true),
-      onExit: (_) => setState(() => _isHovering = false),
+      onEnter: (_) {},
+      onExit: (_) {},
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 180),
         curve: Curves.ease,
@@ -197,12 +317,12 @@ class _SidebarItemState extends State<_SidebarItem> {
           borderRadius: BorderRadius.circular(5),
         ),
         child: ListTile(
-          leading: Icon(widget.icon, color: widget.selected ? Colors.blue : Colors.black54),
-          title: widget.isOpen
+          leading: Icon(icon, color: selected ? Colors.blue : Colors.black54),
+          title: isOpen
               ? Padding(
                   padding: const EdgeInsets.only(left: 10),
                   child: Text(
-                    widget.label,
+                    label,
                     style: const TextStyle(
                       fontSize: 14,
                       color: Colors.black,
@@ -215,9 +335,7 @@ class _SidebarItemState extends State<_SidebarItem> {
               : null,
           minLeadingWidth: 0,
           horizontalTitleGap: 0,
-          onTap: () {
-            // TODO: Xử lý chuyển trang
-          },
+          onTap: onTap,
         ),
       ),
     );
