@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import '../widgets/main_layout.dart';
 
 class AddProductScreen extends StatefulWidget {
@@ -54,6 +55,31 @@ class _AddProductScreenState extends State<AddProductScreen> {
           icon: const Icon(Icons.arrow_back),
           onPressed: widget.onBack,
         ),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.auto_fix_high),
+            tooltip: 'Điền dữ liệu mẫu',
+            onPressed: () {
+              setState(() {
+                _nameController.text = 'Amoxicillin 500mg';
+                _commonNameController.text = 'Amoxicillin';
+                _barcodeController.text = '8931234567890';
+                _skuController.text = 'AMO500';
+                _unitController.text = 'Viên';
+                _quantityController.text = '100';
+                _importPriceController.text = '25000';
+                _sellPriceController.text = '35000';
+                _tagsController.text = 'kháng sinh, phổ rộng';
+                _descriptionController.text = 'Thuốc kháng sinh phổ rộng, điều trị nhiễm khuẩn';
+                _usageController.text = 'Uống 1-2 viên/lần, 2-3 lần/ngày';
+                _ingredientsController.text = 'Amoxicillin trihydrate 500mg';
+                _notesController.text = 'Bảo quản nơi khô ráo, tránh ánh nắng trực tiếp';
+                _selectedCategory = '1';
+                _isActive = true;
+              });
+            },
+          ),
+        ],
       ),
       body: Column(
         children: [
@@ -498,17 +524,75 @@ class _AddProductScreenState extends State<AddProductScreen> {
                             ),
                             const SizedBox(width: 16.0),
                             ElevatedButton.icon(
-                              onPressed: () {
+                              onPressed: () async {
                                 if (_formKey.currentState!.validate()) {
+                                  final barcode = _barcodeController.text.trim();
+                                  final sku = _skuController.text.trim();
+                                  final name = _nameController.text.trim();
+                                  final importPrice = double.tryParse(_importPriceController.text) ?? 0.0;
+                                  final salePrice = double.tryParse(_sellPriceController.text) ?? 0.0;
+                                  final firestore = FirebaseFirestore.instance;
+                                  // Kiểm tra trùng barcode
+                                  if (barcode.isNotEmpty) {
+                                    final barcodeQuery = await firestore.collection('products').where('barcode', isEqualTo: barcode).get();
+                                    if (barcodeQuery.docs.isNotEmpty) {
+                                      ScaffoldMessenger.of(context).showSnackBar(
+                                        const SnackBar(content: Text('Mã vạch đã tồn tại!')),
+                                      );
+                                      return;
+                                    }
+                                  }
+                                  // Kiểm tra trùng SKU
+                                  if (sku.isNotEmpty) {
+                                    final skuQuery = await firestore.collection('products').where('sku', isEqualTo: sku).get();
+                                    if (skuQuery.docs.isNotEmpty) {
+                                      ScaffoldMessenger.of(context).showSnackBar(
+                                        const SnackBar(content: Text('SKU đã tồn tại!')),
+                                      );
+                                      return;
+                                    }
+                                  }
+                                  // Kiểm tra trùng tên danh pháp
+                                  if (name.isNotEmpty) {
+                                    final nameQuery = await firestore.collection('products').where('name', isEqualTo: name).get();
+                                    if (nameQuery.docs.isNotEmpty) {
+                                      ScaffoldMessenger.of(context).showSnackBar(
+                                        const SnackBar(content: Text('Tên danh pháp đã tồn tại!')),
+                                      );
+                                      return;
+                                    }
+                                  }
+                                  // Cảnh báo nếu giá bán < giá nhập
+                                  if (salePrice < importPrice) {
+                                    final confirm = await showDialog<bool>(
+                                      context: context,
+                                      builder: (context) => AlertDialog(
+                                        title: const Text('Cảnh báo'),
+                                        content: const Text('Giá bán nhỏ hơn giá nhập. Bạn vẫn muốn lưu sản phẩm này?'),
+                                        actions: [
+                                          TextButton(
+                                            onPressed: () => Navigator.of(context).pop(false),
+                                            child: const Text('Hủy'),
+                                          ),
+                                          ElevatedButton(
+                                            onPressed: () => Navigator.of(context).pop(true),
+                                            child: const Text('Vẫn lưu'),
+                                          ),
+                                        ],
+                                      ),
+                                    );
+                                    if (confirm != true) return;
+                                  }
+                                  // Tiến hành lưu sản phẩm
                                   final productData = {
-                                    'name': _nameController.text,
+                                    'name': name,
                                     'commonName': _commonNameController.text,
-                                    'barcode': _barcodeController.text,
-                                    'sku': _skuController.text,
+                                    'barcode': barcode,
+                                    'sku': sku,
                                     'unit': _unitController.text,
-                                    'quantity': int.tryParse(_quantityController.text) ?? 0,
-                                    'importPrice': double.tryParse(_importPriceController.text) ?? 0.0,
-                                    'sellPrice': double.tryParse(_sellPriceController.text) ?? 0.0,
+                                    'stock': int.tryParse(_quantityController.text) ?? 0,
+                                    'importPrice': importPrice,
+                                    'salePrice': salePrice,
                                     'tags': _tagsController.text.split(',').map((e) => e.trim()).where((e) => e.isNotEmpty).toList(),
                                     'description': _descriptionController.text,
                                     'usage': _usageController.text,
@@ -516,8 +600,25 @@ class _AddProductScreenState extends State<AddProductScreen> {
                                     'notes': _notesController.text,
                                     'category': _selectedCategory,
                                     'isActive': _isActive,
+                                    'createdAt': FieldValue.serverTimestamp(),
+                                    'updatedAt': FieldValue.serverTimestamp(),
                                   };
-                                  print(productData);
+                                  print('Dữ liệu submit:');
+                                  productData.forEach((key, value) {
+                                    print('$key: $value');
+                                  });
+                                  try {
+                                    await firestore.collection('products').add(productData);
+                                    if (!mounted) return;
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(content: Text('Đã lưu sản phẩm thành công!')),
+                                    );
+                                    widget.onBack?.call();
+                                  } catch (e) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(content: Text('Lỗi khi lưu sản phẩm: $e')),
+                                    );
+                                  }
                                 }
                               },
                               icon: const Icon(Icons.save),

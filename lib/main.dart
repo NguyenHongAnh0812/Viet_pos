@@ -1,23 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
-import 'package:provider/provider.dart';
-import 'screens/auth/login_screen.dart';
-import 'screens/auth/register_screen.dart';
-import 'screens/dashboard/dashboard_screen.dart';
+import 'firebase_options.dart';
+import 'screens/login_screen.dart';
+import 'screens/product_list_screen.dart';
+import 'screens/add_product_screen.dart';
+import 'widgets/main_layout.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(
-    options: const FirebaseOptions(
-      apiKey: "AIzaSyA1gxPqELZZYiC86M3Bqz506X7TRYjeJSQ",
-      authDomain: "viet-pos-db.firebaseapp.com",
-      projectId: "viet-pos-db",
-      storageBucket: "viet-pos-db.firebasestorage.app",
-      messagingSenderId: "588886544003",
-      appId: "1:588886544003:web:9a36b08e73f92846c2d5b6",
-      measurementId: "G-22K571YCDL",
-      databaseURL: "https://viet-pos-db.firebaseio.com",
-    ),
+    options: DefaultFirebaseOptions.currentPlatform,
   );
   runApp(const MyApp());
 }
@@ -29,7 +21,7 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'VET-POS',
+      title: 'VIET POS',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         // This is the theme of your application.
@@ -53,9 +45,9 @@ class MyApp extends StatelessWidget {
       home: const LoginScreen(),
       routes: {
         '/login': (context) => const LoginScreen(),
-        '/register': (context) => const RegisterScreen(),
-        '/dashboard': (context) => const DashboardScreen(),
-        // Thêm các route khác ở đây
+        '/main': (context) => const MainLayout(),
+        '/products': (context) => const ProductListScreen(),
+        '/addProduct': (context) => const AddProductScreen(),
       },
     );
   }

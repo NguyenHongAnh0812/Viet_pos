@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "588886544003",
+    "project_id": "viet-pos-db",
+    "storage_bucket": "viet-pos-db.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:588886544003:android:1aa178490a76156cc2d5b6",
+        "android_client_info": {
+          "package_name": "com.example.viet_pos_flutter"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBx6kGOk-_mWaWvURcQVwc0EX68rf620FA"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
