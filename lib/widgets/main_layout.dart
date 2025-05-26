@@ -2,9 +2,11 @@ import 'package:flutter/material.dart';
 import '../screens/product_list_screen.dart';
 import '../screens/product_category_screen.dart';
 import '../screens/add_product_screen.dart';
+import '../screens/products/product_detail_screen.dart';
+import '../models/product.dart';
 
 // Định nghĩa enum cho các trang
-enum MainPage { dashboard, productList, productCategory, addProduct, inventory, report, settings }
+enum MainPage { dashboard, productList, productCategory, addProduct, inventory, report, settings, productDetail }
 
 class MainLayout extends StatefulWidget {
   final Widget? child; // Không cần truyền child nữa, sẽ render theo _currentPage
@@ -19,6 +21,7 @@ class _MainLayoutState extends State<MainLayout> {
   int _selectedIndex = 0;
   MainPage _currentPage = MainPage.productList; // Bắt đầu ở ProductListScreen
   MainPage? _previousPage; // Lưu trang trước đó để xử lý nút back
+  Product? _selectedProduct;
 
   void _toggleSidebar() {
     setState(() {
@@ -47,6 +50,33 @@ class _MainLayoutState extends State<MainLayout> {
         // Nếu không có trang trước, quay về trang mặc định (ví dụ: productList)
         _currentPage = MainPage.productList;
       }
+    });
+  }
+
+  // Điều hướng mở chi tiết sản phẩm
+  void _openProductDetail(Product product) {
+    setState(() {
+      _previousPage = _currentPage;
+      _currentPage = MainPage.addProduct; // Tạm dùng addProduct, sẽ sửa lại bên dưới
+      _selectedProduct = product;
+      _currentPage = MainPage.productDetail;
+    });
+  }
+
+  // Điều hướng mở form sửa sản phẩm
+  void _openEditProduct(Product product) {
+    setState(() {
+      _previousPage = _currentPage;
+      _currentPage = MainPage.addProduct;
+      _selectedProduct = product;
+    });
+  }
+
+  // Điều hướng mở lại danh sách sản phẩm
+  void _openProductList() {
+    setState(() {
+      _currentPage = MainPage.productList;
+      _selectedProduct = null;
     });
   }
 
@@ -144,6 +174,7 @@ class _MainLayoutState extends State<MainLayout> {
         return Center(child: Text('Dashboard (chưa cài đặt)'));
       case MainPage.productList:
         return ProductListScreen(
+          onProductTap: _openProductDetail,
           onNavigate: _onSidebarTap,
         );
       case MainPage.productCategory:
@@ -152,7 +183,15 @@ class _MainLayoutState extends State<MainLayout> {
         );
       case MainPage.addProduct:
         return AddProductScreen(
-          onBack: _goBack,
+          product: _selectedProduct,
+          isEdit: _selectedProduct != null,
+          onBack: _openProductList,
+        );
+      case MainPage.productDetail:
+        return ProductDetailScreen(
+          product: _selectedProduct!,
+          onEdit: _openEditProduct,
+          onBack: _openProductList,
         );
       case MainPage.inventory:
         return Center(child: Text('Kiểm kê (chưa cài đặt)'));

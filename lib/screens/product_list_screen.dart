@@ -3,6 +3,7 @@ import '../models/product.dart';
 import '../services/product_service.dart';
 import 'package:intl/intl.dart' show NumberFormat;
 import '../widgets/main_layout.dart';
+import 'products/product_detail_screen.dart';
 
 // Custom thumb shape with blue border
 class BlueBorderThumbShape extends RoundSliderThumbShape {
@@ -45,8 +46,9 @@ class BlueBorderThumbShape extends RoundSliderThumbShape {
 }
 
 class ProductListScreen extends StatefulWidget {
+  final Function(Product)? onProductTap;
   final Function(MainPage)? onNavigate;
-  const ProductListScreen({super.key, this.onNavigate});
+  const ProductListScreen({super.key, this.onProductTap, this.onNavigate});
 
   @override
   State<ProductListScreen> createState() => _ProductListScreenState();
@@ -494,104 +496,109 @@ class _ProductListScreenState extends State<ProductListScreen> {
                         itemCount: sortedProducts.length,
                         itemBuilder: (context, index) {
                           final product = sortedProducts[index];
-                          return Card(
-                            margin: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 16.0),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16.0)),
-                            elevation: 2.5,
-                            color: Colors.white,
-                            child: Padding(
-                              padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 18.0),
-                              child: Row(
-                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                crossAxisAlignment: CrossAxisAlignment.center,
-                                children: [
-                                  // Phần trái: Thông tin thuốc
-                                  Expanded(
-                                    flex: 4,
-                                    child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
-                                      children: [
-                                        Text(
-                                          product.name,
-                                          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 20),
-                                        ),
-                                        const SizedBox(height: 2),
-                                        Text(
-                                          product.commonName,
-                                          style: TextStyle(color: Colors.grey[700], fontSize: 15, fontWeight: FontWeight.w500),
-                                        ),
-                                        const SizedBox(height: 2),
-                                        Text(
-                                          'Mã vạch: ${product.barcode ?? "N/A"}',
-                                          style: TextStyle(color: Colors.grey[500], fontSize: 13),
-                                        ),
-                                        const SizedBox(height: 8),
-                                        Wrap(
-                                          spacing: 8.0,
-                                          runSpacing: 4.0,
-                                          children: product.tags.map((tag) {
-                                            return Container(
-                                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                                              decoration: BoxDecoration(
-                                                border: Border.all(color: Colors.grey, width: 1),
-                                                borderRadius: BorderRadius.circular(16),
+                          return GestureDetector(
+                            onTap: () {
+                              if (widget.onProductTap != null) {
+                                widget.onProductTap!(product);
+                              }
+                            },
+                            child: Card(
+                              margin: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 16.0),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16.0)),
+                              elevation: 2.5,
+                              color: Colors.white,
+                              child: Padding(
+                                padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 18.0),
+                                child: Row(
+                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                  crossAxisAlignment: CrossAxisAlignment.center,
+                                  children: [
+                                    // Phần trái: Thông tin thuốc
+                                    Expanded(
+                                      flex: 4,
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            product.name,
+                                            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 20),
+                                          ),
+                                          const SizedBox(height: 2),
+                                          Text(
+                                            product.commonName,
+                                            style: TextStyle(color: Colors.grey[700], fontSize: 15, fontWeight: FontWeight.w500),
+                                          ),
+                                          const SizedBox(height: 2),
+                                          Text(
+                                            'Mã vạch: ${product.barcode ?? "N/A"}',
+                                            style: TextStyle(color: Colors.grey[500], fontSize: 13),
+                                          ),
+                                          const SizedBox(height: 8),
+                                          Wrap(
+                                            spacing: 8.0,
+                                            runSpacing: 4.0,
+                                            children: product.tags.map((tag) {
+                                              return Container(
+                                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                                decoration: BoxDecoration(
+                                                  border: Border.all(color: Colors.grey, width: 1),
+                                                  borderRadius: BorderRadius.circular(16),
+                                                ),
+                                                child: Text(tag, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
+                                              );
+                                            }).toList(),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                    // Phần giữa: Giá và số lượng
+                                    Expanded(
+                                      flex: 2,
+                                      child: Column(
+                                        mainAxisAlignment: MainAxisAlignment.center,
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            '${numberFormat.format(product.salePrice)}đ',
+                                            style: const TextStyle(color: Colors.blue, fontWeight: FontWeight.bold, fontSize: 20),
+                                            textAlign: TextAlign.left,
+                                          ),
+                                          const SizedBox(height: 8),
+                                          Row(
+                                            mainAxisAlignment: MainAxisAlignment.start,
+                                            mainAxisSize: MainAxisSize.min,
+                                            crossAxisAlignment: CrossAxisAlignment.center,
+                                            children: [
+                                              const Text('Số lượng: ', style: TextStyle(fontWeight: FontWeight.w500, fontSize: 16)),
+                                              Text(
+                                                '${product.stock}',
+                                                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 17),
                                               ),
-                                              child: Text(tag, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
-                                            );
-                                          }).toList(),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                  // Phần giữa: Giá và số lượng
-                                  Expanded(
-                                    flex: 2,
-                                    child: Column(
-                                      mainAxisAlignment: MainAxisAlignment.center,
-                                      crossAxisAlignment: CrossAxisAlignment.start,
-                                      children: [
-                                        Text(
-                                          '${numberFormat.format(product.salePrice)}đ',
-                                          style: const TextStyle(color: Colors.blue, fontWeight: FontWeight.bold, fontSize: 20),
-                                          textAlign: TextAlign.left,
-                                        ),
-                                        const SizedBox(height: 8),
-                                        Row(
-                                          mainAxisAlignment: MainAxisAlignment.start,
-                                          mainAxisSize: MainAxisSize.min,
-                                          crossAxisAlignment: CrossAxisAlignment.center,
-                                          children: [
-                                            const Text('Số lượng: ', style: TextStyle(fontWeight: FontWeight.w500, fontSize: 16)),
-                                            Text(
-                                              '${product.stock}',
-                                              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 17),
-                                            ),
-                                          ],
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                  // Phần phải: Nút chỉnh sửa
-                                  Container(
-                                    margin: const EdgeInsets.only(left: 24),
-                                    child: Container(
-                                      width: 40,
-                                      height: 40,
-                                      decoration: BoxDecoration(
-                                        color: Colors.white,
-                                        border: Border.all(color: Colors.grey.shade300, width: 1.5),
-                                        borderRadius: BorderRadius.circular(12),
-                                      ),
-                                      child: IconButton(
-                                        icon: Icon(Icons.edit, color: Colors.grey[700], size: 20),
-                                        tooltip: 'Chỉnh sửa',
-                                        onPressed: () {
-                                          // TODO: Thêm logic chuyển sang màn hình chỉnh sửa sản phẩm
-                                        },
+                                            ],
+                                          ),
+                                        ],
                                       ),
                                     ),
-                                  ),
-                                ],
+                                    // Phần phải: Nút chỉnh sửa chỉ hiển thị tooltip, không điều hướng
+                                    Container(
+                                      margin: const EdgeInsets.only(left: 24),
+                                      child: Container(
+                                        width: 40,
+                                        height: 40,
+                                        decoration: BoxDecoration(
+                                          color: Colors.white,
+                                          border: Border.all(color: Colors.grey.shade300, width: 1.5),
+                                          borderRadius: BorderRadius.circular(12),
+                                        ),
+                                        child: IconButton(
+                                          icon: Icon(Icons.edit, color: Colors.grey[700], size: 20),
+                                          tooltip: 'Chỉnh sửa',
+                                          onPressed: null, // Không điều hướng ở đây
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
                               ),
                             ),
                           );

@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../widgets/main_layout.dart';
+import '../models/product.dart';
 
 class AddProductScreen extends StatefulWidget {
   final VoidCallback? onBack;
-  const AddProductScreen({super.key, this.onBack});
+  final Product? product;
+  final bool isEdit;
+  const AddProductScreen({super.key, this.onBack, this.product, this.isEdit = false});
 
   @override
   State<AddProductScreen> createState() => _AddProductScreenState();
@@ -28,6 +31,29 @@ class _AddProductScreenState extends State<AddProductScreen> {
 
   String? _selectedCategory;
   bool _isActive = false; // Mặc định là Không hoạt động như mẫu
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.isEdit && widget.product != null) {
+      final p = widget.product!;
+      _nameController.text = p.name;
+      _commonNameController.text = p.commonName;
+      _barcodeController.text = p.barcode ?? '';
+      _skuController.text = p.sku ?? '';
+      _unitController.text = p.unit;
+      _quantityController.text = p.stock.toString();
+      _importPriceController.text = p.importPrice.toString();
+      _sellPriceController.text = p.salePrice.toString();
+      _tagsController.text = p.tags.join(', ');
+      _descriptionController.text = p.description;
+      _usageController.text = p.usage;
+      _ingredientsController.text = p.ingredients;
+      _notesController.text = p.notes;
+      _selectedCategory = p.category;
+      _isActive = p.isActive;
+    }
+  }
 
   @override
   void dispose() {
@@ -135,6 +161,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
                                         const SizedBox(height: 8.0),
                                         TextFormField(
                                           controller: _nameController,
+                                          readOnly: widget.isEdit,
                                           decoration: InputDecoration(
                                             hintText: 'Nhập tên danh pháp',
                                             border: OutlineInputBorder(
@@ -532,32 +559,23 @@ class _AddProductScreenState extends State<AddProductScreen> {
                                   final importPrice = double.tryParse(_importPriceController.text) ?? 0.0;
                                   final salePrice = double.tryParse(_sellPriceController.text) ?? 0.0;
                                   final firestore = FirebaseFirestore.instance;
-                                  // Kiểm tra trùng barcode
+                                  final productsRef = firestore.collection('products');
+                                  // Kiểm tra trùng barcode (loại trừ sản phẩm hiện tại)
                                   if (barcode.isNotEmpty) {
-                                    final barcodeQuery = await firestore.collection('products').where('barcode', isEqualTo: barcode).get();
-                                    if (barcodeQuery.docs.isNotEmpty) {
+                                    final barcodeQuery = await productsRef.where('barcode', isEqualTo: barcode).get();
+                                    if (barcodeQuery.docs.any((doc) => !widget.isEdit || doc.id != widget.product?.id)) {
                                       ScaffoldMessenger.of(context).showSnackBar(
                                         const SnackBar(content: Text('Mã vạch đã tồn tại!')),
                                       );
                                       return;
                                     }
                                   }
-                                  // Kiểm tra trùng SKU
+                                  // Kiểm tra trùng SKU (loại trừ sản phẩm hiện tại)
                                   if (sku.isNotEmpty) {
-                                    final skuQuery = await firestore.collection('products').where('sku', isEqualTo: sku).get();
-                                    if (skuQuery.docs.isNotEmpty) {
+                                    final skuQuery = await productsRef.where('sku', isEqualTo: sku).get();
+                                    if (skuQuery.docs.any((doc) => !widget.isEdit || doc.id != widget.product?.id)) {
                                       ScaffoldMessenger.of(context).showSnackBar(
                                         const SnackBar(content: Text('SKU đã tồn tại!')),
-                                      );
-                                      return;
-                                    }
-                                  }
-                                  // Kiểm tra trùng tên danh pháp
-                                  if (name.isNotEmpty) {
-                                    final nameQuery = await firestore.collection('products').where('name', isEqualTo: name).get();
-                                    if (nameQuery.docs.isNotEmpty) {
-                                      ScaffoldMessenger.of(context).showSnackBar(
-                                        const SnackBar(content: Text('Tên danh pháp đã tồn tại!')),
                                       );
                                       return;
                                     }
@@ -583,7 +601,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
                                     );
                                     if (confirm != true) return;
                                   }
-                                  // Tiến hành lưu sản phẩm
+                                  // Tạo dữ liệu sản phẩm
                                   final productData = {
                                     'name': name,
                                     'commonName': _commonNameController.text,
@@ -600,20 +618,41 @@ class _AddProductScreenState extends State<AddProductScreen> {
                                     'notes': _notesController.text,
                                     'category': _selectedCategory,
                                     'isActive': _isActive,
-                                    'createdAt': FieldValue.serverTimestamp(),
                                     'updatedAt': FieldValue.serverTimestamp(),
                                   };
-                                  print('Dữ liệu submit:');
-                                  productData.forEach((key, value) {
-                                    print('$key: $value');
-                                  });
                                   try {
-                                    await firestore.collection('products').add(productData);
-                                    if (!mounted) return;
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      const SnackBar(content: Text('Đã lưu sản phẩm thành công!')),
-                                    );
-                                    widget.onBack?.call();
+                                    if (widget.isEdit && widget.product != null) {
+                                      // Lưu lịch sử chỉnh sửa
+                                      final editHistory = {
+                                        'editor': 'user@example.com', // TODO: Lấy user thực tế nếu có auth
+                                        'editedAt': FieldValue.serverTimestamp(),
+                                        'fieldsChanged': productData.keys.toList(),
+                                      };
+                                      await productsRef.doc(widget.product!.id).update({
+                                        ...productData,
+                                        'editHistory': FieldValue.arrayUnion([editHistory]),
+                                      });
+                                      if (!mounted) return;
+                                      ScaffoldMessenger.of(context).showSnackBar(
+                                        const SnackBar(content: Text('Cập nhật sản phẩm thành công!')),
+                                      );
+                                      if (widget.onBack != null) {
+                                        widget.onBack!();
+                                      }
+                                    } else {
+                                      // Thêm mới
+                                      await productsRef.add({
+                                        ...productData,
+                                        'createdAt': FieldValue.serverTimestamp(),
+                                      });
+                                      if (!mounted) return;
+                                      ScaffoldMessenger.of(context).showSnackBar(
+                                        const SnackBar(content: Text('Đã lưu sản phẩm thành công!')),
+                                      );
+                                      if (widget.onBack != null) {
+                                        widget.onBack!();
+                                      }
+                                    }
                                   } catch (e) {
                                     ScaffoldMessenger.of(context).showSnackBar(
                                       SnackBar(content: Text('Lỗi khi lưu sản phẩm: $e')),
