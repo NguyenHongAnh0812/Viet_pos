@@ -120,7 +120,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'Thêm sản phẩm mới',
+                        widget.isEdit ? 'Sửa sản phẩm' : 'Thêm sản phẩm mới',
                         style: TextStyle(
                           fontWeight: FontWeight.bold,
                           fontSize: 20,
@@ -560,20 +560,20 @@ class _AddProductScreenState extends State<AddProductScreen> {
                                   final salePrice = double.tryParse(_sellPriceController.text) ?? 0.0;
                                   final firestore = FirebaseFirestore.instance;
                                   final productsRef = firestore.collection('products');
-                                  // Kiểm tra trùng barcode (loại trừ sản phẩm hiện tại)
+                                  // Kiểm tra trùng barcode (loại trừ sản phẩm hiện tại khi sửa)
                                   if (barcode.isNotEmpty) {
                                     final barcodeQuery = await productsRef.where('barcode', isEqualTo: barcode).get();
-                                    if (barcodeQuery.docs.any((doc) => !widget.isEdit || doc.id != widget.product?.id)) {
+                                    if (barcodeQuery.docs.any((doc) => widget.isEdit ? doc.id != widget.product?.id : true)) {
                                       ScaffoldMessenger.of(context).showSnackBar(
                                         const SnackBar(content: Text('Mã vạch đã tồn tại!')),
                                       );
                                       return;
                                     }
                                   }
-                                  // Kiểm tra trùng SKU (loại trừ sản phẩm hiện tại)
+                                  // Kiểm tra trùng SKU (loại trừ sản phẩm hiện tại khi sửa)
                                   if (sku.isNotEmpty) {
                                     final skuQuery = await productsRef.where('sku', isEqualTo: sku).get();
-                                    if (skuQuery.docs.any((doc) => !widget.isEdit || doc.id != widget.product?.id)) {
+                                    if (skuQuery.docs.any((doc) => widget.isEdit ? doc.id != widget.product?.id : true)) {
                                       ScaffoldMessenger.of(context).showSnackBar(
                                         const SnackBar(content: Text('SKU đã tồn tại!')),
                                       );
@@ -622,16 +622,24 @@ class _AddProductScreenState extends State<AddProductScreen> {
                                   };
                                   try {
                                     if (widget.isEdit && widget.product != null) {
-                                      // Lưu lịch sử chỉnh sửa
+                                      // 1. Cập nhật các trường sản phẩm trước (không có editHistory)
+                                      await productsRef.doc(widget.product!.id).update(productData);
+
+                                      // 2. Lấy server timestamp thực tế
+                                      final serverTimeDoc = await firestore.collection('serverTime').add({'ts': FieldValue.serverTimestamp()});
+                                      final serverTimeSnap = await serverTimeDoc.get();
+                                      final serverTimestamp = serverTimeSnap['ts'];
+
+                                      // 3. Thêm lịch sử chỉnh sửa với timestamp thực tế
                                       final editHistory = {
                                         'editor': 'user@example.com', // TODO: Lấy user thực tế nếu có auth
-                                        'editedAt': FieldValue.serverTimestamp(),
+                                        'editedAt': serverTimestamp,
                                         'fieldsChanged': productData.keys.toList(),
                                       };
                                       await productsRef.doc(widget.product!.id).update({
-                                        ...productData,
                                         'editHistory': FieldValue.arrayUnion([editHistory]),
                                       });
+
                                       if (!mounted) return;
                                       ScaffoldMessenger.of(context).showSnackBar(
                                         const SnackBar(content: Text('Cập nhật sản phẩm thành công!')),

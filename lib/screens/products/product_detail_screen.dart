@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../models/product.dart';
 import 'package:intl/intl.dart';
 import '../add_product_screen.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class ProductDetailScreen extends StatelessWidget {
   final Product product;
@@ -155,8 +156,50 @@ class ProductDetailScreen extends StatelessWidget {
                     ),
                     const SizedBox(width: 16),
                     ElevatedButton.icon(
-                      onPressed: () {
-                        // TODO: Xóa sản phẩm
+                      onPressed: () async {
+                        final confirm = await showDialog<bool>(
+                          context: context,
+                          builder: (context) => AlertDialog(
+                            title: const Text('Xác nhận xóa sản phẩm', style: TextStyle(fontWeight: FontWeight.bold)),
+                            content: Text('Bạn có chắc chắn muốn xóa sản phẩm "${product.name}"? Hành động này không thể hoàn tác.'),
+                            actions: [
+                              TextButton(
+                                onPressed: () => Navigator.of(context).pop(false),
+                                child: const Text('Hủy'),
+                              ),
+                              ElevatedButton(
+                                style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+                                onPressed: () => Navigator.of(context).pop(true),
+                                child: const Text('Xóa'),
+                              ),
+                            ],
+                          ),
+                        );
+                        if (confirm != true) return;
+                        // Kiểm tra tồn kho
+                        if (product.stock > 0) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text('Không thể xóa sản phẩm còn tồn kho.')),
+                          );
+                          return;
+                        }
+                        // Giả lập kiểm tra đã từng kiểm kê/giao dịch (nếu có trường hasTransaction hoặc hasInventoryHistory)
+                        final hasTransaction = false; // TODO: thay bằng logic thực tế nếu có
+                        if (hasTransaction) {
+                          // Chỉ cho ngừng hoạt động
+                          await FirebaseFirestore.instance.collection('products').doc(product.id).update({'isActive': false});
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text('Sản phẩm đã được chuyển sang trạng thái ngừng hoạt động.')),
+                          );
+                          if (onBack != null) onBack!();
+                          return;
+                        }
+                        // Xóa sản phẩm
+                        await FirebaseFirestore.instance.collection('products').doc(product.id).delete();
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('Đã xóa sản phẩm thành công!')),
+                        );
+                        if (onBack != null) onBack!();
                       },
                       icon: const Icon(Icons.delete),
                       label: const Text('Xóa sản phẩm'),
