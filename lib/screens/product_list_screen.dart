@@ -4,6 +4,12 @@ import '../services/product_service.dart';
 import 'package:intl/intl.dart' show NumberFormat;
 import '../widgets/main_layout.dart';
 import 'products/product_detail_screen.dart';
+import 'package:file_picker/file_picker.dart';
+import 'package:excel/excel.dart' as ex;
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:csv/csv.dart';
+import 'dart:convert';
+import 'dart:math' show min;
 
 // Custom thumb shape with blue border
 class BlueBorderThumbShape extends RoundSliderThumbShape {
@@ -57,13 +63,17 @@ class ProductListScreen extends StatefulWidget {
 class _ProductListScreenState extends State<ProductListScreen> {
   final _productService = ProductService();
   String selectedCategory = 'Tất cả';
-  RangeValues priceRange = const RangeValues(3500, 65000);
+  RangeValues priceRange = const RangeValues(0, 65000);
   RangeValues stockRange = const RangeValues(3, 120);
   String status = 'Tất cả';
   Set<String> selectedTags = {};
   String searchText = '';
   bool isFilterOpen = false;
   String sortOption = 'name_asc';
+  int minStock = 0;
+  int maxStock = 100;
+  double minPrice = 0;
+  double maxPrice = 100000;
 
   final List<Map<String, dynamic>> sortOptions = [
     {
@@ -98,14 +108,25 @@ class _ProductListScreenState extends State<ProductListScreen> {
     },
   ];
 
-  List<String> get allCategories => ['Tất cả', 'Kháng sinh', 'Vitamin', 'Giảm đau', 'Bổ sung', 'Khác'];
+  List<String> getCategoriesFromProducts(List<Product> products) {
+    final set = products.map((p) => p.category).where((c) => c != null && c.isNotEmpty).toSet();
+    final list = set.toList()..sort();
+    return ['Tất cả', ...list];
+  }
+
   List<String> get allTags => ['kháng sinh', 'phổ rộng', 'vitamin', 'bổ sung', 'NSAID', 'giảm đau', 'quinolone'];
 
   List<Product> filterProducts(List<Product> products) {
-    return products.where((p) {
+    print('Tổng số sản phẩm lấy từ Firestore (chưa filter): \\${products.length}');
+    for (var p in products) {
+      print('Product raw: id=\\${p.id}, name=\\${p.name}, category=\\${p.category}, stock=\\${p.stock}, isActive=\\${p.isActive}');
+    }
+    final filtered = products.where((p) {
       if (selectedCategory != 'Tất cả' && p.category != selectedCategory) return false;
       if (p.salePrice < priceRange.start || p.salePrice > priceRange.end) return false;
-      if (p.stock < stockRange.start || p.stock > stockRange.end) return false;
+      if (stockRange.start > 0 || stockRange.end < 99999) {
+        if (p.stock < stockRange.start || p.stock > stockRange.end) return false;
+      }
       if (status == 'Còn bán' && !p.isActive) return false;
       if (status == 'Ngừng bán' && p.isActive) return false;
       if (selectedTags.isNotEmpty && !selectedTags.any((tag) => p.tags.contains(tag))) return false;
@@ -113,6 +134,11 @@ class _ProductListScreenState extends State<ProductListScreen> {
           (p.barcode != null && p.barcode!.contains(searchText)))) return false;
       return true;
     }).toList();
+    print('Tổng số sản phẩm sau filter: \\${filtered.length}');
+    for (var p in filtered) {
+      print('Product after filter: id=\\${p.id}, name=\\${p.name}, category=\\${p.category}, stock=\\${p.stock}, isActive=\\${p.isActive}');
+    }
+    return filtered;
   }
 
   List<Product> sortProducts(List<Product> products) {
@@ -139,6 +165,276 @@ class _ProductListScreenState extends State<ProductListScreen> {
     return products;
   }
 
+  Future<void> _importProductsFromExcel() async {
+    try {
+      FilePickerResult? result = await FilePicker.platform.pickFiles(
+        type: FileType.custom,
+        allowedExtensions: ['xlsx', 'csv'],
+      );
+
+      if (result == null) return;
+
+      final file = result.files.first;
+      print('Importing file: ${file.name}');
+
+      List<Map<String, dynamic>> products = [];
+      final bytes = file.bytes!;
+      final fileName = file.name.toLowerCase();
+
+      if (fileName.endsWith('.csv')) {
+        // Xử lý file CSV
+        String csvString = utf8.decode(bytes);
+        // Chuẩn hóa line break về \n
+        csvString = csvString.replaceAll('\r\n', '\n').replaceAll('\r', '\n');
+        print('CSV content length: \\${csvString.length}');
+        print('CSV content preview: \\${csvString.substring(0, min(200, csvString.length))}');
+
+        final csvTable = const CsvToListConverter().convert(csvString);
+        print('CSV table length: \\${csvTable.length}');
+
+        if (csvTable.isEmpty) {
+          throw Exception('File CSV không có dữ liệu');
+        }
+
+        // Lấy header và chuyển về chữ thường
+        final headers = (csvTable[0] as List).map((e) => e.toString().trim().toLowerCase()).toList();
+        print('Raw headers: \\${headers}');
+
+        // Mapping header tiếng Việt sang tên trường tiếng Anh
+        final headerMapping = {
+          'tên danh pháp': 'name',
+          'tên thường gọi': 'commonName',
+          'danh mục sản phẩm': 'category',
+          'mã vạch': 'barcode',
+          'sku': 'sku',
+          'đơn vị tính': 'unit',
+          'tags': 'tags',
+          'mô tả': 'description',
+          'công dụng': 'usage',
+          'thành phần': 'ingredients',
+          'ghi chú': 'notes',
+          'số lượng sản phẩm': 'stock',
+          'giá nhập': 'importPrice',
+          'giá bán': 'salePrice',
+          'trạng thái': 'isActive'
+        };
+
+        // Chuyển đổi header sang tiếng Anh
+        final processedHeaders = headers.map((h) => headerMapping[h] ?? h).toList();
+        print('Processed headers: \\${processedHeaders}');
+
+        // Kiểm tra các trường bắt buộc
+        final requiredFields = ['name', 'category', 'unit', 'stock'];
+        final missingFields = requiredFields.where((field) => !processedHeaders.contains(field)).toList();
+        if (missingFields.isNotEmpty) {
+          print('Thiếu các trường bắt buộc: \\${missingFields.join(", ")}');
+          throw Exception('Thiếu các trường bắt buộc: \\${missingFields.join(", ")}');
+        }
+
+        // Xử lý từng dòng dữ liệu
+        for (var i = 1; i < csvTable.length; i++) {
+          final row = csvTable[i] as List;
+          print('Row $i (${row.length} columns): $row');
+
+          if (row.length != headers.length) {
+            print('Bỏ qua dòng $i: Số lượng cột không khớp với header (${row.length} != ${headers.length})');
+            continue;
+          }
+
+          final product = <String, dynamic>{};
+          for (var j = 0; j < headers.length; j++) {
+            final header = headers[j];
+            final value = row[j].toString().trim();
+            final field = headerMapping[header];
+
+            if (field != null) {
+              switch (field) {
+                case 'stock':
+                  product[field] = int.tryParse(value) ?? 0;
+                  break;
+                case 'importPrice':
+                case 'salePrice':
+                  product[field] = double.tryParse(value) ?? 0.0;
+                  break;
+                case 'isActive':
+                  product[field] = value.toLowerCase() == 'còn bán';
+                  break;
+                case 'tags':
+                  product[field] = value.split(',').map((e) => e.trim()).toList();
+                  break;
+                default:
+                  product[field] = value;
+              }
+            }
+          }
+
+          // Thêm các trường mặc định nếu chưa có
+          product['commonName'] ??= product['name'];
+          product['importPrice'] ??= 0.0;
+          product['salePrice'] ??= 0.0;
+          product['isActive'] ??= true;
+          product['createdAt'] = FieldValue.serverTimestamp();
+          product['updatedAt'] = FieldValue.serverTimestamp();
+
+          // Kiểm tra dữ liệu bắt buộc
+          bool valid = true;
+          for (final field in requiredFields) {
+            if (product[field] == null || product[field].toString().isEmpty) {
+              print('Bỏ qua dòng $i: Thiếu trường bắt buộc $field, value: ${product[field]}');
+              valid = false;
+            }
+          }
+          if (!valid) {
+            print('Dòng $i bị bỏ qua do thiếu trường bắt buộc. Product: $product');
+            continue;
+          }
+
+          print('Created product (row $i): $product');
+          products.add(product);
+        }
+        print('Tổng số sản phẩm hợp lệ được import: ${products.length}');
+      } else {
+        // Xử lý file Excel
+        final excel = ex.Excel.decodeBytes(bytes);
+        final sheet = excel.tables[excel.tables.keys.first];
+        if (sheet == null) throw 'Sheet không hợp lệ';
+        
+        final headers = sheet.rows.first.map((cell) => cell?.value.toString().trim().toLowerCase() ?? '').toList();
+        print('Excel headers (gốc): $headers');
+        // Mapping header tiếng Việt sang tên trường tiếng Anh
+        final headerMapping = {
+          'tên danh pháp': 'name',
+          'tên thường gọi': 'commonName',
+          'danh mục sản phẩm': 'category',
+          'mã vạch': 'barcode',
+          'sku': 'sku',
+          'đơn vị tính': 'unit',
+          'tags': 'tags',
+          'mô tả': 'description',
+          'công dụng': 'usage',
+          'thành phần': 'ingredients',
+          'ghi chú': 'notes',
+          'số lượng sản phẩm': 'stock',
+          'giá nhập': 'importPrice',
+          'giá bán': 'salePrice',
+          'trạng thái': 'isActive'
+        };
+        final processedHeaders = headers.map((h) => headerMapping[h] ?? h).toList();
+        print('Processed Excel headers (mapping): $processedHeaders');
+        for (var i = 1; i < sheet.rows.length; i++) {
+          final row = sheet.rows[i];
+          final Map<String, dynamic> product = {};
+          for (var j = 0; j < processedHeaders.length; j++) {
+            final field = processedHeaders[j];
+            if (field == null || field.isEmpty) continue;
+            final cell = row[j];
+            final value = cell?.value;
+            print('Row $i, Col $j: header="${headers[j]}", mapped="$field", value="$value"');
+            switch (field) {
+              case 'stock':
+                product[field] = int.tryParse(value?.toString() ?? '') ?? 0;
+                break;
+              case 'importPrice':
+              case 'salePrice':
+                product[field] = double.tryParse(value?.toString() ?? '') ?? 0.0;
+                break;
+              case 'isActive':
+                product[field] = (value?.toString().toLowerCase() ?? '') == 'còn bán';
+                break;
+              case 'tags':
+                product[field] = (value?.toString() ?? '').split(',').map((e) => e.trim()).toList();
+                break;
+              default:
+                product[field] = value?.toString() ?? '';
+            }
+          }
+          // Thêm các trường mặc định nếu chưa có
+          product['commonName'] ??= product['name'];
+          product['importPrice'] ??= 0.0;
+          product['salePrice'] ??= 0.0;
+          product['isActive'] ??= true;
+          product['createdAt'] = FieldValue.serverTimestamp();
+          product['updatedAt'] = FieldValue.serverTimestamp();
+          // Kiểm tra dữ liệu bắt buộc
+          bool valid = true;
+          for (final field in ['name', 'category', 'unit', 'stock']) {
+            if (product[field] == null || product[field].toString().isEmpty) {
+              print('Bỏ qua dòng $i: Thiếu trường bắt buộc $field');
+              valid = false;
+            }
+          }
+          if (!valid) continue;
+          print('Created product (row $i): $product');
+          products.add(product);
+        }
+      }
+
+      if (products.isEmpty) {
+        throw Exception('Không có sản phẩm nào được tìm thấy trong file');
+      }
+
+      print('Total products to import: ${products.length}');
+
+      // Import vào Firestore
+      final batch = FirebaseFirestore.instance.batch();
+      for (var product in products) {
+        final docRef = FirebaseFirestore.instance.collection('products').doc();
+        batch.set(docRef, product);
+      }
+
+      await batch.commit();
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Đã import ${products.length} sản phẩm thành công')),
+        );
+      }
+    } catch (e) {
+      print('Import error: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Lỗi khi import: $e')),
+        );
+      }
+    }
+  }
+
+  void updateFilterRanges(List<Product> products) {
+    if (products.isNotEmpty) {
+      int newMinStock = products.map((p) => p.stock).reduce((a, b) => a < b ? a : b);
+      int newMaxStock = products.map((p) => p.stock).reduce((a, b) => a > b ? a : b);
+      double newMinPrice = products.map((p) => p.salePrice).reduce((a, b) => a < b ? a : b);
+      double newMaxPrice = products.map((p) => p.salePrice).reduce((a, b) => a > b ? a : b);
+
+      // Chỉ setState nếu giá trị thực sự thay đổi
+      if (newMinStock != minStock || newMaxStock != maxStock ||
+          newMinPrice != minPrice || newMaxPrice != maxPrice) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (!mounted) return;
+          setState(() {
+            minStock = newMinStock;
+            maxStock = newMaxStock;
+            minPrice = newMinPrice;
+            maxPrice = newMaxPrice;
+            stockRange = RangeValues(minStock.toDouble(), maxStock.toDouble());
+            priceRange = RangeValues(minPrice, maxPrice);
+          });
+        });
+      }
+    }
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    // Reset filter về mặc định mỗi lần vào màn hình
+    selectedCategory = 'Tất cả';
+    status = 'Tất cả';
+    selectedTags = {};
+    priceRange = const RangeValues(3500, 65000);
+    stockRange = const RangeValues(3, 120);
+    searchText = '';
+  }
+
   @override
   Widget build(BuildContext context) {
     final numberFormat = NumberFormat('#,###', 'vi_VN');
@@ -159,21 +455,42 @@ class _ProductListScreenState extends State<ProductListScreen> {
                     Text('Quản lý tất cả sản phẩm', style: TextStyle(color: Colors.grey[600], fontSize: 16)),
                   ],
                 ),
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(5),
-                  child: ElevatedButton.icon(
-                    onPressed: () => widget.onNavigate?.call(MainPage.addProduct),
-                    icon: const Icon(Icons.add),
-                    label: const Text('Thêm sản phẩm'),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.blue,
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-                      textStyle: const TextStyle(fontWeight: FontWeight.bold),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(5)),
-                      elevation: 0,
+                Row(
+                  children: [
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(5),
+                      child: ElevatedButton.icon(
+                        onPressed: () => widget.onNavigate?.call(MainPage.addProduct),
+                        icon: const Icon(Icons.add),
+                        label: const Text('Thêm sản phẩm'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Color(0xFF3a6ff8),
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                          textStyle: const TextStyle(fontWeight: FontWeight.bold),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(5)),
+                          elevation: 0,
+                        ),
+                      ),
                     ),
-                  ),
+                    const SizedBox(width: 12),
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(5),
+                      child: ElevatedButton.icon(
+                        onPressed: _importProductsFromExcel,
+                        icon: const Icon(Icons.upload_file),
+                        label: const Text('Import'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Color(0xFF3a6ff8),
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                          textStyle: const TextStyle(fontWeight: FontWeight.bold),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(5)),
+                          elevation: 0,
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ),
@@ -338,18 +655,29 @@ class _ProductListScreenState extends State<ProductListScreen> {
                               // Danh mục
                               Text('Danh mục sản phẩm', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 15)),
                               const SizedBox(height: 8),
-                              DropdownButtonFormField<String>(
-                                value: selectedCategory,
-                                decoration: InputDecoration(
-                                  hintText: 'Tất cả danh mục',
-                                  border: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(8),
-                                    borderSide: BorderSide(color: Colors.grey.shade200),
-                                  ),
-                                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                                ),
-                                items: allCategories.map((cat) => DropdownMenuItem(value: cat, child: Text(cat))).toList(),
-                                onChanged: (v) => setState(() => selectedCategory = v!),
+                              StreamBuilder<List<Product>>(
+                                stream: _productService.getProducts(),
+                                builder: (context, snapshot) {
+                                  final products = snapshot.data ?? [];
+                                  final categories = getCategoriesFromProducts(products);
+                                  final uniqueCategories = categories.toSet().toList();
+                                  if (!uniqueCategories.contains(selectedCategory)) {
+                                    selectedCategory = 'Tất cả';
+                                  }
+                                  return DropdownButtonFormField<String>(
+                                    value: selectedCategory,
+                                    decoration: InputDecoration(
+                                      hintText: 'Tất cả danh mục',
+                                      border: OutlineInputBorder(
+                                        borderRadius: BorderRadius.circular(8),
+                                        borderSide: BorderSide(color: Colors.grey.shade200),
+                                      ),
+                                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                                    ),
+                                    items: uniqueCategories.map((cat) => DropdownMenuItem(value: cat, child: Text(cat))).toList(),
+                                    onChanged: (v) => setState(() => selectedCategory = v!),
+                                  );
+                                },
                               ),
                               const SizedBox(height: 24),
                               // Khoảng giá
@@ -375,9 +703,9 @@ class _ProductListScreenState extends State<ProductListScreen> {
                                 ),
                                 child: RangeSlider(
                                   values: priceRange,
-                                  min: 3500,
-                                  max: 65000,
-                                  divisions: 100,
+                                  min: minPrice,
+                                  max: maxPrice,
+                                  divisions: (maxPrice - minPrice).toInt() > 0 ? (maxPrice - minPrice).toInt() : 1,
                                   onChanged: (RangeValues values) {
                                     setState(() {priceRange = values;});
                                   },
@@ -407,9 +735,9 @@ class _ProductListScreenState extends State<ProductListScreen> {
                                 ),
                                 child: RangeSlider(
                                   values: stockRange,
-                                  min: 3,
-                                  max: 120,
-                                  divisions: 117,
+                                  min: minStock.toDouble(),
+                                  max: maxStock.toDouble(),
+                                  divisions: (maxStock - minStock) > 0 ? (maxStock - minStock) : 1,
                                   onChanged: (RangeValues values) {
                                     setState(() {stockRange = values;});
                                   },
@@ -522,6 +850,12 @@ class _ProductListScreenState extends State<ProductListScreen> {
                       }
 
                       final products = snapshot.data ?? [];
+                      final categories = getCategoriesFromProducts(products);
+                      final uniqueCategories = categories.toSet().toList();
+                      if (!uniqueCategories.contains(selectedCategory)) {
+                        selectedCategory = 'Tất cả';
+                      }
+                      updateFilterRanges(products);
                       final filteredProducts = filterProducts(products);
                       final sortedProducts = sortProducts(filteredProducts);
 

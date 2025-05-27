@@ -181,31 +181,48 @@ class _AddProductScreenState extends State<AddProductScreen> {
                                         const SizedBox(height: 16.0),
                                         Text('Danh mục *', style: TextStyle(fontWeight: FontWeight.bold)),
                                         const SizedBox(height: 8.0),
-                                        DropdownButtonFormField<String>(
-                                          value: _selectedCategory,
-                                          decoration: InputDecoration(
-                                            hintText: 'Chọn danh mục',
-                                            border: OutlineInputBorder(
-                                               borderRadius: BorderRadius.circular(5.0),
-                                               borderSide: BorderSide(color: Colors.grey.shade200),
-                                            ),
-                                            isDense: true,
-                                            contentPadding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 12.0),
-                                          ),
-                                          items: const [
-                                            DropdownMenuItem(value: '1', child: Text('Danh mục 1')),
-                                            DropdownMenuItem(value: '2', child: Text('Danh mục 2')),
-                                          ], // TODO: Replace with actual categories
-                                          onChanged: (value) {
-                                            setState(() {
-                                              _selectedCategory = value;
-                                            });
-                                          },
-                                          validator: (value) {
-                                            if (value == null || value.isEmpty) {
-                                              return 'Vui lòng chọn danh mục';
+                                        FutureBuilder<QuerySnapshot>(
+                                          future: FirebaseFirestore.instance.collection('products').get(),
+                                          builder: (context, snapshot) {
+                                            List<String> categories = ['Kháng sinh', 'Vitamin', 'Giảm đau', 'Bổ sung', 'Khác'];
+                                            if (snapshot.hasData) {
+                                              final docs = snapshot.data!.docs;
+                                              final dynamicCats = docs.map((d) => d['category']?.toString() ?? '').where((c) => c.isNotEmpty).toSet().toList();
+                                              categories = {...categories, ...dynamicCats}.toList();
+                                              categories.sort();
                                             }
-                                            return null;
+                                            // Nếu _selectedCategory không nằm trong danh sách, reset về null
+                                            if (_selectedCategory != null && !categories.contains(_selectedCategory)) {
+                                              WidgetsBinding.instance.addPostFrameCallback((_) {
+                                                setState(() {
+                                                  _selectedCategory = null;
+                                                });
+                                              });
+                                            }
+                                            return DropdownButtonFormField<String>(
+                                              value: _selectedCategory,
+                                              decoration: InputDecoration(
+                                                hintText: 'Chọn danh mục',
+                                                border: OutlineInputBorder(
+                                                  borderRadius: BorderRadius.circular(5.0),
+                                                  borderSide: BorderSide(color: Colors.grey.shade200),
+                                                ),
+                                                isDense: true,
+                                                contentPadding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 12.0),
+                                              ),
+                                              items: categories.map((cat) => DropdownMenuItem(value: cat, child: Text(cat))).toList(),
+                                              onChanged: (value) {
+                                                setState(() {
+                                                  _selectedCategory = value;
+                                                });
+                                              },
+                                              validator: (value) {
+                                                if (value == null || value.isEmpty) {
+                                                  return 'Vui lòng chọn danh mục';
+                                                }
+                                                return null;
+                                              },
+                                            );
                                           },
                                         ),
                                         const SizedBox(height: 16.0),

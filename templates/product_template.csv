@@ -1,0 +1,6 @@
+name,commonName,category,barcode,sku,unit,tags,description,usage,ingredients,notes,stock,importPrice,salePrice,isActive
+Amoxicillin 500mg,Amoxicillin,Kháng sinh,8931234567890,AMO500,Viên,"kháng sinh, phổ rộng","Thuốc kháng sinh phổ rộng, điều trị nhiễm khuẩn","Uống 1-2 viên/lần, 2-3 lần/ngày","Amoxicillin trihydrate 500mg","Bảo quản nơi khô ráo, tránh ánh nắng trực tiếp",100,25000,35000,true
+Paracetamol 500mg,Paracetamol,Giảm đau,8931234567891,PAR500,Viên,"giảm đau, hạ sốt","Thuốc giảm đau, hạ sốt","Uống 1-2 viên/lần, 3-4 lần/ngày","Paracetamol 500mg","Không dùng quá liều",200,15000,25000,true
+Vitamin C 500mg,Vitamin C,Vitamin,8931234567892,VIT500,Viên,"vitamin, bổ sung","Bổ sung vitamin C","Uống 1 viên/ngày","Ascorbic acid 500mg","Dùng sau bữa ăn",150,20000,30000,true
+Ceftriaxone 1g,Ceftriaxone,Kháng sinh,8931234567893,CEF1000,Lọ,"kháng sinh, tiêm","Kháng sinh tiêm phổ rộng","Tiêm bắp hoặc tĩnh mạch","Ceftriaxone sodium 1g","Pha với nước cất",50,45000,65000,true
+Dexamethasone 4mg,Dexamethasone,Kháng sinh,8931234567894,DEX4,Viên,"kháng sinh, chống viêm","Thuốc chống viêm, chống dị ứng","Uống 1-2 viên/lần, 1-2 lần/ngày","Dexamethasone 4mg","Dùng theo chỉ định",80,30000,45000,true 
