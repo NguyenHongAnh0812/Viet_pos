@@ -4,9 +4,11 @@ import '../screens/product_category_screen.dart';
 import '../screens/add_product_screen.dart';
 import '../screens/products/product_detail_screen.dart';
 import '../models/product.dart';
+import '../screens/dashboard/dashboard_screen.dart';
+import '../screens/low_stock_products_screen.dart';
 
 // Định nghĩa enum cho các trang
-enum MainPage { dashboard, productList, productCategory, addProduct, inventory, report, settings, productDetail }
+enum MainPage { dashboard, productList, productCategory, addProduct, inventory, report, settings, productDetail, lowStockProducts }
 
 class MainLayout extends StatefulWidget {
   final Widget? child; // Không cần truyền child nữa, sẽ render theo _currentPage
@@ -19,7 +21,7 @@ class MainLayout extends StatefulWidget {
 class _MainLayoutState extends State<MainLayout> {
   bool _sidebarOpen = true;
   int _selectedIndex = 0;
-  MainPage _currentPage = MainPage.productList; // Bắt đầu ở ProductListScreen
+  MainPage _currentPage = MainPage.dashboard; // Bắt đầu ở DashboardScreen
   MainPage? _previousPage; // Lưu trang trước đó để xử lý nút back
   Product? _selectedProduct;
 
@@ -77,6 +79,13 @@ class _MainLayoutState extends State<MainLayout> {
     setState(() {
       _currentPage = MainPage.productList;
       _selectedProduct = null;
+    });
+  }
+
+  void _openLowStockProducts() {
+    setState(() {
+      _previousPage = _currentPage;
+      _currentPage = MainPage.lowStockProducts;
     });
   }
 
@@ -171,7 +180,10 @@ class _MainLayoutState extends State<MainLayout> {
   Widget _buildMainContent() {
     switch (_currentPage) {
       case MainPage.dashboard:
-        return Center(child: Text('Dashboard (chưa cài đặt)'));
+        return DashboardScreen(
+          onViewProductList: () => _onSidebarTap(MainPage.productList),
+          onViewLowStockProducts: _openLowStockProducts,
+        );
       case MainPage.productList:
         return ProductListScreen(
           onProductTap: _openProductDetail,
@@ -199,6 +211,21 @@ class _MainLayoutState extends State<MainLayout> {
         return Center(child: Text('Báo cáo (chưa cài đặt)'));
       case MainPage.settings:
         return Center(child: Text('Cài đặt (chưa cài đặt)'));
+      case MainPage.lowStockProducts:
+        return LowStockProductsScreen(
+          onBack: () {
+            setState(() {
+              _currentPage = MainPage.dashboard;
+            });
+          },
+          onEditProduct: (product) {
+            setState(() {
+              _previousPage = _currentPage;
+              _currentPage = MainPage.addProduct;
+              _selectedProduct = product;
+            });
+          },
+        );
     }
   }
 
