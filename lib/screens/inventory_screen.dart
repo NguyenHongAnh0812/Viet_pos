@@ -62,22 +62,12 @@ class _InventoryScreenState extends State<InventoryScreen> with SingleTickerProv
                 const SizedBox(width: 4),
                 const Text('Kiểm kê kho', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 28)),
                 const Spacer(),
-                ElevatedButton.icon(
-                  icon: const Icon(Icons.history),
-                  label: const Text('Lịch sử kiểm kê'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.grey[200],
-                    foregroundColor: Colors.black87,
-                    padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
-                    textStyle: const TextStyle(fontWeight: FontWeight.bold),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                  ),
-                  onPressed: widget.onViewHistory,
-                ),
+
               ],
             ),
             const SizedBox(height: 16),
             Container(
+              margin: const EdgeInsets.symmetric(horizontal: 0),
               decoration: BoxDecoration(
                 color: Colors.grey[200],
                 borderRadius: BorderRadius.circular(8),
@@ -88,7 +78,7 @@ class _InventoryScreenState extends State<InventoryScreen> with SingleTickerProv
                     child: GestureDetector(
                       onTap: () => setState(() => _tabIndex = 0),
                       child: Container(
-                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        padding: const EdgeInsets.symmetric(vertical: 6),
                         decoration: BoxDecoration(
                           color: _tabIndex == 0 ? Colors.white : Colors.transparent,
                           borderRadius: BorderRadius.circular(8),
@@ -102,7 +92,7 @@ class _InventoryScreenState extends State<InventoryScreen> with SingleTickerProv
                     child: GestureDetector(
                       onTap: () => setState(() => _tabIndex = 1),
                       child: Container(
-                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        padding: const EdgeInsets.symmetric(vertical: 6),
                         decoration: BoxDecoration(
                           color: _tabIndex == 1 ? Colors.white : Colors.transparent,
                           borderRadius: BorderRadius.circular(8),
@@ -238,8 +228,6 @@ class _InventoryScreenState extends State<InventoryScreen> with SingleTickerProv
                 ),
               ),
             const SizedBox(height: 16),
-            Text('Danh sách sản phẩm cần kiểm kê', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-            const SizedBox(height: 8),
             StreamBuilder<List<Product>>(
               stream: _productService.getProducts(),
               builder: (context, snapshot) {
@@ -251,13 +239,16 @@ class _InventoryScreenState extends State<InventoryScreen> with SingleTickerProv
                   );
                 }
                 return Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
+                    Text('Danh sách sản phẩm cần kiểm kê (${products.length})', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                    const SizedBox(height: 8),
                     Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 5),
                       child: Row(
-                        children: const [
+                        children: [
                           Expanded(child: Text('Tên sản phẩm', style: TextStyle(fontWeight: FontWeight.bold))),
-                          SizedBox(width: 100, child: Text('Hệ thống', style: TextStyle(fontWeight: FontWeight.bold))),
+                          SizedBox(width: 100, child: Text('Hệ thống', style: TextStyle(fontWeight: FontWeight.bold), textAlign: TextAlign.center)),
                           SizedBox(width: 100, child: Text('Thực tế', style: TextStyle(fontWeight: FontWeight.bold))),
                         ],
                       ),
@@ -266,7 +257,7 @@ class _InventoryScreenState extends State<InventoryScreen> with SingleTickerProv
                     ...products.map((p) => Column(
                       children: [
                         Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
                           child: Row(
                             children: [
                               Expanded(
@@ -290,6 +281,7 @@ class _InventoryScreenState extends State<InventoryScreen> with SingleTickerProv
                                         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                                         decoration: BoxDecoration(
                                           color: Colors.orange[50],
+                                          border: Border.all(color: Colors.orange),
                                           borderRadius: BorderRadius.circular(8),
                                         ),
                                         child: const Text('Chưa kiểm kê', style: TextStyle(color: Colors.orange, fontWeight: FontWeight.w500, fontSize: 12)),
@@ -362,10 +354,17 @@ class _InventoryScreenState extends State<InventoryScreen> with SingleTickerProv
             const SizedBox(height: 16),
             Row(
               children: [
-                OutlinedButton.icon(
-                  onPressed: () => setState(() => _showHistory = !_showHistory),
+                ElevatedButton.icon(
                   icon: const Icon(Icons.history),
                   label: const Text('Lịch sử kiểm kê'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.grey[200],
+                    foregroundColor: Colors.black87,
+                    padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
+                    textStyle: const TextStyle(fontWeight: FontWeight.bold),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                  ),
+                  onPressed: widget.onViewHistory,
                 ),
                 const Spacer(),
                 ElevatedButton.icon(
@@ -547,11 +546,18 @@ class _InventoryScreenState extends State<InventoryScreen> with SingleTickerProv
           ),
           Row(
             children: [
-              OutlinedButton.icon(
-                onPressed: () => setState(() => _showHistory = !_showHistory),
-                icon: const Icon(Icons.history),
-                label: const Text('Lịch sử kiểm kê'),
-              ),
+               ElevatedButton.icon(
+                  icon: const Icon(Icons.history),
+                  label: const Text('Lịch sử kiểm kê'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.grey[200],
+                    foregroundColor: Colors.black87,
+                    padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
+                    textStyle: const TextStyle(fontWeight: FontWeight.bold),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                  ),
+                  onPressed: widget.onViewHistory,
+                ),
               const Spacer(),
               ElevatedButton.icon(
                 onPressed: _saving ? null : _saveInventorySession,
