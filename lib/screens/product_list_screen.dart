@@ -10,6 +10,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:csv/csv.dart';
 import 'dart:convert';
 import 'dart:math' show min;
+import 'dart:html' as html;
 
 // Custom thumb shape with blue border
 class BlueBorderThumbShape extends RoundSliderThumbShape {
@@ -398,6 +399,66 @@ class _ProductListScreenState extends State<ProductListScreen> {
     }
   }
 
+  Future<void> _exportProductsToExcel(List<Product> products) async {
+    final excel = ex.Excel.createExcel();
+    final sheet = excel['Sheet1'];
+    // Header tiếng Việt
+    final headers = [
+      'Tên danh pháp',
+      'Tên thường gọi',
+      'Danh mục sản phẩm',
+      'Mã vạch',
+      'SKU',
+      'Đơn vị tính',
+      'Tags',
+      'Mô tả',
+      'Công dụng',
+      'Thành phần',
+      'Ghi chú',
+      'Số lượng sản phẩm',
+      'Giá nhập',
+      'Giá bán',
+      'Trạng thái',
+      'Ngày tạo',
+      'Ngày cập nhật',
+    ];
+    sheet.appendRow(headers);
+    for (final p in products) {
+      sheet.appendRow([
+        p.name,
+        p.commonName,
+        p.category,
+        p.barcode ?? '',
+        p.sku ?? '',
+        p.unit,
+        p.tags.join(', '),
+        p.description,
+        p.usage,
+        p.ingredients,
+        p.notes,
+        p.stock,
+        p.importPrice,
+        p.salePrice,
+        p.isActive ? 'Còn bán' : 'Ngừng bán',
+        p.createdAt.toString(),
+        p.updatedAt.toString(),
+      ]);
+    }
+    final fileBytes = excel.encode()!;
+    final fileName = 'products_export_${DateTime.now().millisecondsSinceEpoch}.xlsx';
+    final blob = html.Blob([fileBytes], 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    final url = html.Url.createObjectUrlFromBlob(blob);
+    final anchor = html.AnchorElement(href: url)
+      ..setAttribute('download', fileName)
+      ..click();
+    html.Url.revokeObjectUrl(url);
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Đã xuất file Excel thành công!')),
+      );
+    }
+  }
+
   void updateFilterRanges(List<Product> products) {
     if (products.isNotEmpty) {
       int newMinStock = products.map((p) => p.stock).reduce((a, b) => a < b ? a : b);
@@ -480,6 +541,26 @@ class _ProductListScreenState extends State<ProductListScreen> {
                         onPressed: _importProductsFromExcel,
                         icon: const Icon(Icons.upload_file),
                         label: const Text('Import'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Color(0xFF3a6ff8),
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                          textStyle: const TextStyle(fontWeight: FontWeight.bold),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(5)),
+                          elevation: 0,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(5),
+                      child: ElevatedButton.icon(
+                        onPressed: () async {
+                          final products = await _productService.getProducts().first;
+                          await _exportProductsToExcel(products);
+                        },
+                        icon: const Icon(Icons.download),
+                        label: const Text('Export'),
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Color(0xFF3a6ff8),
                           foregroundColor: Colors.white,
