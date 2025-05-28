@@ -8,9 +8,10 @@ import '../screens/dashboard/dashboard_screen.dart';
 import '../screens/low_stock_products_screen.dart';
 import '../screens/add_product_category_screen.dart';
 import '../screens/inventory_screen.dart';
+import '../screens/inventory_history_screen.dart';
 
 // Định nghĩa enum cho các trang
-enum MainPage { dashboard, productList, productCategory, addProduct, inventory, report, settings, productDetail, lowStockProducts, addProductCategory }
+enum MainPage { dashboard, productList, productCategory, addProduct, inventory, report, settings, productDetail, lowStockProducts, addProductCategory, inventoryHistory }
 
 class MainLayout extends StatefulWidget {
   final Widget? child; // Không cần truyền child nữa, sẽ render theo _currentPage
@@ -214,6 +215,19 @@ class _MainLayoutState extends State<MainLayout> {
               _currentPage = MainPage.dashboard;
             });
           },
+          onViewHistory: () {
+            setState(() {
+              _currentPage = MainPage.inventoryHistory;
+            });
+          },
+        );
+      case MainPage.inventoryHistory:
+        return InventoryHistoryScreen(
+          onBack: () {
+            setState(() {
+              _currentPage = MainPage.inventory;
+            });
+          },
         );
       case MainPage.report:
         return Center(child: Text('Báo cáo (chưa cài đặt)'));
@@ -341,6 +355,13 @@ class _Sidebar extends StatelessWidget {
             selected: currentPage == MainPage.inventory,
             isOpen: isOpen,
             onTap: () => onItemTap(MainPage.inventory),
+          ),
+          _SidebarItem(
+            icon: Icons.history,
+            label: 'Lịch sử kiểm kê',
+            selected: currentPage == MainPage.inventoryHistory,
+            isOpen: isOpen,
+            onTap: () => onItemTap(MainPage.inventoryHistory),
           ),
           _SidebarItem(
             icon: Icons.bar_chart,

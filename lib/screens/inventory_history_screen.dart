@@ -256,7 +256,7 @@ class _InventoryHistoryScreenState extends State<InventoryHistoryScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Align(
-                    alignment: Alignment.centerLeft,
+                    alignment: Alignment.centerRight,
                     child: ElevatedButton.icon(
                       icon: const Icon(Icons.download),
                       label: const Text('Xuất dữ liệu'),

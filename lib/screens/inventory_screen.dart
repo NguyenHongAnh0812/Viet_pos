@@ -9,7 +9,8 @@ import 'inventory_history_screen.dart';
 
 class InventoryScreen extends StatefulWidget {
   final VoidCallback? onBack;
-  const InventoryScreen({super.key, this.onBack});
+  final VoidCallback? onViewHistory;
+  const InventoryScreen({super.key, this.onBack, this.onViewHistory});
 
   @override
   State<InventoryScreen> createState() => _InventoryScreenState();
@@ -71,15 +72,7 @@ class _InventoryScreenState extends State<InventoryScreen> with SingleTickerProv
                     textStyle: const TextStyle(fontWeight: FontWeight.bold),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                   ),
-                  onPressed: () {
-                    Navigator.of(context).push(
-                      MaterialPageRoute(
-                        builder: (_) => InventoryHistoryScreen(
-                          onBack: () => Navigator.of(context).pop(),
-                        ),
-                      ),
-                    );
-                  },
+                  onPressed: widget.onViewHistory,
                 ),
               ],
             ),
