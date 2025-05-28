@@ -324,7 +324,16 @@ class _Sidebar extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       width: isOpen ? 250 : 70,
-      color: Colors.white,
+      decoration: BoxDecoration(
+        color: Colors.white,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.04),
+            blurRadius: 12,
+            offset: Offset(2, 0),
+          ),
+        ],
+      ),
       child: Column(
         children: [
           const SizedBox(height: 0),

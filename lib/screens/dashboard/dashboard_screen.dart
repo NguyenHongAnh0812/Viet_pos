@@ -109,21 +109,22 @@ class _DashboardScreenState extends State<DashboardScreen> {
                             ],
                           ),
                     // Cảnh báo sản phẩm sắp hết hàng
-                    const SizedBox(height: 3),
+                    const SizedBox(height: 0),
                     if (lowStockCount > 0)
                       GestureDetector(
                         onTap: widget.onViewLowStockProducts,
                         child: Container(
                           padding: const EdgeInsets.all(16),
                           decoration: BoxDecoration(
-                            color: Colors.yellow[50],
-                            borderRadius: BorderRadius.circular(8),
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(color: Colors.grey.shade200),
                           ),
                           child: Row(
                             children: [
                               const Icon(Icons.warning, color: Colors.orange),
                               const SizedBox(width: 8),
-                              Expanded(child: Text('$lowStockCount sản phẩm sắp hết hàng', style: const TextStyle(color: Colors.orange, fontWeight: FontWeight.w600))),
+                              Expanded(child: Text('$lowStockCount sản phẩm sắp hết hàng', style: const TextStyle(color: Colors.black, fontWeight: FontWeight.w600))),
                               const Text('Cần được xử lý', style: TextStyle(fontWeight: FontWeight.bold)),
                             ],
                           ),
@@ -175,7 +176,7 @@ class _DashboardCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Card(
       color: Colors.white,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
       elevation: 1.5,
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),

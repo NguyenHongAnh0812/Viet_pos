@@ -242,7 +242,7 @@ class _InventoryScreenState extends State<InventoryScreen> with SingleTickerProv
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text('Danh sách sản phẩm cần kiểm kê (${products.length})', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-                    const SizedBox(height: 8),
+                    const SizedBox(height: 13),
                     Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 5),
                       child: Row(
@@ -257,7 +257,7 @@ class _InventoryScreenState extends State<InventoryScreen> with SingleTickerProv
                     ...products.map((p) => Column(
                       children: [
                         Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
+                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 15),
                           child: Row(
                             children: [
                               Expanded(
