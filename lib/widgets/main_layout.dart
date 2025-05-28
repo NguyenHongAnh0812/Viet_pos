@@ -7,6 +7,7 @@ import '../models/product.dart';
 import '../screens/dashboard/dashboard_screen.dart';
 import '../screens/low_stock_products_screen.dart';
 import '../screens/add_product_category_screen.dart';
+import '../screens/inventory_screen.dart';
 
 // Định nghĩa enum cho các trang
 enum MainPage { dashboard, productList, productCategory, addProduct, inventory, report, settings, productDetail, lowStockProducts, addProductCategory }
@@ -207,7 +208,13 @@ class _MainLayoutState extends State<MainLayout> {
           onBack: _openProductList,
         );
       case MainPage.inventory:
-        return Center(child: Text('Kiểm kê (chưa cài đặt)'));
+        return InventoryScreen(
+          onBack: () {
+            setState(() {
+              _currentPage = MainPage.dashboard;
+            });
+          },
+        );
       case MainPage.report:
         return Center(child: Text('Báo cáo (chưa cài đặt)'));
       case MainPage.settings:

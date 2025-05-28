@@ -87,4 +87,46 @@ class Product {
       updatedAt: (map['updatedAt'] as Timestamp).toDate(),
     );
   }
+
+  Product copyWith({
+    String? id,
+    String? name,
+    String? commonName,
+    String? category,
+    String? barcode,
+    String? sku,
+    String? unit,
+    List<String>? tags,
+    String? description,
+    String? usage,
+    String? ingredients,
+    String? notes,
+    int? stock,
+    double? importPrice,
+    double? salePrice,
+    bool? isActive,
+    DateTime? createdAt,
+    DateTime? updatedAt,
+  }) {
+    return Product(
+      id: id ?? this.id,
+      name: name ?? this.name,
+      commonName: commonName ?? this.commonName,
+      category: category ?? this.category,
+      barcode: barcode ?? this.barcode,
+      sku: sku ?? this.sku,
+      unit: unit ?? this.unit,
+      tags: tags ?? this.tags,
+      description: description ?? this.description,
+      usage: usage ?? this.usage,
+      ingredients: ingredients ?? this.ingredients,
+      notes: notes ?? this.notes,
+      stock: stock ?? this.stock,
+      importPrice: importPrice ?? this.importPrice,
+      salePrice: salePrice ?? this.salePrice,
+      isActive: isActive ?? this.isActive,
+      createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+    );
+  }
 } 
