@@ -1,14 +1,10 @@
 import 'package:flutter/material.dart';
 import '../widgets/main_layout.dart';
 import '../models/product_category.dart';
-
-final List<ProductCategory> mockCategories = [
-  ProductCategory(id: '1', name: 'Kháng sinh', description: 'Các loại thuốc kháng sinh'),
-  ProductCategory(id: '2', name: 'Vitamin', description: 'Các loại vitamin bổ sung'),
-  ProductCategory(id: '3', name: 'Bổ sung', description: 'Khoáng chất, vi lượng, bổ sung'),
-  ProductCategory(id: '4', name: 'Giảm đau', description: 'Thuốc giảm đau, hạ sốt'),
-  ProductCategory(id: '5', name: 'Khác', description: 'Danh mục khác'),
-];
+import '../models/product.dart';
+import '../services/product_category_service.dart';
+import '../services/product_service.dart';
+import 'add_product_category_screen.dart';
 
 class ProductCategoryScreen extends StatefulWidget {
   final Function(MainPage)? onNavigate;
@@ -19,16 +15,10 @@ class ProductCategoryScreen extends StatefulWidget {
 }
 
 class _ProductCategoryScreenState extends State<ProductCategoryScreen> {
-  List<ProductCategory> categories = List.from(mockCategories);
+  final _categoryService = ProductCategoryService();
+  final _productService = ProductService();
   String searchText = '';
-
-  List<ProductCategory> get filteredCategories {
-    if (searchText.isEmpty) return categories;
-    return categories.where((cat) => 
-      cat.name.toLowerCase().contains(searchText.toLowerCase()) ||
-      cat.description.toLowerCase().contains(searchText.toLowerCase())
-    ).toList();
-  }
+  String sortOption = 'name_asc';
 
   @override
   Widget build(BuildContext context) {
@@ -49,173 +39,227 @@ class _ProductCategoryScreenState extends State<ProductCategoryScreen> {
                 ),
                 const SizedBox(width: 4),
                 const Text('Danh mục sản phẩm', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 26)),
+                const Spacer(),
+                ElevatedButton.icon(
+                  onPressed: () async {
+                    await _categoryService.syncCategoriesFromProducts();
+                    setState(() {});
+                    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Đã đồng bộ danh mục từ sản phẩm!')));
+                  },
+                  icon: const Icon(Icons.sync, size: 20),
+                  label: const Text('Đồng bộ danh mục từ sản phẩm'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.grey[200],
+                    foregroundColor: Colors.blue,
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                    textStyle: const TextStyle(fontWeight: FontWeight.bold),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                    elevation: 0,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                ElevatedButton.icon(
+                  onPressed: () {
+                    if (widget.onNavigate != null) {
+                      widget.onNavigate!(MainPage.addProductCategory);
+                    }
+                  },
+                  icon: const Icon(Icons.add),
+                  label: const Text('Thêm danh mục'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Color(0xFF3a6ff8),
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                    textStyle: const TextStyle(fontWeight: FontWeight.bold),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                    elevation: 0,
+                  ),
+                ),
               ],
             ),
-            const SizedBox(height: 16),
-            Padding(
-              padding: const EdgeInsets.all(16),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Danh mục sản phẩm',
-                        style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                          fontWeight: FontWeight.bold,
-                        ),
+            const SizedBox(height: 24),
+            Row(
+              children: [
+                Expanded(
+                  child: TextField(
+                    onChanged: (v) => setState(() => searchText = v),
+                    decoration: InputDecoration(
+                      hintText: 'Tìm kiếm danh mục...',
+                      prefixIcon: const Icon(Icons.search),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8),
+                        borderSide: BorderSide(color: Colors.grey.shade200),
                       ),
-                      const SizedBox(height: 4),
-                      Text(
-                        'Quản lý danh mục sản phẩm',
-                        style: TextStyle(color: Colors.grey[600], fontSize: 16),
-                      ),
-                    ],
+                      contentPadding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+                    ),
                   ),
-                  ElevatedButton.icon(
-                    onPressed: () {
-                      // TODO: Implement add category
-                      showDialog(
-                        context: context,
-                        builder: (context) => AlertDialog(
-                          title: const Text('Thêm danh mục mới'),
-                          content: Column(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              TextField(
-                                decoration: const InputDecoration(
-                                  labelText: 'Tên danh mục',
-                                  border: OutlineInputBorder(),
-                                ),
-                              ),
-                              const SizedBox(height: 16),
-                              TextField(
-                                decoration: const InputDecoration(
-                                  labelText: 'Mô tả',
-                                  border: OutlineInputBorder(),
-                                ),
-                                maxLines: 3,
-                              ),
-                            ],
-                          ),
-                          actions: [
-                            TextButton(
-                              onPressed: () => Navigator.pop(context),
-                              child: const Text('Hủy'),
-                            ),
-                            ElevatedButton(
-                              onPressed: () {
-                                // TODO: Implement save category
-                                Navigator.pop(context);
-                              },
-                              child: const Text('Lưu'),
+                ),
+                const SizedBox(width: 16),
+                DropdownButton<String>(
+                  value: sortOption,
+                  items: const [
+                    DropdownMenuItem(value: 'name_asc', child: Text('Tên: A-Z')),
+                    DropdownMenuItem(value: 'name_desc', child: Text('Tên: Z-A')),
+                  ],
+                  onChanged: (v) => setState(() => sortOption = v!),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+              ],
+            ),
+            const SizedBox(height: 24),
+            Expanded(
+              child: StreamBuilder<List<ProductCategory>>(
+                stream: _categoryService.getCategories(),
+                builder: (context, catSnapshot) {
+                  if (catSnapshot.connectionState == ConnectionState.waiting) {
+                    return const Center(child: CircularProgressIndicator());
+                  }
+                  var categories = catSnapshot.data ?? [];
+                  if (searchText.isNotEmpty) {
+                    categories = categories.where((c) => c.name.toLowerCase().contains(searchText.toLowerCase())).toList();
+                  }
+                  if (sortOption == 'name_asc') {
+                    categories.sort((a, b) => a.name.compareTo(b.name));
+                  } else {
+                    categories.sort((a, b) => b.name.compareTo(a.name));
+                  }
+                  return StreamBuilder<List<Product>>(
+                    stream: _productService.getProducts(),
+                    builder: (context, prodSnapshot) {
+                      final products = prodSnapshot.data ?? [];
+                      return Container(
+                        margin: const EdgeInsets.only(top: 8),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(16),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.03),
+                              blurRadius: 8,
+                              offset: const Offset(0, 2),
                             ),
                           ],
                         ),
-                      );
-                    },
-                    icon: const Icon(Icons.add),
-                    label: const Text('Thêm danh mục'),
-                  ),
-                ],
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: TextField(
-                onChanged: (value) => setState(() => searchText = value),
-                decoration: InputDecoration(
-                  hintText: 'Tìm kiếm danh mục...',
-                  prefixIcon: const Icon(Icons.search),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  contentPadding: const EdgeInsets.symmetric(vertical: 12),
-                ),
-              ),
-            ),
-            const SizedBox(height: 16),
-            Expanded(
-              child: ListView.separated(
-                padding: const EdgeInsets.all(16),
-                itemCount: filteredCategories.length,
-                separatorBuilder: (_, __) => const SizedBox(height: 8),
-                itemBuilder: (context, index) {
-                  final category = filteredCategories[index];
-                  return Card(
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
-                      side: BorderSide(color: Colors.grey.shade200),
-                    ),
-                    elevation: 0,
-                    child: ListTile(
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                      leading: Container(
-                        width: 40,
-                        height: 40,
-                        decoration: BoxDecoration(
-                          color: Colors.blue.withOpacity(0.1),
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: const Icon(Icons.category, color: Colors.blue),
-                      ),
-                      title: Text(
-                        category.name,
-                        style: const TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 16,
-                        ),
-                      ),
-                      subtitle: Text(
-                        category.description,
-                        style: TextStyle(
-                          color: Colors.grey[600],
-                          fontSize: 14,
-                        ),
-                      ),
-                      trailing: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          IconButton(
-                            icon: const Icon(Icons.edit, color: Colors.blue),
-                            onPressed: () {
-                              // TODO: Implement edit category
-                            },
-                          ),
-                          IconButton(
-                            icon: const Icon(Icons.delete, color: Colors.red),
-                            onPressed: () {
-                              showDialog(
-                                context: context,
-                                builder: (context) => AlertDialog(
-                                  title: const Text('Xác nhận xóa'),
-                                  content: Text('Bạn có chắc chắn muốn xóa danh mục "${category.name}"?'),
-                                  actions: [
-                                    TextButton(
-                                      onPressed: () => Navigator.pop(context),
-                                      child: const Text('Hủy'),
-                                    ),
-                                    ElevatedButton(
-                                      onPressed: () {
-                                        setState(() {
-                                          categories.remove(category);
-                                        });
-                                        Navigator.pop(context);
-                                      },
-                                      style: ElevatedButton.styleFrom(
-                                        backgroundColor: Colors.red,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Padding(
+                              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 18),
+                              child: Row(
+                                children: const [
+                                  Expanded(child: Text('Tên danh mục', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16))),
+                                  Text('Số sản phẩm', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                                ],
+                              ),
+                            ),
+                            const Divider(height: 1),
+                            ...categories.map((cat) {
+                              final count = products.where((p) => p.category == cat.name).length;
+                              final isDefault = cat.name.trim().toLowerCase() == 'khác';
+                              return Padding(
+                                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                                child: Row(
+                                  children: [
+                                    Expanded(child: Text(cat.name, style: const TextStyle(fontSize: 16))),
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                      decoration: BoxDecoration(
+                                        color: Colors.grey[100],
+                                        borderRadius: BorderRadius.circular(12),
                                       ),
-                                      child: const Text('Xóa'),
+                                      child: Text('$count', style: const TextStyle(fontWeight: FontWeight.bold)),
+                                    ),
+                                    const SizedBox(width: 16),
+                                    IconButton(
+                                      icon: const Icon(Icons.edit, size: 20, color: Colors.blue),
+                                      tooltip: 'Đổi tên danh mục',
+                                      onPressed: () async {
+                                        String? errorText;
+                                        String? newName = cat.name;
+                                        await showDialog<void>(
+                                          context: context,
+                                          builder: (context) {
+                                            final controller = TextEditingController(text: cat.name);
+                                            return StatefulBuilder(
+                                              builder: (context, setDialogState) {
+                                                return AlertDialog(
+                                                  title: const Text('Đổi tên danh mục'),
+                                                  content: Column(
+                                                    mainAxisSize: MainAxisSize.min,
+                                                    children: [
+                                                      TextField(
+                                                        controller: controller,
+                                                        decoration: InputDecoration(hintText: 'Tên mới', errorText: errorText),
+                                                      ),
+                                                    ],
+                                                  ),
+                                                  actions: [
+                                                    TextButton(onPressed: () => Navigator.pop(context), child: const Text('Hủy')),
+                                                    ElevatedButton(
+                                                      onPressed: () async {
+                                                        final input = controller.text.trim();
+                                                        if (input.isEmpty) {
+                                                          setDialogState(() => errorText = 'Tên không được để trống!');
+                                                          return;
+                                                        }
+                                                        if (categories.any((c) => c.name.toLowerCase() == input.toLowerCase() && c.name != cat.name)) {
+                                                          setDialogState(() => errorText = 'Tên danh mục đã tồn tại!');
+                                                          return;
+                                                        }
+                                                        Navigator.pop(context);
+                                                        newName = input;
+                                                      },
+                                                      child: const Text('Lưu'),
+                                                    ),
+                                                  ],
+                                                );
+                                              },
+                                            );
+                                          },
+                                        );
+                                        if (newName?.isNotEmpty == true && newName != cat.name) {
+                                          await _categoryService.renameCategory(cat.name, newName!);
+                                          setState(() {});
+                                          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Đã đổi tên danh mục!')));
+                                        }
+                                      },
+                                    ),
+                                    IconButton(
+                                      icon: const Icon(Icons.delete_outline, size: 20, color: Colors.red),
+                                      tooltip: 'Xóa danh mục',
+                                      onPressed: isDefault ? () {
+                                        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Không thể xóa danh mục mặc định!')));
+                                      } : () async {
+                                        final confirm = await showDialog<bool>(
+                                          context: context,
+                                          builder: (context) => AlertDialog(
+                                            title: const Text('Xác nhận xóa'),
+                                            content: Text('Bạn có chắc muốn xóa danh mục "${cat.name}"?\nTất cả sản phẩm thuộc danh mục này sẽ được chuyển về "Khác".'),
+                                            actions: [
+                                              TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Hủy')),
+                                              ElevatedButton(
+                                                onPressed: () => Navigator.pop(context, true),
+                                                child: const Text('Xóa'),
+                                                style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+                                              ),
+                                            ],
+                                          ),
+                                        );
+                                        if (confirm == true) {
+                                          await _categoryService.deleteCategory(cat.name);
+                                          setState(() {});
+                                          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Đã xóa danh mục!')));
+                                        }
+                                      },
                                     ),
                                   ],
                                 ),
                               );
-                            },
-                          ),
-                        ],
-                      ),
-                    ),
+                            }).toList(),
+                          ],
+                        ),
+                      );
+                    },
                   );
                 },
               ),

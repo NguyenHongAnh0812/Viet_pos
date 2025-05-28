@@ -91,4 +91,8 @@ class ProductService {
 
     await batch.commit();
   }
+
+  Future<void> updateProductCategory(String productId, String categoryName) async {
+    await _firestore.collection(_collection).doc(productId).update({'category': categoryName});
+  }
 } 

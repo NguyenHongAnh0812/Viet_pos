@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../widgets/main_layout.dart';
 import '../models/product.dart';
+import '../models/product_category.dart';
+import '../services/product_category_service.dart';
 
 class AddProductScreen extends StatefulWidget {
   final VoidCallback? onBack;
@@ -31,6 +33,8 @@ class _AddProductScreenState extends State<AddProductScreen> {
 
   String? _selectedCategory;
   bool _isActive = false; // Mặc định là Không hoạt động như mẫu
+
+  final _categoryService = ProductCategoryService();
 
   @override
   void initState() {
@@ -181,18 +185,12 @@ class _AddProductScreenState extends State<AddProductScreen> {
                                         const SizedBox(height: 16.0),
                                         Text('Danh mục *', style: TextStyle(fontWeight: FontWeight.bold)),
                                         const SizedBox(height: 8.0),
-                                        FutureBuilder<QuerySnapshot>(
-                                          future: FirebaseFirestore.instance.collection('products').get(),
-                                          builder: (context, snapshot) {
-                                            List<String> categories = ['Kháng sinh', 'Vitamin', 'Giảm đau', 'Bổ sung', 'Khác'];
-                                            if (snapshot.hasData) {
-                                              final docs = snapshot.data!.docs;
-                                              final dynamicCats = docs.map((d) => d['category']?.toString() ?? '').where((c) => c.isNotEmpty).toSet().toList();
-                                              categories = {...categories, ...dynamicCats}.toList();
-                                              categories.sort();
-                                            }
+                                        StreamBuilder<List<ProductCategory>>(
+                                          stream: _categoryService.getCategories(),
+                                          builder: (context, AsyncSnapshot<List<ProductCategory>> snapshot) {
+                                            final categories = snapshot.data ?? [];
                                             // Nếu _selectedCategory không nằm trong danh sách, reset về null
-                                            if (_selectedCategory != null && !categories.contains(_selectedCategory)) {
+                                            if (_selectedCategory != null && !categories.any((c) => c.name == _selectedCategory)) {
                                               WidgetsBinding.instance.addPostFrameCallback((_) {
                                                 setState(() {
                                                   _selectedCategory = null;
@@ -201,21 +199,16 @@ class _AddProductScreenState extends State<AddProductScreen> {
                                             }
                                             return DropdownButtonFormField<String>(
                                               value: _selectedCategory,
+                                              items: categories.map<DropdownMenuItem<String>>((cat) => DropdownMenuItem<String>(
+                                                value: cat.name,
+                                                child: Text(cat.name),
+                                              )).toList(),
+                                              onChanged: (v) => setState(() => _selectedCategory = v),
                                               decoration: InputDecoration(
-                                                hintText: 'Chọn danh mục',
-                                                border: OutlineInputBorder(
-                                                  borderRadius: BorderRadius.circular(5.0),
-                                                  borderSide: BorderSide(color: Colors.grey.shade200),
-                                                ),
+                                                border: OutlineInputBorder(borderRadius: BorderRadius.circular(5.0)),
                                                 isDense: true,
                                                 contentPadding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 12.0),
                                               ),
-                                              items: categories.map((cat) => DropdownMenuItem(value: cat, child: Text(cat))).toList(),
-                                              onChanged: (value) {
-                                                setState(() {
-                                                  _selectedCategory = value;
-                                                });
-                                              },
                                               validator: (value) {
                                                 if (value == null || value.isEmpty) {
                                                   return 'Vui lòng chọn danh mục';

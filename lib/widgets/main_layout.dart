@@ -6,9 +6,10 @@ import '../screens/products/product_detail_screen.dart';
 import '../models/product.dart';
 import '../screens/dashboard/dashboard_screen.dart';
 import '../screens/low_stock_products_screen.dart';
+import '../screens/add_product_category_screen.dart';
 
 // Định nghĩa enum cho các trang
-enum MainPage { dashboard, productList, productCategory, addProduct, inventory, report, settings, productDetail, lowStockProducts }
+enum MainPage { dashboard, productList, productCategory, addProduct, inventory, report, settings, productDetail, lowStockProducts, addProductCategory }
 
 class MainLayout extends StatefulWidget {
   final Widget? child; // Không cần truyền child nữa, sẽ render theo _currentPage
@@ -223,6 +224,14 @@ class _MainLayoutState extends State<MainLayout> {
               _previousPage = _currentPage;
               _currentPage = MainPage.addProduct;
               _selectedProduct = product;
+            });
+          },
+        );
+      case MainPage.addProductCategory:
+        return AddProductCategoryScreen(
+          onBack: () {
+            setState(() {
+              _currentPage = MainPage.productCategory;
             });
           },
         );
