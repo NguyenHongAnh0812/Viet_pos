@@ -36,7 +36,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     return LayoutBuilder(
       builder: (context, constraints) {
         return SingleChildScrollView(
-          padding: const EdgeInsets.all(24),
+          padding: const EdgeInsets.all(15),
           child: ConstrainedBox(
             constraints: BoxConstraints(
               minWidth: 0,

@@ -9,6 +9,7 @@ import '../screens/low_stock_products_screen.dart';
 import '../screens/add_product_category_screen.dart';
 import '../screens/inventory_screen.dart';
 import '../screens/inventory_history_screen.dart';
+import 'common/design_system.dart';
 
 // Định nghĩa enum cho các trang
 enum MainPage { dashboard, productList, productCategory, addProduct, inventory, report, settings, productDetail, lowStockProducts, addProductCategory, inventoryHistory }
@@ -122,7 +123,7 @@ class _MainLayoutState extends State<MainLayout> {
                         duration: const Duration(milliseconds: 300),
                         curve: Curves.ease,
                         child: SizedBox(
-                          width: 250,
+                          width: 290,
                           child: _Sidebar(
                             isOpen: true,
                             currentPage: _currentPage,
@@ -136,7 +137,7 @@ class _MainLayoutState extends State<MainLayout> {
                     children: [
                       AnimatedContainer(
                         duration: const Duration(milliseconds: 300),
-                        width: _sidebarOpen ? 250 : 70,
+                        width: _sidebarOpen ? 290 : 70,
                         child: _Sidebar(
                           isOpen: _sidebarOpen,
                           currentPage: _currentPage,
@@ -150,31 +151,55 @@ class _MainLayoutState extends State<MainLayout> {
         ],
       ),
       bottomNavigationBar: isMobile
-          ? BottomNavigationBar(
-              type: BottomNavigationBarType.fixed,
-              currentIndex: _selectedIndex,
-              onTap: _onNavTap,
-              selectedItemColor: Colors.blue,
-              unselectedItemColor: Colors.black54,
-              showUnselectedLabels: true,
-              items: const [
-                BottomNavigationBarItem(
-                  icon: Icon(Icons.home),
+          ? Container(
+              decoration: BoxDecoration(
+                color: Colors.white,
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.04),
+                    blurRadius: 8,
+                    offset: Offset(0, -2),
+                  ),
+                ],
+              ),
+              child: SafeArea(
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceAround,
+                  children: [
+                    _NavItem(
+                      icon: Icons.home,
                   label: 'Trang chủ',
-                ),
-                BottomNavigationBarItem(
-                  icon: Icon(Icons.check_box),
-                  label: 'Kiểm kê',
-                ),
-                BottomNavigationBarItem(
-                  icon: Icon(Icons.inventory_2), // Product list or add product
-                  label: 'Sản phẩm',
-                ),
-                BottomNavigationBarItem(
-                  icon: Icon(Icons.bar_chart), // Report or product category
+                      selected: _selectedIndex == 0,
+                      onTap: () => _onNavTap(0),
+                    ),
+                    _NavItem(
+                      icon: Icons.inventory_2,
+                      label: 'Sản phẩm',
+                      selected: _selectedIndex == 1,
+                      onTap: () => _onNavTap(1),
+                    ),
+                    _NavCenterButton(
+                      icon: Icons.add,
+                      label: 'Tạo đơn',
+                      onTap: () {
+                        // TODO: Điều hướng sang màn hình tạo đơn
+                      },
+                    ),
+                    _NavItem(
+                      icon: Icons.credit_card,
+                      label: 'Bán hàng',
+                      selected: _selectedIndex == 3,
+                      onTap: () => _onNavTap(3),
+                    ),
+                    _NavItem(
+                      icon: Icons.bar_chart,
                   label: 'Báo cáo',
+                      selected: _selectedIndex == 4,
+                      onTap: () => _onNavTap(4),
+                    ),
+                  ],
                 ),
-              ],
+              ),
             )
           : null,
     );
@@ -314,18 +339,70 @@ class _Header extends StatelessWidget {
 }
 
 // Sidebar widget
-class _Sidebar extends StatelessWidget {
+class _Sidebar extends StatefulWidget {
   final bool isOpen;
   final MainPage currentPage;
   final Function(MainPage) onItemTap;
   const _Sidebar({this.isOpen = true, required this.currentPage, required this.onItemTap});
 
   @override
+  State<_Sidebar> createState() => _SidebarState();
+}
+
+class _SidebarState extends State<_Sidebar> {
+  // Trạng thái mở/đóng cho từng mục cha
+  Map<String, bool> _openMenus = {
+    'product': false,
+    'order': false,
+    'customer': false,
+    'promotion': false,
+  };
+
+  Widget _sidebarParentItem({
+    required IconData icon,
+    required String label,
+    required bool open,
+    required VoidCallback onTap,
+    bool selected = false,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 180),
+        curve: Curves.ease,
+        decoration: BoxDecoration(
+          color: (open || selected) ? primaryBlue.withOpacity(0.08) : Colors.transparent,
+          borderRadius: BorderRadius.circular(5),
+        ),
+        child: ListTile(
+          leading: Icon(icon, color: (open || selected) ? primaryBlue : textSecondary),
+          title: Padding(
+            padding: const EdgeInsets.only(left: space10),
+            child: Text(
+              label,
+              style: small.copyWith(
+                fontWeight: (open || selected) ? FontWeight.bold : FontWeight.normal,
+                color: textPrimary,
+              ),
+              overflow: TextOverflow.ellipsis,
+              softWrap: false,
+            ),
+          ),
+          trailing: Icon(open ? Icons.expand_less : Icons.expand_more, color: textSecondary, size: 20),
+          minLeadingWidth: 0,
+          horizontalTitleGap: 0,
+          onTap: onTap,
+        ),
+      ),
+    );
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Container(
-      width: isOpen ? 250 : 70,
+      width: widget.isOpen ? 290 : 70,
       decoration: BoxDecoration(
-        color: Colors.white,
+      color: Colors.white,
         boxShadow: [
           BoxShadow(
             color: Colors.black.withOpacity(0.04),
@@ -334,70 +411,207 @@ class _Sidebar extends StatelessWidget {
           ),
         ],
       ),
-      child: Column(
+      child: ListView(
+        padding: const EdgeInsets.symmetric(vertical: 8),
         children: [
-          const SizedBox(height: 0),
+          // Dashboard
           _SidebarItem(
-            icon: Icons.home,
-            label: 'Trang chủ',
-            selected: currentPage == MainPage.dashboard,
-            isOpen: isOpen,
-            onTap: () => onItemTap(MainPage.dashboard),
+            icon: Icons.dashboard,
+            label: 'Dashboard',
+            selected: widget.currentPage == MainPage.dashboard,
+            isOpen: widget.isOpen,
+            onTap: () => widget.onItemTap(MainPage.dashboard),
           ),
-          _SidebarItem(
+          // Sản phẩm
+          _sidebarParentItem(
             icon: Icons.inventory_2,
-            label: 'Danh sách sản phẩm',
-            selected: currentPage == MainPage.productList,
-            isOpen: isOpen,
-            onTap: () => onItemTap(MainPage.productList),
+            label: 'Sản phẩm',
+            open: _openMenus['product']!,
+            selected: false,
+            onTap: () => setState(() => _openMenus['product'] = !_openMenus['product']!),
+          ),
+          if (_openMenus['product']!)
+            _submenuIndent(
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _SidebarItem(
+                    icon: Icons.inventory_2,
+                    label: 'Tất cả sản phẩm',
+                    selected: widget.currentPage == MainPage.productList,
+                    isOpen: widget.isOpen,
+                    onTap: () => widget.onItemTap(MainPage.productList),
+                  ),
+                  _SidebarItem(
+                    icon: Icons.list,
+                    label: 'Danh mục sản phẩm',
+                    selected: widget.currentPage == MainPage.productCategory,
+                    isOpen: widget.isOpen,
+                    onTap: () => widget.onItemTap(MainPage.productCategory),
+                  ),
+                ],
+              ),
+              height: 80,
           ),
           _SidebarItem(
-            icon: Icons.category,
+            icon: Icons.list,
             label: 'Danh mục sản phẩm',
-            selected: currentPage == MainPage.productCategory,
-            isOpen: isOpen,
-            onTap: () => onItemTap(MainPage.productCategory),
+            selected: widget.currentPage == MainPage.productCategory,
+            isOpen: widget.isOpen,
+            onTap: () => widget.onItemTap(MainPage.productCategory),
           ),
+          // Nhà cung cấp
+          _SidebarItem(
+            icon: Icons.local_shipping,
+            label: 'Nhà cung cấp',
+            selected: false,
+            isOpen: widget.isOpen,
+            onTap: () {},
+          ),
+          // Đơn nhập hàng
+          _sidebarParentItem(
+            icon: Icons.shopping_cart,
+            label: 'Đơn nhập hàng',
+            open: _openMenus['order']!,
+            selected: false,
+            onTap: () => setState(() => _openMenus['order'] = !_openMenus['order']!),
+          ),
+          if (_openMenus['order']!)
+            _submenuIndent(
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _SidebarItem(
+                    icon: Icons.shopping_cart,
+                    label: 'Danh sách đơn nhập',
+                    selected: false,
+                    isOpen: widget.isOpen,
+                    onTap: () {},
+                  ),
+                ],
+              ),
+              height: 40,
+            ),
+          // Khách hàng
+          _sidebarParentItem(
+            icon: Icons.people,
+            label: 'Khách hàng',
+            open: _openMenus['customer']!,
+            selected: false,
+            onTap: () => setState(() => _openMenus['customer'] = !_openMenus['customer']!),
+          ),
+          if (_openMenus['customer']!)
+            _submenuIndent(
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _SidebarItem(
+                    icon: Icons.list,
+                    label: 'Danh sách khách hàng',
+                    selected: false,
+                    isOpen: widget.isOpen,
+                    onTap: () {},
+                  ),
+                  _SidebarItem(
+                    icon: Icons.person,
+                    label: 'Nhóm khách hàng',
+                    selected: false,
+                    isOpen: widget.isOpen,
+                    onTap: () {},
+                  ),
+                ],
+              ),
+              height: 80,
+            ),
+          _SidebarItem(
+            icon: Icons.person,
+            label: 'Nhóm khách hàng',
+            selected: false,
+            isOpen: widget.isOpen,
+            onTap: () {},
+          ),
+          // Khuyến mãi
+          _sidebarParentItem(
+            icon: Icons.percent,
+            label: 'Khuyến mãi',
+            open: _openMenus['promotion']!,
+            selected: false,
+            onTap: () => setState(() => _openMenus['promotion'] = !_openMenus['promotion']!),
+          ),
+          if (_openMenus['promotion']!)
+            _submenuIndent(
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _SidebarItem(
+                    icon: Icons.emoji_events_outlined,
+                    label: 'Chương trình khuyến mãi',
+                    selected: false,
+                    isOpen: widget.isOpen,
+                    onTap: () {},
+                  ),
+                ],
+              ),
+              height: 40,
+            ),
+          // Các mục sidebar khác
           _SidebarItem(
             icon: Icons.check_box,
-            label: 'Kiểm kê',
-            selected: currentPage == MainPage.inventory,
-            isOpen: isOpen,
-            onTap: () => onItemTap(MainPage.inventory),
-          ),
-          _SidebarItem(
-            icon: Icons.history,
-            label: 'Lịch sử kiểm kê',
-            selected: currentPage == MainPage.inventoryHistory,
-            isOpen: isOpen,
-            onTap: () => onItemTap(MainPage.inventoryHistory),
+            label: 'Kiểm kê kho',
+            selected: widget.currentPage == MainPage.inventory,
+            isOpen: widget.isOpen,
+            onTap: () => widget.onItemTap(MainPage.inventory),
           ),
           _SidebarItem(
             icon: Icons.bar_chart,
             label: 'Báo cáo',
-            selected: currentPage == MainPage.report,
-            isOpen: isOpen,
-            onTap: () => onItemTap(MainPage.report),
+            selected: widget.currentPage == MainPage.report,
+            isOpen: widget.isOpen,
+            onTap: () => widget.onItemTap(MainPage.report),
           ),
           _SidebarItem(
             icon: Icons.settings,
-            label: 'Cài đặt',
-            selected: currentPage == MainPage.settings,
-            isOpen: isOpen,
-            onTap: () => onItemTap(MainPage.settings),
+            label: 'Cài đặt chung',
+            selected: widget.currentPage == MainPage.settings,
+            isOpen: widget.isOpen,
+            onTap: () => widget.onItemTap(MainPage.settings),
           ),
-          // Thêm mục Thêm sản phẩm mới vào Sidebar (tạm thời để test)
-          // _SidebarItem(
-          //   icon: Icons.add_circle_outline,
-          //   label: 'Thêm sản phẩm mới',
-          //   selected: currentPage == MainPage.addProduct,
-          //   isOpen: isOpen,
-          //   onTap: () => onItemTap(MainPage.addProduct),
-          // ),
         ],
       ),
     );
   }
+
+  Widget _submenuIndent(Widget child, {double height = 0}) => Row(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      Container(
+        width: 16,
+        margin: const EdgeInsets.only(left: 8, right: 0),
+        child: CustomPaint(
+          size: Size(1, height),
+          painter: _SidebarLinePainter(),
+        ),
+      ),
+      Expanded(
+        child: Padding(
+          padding: const EdgeInsets.only(left: 4),
+          child: child,
+        ),
+      ),
+    ],
+  );
+}
+
+class _SidebarLinePainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = borderColor
+      ..strokeWidth = 1.2;
+    canvas.drawLine(Offset(size.width / 2, 0), Offset(size.width / 2, size.height), paint);
+  }
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
 
 class _SidebarItem extends StatelessWidget {
@@ -425,21 +639,17 @@ class _SidebarItem extends StatelessWidget {
         curve: Curves.ease,
         margin: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
         decoration: BoxDecoration(
-          color: showHighlight ? Colors.blue.withOpacity(0.08) : Colors.transparent,
+          color: showHighlight ? primaryBlue.withOpacity(0.08) : Colors.transparent,
           borderRadius: BorderRadius.circular(5),
         ),
         child: ListTile(
-          leading: Icon(icon, color: selected ? Colors.blue : Colors.black54),
+          leading: Icon(icon, color: selected ? primaryBlue : textSecondary),
           title: isOpen
               ? Padding(
-                  padding: const EdgeInsets.only(left: 10),
+                  padding: const EdgeInsets.only(left: space10),
                   child: Text(
                     label,
-                    style: const TextStyle(
-                      fontSize: 14,
-                      color: Colors.black,
-                      fontWeight: FontWeight.bold,
-                    ),
+                    style: small.copyWith(fontWeight: FontWeight.bold, color: textPrimary),
                     overflow: TextOverflow.ellipsis,
                     softWrap: false,
                   ),
@@ -450,6 +660,98 @@ class _SidebarItem extends StatelessWidget {
           onTap: onTap,
         ),
       ),
+    );
+  }
+}
+
+// Thêm các widget mới cho nav bar mobile
+class _NavItem extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+  const _NavItem({required this.icon, required this.label, required this.selected, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            decoration: selected
+                ? BoxDecoration(
+                    color: primaryBlue.withOpacity(0.08),
+                    shape: BoxShape.circle,
+                  )
+                : null,
+            padding: const EdgeInsets.all(8),
+            child: Icon(
+              icon,
+              color: selected ? primaryBlue : textSecondary,
+              size: 20,
+            ),
+          ),
+          const SizedBox(height: 2),
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: selected ? FontWeight.w600 : FontWeight.normal,
+              color: selected ? primaryBlue : textSecondary,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _NavCenterButton extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final VoidCallback onTap;
+  const _NavCenterButton({required this.icon, required this.label, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        GestureDetector(
+          onTap: onTap,
+          child: Container(
+            width: 48,
+            height: 48,
+            decoration: BoxDecoration(
+              color: primaryBlue,
+              shape: BoxShape.circle,
+              boxShadow: [
+                BoxShadow(
+                  color: primaryBlue.withOpacity(0.18),
+                  blurRadius: 8,
+                  offset: Offset(0, 2),
+                ),
+              ],
+            ),
+            child: Icon(
+              icon,
+              color: Colors.white,
+              size: 28,
+            ),
+          ),
+        ),
+        const SizedBox(height: 2),
+        Text(
+          label,
+          style: const TextStyle(
+            fontSize: 12,
+            fontWeight: FontWeight.w600,
+            color: primaryBlue,
+          ),
+        ),
+      ],
     );
   }
 } 

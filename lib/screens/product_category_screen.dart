@@ -5,6 +5,7 @@ import '../models/product.dart';
 import '../services/product_category_service.dart';
 import '../services/product_service.dart';
 import 'add_product_category_screen.dart';
+import '../widgets/common/design_system.dart';
 
 class ProductCategoryScreen extends StatefulWidget {
   final Function(MainPage)? onNavigate;
@@ -28,7 +29,7 @@ class _ProductCategoryScreenState extends State<ProductCategoryScreen> {
         padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
+        children: [
             const SizedBox(height: 16),
             Row(
               crossAxisAlignment: CrossAxisAlignment.center,
@@ -55,7 +56,7 @@ class _ProductCategoryScreenState extends State<ProductCategoryScreen> {
                     textStyle: const TextStyle(fontWeight: FontWeight.bold),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                     elevation: 0,
-                  ),
+                ),
                 ),
                 const SizedBox(width: 12),
                 ElevatedButton.icon(
@@ -81,19 +82,19 @@ class _ProductCategoryScreenState extends State<ProductCategoryScreen> {
             Row(
               children: [
                 Expanded(
-                  child: TextField(
+            child: TextField(
                     onChanged: (v) => setState(() => searchText = v),
-                    decoration: InputDecoration(
-                      hintText: 'Tìm kiếm danh mục...',
-                      prefixIcon: const Icon(Icons.search),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(8),
+              decoration: InputDecoration(
+                hintText: 'Tìm kiếm danh mục...',
+                prefixIcon: const Icon(Icons.search),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
                         borderSide: BorderSide(color: Colors.grey.shade200),
-                      ),
-                      contentPadding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
-                    ),
-                  ),
                 ),
+                      contentPadding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+              ),
+            ),
+          ),
                 const SizedBox(width: 16),
                 DropdownButton<String>(
                   value: sortOption,
@@ -102,8 +103,8 @@ class _ProductCategoryScreenState extends State<ProductCategoryScreen> {
                     DropdownMenuItem(value: 'name_desc', child: Text('Tên: Z-A')),
                   ],
                   onChanged: (v) => setState(() => sortOption = v!),
-                  borderRadius: BorderRadius.circular(8),
-                ),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
               ],
             ),
             const SizedBox(height: 24),
@@ -150,26 +151,19 @@ class _ProductCategoryScreenState extends State<ProductCategoryScreen> {
                                   Expanded(child: Text('Tên danh mục', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16))),
                                   Text('Số sản phẩm', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
                                 ],
-                              ),
-                            ),
+                      ),
+                    ),
                             const Divider(height: 1),
                             ...categories.map((cat) {
                               final count = products.where((p) => p.category == cat.name).length;
                               final isDefault = cat.name.trim().toLowerCase() == 'khác';
                               return Padding(
-                                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                                padding: const EdgeInsets.symmetric(horizontal: space24, vertical: space12),
                                 child: Row(
                                   children: [
-                                    Expanded(child: Text(cat.name, style: const TextStyle(fontSize: 16))),
-                                    Container(
-                                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                                      decoration: BoxDecoration(
-                                        color: Colors.grey[100],
-                                        borderRadius: BorderRadius.circular(12),
-                                      ),
-                                      child: Text('$count', style: const TextStyle(fontWeight: FontWeight.bold)),
-                                    ),
-                                    const SizedBox(width: 16),
+                                    Expanded(child: Text(cat.name, style: h3)),
+                                    DesignSystemBadge(text: '$count'),
+                                    const SizedBox(width: space16),
                                     IconButton(
                                       icon: const Icon(Icons.edit, size: 20, color: Colors.blue),
                                       tooltip: 'Đổi tên danh mục',
@@ -185,8 +179,8 @@ class _ProductCategoryScreenState extends State<ProductCategoryScreen> {
                                                 return AlertDialog(
                                                   title: const Text('Đổi tên danh mục'),
                                                   content: Column(
-                                                    mainAxisSize: MainAxisSize.min,
-                                                    children: [
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
                                                       TextField(
                                                         controller: controller,
                                                         decoration: InputDecoration(hintText: 'Tên mới', errorText: errorText),
@@ -222,50 +216,50 @@ class _ProductCategoryScreenState extends State<ProductCategoryScreen> {
                                           setState(() {});
                                           ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Đã đổi tên danh mục!')));
                                         }
-                                      },
-                                    ),
-                                    IconButton(
+                          },
+                        ),
+                        IconButton(
                                       icon: const Icon(Icons.delete_outline, size: 20, color: Colors.red),
                                       tooltip: 'Xóa danh mục',
                                       onPressed: isDefault ? () {
                                         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Không thể xóa danh mục mặc định!')));
                                       } : () async {
                                         final confirm = await showDialog<bool>(
-                                          context: context,
-                                          builder: (context) => AlertDialog(
-                                            title: const Text('Xác nhận xóa'),
+                              context: context,
+                              builder: (context) => AlertDialog(
+                                title: const Text('Xác nhận xóa'),
                                             content: Text('Bạn có chắc muốn xóa danh mục "${cat.name}"?\nTất cả sản phẩm thuộc danh mục này sẽ được chuyển về "Khác".'),
-                                            actions: [
+                                actions: [
                                               TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Hủy')),
-                                              ElevatedButton(
+                                  ElevatedButton(
                                                 onPressed: () => Navigator.pop(context, true),
-                                                child: const Text('Xóa'),
+                                    child: const Text('Xóa'),
                                                 style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-                                              ),
-                                            ],
-                                          ),
-                                        );
+                                  ),
+                                ],
+                              ),
+                            );
                                         if (confirm == true) {
                                           await _categoryService.deleteCategory(cat.name);
                                           setState(() {});
                                           ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Đã xóa danh mục!')));
                                         }
-                                      },
-                                    ),
-                                  ],
-                                ),
+                          },
+                        ),
+                      ],
+                    ),
                               );
                             }).toList(),
                           ],
-                        ),
-                      );
-                    },
+                  ),
+                );
+              },
                   );
                 },
               ),
             ),
           ],
-        ),
+          ),
       ),
     );
   }

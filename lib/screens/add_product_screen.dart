@@ -4,6 +4,7 @@ import '../widgets/main_layout.dart';
 import '../models/product.dart';
 import '../models/product_category.dart';
 import '../services/product_category_service.dart';
+import '../widgets/common/design_system.dart';
 
 class AddProductScreen extends StatefulWidget {
   final VoidCallback? onBack;
@@ -140,15 +141,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
                       ),
                       const SizedBox(height: 24.0),
 
-                      Card(
-                        color: Colors.transparent,
-                        elevation: 0,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8.0),
-                          side: BorderSide(color: Colors.grey.shade300, width: 1.0),
-                        ),
-                        child: Padding(
-                          padding: const EdgeInsets.all(16.0),
+                      designSystemCard(
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
@@ -185,37 +178,37 @@ class _AddProductScreenState extends State<AddProductScreen> {
                                         const SizedBox(height: 16.0),
                                         Text('Danh mục *', style: TextStyle(fontWeight: FontWeight.bold)),
                                         const SizedBox(height: 8.0),
-                                        StreamBuilder<List<ProductCategory>>(
-                                          stream: _categoryService.getCategories(),
-                                          builder: (context, AsyncSnapshot<List<ProductCategory>> snapshot) {
-                                            final categories = snapshot.data ?? [];
-                                            // Nếu _selectedCategory không nằm trong danh sách, reset về null
-                                            if (_selectedCategory != null && !categories.any((c) => c.name == _selectedCategory)) {
-                                              WidgetsBinding.instance.addPostFrameCallback((_) {
-                                                setState(() {
-                                                  _selectedCategory = null;
-                                                });
+                                      StreamBuilder<List<ProductCategory>>(
+                                        stream: _categoryService.getCategories(),
+                                        builder: (context, AsyncSnapshot<List<ProductCategory>> snapshot) {
+                                          final categories = snapshot.data ?? [];
+                                          // Nếu _selectedCategory không nằm trong danh sách, reset về null
+                                          if (_selectedCategory != null && !categories.any((c) => c.name == _selectedCategory)) {
+                                            WidgetsBinding.instance.addPostFrameCallback((_) {
+                                              setState(() {
+                                                _selectedCategory = null;
                                               });
+                                            });
+                                          }
+                                          return DropdownButtonFormField<String>(
+                                          value: _selectedCategory,
+                                            items: categories.map<DropdownMenuItem<String>>((cat) => DropdownMenuItem<String>(
+                                              value: cat.name,
+                                              child: Text(cat.name),
+                                            )).toList(),
+                                            onChanged: (v) => setState(() => _selectedCategory = v),
+                                          decoration: InputDecoration(
+                                              border: OutlineInputBorder(borderRadius: BorderRadius.circular(5.0)),
+                                            isDense: true,
+                                            contentPadding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 12.0),
+                                          ),
+                                          validator: (value) {
+                                            if (value == null || value.isEmpty) {
+                                              return 'Vui lòng chọn danh mục';
                                             }
-                                            return DropdownButtonFormField<String>(
-                                              value: _selectedCategory,
-                                              items: categories.map<DropdownMenuItem<String>>((cat) => DropdownMenuItem<String>(
-                                                value: cat.name,
-                                                child: Text(cat.name),
-                                              )).toList(),
-                                              onChanged: (v) => setState(() => _selectedCategory = v),
-                                              decoration: InputDecoration(
-                                                border: OutlineInputBorder(borderRadius: BorderRadius.circular(5.0)),
-                                                isDense: true,
-                                                contentPadding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 12.0),
-                                              ),
-                                              validator: (value) {
-                                                if (value == null || value.isEmpty) {
-                                                  return 'Vui lòng chọn danh mục';
-                                                }
-                                                return null;
-                                              },
-                                            );
+                                            return null;
+                                            },
+                                          );
                                           },
                                         ),
                                         const SizedBox(height: 16.0),
@@ -291,20 +284,11 @@ class _AddProductScreenState extends State<AddProductScreen> {
                                 ],
                               ),
                             ],
-                          ),
                         ),
                       ),
                       const SizedBox(height: 24.0),
 
-                      Card(
-                        color: Colors.transparent,
-                        elevation: 0,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8.0),
-                          side: BorderSide(color: Colors.grey.shade300, width: 1.0),
-                        ),
-                        child: Padding(
-                          padding: const EdgeInsets.all(16.0),
+                      designSystemCard(
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
@@ -408,20 +392,11 @@ class _AddProductScreenState extends State<AddProductScreen> {
                                 ],
                               ),
                             ],
-                          ),
                         ),
                       ),
                       const SizedBox(height: 24.0),
 
-                      Card(
-                        color: Colors.transparent,
-                        elevation: 0,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8.0),
-                          side: BorderSide(color: Colors.grey.shade300, width: 1.0),
-                        ),
-                        child: Padding(
-                          padding: const EdgeInsets.all(16.0),
+                      designSystemCard(
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
@@ -538,7 +513,6 @@ class _AddProductScreenState extends State<AddProductScreen> {
                                 ],
                               ),
                             ],
-                          ),
                         ),
                       ),
                       const SizedBox(height: 24.0),

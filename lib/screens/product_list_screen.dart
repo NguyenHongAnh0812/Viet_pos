@@ -77,6 +77,12 @@ class _ProductListScreenState extends State<ProductListScreen> {
   int maxStock = 100;
   double minPrice = 0;
   double maxPrice = 100000;
+  String tempSelectedCategory = '';
+  RangeValues? tempPriceRange;
+  RangeValues? tempStockRange;
+  String tempStatus = '';
+  Set<String> tempSelectedTags = {};
+  String tempSearchText = '';
 
   final List<Map<String, dynamic>> sortOptions = [
     {
@@ -506,7 +512,7 @@ class _ProductListScreenState extends State<ProductListScreen> {
         children: [
           // Header
           Padding(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.all(15),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
@@ -514,8 +520,7 @@ class _ProductListScreenState extends State<ProductListScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text('Danh sách sản phẩm', style: Theme.of(context).textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.bold)),
-                    const SizedBox(height: 4),
-                    Text('Quản lý tất cả sản phẩm', style: TextStyle(color: Colors.grey[600], fontSize: 16)),
+                    const SizedBox(height: 4)
                   ],
                 ),
                 Row(
@@ -638,22 +643,294 @@ class _ProductListScreenState extends State<ProductListScreen> {
                         SizedBox(
                           height: 44,
                           child: OutlinedButton(
-                            onPressed: () {setState(() {isFilterOpen = !isFilterOpen;});},
-                            style: OutlinedButton.styleFrom(
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(5)),
-                              side: BorderSide(color: Colors.grey.shade300),
-                              padding: const EdgeInsets.symmetric(horizontal: 20),
-                              backgroundColor: Colors.white,
-                              foregroundColor: Colors.black,
-                            ),
+                            onPressed: () {
+                              // Đảm bảo giá trị range hợp lệ trước khi mở sidebar
+                              setState(() {
+                                if (priceRange.start < minPrice || priceRange.end > maxPrice || priceRange.start > priceRange.end) {
+                                  priceRange = RangeValues(minPrice, maxPrice);
+                                }
+                                if (stockRange.start < minStock || stockRange.end > maxStock || stockRange.start > stockRange.end) {
+                                  stockRange = RangeValues(minStock.toDouble(), maxStock.toDouble());
+                                }
+                                tempSelectedCategory = selectedCategory;
+                                tempPriceRange = priceRange;
+                                tempStockRange = stockRange;
+                                tempStatus = status;
+                                tempSelectedTags = Set<String>.from(selectedTags);
+                                tempSearchText = searchText;
+                              });
+                              showGeneralDialog(
+                                context: context,
+                                barrierDismissible: true,
+                                barrierLabel: 'Bộ lọc',
+                                barrierColor: Colors.black.withOpacity(0.4),
+                                transitionDuration: const Duration(milliseconds: 350),
+                                pageBuilder: (context, anim1, anim2) {
+                                  final double screenWidth = MediaQuery.of(context).size.width;
+                                  final double width = screenWidth * 0.3 < 320 ? 320 : (screenWidth * 0.3 > 480 ? 480 : screenWidth * 0.3);
+                                  return Align(
+                                    alignment: Alignment.centerRight,
+                                    child: Material(
+                                      color: Colors.transparent,
+                                      child: Container(
+                                        width: width,
+                                        height: MediaQuery.of(context).size.height,
+                                        decoration: const BoxDecoration(
+                                          color: Colors.white,
+                                        ),
+                                        child: SafeArea(
+                                          child: SingleChildScrollView(
+                                            child: Padding(
+                                              padding: const EdgeInsets.all(24.0),
+                                              child: Column(
+                                                crossAxisAlignment: CrossAxisAlignment.start,
+                                                children: [
+                                                  Row(
+                                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                                    children: [
+                                                      Text('Bộ lọc sản phẩm', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 22)),
+                                                      IconButton(
+                                                        icon: Icon(Icons.close),
+                                                        onPressed: () => Navigator.of(context).pop(),
+                                                      ),
+                                                    ],
+                                                  ),
+                                                  const SizedBox(height: 24),
+                                                  // Danh mục
+                                                  Text('Danh mục sản phẩm', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 15)),
+                                                  const SizedBox(height: 8),
+                                                  StreamBuilder<List<Product>>(
+                                                    stream: _productService.getProducts(),
+                                                    builder: (context, snapshot) {
+                                                      final products = snapshot.data ?? [];
+                                                      final categories = getCategoriesFromProducts(products);
+                                                      final uniqueCategories = categories.toSet().toList();
+                                                      if (!uniqueCategories.contains(tempSelectedCategory)) {
+                                                        tempSelectedCategory = 'Tất cả';
+                                                      }
+                                                      return DropdownButtonFormField<String>(
+                                                        value: tempSelectedCategory,
+                                                        decoration: InputDecoration(
+                                                          hintText: 'Tất cả danh mục',
+                                                          border: OutlineInputBorder(
+                                                            borderRadius: BorderRadius.circular(8),
+                                                            borderSide: BorderSide(color: Colors.grey.shade200),
+                                                          ),
+                                                          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                                                        ),
+                                                        items: uniqueCategories.map((cat) => DropdownMenuItem(value: cat, child: Text(cat))).toList(),
+                                                        onChanged: (v) => setState(() => tempSelectedCategory = v!),
+                                                      );
+                                                    },
+                                                  ),
+                                                  const SizedBox(height: 24),
+                                                  // Khoảng giá
+                                                  Text('Khoảng giá', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 15)),
+                                                  const SizedBox(height: 8),
+                                                  Row(
+                                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                                    children: [
+                                                      Text('${numberFormat.format(tempPriceRange?.start ?? priceRange.start)}đ', style: TextStyle(color: Colors.grey[700])),
+                                                      Text('${numberFormat.format(tempPriceRange?.end ?? priceRange.end)}đ', style: TextStyle(color: Colors.grey[700])),
+                                                    ],
+                                                  ),
+                                                  SliderTheme(
+                                                    data: SliderTheme.of(context).copyWith(
+                                                      trackHeight: 4,
+                                                      thumbShape: const _CustomBlueThumbShape(),
+                                                      overlayShape: const RoundSliderOverlayShape(overlayRadius: 14),
+                                                      activeTrackColor: Color(0xFF3a6ff8),
+                                                      inactiveTrackColor: Color(0xFF4CAF50),
+                                                      thumbColor: Colors.white,
+                                                      overlayColor: Color(0xFF3a6ff8).withOpacity(0.15),
+                                                    ),
+                                                    child: RangeSlider(
+                                                      values: tempPriceRange ?? priceRange,
+                                                      min: minPrice,
+                                                      max: maxPrice,
+                                                      divisions: (maxPrice - minPrice).toInt() > 0 ? (maxPrice - minPrice).toInt() : 1,
+                                                      onChanged: (RangeValues values) {
+                                                        setState(() {tempPriceRange = values;});
+                                                      },
+                                                    ),
+                                                  ),
+                                                  const SizedBox(height: 24),
+                                                  // Tồn kho
+                                                  Text('Tồn kho', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 15)),
+                                                  const SizedBox(height: 8),
+                                                  Row(
+                                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                                    children: [
+                                                      Text('${tempStockRange?.start.round() ?? stockRange.start.round()}', style: TextStyle(color: Colors.grey[700])),
+                                                      Text('${tempStockRange?.end.round() ?? stockRange.end.round()}', style: TextStyle(color: Colors.grey[700])),
+                                                    ],
+                                                  ),
+                                                  SliderTheme(
+                                                    data: SliderTheme.of(context).copyWith(
+                                                      trackHeight: 4,
+                                                      thumbShape: const _CustomBlueThumbShape(),
+                                                      overlayShape: const RoundSliderOverlayShape(overlayRadius: 14),
+                                                      activeTrackColor: Color(0xFF3a6ff8),
+                                                      inactiveTrackColor: Color(0xFF4CAF50),
+                                                      thumbColor: Colors.white,
+                                                      overlayColor: Color(0xFF3a6ff8).withOpacity(0.15),
+                                                    ),
+                                                    child: RangeSlider(
+                                                      values: tempStockRange ?? stockRange,
+                                                      min: minStock.toDouble(),
+                                                      max: maxStock.toDouble(),
+                                                      divisions: (maxStock - minStock) > 0 ? (maxStock - minStock) : 1,
+                                                      onChanged: (RangeValues values) {
+                                                        setState(() {tempStockRange = values;});
+                                                      },
+                                                    ),
+                                                  ),
+                                                  const SizedBox(height: 24),
+                                                  // Trạng thái
+                                                  Text('Trạng thái sản phẩm', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 15)),
+                                                  const SizedBox(height: 8),
+                                                  Column(
+                                                    children: [
+                                                      RadioListTile<String>(
+                                                        value: 'Tất cả',
+                                                        groupValue: tempStatus,
+                                                        onChanged: (v) => setState(() => tempStatus = v!),
+                                                        title: const Text('Tất cả'),
+                                                        contentPadding: EdgeInsets.zero,
+                                                      ),
+                                                      RadioListTile<String>(
+                                                        value: 'Còn bán',
+                                                        groupValue: tempStatus,
+                                                        onChanged: (v) => setState(() => tempStatus = v!),
+                                                        title: const Text('Còn bán'),
+                                                        contentPadding: EdgeInsets.zero,
+                                                      ),
+                                                      RadioListTile<String>(
+                                                        value: 'Ngừng bán',
+                                                        groupValue: tempStatus,
+                                                        onChanged: (v) => setState(() => tempStatus = v!),
+                                                        title: const Text('Ngừng bán'),
+                                                        contentPadding: EdgeInsets.zero,
+                                                      ),
+                                                    ],
+                                                  ),
+                                                  const SizedBox(height: 24),
+                                                  // Tags
+                                                  Text('Tags', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 15)),
+                                                  const SizedBox(height: 8),
+                                                  Wrap(
+                                                    spacing: 8.0,
+                                                    runSpacing: 4.0,
+                                                    children: allTags.map((tag) {
+                                                      final isSelected = tempSelectedTags.contains(tag);
+                                                      return FilterChip(
+                                                        label: Text(
+                                                          tag,
+                                                          style: TextStyle(
+                                                            fontSize: 13,
+                                                            color: isSelected ? Colors.white : Colors.black,
+                                                            fontWeight: FontWeight.bold,
+                                                          ),
+                                                        ),
+                                                        selected: isSelected,
+                                                        onSelected: (selected) {
+                                                          setState(() {
+                                                            if (selected) {tempSelectedTags.add(tag);}
+                                                            else {tempSelectedTags.remove(tag);}
+                                                          });
+                                                        },
+                                                        backgroundColor: isSelected ? Color(0xFF3a6ff8) : Colors.transparent,
+                                                        side: BorderSide(color: Colors.grey.shade300, width: 1.2),
+                                                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 0),
+                                                        materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                                        visualDensity: VisualDensity.compact,
+                                                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                                                        showCheckmark: false,
+                                                      );
+                                                    }).toList(),
+                                                  ),
+                                                  const SizedBox(height: 24),
+                                                  Divider(height: 32, thickness: 1, color: Colors.grey),
+                                                  Row(
+                                                    mainAxisAlignment: MainAxisAlignment.end,
+                                                    children: [
+                                                      OutlinedButton(
+                                                        onPressed: () {
+                                                          setState(() {
+                                                            tempSelectedCategory = 'Tất cả';
+                                                            tempPriceRange = RangeValues(minPrice, maxPrice);
+                                                            tempStockRange = RangeValues(minStock.toDouble(), maxStock.toDouble());
+                                                            tempStatus = 'Tất cả';
+                                                            tempSelectedTags = {};
+                                                            tempSearchText = '';
+                                                          });
+                                                        },
+                                                        style: OutlinedButton.styleFrom(
+                                                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(5.0)),
+                                                          side: BorderSide(color: Colors.grey.shade400),
+                                                          padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 24),
+                                                        ),
+                                                        child: const Text('Xóa bộ lọc'),
+                                                      ),
+                                                      const SizedBox(width: 16),
+                                                      ElevatedButton(
+                                                        onPressed: () {
+                                                          setState(() {
+                                                            selectedCategory = tempSelectedCategory;
+                                                            priceRange = tempPriceRange ?? RangeValues(minPrice, maxPrice);
+                                                            stockRange = tempStockRange ?? RangeValues(minStock.toDouble(), maxStock.toDouble());
+                                                            status = tempStatus;
+                                                            selectedTags = Set<String>.from(tempSelectedTags);
+                                                            searchText = tempSearchText;
+                                                          });
+                                                          Navigator.of(context).pop();
+                                                        },
+                                                        style: ElevatedButton.styleFrom(
+                                                          backgroundColor: Color(0xFF22A7F0),
+                                                          foregroundColor: Colors.white,
+                                                          padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 32),
+                                                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(5.0)),
+                                                          textStyle: const TextStyle(fontWeight: FontWeight.bold),
+                                                        ),
+                                                        child: const Text('Áp dụng'),
+                                                      ),
+                                                    ],
+                                                  ),
+                                                ],
+                                              ),
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  );
+                                },
+                                transitionBuilder: (context, anim1, anim2, child) {
+                                  final double screenWidth = MediaQuery.of(context).size.width;
+                                  final double width = screenWidth * 0.3 < 320 ? 320 : (screenWidth * 0.3 > 480 ? 480 : screenWidth * 0.3);
+                                  return Stack(
+                                    children: [
+                                      Positioned(
+                                        top: 0,
+                                        bottom: 0,
+                                        right: 0,
+                                        width: width * anim1.value,
+                                        child: FractionalTranslation(
+                                          translation: Offset(1 - anim1.value, 0),
+                                          child: child,
+                                        ),
+                                      ),
+                                    ],
+                                  );
+                                },
+                              );
+                            },
                             child: Row(
                               mainAxisSize: MainAxisSize.min,
                               children: [
                                 Icon(Icons.filter_alt_outlined, size: 18),
                                 const SizedBox(width: 4),
                                 const Text('Bộ lọc'),
-                                const SizedBox(width: 4),
-                                Icon(isFilterOpen ? Icons.arrow_drop_up : Icons.arrow_drop_down, size: 18),
                               ],
                             ),
                           ),

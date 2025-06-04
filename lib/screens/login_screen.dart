@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../widgets/main_layout.dart';
+import '../widgets/common/design_system.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -46,32 +47,33 @@ class _LoginScreenState extends State<LoginScreen> {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Text('Đăng nhập', style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold)),
-                const SizedBox(height: 24),
+                Text('Đăng nhập', style: responsiveTextStyle(context, h2.copyWith(fontWeight: FontWeight.bold), h2Mobile.copyWith(fontWeight: FontWeight.bold))),
+                SizedBox(height: MediaQuery.of(context).size.width < 600 ? spaceMobile * 3 : space24),
                 TextField(
                   controller: _emailController,
-                  decoration: const InputDecoration(labelText: 'Email'),
+                  decoration: designSystemInputDecoration(label: 'Email'),
                   keyboardType: TextInputType.emailAddress,
                 ),
-                const SizedBox(height: 16),
+                SizedBox(height: MediaQuery.of(context).size.width < 600 ? spaceMobile * 2 : space16),
                 TextField(
                   controller: _passwordController,
-                  decoration: const InputDecoration(labelText: 'Mật khẩu'),
+                  decoration: designSystemInputDecoration(label: 'Mật khẩu'),
                   obscureText: true,
                 ),
-                const SizedBox(height: 24),
+                SizedBox(height: MediaQuery.of(context).size.width < 600 ? spaceMobile * 3 : space24),
                 SizedBox(
                   width: double.infinity,
                   child: ElevatedButton(
                     onPressed: _loading ? null : _login,
+                    style: primaryButtonStyle,
                     child: _loading
                         ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))
-                        : const Text('Đăng nhập'),
+                        : Text('Đăng nhập', style: responsiveTextStyle(context, body.copyWith(fontWeight: FontWeight.w600), bodyMobile.copyWith(fontWeight: FontWeight.w600))),
                   ),
                 ),
                 if (_error != null) ...[
-                  const SizedBox(height: 16),
-                  Text(_error!, style: const TextStyle(color: Colors.red)),
+                  SizedBox(height: MediaQuery.of(context).size.width < 600 ? spaceMobile * 2 : space16),
+                  Text(_error!, style: responsiveTextStyle(context, caption.copyWith(color: destructiveRed), captionMobile.copyWith(color: destructiveRed))),
                 ]
               ],
             ),
