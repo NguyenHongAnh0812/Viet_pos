@@ -47,7 +47,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
               builder: (context, snapshot) {
                 final products = snapshot.data ?? [];
                 final lowStockCount = products.where((p) => (p.stock ?? 0) < 60).length;
-                final isMobile = MediaQuery.of(context).size.width < 600;
+                final isMobile = MediaQuery.of(context).size.width < 1024;
                 return Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [

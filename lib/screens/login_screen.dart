@@ -48,19 +48,19 @@ class _LoginScreenState extends State<LoginScreen> {
               mainAxisSize: MainAxisSize.min,
               children: [
                 Text('Đăng nhập', style: responsiveTextStyle(context, h2.copyWith(fontWeight: FontWeight.bold), h2Mobile.copyWith(fontWeight: FontWeight.bold))),
-                SizedBox(height: MediaQuery.of(context).size.width < 600 ? spaceMobile * 3 : space24),
+                SizedBox(height: MediaQuery.of(context).size.width < 1024 ? spaceMobile * 3 : space24),
                 TextField(
                   controller: _emailController,
                   decoration: designSystemInputDecoration(label: 'Email'),
                   keyboardType: TextInputType.emailAddress,
                 ),
-                SizedBox(height: MediaQuery.of(context).size.width < 600 ? spaceMobile * 2 : space16),
+                SizedBox(height: MediaQuery.of(context).size.width < 1024 ? spaceMobile * 2 : space16),
                 TextField(
                   controller: _passwordController,
                   decoration: designSystemInputDecoration(label: 'Mật khẩu'),
                   obscureText: true,
                 ),
-                SizedBox(height: MediaQuery.of(context).size.width < 600 ? spaceMobile * 3 : space24),
+                SizedBox(height: MediaQuery.of(context).size.width < 1024 ? spaceMobile * 3 : space24),
                 SizedBox(
                   width: double.infinity,
                   child: ElevatedButton(
@@ -72,7 +72,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                 ),
                 if (_error != null) ...[
-                  SizedBox(height: MediaQuery.of(context).size.width < 600 ? spaceMobile * 2 : space16),
+                  SizedBox(height: MediaQuery.of(context).size.width < 1024 ? spaceMobile * 2 : space16),
                   Text(_error!, style: responsiveTextStyle(context, caption.copyWith(color: destructiveRed), captionMobile.copyWith(color: destructiveRed))),
                 ]
               ],

@@ -23,11 +23,39 @@ class MainLayout extends StatefulWidget {
 }
 
 class _MainLayoutState extends State<MainLayout> {
-  bool _sidebarOpen = true;
+  bool _sidebarOpen = false;
   int _selectedIndex = 0;
-  MainPage _currentPage = MainPage.dashboard; // Bắt đầu ở DashboardScreen
-  MainPage? _previousPage; // Lưu trang trước đó để xử lý nút back
+  MainPage _currentPage = MainPage.dashboard;
+  MainPage? _previousPage;
   Product? _selectedProduct;
+  bool _isMobile = false;
+
+  @override
+  void initState() {
+    super.initState();
+    // Khởi tạo sidebar dựa trên kích thước màn hình
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        setState(() {
+          _isMobile = MediaQuery.of(context).size.width < 1024;
+          _sidebarOpen = !_isMobile;
+        });
+      }
+    });
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // Cập nhật layout khi dependencies thay đổi (ví dụ: MediaQuery)
+    final newIsMobile = MediaQuery.of(context).size.width < 1024;
+    if (newIsMobile != _isMobile) {
+      setState(() {
+        _isMobile = newIsMobile;
+        _sidebarOpen = !newIsMobile;
+      });
+    }
+  }
 
   void _toggleSidebar() {
     setState(() {
@@ -39,8 +67,7 @@ class _MainLayoutState extends State<MainLayout> {
     setState(() {
       _previousPage = _currentPage;
       _currentPage = page;
-      // Đóng sidebar trên mobile sau khi chọn trang
-      if (MediaQuery.of(context).size.width < 600) {
+      if (_isMobile) {
         _sidebarOpen = false;
       }
     });
@@ -95,29 +122,22 @@ class _MainLayoutState extends State<MainLayout> {
 
   @override
   Widget build(BuildContext context) {
-    final isMobile = MediaQuery.of(context).size.width < 600;
     return Scaffold(
       body: Column(
         children: [
           _Header(onMenuPressed: _toggleSidebar),
           Expanded(
-            child: isMobile
+            child: _isMobile
                 ? Stack(
                     children: [
                       _buildMainContent(),
-                      AnimatedOpacity(
-                        opacity: _sidebarOpen ? 1.0 : 0.0,
-                        duration: const Duration(milliseconds: 300),
-                        curve: Curves.ease,
-                        child: _sidebarOpen
-                            ? GestureDetector(
-                                onTap: _toggleSidebar,
-                                child: Container(
-                                  color: Colors.black.withOpacity(0.3),
-                                ),
-                              )
-                            : const SizedBox.shrink(),
-                      ),
+                      if (_sidebarOpen)
+                        GestureDetector(
+                          onTap: _toggleSidebar,
+                          child: Container(
+                            color: Colors.black.withOpacity(0.3),
+                          ),
+                        ),
                       AnimatedSlide(
                         offset: _sidebarOpen ? Offset(0, 0) : Offset(-1, 0),
                         duration: const Duration(milliseconds: 300),
@@ -150,7 +170,7 @@ class _MainLayoutState extends State<MainLayout> {
           ),
         ],
       ),
-      bottomNavigationBar: isMobile
+      bottomNavigationBar: _isMobile
           ? Container(
               decoration: BoxDecoration(
                 color: Colors.white,
@@ -163,41 +183,42 @@ class _MainLayoutState extends State<MainLayout> {
                 ],
               ),
               child: SafeArea(
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceAround,
-                  children: [
-                    _NavItem(
-                      icon: Icons.home,
-                  label: 'Trang chủ',
-                      selected: _selectedIndex == 0,
-                      onTap: () => _onNavTap(0),
-                    ),
-                    _NavItem(
-                      icon: Icons.inventory_2,
-                      label: 'Sản phẩm',
-                      selected: _selectedIndex == 1,
-                      onTap: () => _onNavTap(1),
-                    ),
-                    _NavCenterButton(
-                      icon: Icons.add,
-                      label: 'Tạo đơn',
-                      onTap: () {
-                        // TODO: Điều hướng sang màn hình tạo đơn
-                      },
-                    ),
-                    _NavItem(
-                      icon: Icons.credit_card,
-                      label: 'Bán hàng',
-                      selected: _selectedIndex == 3,
-                      onTap: () => _onNavTap(3),
-                    ),
-                    _NavItem(
-                      icon: Icons.bar_chart,
-                  label: 'Báo cáo',
-                      selected: _selectedIndex == 4,
-                      onTap: () => _onNavTap(4),
-                    ),
-                  ],
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 8),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceAround,
+                    children: [
+                      _NavItem(
+                        icon: Icons.dashboard,
+                        label: 'Trang chủ',
+                        selected: _currentPage == MainPage.dashboard,
+                        onTap: () => _onNavTap(0),
+                      ),
+                      _NavItem(
+                        icon: Icons.inventory_2,
+                        label: 'Kiểm kê',
+                        selected: _currentPage == MainPage.inventory,
+                        onTap: () => _onNavTap(1),
+                      ),
+                      _NavCenterButton(
+                        icon: Icons.add,
+                        label: 'Thêm mới',
+                        onTap: () => _onSidebarTap(MainPage.addProduct),
+                      ),
+                      _NavItem(
+                        icon: Icons.inventory,
+                        label: 'Sản phẩm',
+                        selected: _currentPage == MainPage.productList,
+                        onTap: () => _onNavTap(2),
+                      ),
+                      _NavItem(
+                        icon: Icons.bar_chart,
+                        label: 'Báo cáo',
+                        selected: _currentPage == MainPage.report,
+                        onTap: () => _onNavTap(3),
+                      ),
+                    ],
+                  ),
                 ),
               ),
             )
@@ -424,7 +445,7 @@ class _SidebarState extends State<_Sidebar> {
           ),
           // Sản phẩm
           _sidebarParentItem(
-            icon: Icons.inventory_2,
+            icon: Icons.dashboard,
             label: 'Sản phẩm',
             open: _openMenus['product']!,
             selected: false,
@@ -436,7 +457,7 @@ class _SidebarState extends State<_Sidebar> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   _SidebarItem(
-                    icon: Icons.inventory_2,
+                    icon: Icons.dashboard,
                     label: 'Tất cả sản phẩm',
                     selected: widget.currentPage == MainPage.productList,
                     isOpen: widget.isOpen,
@@ -454,7 +475,7 @@ class _SidebarState extends State<_Sidebar> {
               height: 80,
           ),
           _SidebarItem(
-            icon: Icons.list,
+            icon: Icons.dashboard,
             label: 'Danh mục sản phẩm',
             selected: widget.currentPage == MainPage.productCategory,
             isOpen: widget.isOpen,
@@ -462,7 +483,7 @@ class _SidebarState extends State<_Sidebar> {
           ),
           // Nhà cung cấp
           _SidebarItem(
-            icon: Icons.local_shipping,
+            icon: Icons.dashboard,
             label: 'Nhà cung cấp',
             selected: false,
             isOpen: widget.isOpen,
@@ -470,7 +491,7 @@ class _SidebarState extends State<_Sidebar> {
           ),
           // Đơn nhập hàng
           _sidebarParentItem(
-            icon: Icons.shopping_cart,
+            icon: Icons.dashboard,
             label: 'Đơn nhập hàng',
             open: _openMenus['order']!,
             selected: false,
@@ -494,7 +515,7 @@ class _SidebarState extends State<_Sidebar> {
             ),
           // Khách hàng
           _sidebarParentItem(
-            icon: Icons.people,
+            icon: Icons.dashboard,
             label: 'Khách hàng',
             open: _openMenus['customer']!,
             selected: false,
@@ -524,7 +545,7 @@ class _SidebarState extends State<_Sidebar> {
               height: 80,
             ),
           _SidebarItem(
-            icon: Icons.person,
+            icon: Icons.dashboard,
             label: 'Nhóm khách hàng',
             selected: false,
             isOpen: widget.isOpen,
@@ -532,7 +553,7 @@ class _SidebarState extends State<_Sidebar> {
           ),
           // Khuyến mãi
           _sidebarParentItem(
-            icon: Icons.percent,
+            icon: Icons.dashboard,
             label: 'Khuyến mãi',
             open: _openMenus['promotion']!,
             selected: false,
@@ -556,14 +577,14 @@ class _SidebarState extends State<_Sidebar> {
             ),
           // Các mục sidebar khác
           _SidebarItem(
-            icon: Icons.check_box,
+            icon: Icons.dashboard,
             label: 'Kiểm kê kho',
             selected: widget.currentPage == MainPage.inventory,
             isOpen: widget.isOpen,
             onTap: () => widget.onItemTap(MainPage.inventory),
           ),
           _SidebarItem(
-            icon: Icons.bar_chart,
+            icon: Icons.dashboard,
             label: 'Báo cáo',
             selected: widget.currentPage == MainPage.report,
             isOpen: widget.isOpen,

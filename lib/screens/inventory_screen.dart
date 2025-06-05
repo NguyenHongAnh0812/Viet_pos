@@ -253,6 +253,149 @@ class _InventoryScreenState extends State<InventoryScreen> with SingleTickerProv
                     child: Text('Không có sản phẩm nào trong hệ thống.', style: TextStyle(color: Colors.black54)),
                   );
                 }
+                final isMobile = MediaQuery.of(context).size.width < 600;
+                if (isMobile) {
+                  // MOBILE LAYOUT
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      ...products.map((p) => Container(
+                        margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 0),
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(color: Colors.grey.shade200),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            // Tiêu đề 1 dòng
+                            Text(p.name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                            if (p.commonName != null && p.commonName.isNotEmpty)
+                              Padding(
+                                padding: const EdgeInsets.only(top: 2, bottom: 8),
+                                child: Text(p.commonName, style: const TextStyle(fontSize: 13, color: Colors.black54)),
+                              ),
+                            Row(
+                              children: [
+                                // Khu vực 1: Hệ thống
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      const Text('Hệ thống', style: TextStyle(fontSize: 13, color: Colors.black54)),
+                                      Text('${p.stock}', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                                    ],
+                                  ),
+                                ),
+                                // Khu vực 2: Bộ đếm
+                                Expanded(
+                                  flex: 2,
+                                  child: Container(
+                                    height: 40,
+                                    decoration: BoxDecoration(
+                                      color: Colors.grey[100],
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                    child: Row(
+                                      mainAxisAlignment: MainAxisAlignment.center,
+                                      children: [
+                                        IconButton(
+                                          icon: const Icon(Icons.remove, size: 18),
+                                          splashColor: Colors.transparent,
+                                          highlightColor: Colors.transparent,
+                                          onPressed: _actualQtyMap[p.id] != null && int.tryParse(_actualQtyMap[p.id]!) == p.stock
+                                            ? null
+                                            : () {
+                                                int currentQty = int.tryParse(_actualQtyMap[p.id] ?? '${p.stock}') ?? p.stock;
+                                                if (currentQty > 0) {
+                                                  currentQty--;
+                                                  setState(() {
+                                                    _actualQtyMap[p.id] = '$currentQty';
+                                                  });
+                                                }
+                                              },
+                                        ),
+                                        SizedBox(
+                                          width: 40,
+                                          child: TextFormField(
+                                            controller: _qtyControllers.containsKey(p.id) ? _qtyControllers[p.id]! : TextEditingController(text: _actualQtyMap[p.id] ?? '${p.stock}'),
+                                            enabled: !(_actualQtyMap[p.id] != null && int.tryParse(_actualQtyMap[p.id]!) == p.stock),
+                                            keyboardType: TextInputType.number,
+                                            textAlign: TextAlign.center,
+                                            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
+                                            decoration: const InputDecoration(
+                                              border: InputBorder.none,
+                                              isDense: true,
+                                              contentPadding: EdgeInsets.zero,
+                                            ),
+                                            onChanged: (v) {
+                                              setState(() {
+                                                _actualQtyMap[p.id] = v;
+                                              });
+                                            },
+                                          ),
+                                        ),
+                                        IconButton(
+                                          icon: const Icon(Icons.add, size: 18),
+                                          splashColor: Colors.transparent,
+                                          highlightColor: Colors.transparent,
+                                          onPressed: _actualQtyMap[p.id] != null && int.tryParse(_actualQtyMap[p.id]!) == p.stock
+                                            ? null
+                                            : () {
+                                                int currentQty = int.tryParse(_actualQtyMap[p.id] ?? '${p.stock}') ?? p.stock;
+                                                currentQty++;
+                                                setState(() {
+                                                  _actualQtyMap[p.id] = '$currentQty';
+                                                });
+                                              },
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                                // Khu vực 3: Nút Lưu
+                                Expanded(
+                                  child: Padding(
+                                    padding: const EdgeInsets.only(left: 8),
+                                    child: _actualQtyMap[p.id] != null && int.tryParse(_actualQtyMap[p.id]!) == p.stock
+                                      ? ElevatedButton(
+                                          onPressed: null,
+                                          style: ElevatedButton.styleFrom(
+                                            backgroundColor: Colors.green,
+                                            foregroundColor: Colors.white,
+                                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+                                            textStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+                                          ),
+                                          child: const Text('Đã lưu'),
+                                        )
+                                      : ElevatedButton(
+                                          onPressed: () {
+                                            final actualQty = int.tryParse(_actualQtyMap[p.id] ?? '${p.stock}') ?? p.stock;
+                                            if (actualQty != p.stock) {
+                                              _saveProductQuantity(p.id, actualQty);
+                                            }
+                                          },
+                                          style: ElevatedButton.styleFrom(
+                                            backgroundColor: Colors.blue,
+                                            foregroundColor: Colors.white,
+                                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+                                            textStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+                                          ),
+                                          child: const Text('Lưu'),
+                                        ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      )),
+                    ],
+                  );
+                }
+                // DESKTOP LAYOUT (giữ nguyên)
                 return Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [

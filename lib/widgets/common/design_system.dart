@@ -38,7 +38,7 @@ const TextStyle captionMobile = TextStyle(fontSize: 11, fontWeight: FontWeight.n
 const double spaceMobile = 8.0;
 
 TextStyle responsiveTextStyle(BuildContext context, TextStyle desktop, TextStyle mobile) {
-  return MediaQuery.of(context).size.width < 600 ? mobile : desktop;
+  return MediaQuery.of(context).size.width < 1024 ? mobile : desktop;
 }
 
 // ===================== TYPOGRAPHY =====================
