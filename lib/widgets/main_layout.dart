@@ -474,107 +474,100 @@ class _SidebarState extends State<_Sidebar> {
               ),
               height: 80,
           ),
-          _SidebarItem(
-            icon: Icons.dashboard,
-            label: 'Danh mục sản phẩm',
-            selected: widget.currentPage == MainPage.productCategory,
-            isOpen: widget.isOpen,
-            onTap: () => widget.onItemTap(MainPage.productCategory),
-          ),
           // Nhà cung cấp
-          _SidebarItem(
-            icon: Icons.dashboard,
-            label: 'Nhà cung cấp',
-            selected: false,
-            isOpen: widget.isOpen,
-            onTap: () {},
-          ),
+          // _SidebarItem(
+          //   icon: Icons.dashboard,
+          //   label: 'Nhà cung cấp',
+          //   selected: false,
+          //   isOpen: widget.isOpen,
+          //   onTap: () {},
+          // ),
           // Đơn nhập hàng
-          _sidebarParentItem(
-            icon: Icons.dashboard,
-            label: 'Đơn nhập hàng',
-            open: _openMenus['order']!,
-            selected: false,
-            onTap: () => setState(() => _openMenus['order'] = !_openMenus['order']!),
-          ),
-          if (_openMenus['order']!)
-            _submenuIndent(
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _SidebarItem(
-                    icon: Icons.shopping_cart,
-                    label: 'Danh sách đơn nhập',
-                    selected: false,
-                    isOpen: widget.isOpen,
-                    onTap: () {},
-                  ),
-                ],
-              ),
-              height: 40,
-            ),
+          // _sidebarParentItem(
+          //   icon: Icons.dashboard,
+          //   label: 'Đơn nhập hàng',
+          //   open: _openMenus['order']!,
+          //   selected: false,
+          //   onTap: () => setState(() => _openMenus['order'] = !_openMenus['order']!),
+          // ),
+          // if (_openMenus['order']!)
+            // _submenuIndent(
+            //   Column(
+            //     crossAxisAlignment: CrossAxisAlignment.start,
+            //     children: [
+            //       _SidebarItem(
+            //         icon: Icons.shopping_cart,
+            //         label: 'Danh sách đơn nhập',
+            //         selected: false,
+            //         isOpen: widget.isOpen,
+            //         onTap: () {},
+            //       ),
+            //     ],
+            //   ),
+            //   height: 40,
+            // ),
           // Khách hàng
-          _sidebarParentItem(
-            icon: Icons.dashboard,
-            label: 'Khách hàng',
-            open: _openMenus['customer']!,
-            selected: false,
-            onTap: () => setState(() => _openMenus['customer'] = !_openMenus['customer']!),
-          ),
-          if (_openMenus['customer']!)
-            _submenuIndent(
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _SidebarItem(
-                    icon: Icons.list,
-                    label: 'Danh sách khách hàng',
-                    selected: false,
-                    isOpen: widget.isOpen,
-                    onTap: () {},
-                  ),
-                  _SidebarItem(
-                    icon: Icons.person,
-                    label: 'Nhóm khách hàng',
-                    selected: false,
-                    isOpen: widget.isOpen,
-                    onTap: () {},
-                  ),
-                ],
-              ),
-              height: 80,
-            ),
-          _SidebarItem(
-            icon: Icons.dashboard,
-            label: 'Nhóm khách hàng',
-            selected: false,
-            isOpen: widget.isOpen,
-            onTap: () {},
-          ),
+          // _sidebarParentItem(
+          //   icon: Icons.dashboard,
+          //   label: 'Khách hàng',
+          //   open: _openMenus['customer']!,
+          //   selected: false,
+          //   onTap: () => setState(() => _openMenus['customer'] = !_openMenus['customer']!),
+          // ),
+          // if (_openMenus['customer']!)
+          //   _submenuIndent(
+          //     Column(
+          //       crossAxisAlignment: CrossAxisAlignment.start,
+          //       children: [
+          //         _SidebarItem(
+          //           icon: Icons.list,
+          //           label: 'Danh sách khách hàng',
+          //           selected: false,
+          //           isOpen: widget.isOpen,
+          //           onTap: () {},
+          //         ),
+          //         _SidebarItem(
+          //           icon: Icons.person,
+          //           label: 'Nhóm khách hàng',
+          //           selected: false,
+          //           isOpen: widget.isOpen,
+          //           onTap: () {},
+          //         ),
+          //       ],
+          //     ),
+          //     height: 80,
+          //   ),
+          // _SidebarItem(
+          //   icon: Icons.dashboard,
+          //   label: 'Nhóm khách hàng',
+          //   selected: false,
+          //   isOpen: widget.isOpen,
+          //   onTap: () {},
+          // ),
           // Khuyến mãi
-          _sidebarParentItem(
-            icon: Icons.dashboard,
-            label: 'Khuyến mãi',
-            open: _openMenus['promotion']!,
-            selected: false,
-            onTap: () => setState(() => _openMenus['promotion'] = !_openMenus['promotion']!),
-          ),
-          if (_openMenus['promotion']!)
-            _submenuIndent(
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _SidebarItem(
-                    icon: Icons.emoji_events_outlined,
-                    label: 'Chương trình khuyến mãi',
-                    selected: false,
-                    isOpen: widget.isOpen,
-                    onTap: () {},
-                  ),
-                ],
-              ),
-              height: 40,
-            ),
+          // _sidebarParentItem(
+          //   icon: Icons.dashboard,
+          //   label: 'Khuyến mãi',
+          //   open: _openMenus['promotion']!,
+          //   selected: false,
+          //   onTap: () => setState(() => _openMenus['promotion'] = !_openMenus['promotion']!),
+          // ),
+          // if (_openMenus['promotion']!)
+          //   _submenuIndent(
+          //     Column(
+          //       crossAxisAlignment: CrossAxisAlignment.start,
+          //       children: [
+          //         _SidebarItem(
+          //           icon: Icons.emoji_events_outlined,
+          //           label: 'Chương trình khuyến mãi',
+          //           selected: false,
+          //           isOpen: widget.isOpen,
+          //           onTap: () {},
+          //         ),
+          //       ],
+          //     ),
+          //     height: 40,
+          //   ),
           // Các mục sidebar khác
           _SidebarItem(
             icon: Icons.dashboard,
