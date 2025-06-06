@@ -484,7 +484,7 @@ class _InventoryScreenState extends State<InventoryScreen> with SingleTickerProv
               children: [
                 Text(
                   '${filteredProducts.length} sản phẩm cần kiểm kê',
-                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: textThird),
+                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
                 ),
                 const SizedBox(height: 13),
                 Container(
