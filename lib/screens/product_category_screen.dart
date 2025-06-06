@@ -18,15 +18,16 @@ class ProductCategoryScreen extends StatefulWidget {
 class _ProductCategoryScreenState extends State<ProductCategoryScreen> {
   final _categoryService = ProductCategoryService();
   final _productService = ProductService();
+    final TextEditingController _searchController = TextEditingController();
   String searchText = '';
   String sortOption = 'name_asc';
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.grey[50],
+      backgroundColor: appBackground,
       body: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -39,7 +40,7 @@ class _ProductCategoryScreenState extends State<ProductCategoryScreen> {
                   onPressed: widget.onNavigate != null ? () => widget.onNavigate!(MainPage.dashboard) : null,
                 ),
                 const SizedBox(width: 4),
-                const Text('Danh mục sản phẩm', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 26)),
+                const Text('Danh mục sản phẩm', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 24)),
                 const Spacer(),
                 ElevatedButton.icon(
                   onPressed: () async {
@@ -83,17 +84,28 @@ class _ProductCategoryScreenState extends State<ProductCategoryScreen> {
               children: [
                 Expanded(
             child: TextField(
-                    onChanged: (v) => setState(() => searchText = v),
-              decoration: InputDecoration(
-                hintText: 'Tìm kiếm danh mục...',
-                prefixIcon: const Icon(Icons.search),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8),
-                        borderSide: BorderSide(color: Colors.grey.shade200),
-                ),
-                      contentPadding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
-              ),
-            ),
+                            controller: _searchController,
+                            decoration: InputDecoration(
+                              hintText: 'Tìm theo tên, mã vạch...',
+                              prefixIcon: const Icon(Icons.search, size: 18),
+                              isDense: true,
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(6),
+                                borderSide: BorderSide(color: Colors.grey.shade300),
+                              ),
+                              enabledBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(6),
+                                borderSide: BorderSide(color: Colors.grey.shade300),
+                              ),
+                              focusedBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(6),
+                                borderSide: BorderSide(color: Colors.grey.shade400, width: 1.5),
+                              ),
+                              contentPadding: const EdgeInsets.symmetric(vertical: 2, horizontal: 8),
+                            ),
+                            style: const TextStyle(fontSize: 14),
+                            onChanged: (v) => setState(() => searchText = v),
+                          ),
           ),
                 const SizedBox(width: 16),
                 DropdownButton<String>(
@@ -148,8 +160,8 @@ class _ProductCategoryScreenState extends State<ProductCategoryScreen> {
                               padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 18),
                               child: Row(
                                 children: const [
-                                  Expanded(child: Text('Tên danh mục', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16))),
-                                  Text('Số sản phẩm', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                                  Expanded(child: Text('Tên danh mục', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14))),
+                                  Text('Số sản phẩm', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
                                 ],
                       ),
                     ),
@@ -161,11 +173,11 @@ class _ProductCategoryScreenState extends State<ProductCategoryScreen> {
                                 padding: const EdgeInsets.symmetric(horizontal: space24, vertical: space12),
                                 child: Row(
                                   children: [
-                                    Expanded(child: Text(cat.name, style: h3)),
+                                    Expanded(child: Text(cat.name, style: h4)),
                                     DesignSystemBadge(text: '$count'),
                                     const SizedBox(width: space16),
                                     IconButton(
-                                      icon: const Icon(Icons.edit, size: 20, color: Colors.blue),
+                                      icon: const Icon(Icons.edit, size: 14, color: Colors.blue),
                                       tooltip: 'Đổi tên danh mục',
                                       onPressed: () async {
                                         String? errorText;

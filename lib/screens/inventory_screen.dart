@@ -6,6 +6,7 @@ import '../models/product_category.dart';
 import '../services/product_service.dart';
 import '../models/product.dart';
 import 'inventory_history_screen.dart';
+import '../widgets/common/design_system.dart';
 
 class InventoryScreen extends StatefulWidget {
   final VoidCallback? onBack;
@@ -50,7 +51,7 @@ class _InventoryScreenState extends State<InventoryScreen> with SingleTickerProv
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.grey[100],
+      backgroundColor: appBackground,
       body: SingleChildScrollView(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
         child: Column(
@@ -482,8 +483,8 @@ class _InventoryScreenState extends State<InventoryScreen> with SingleTickerProv
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Danh sách sản phẩm cần kiểm kê (${filteredProducts.length})',
-                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                  '${filteredProducts.length} sản phẩm cần kiểm kê',
+                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: textThird),
                 ),
                 const SizedBox(height: 13),
                 Container(
@@ -505,10 +506,10 @@ class _InventoryScreenState extends State<InventoryScreen> with SingleTickerProv
                         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
                         child: Row(
                           children: [
-                            Expanded(flex: 3, child: Text('Tên sản phẩm', style: TextStyle(fontWeight: FontWeight.bold))),
-                            Expanded(flex: 1, child: Text('Hệ thống', style: TextStyle(fontWeight: FontWeight.bold), textAlign: TextAlign.center)),
-                            Expanded(flex: 2, child: Text('Thực tế', style: TextStyle(fontWeight: FontWeight.bold), textAlign: TextAlign.center)),
-                            Expanded(flex: 1, child: Text('Thao tác', style: TextStyle(fontWeight: FontWeight.bold), textAlign: TextAlign.center)),
+                            Expanded(flex: 3, child: Text('Tên sản phẩm', style: TextStyle(fontWeight: FontWeight.bold, color: textThird))),
+                            Expanded(flex: 1, child: Text('Hệ thống', style: TextStyle(fontWeight: FontWeight.bold, color: textThird), textAlign: TextAlign.center)),
+                            Expanded(flex: 2, child: Text('Thực tế', style: TextStyle(fontWeight: FontWeight.bold, color: textThird), textAlign: TextAlign.center)),
+                            Expanded(flex: 1, child: Text('Thao tác', style: TextStyle(fontWeight: FontWeight.bold, color: textThird), textAlign: TextAlign.center)),
                           ],
                         ),
                       ),
@@ -692,18 +693,18 @@ class _InventoryScreenState extends State<InventoryScreen> with SingleTickerProv
         const SizedBox(height: 20),
         Row(
           children: [
-            ElevatedButton.icon(
-              icon: const Icon(Icons.history),
-              label: const Text('Lịch sử kiểm kê'),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.grey[200],
-                foregroundColor: Colors.black87,
-                padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
-                textStyle: const TextStyle(fontWeight: FontWeight.bold),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
-              ),
-              onPressed: widget.onViewHistory,
-            ),
+            // ElevatedButton.icon(
+            //   icon: const Icon(Icons.history),
+            //   label: const Text('Lịch sử kiểm kê'),
+            //   style: ElevatedButton.styleFrom(
+            //     backgroundColor: Colors.grey[200],
+            //     foregroundColor: Colors.black87,
+            //     padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
+            //     textStyle: const TextStyle(fontWeight: FontWeight.bold),
+            //     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+            //   ),
+            //   onPressed: widget.onViewHistory,
+            // ),
             const Spacer(),
             ElevatedButton.icon(
               onPressed: _saving ? null : _saveInventorySession,

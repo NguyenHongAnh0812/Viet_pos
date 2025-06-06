@@ -76,7 +76,7 @@ class MyHomePage extends StatelessWidget {
     // than having to individually change instances of widgets.
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: cardBackground,
+        backgroundColor: appBackground,
         title: Text('VET-POS', style: h2),
       ),
       body: Center(

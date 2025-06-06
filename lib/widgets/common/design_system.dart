@@ -11,6 +11,7 @@ const Color appBackground = Color(0xFFF7F9FC); // --background
 const Color cardBackground = Color(0xFFFFFFFF); // --card
 const Color textPrimary = Color(0xFF1E1E1E); // --foreground
 const Color textSecondary = Color(0xFF6B7280); // --muted-foreground
+const Color textThird = Color(0xFF71717A); // --title
 const Color mutedBackground = Color(0xFFE9EDF5); // hsl(210 20% 96%)
 const Color accentBackground = Color(0xFFE9EDF5); // hsl(210 20% 96%)
 const Color accentForeground = Color(0xFF1E1E1E); // hsl(240 6% 10%)
@@ -47,9 +48,10 @@ const TextStyle h1 = TextStyle(fontSize: 28, fontWeight: FontWeight.bold, fontFa
 const TextStyle h2 = TextStyle(fontSize: 22, fontWeight: FontWeight.bold, fontFamily: fontFamily);
 const TextStyle h3 = TextStyle(fontSize: 18, fontWeight: FontWeight.w600, fontFamily: fontFamily);
 const TextStyle h4 = TextStyle(fontSize: 18, fontWeight: FontWeight.w600, fontFamily: fontFamily);
-const TextStyle body = TextStyle(fontSize: 16, fontWeight: FontWeight.normal, fontFamily: fontFamily);
-const TextStyle small = TextStyle(fontSize: 14, fontWeight: FontWeight.normal, fontFamily: fontFamily);
+const TextStyle body = TextStyle(fontSize: 14, fontWeight: FontWeight.normal, fontFamily: fontFamily);
+const TextStyle heading = TextStyle(fontSize: 16, fontWeight: FontWeight.normal, fontFamily: fontFamily);
 const TextStyle caption = TextStyle(fontSize: 12, fontWeight: FontWeight.normal, fontFamily: fontFamily);
+const TextStyle small = TextStyle(fontSize: 14, fontWeight: FontWeight.normal, fontFamily: fontFamily);
 
 // ===================== BUTTON STYLES =====================
 ButtonStyle primaryButtonStyle = ElevatedButton.styleFrom(

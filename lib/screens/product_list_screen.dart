@@ -13,6 +13,7 @@ import 'dart:math' show min;
 import 'dart:html' as html;
 import '../widgets/product_card_item.dart';
 import '../widgets/product_list_card.dart';
+import '../widgets/common/design_system.dart';
 
 // Custom thumb shape with blue border
 class BlueBorderThumbShape extends RoundSliderThumbShape {
@@ -65,6 +66,7 @@ class ProductListScreen extends StatefulWidget {
 
 class _ProductListScreenState extends State<ProductListScreen> {
   final _productService = ProductService();
+  final TextEditingController _searchController = TextEditingController();
   String selectedCategory = 'Tất cả';
   RangeValues priceRange = const RangeValues(0, 65000);
   RangeValues stockRange = const RangeValues(3, 120);
@@ -83,6 +85,8 @@ class _ProductListScreenState extends State<ProductListScreen> {
   String tempStatus = '';
   Set<String> tempSelectedTags = {};
   String tempSearchText = '';
+  // Multi-select state for checkboxes
+  Set<String> selectedProductIds = {};
 
   final List<Map<String, dynamic>> sortOptions = [
     {
@@ -508,11 +512,12 @@ class _ProductListScreenState extends State<ProductListScreen> {
   Widget build(BuildContext context) {
     final numberFormat = NumberFormat('#,###', 'vi_VN');
     return Scaffold(
+      backgroundColor: appBackground,
       body: Column(
         children: [
           // Header
           Padding(
-            padding: const EdgeInsets.all(15),
+            padding: const EdgeInsets.all(16),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
@@ -525,36 +530,18 @@ class _ProductListScreenState extends State<ProductListScreen> {
                 ),
                 Row(
                   children: [
-                    ClipRRect(
-                      borderRadius: BorderRadius.circular(5),
-                      child: ElevatedButton.icon(
-                        onPressed: () => widget.onNavigate?.call(MainPage.addProduct),
-                        icon: const Icon(Icons.add),
-                        label: const Text('Thêm sản phẩm'),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Color(0xFF3a6ff8),
-                          foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-                          textStyle: const TextStyle(fontWeight: FontWeight.bold),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(5)),
-                          elevation: 0,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 12),
+                       const SizedBox(width: 12),
                     ClipRRect(
                       borderRadius: BorderRadius.circular(5),
                       child: ElevatedButton.icon(
                         onPressed: _importProductsFromExcel,
-                        icon: const Icon(Icons.upload_file),
+                        icon: const Icon(Icons.file_upload_outlined),
                         label: const Text('Import'),
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: Color(0xFF3a6ff8),
-                          foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-                          textStyle: const TextStyle(fontWeight: FontWeight.bold),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(5)),
-                          elevation: 0,
+                          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
+                         textStyle: const TextStyle(fontSize: 13, color: Colors.black, fontWeight: FontWeight.bold), 
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+                          side: BorderSide(color: Colors.grey.shade300), 
                         ),
                       ),
                     ),
@@ -569,15 +556,31 @@ class _ProductListScreenState extends State<ProductListScreen> {
                         icon: const Icon(Icons.download),
                         label: const Text('Export'),
                         style: ElevatedButton.styleFrom(
+                         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
+                          textStyle: const TextStyle(fontSize: 13, color: Colors.black, fontWeight: FontWeight.bold), 
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+                          side: BorderSide(color: Colors.grey.shade300), 
+                        ),
+                      ),
+                    ),
+                       const SizedBox(width: 12),
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(5),
+                      child: ElevatedButton.icon(
+                        onPressed: () => widget.onNavigate?.call(MainPage.addProduct),
+                        icon: const Icon(Icons.add),
+                        label: const Text('Thêm sản phẩm'),
+                        style: ElevatedButton.styleFrom(
                           backgroundColor: Color(0xFF3a6ff8),
                           foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
                           textStyle: const TextStyle(fontWeight: FontWeight.bold),
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(5)),
                           elevation: 0,
                         ),
                       ),
                     ),
+                 
                   ],
                 ),
               ],
@@ -597,19 +600,29 @@ class _ProductListScreenState extends State<ProductListScreen> {
                     child: Stack(
                       alignment: Alignment.centerRight,
                       children: [
-                        TextField(
-                          onChanged: (v) => setState(() => searchText = v),
-                          style: const TextStyle(fontSize: 14),
-                          decoration: InputDecoration(
-                            hintText: 'Tìm theo tên, mã vạch...',
-                            prefixIcon: Icon(Icons.search, size: 18),
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(5),
-                              borderSide: BorderSide(color: Colors.grey.shade300),
+                           TextField(
+                            controller: _searchController,
+                            decoration: InputDecoration(
+                              hintText: 'Tìm theo tên, mã vạch...',
+                              prefixIcon: const Icon(Icons.search, size: 18),
+                              isDense: true,
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(6),
+                                borderSide: BorderSide(color: Colors.grey.shade300),
+                              ),
+                              enabledBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(6),
+                                borderSide: BorderSide(color: Colors.grey.shade300),
+                              ),
+                              focusedBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(6),
+                                borderSide: BorderSide(color: Colors.grey.shade400, width: 1.5),
+                              ),
+                              contentPadding: const EdgeInsets.symmetric(vertical: 2, horizontal: 8),
                             ),
-                            contentPadding: const EdgeInsets.symmetric(vertical: 10, horizontal: 12),
+                            style: const TextStyle(fontSize: 14),
+                            onChanged: (v) => setState(() => searchText = v),
                           ),
-                        ),
                         Positioned(
                           right: 0,
                           top: 0,
@@ -632,7 +645,6 @@ class _ProductListScreenState extends State<ProductListScreen> {
                     ),
                   ),
                   const SizedBox(height: 16.0),
-
                   // Filter and Sort Row
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 16.0),
@@ -1198,78 +1210,321 @@ class _ProductListScreenState extends State<ProductListScreen> {
                   const SizedBox(height: 16.0),
 
                   // Product List
-                  StreamBuilder<List<Product>>(
-                    stream: _productService.getProducts(),
-                    builder: (context, snapshot) {
-                      if (snapshot.hasError) {
-                        return Center(child: Text('Lỗi: ${snapshot.error}'));
-                      }
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                    child: StreamBuilder<List<Product>>(
+                      stream: _productService.getProducts(),
+                      builder: (context, snapshot) {
+                        if (snapshot.hasError) {
+                          return Center(child: Text('Lỗi: \\${snapshot.error}'));
+                        }
 
-                      if (snapshot.connectionState == ConnectionState.waiting) {
-                        return const Center(child: CircularProgressIndicator());
-                      }
+                        if (snapshot.connectionState == ConnectionState.waiting) {
+                          return const Center(child: CircularProgressIndicator());
+                        }
 
-                      final products = snapshot.data ?? [];
-                      final categories = getCategoriesFromProducts(products);
-                      final uniqueCategories = categories.toSet().toList();
-                      if (!uniqueCategories.contains(selectedCategory)) {
-                        selectedCategory = 'Tất cả';
-                      }
-                      updateFilterRanges(products);
-                      final filteredProducts = filterProducts(products);
-                      final sortedProducts = sortProducts(filteredProducts);
+                        final products = snapshot.data ?? [];
+                        final categories = getCategoriesFromProducts(products);
+                        final uniqueCategories = categories.toSet().toList();
+                        if (!uniqueCategories.contains(selectedCategory)) {
+                          selectedCategory = 'Tất cả';
+                        }
+                        updateFilterRanges(products);
+                        final filteredProducts = filterProducts(products);
+                        final sortedProducts = sortProducts(filteredProducts);
 
-                      if (sortedProducts.isEmpty) {
-                        return Padding(
-                          padding: const EdgeInsets.symmetric(vertical: 32.0),
-                          child: Center(
-                            child: Text(
-                              'Không tìm thấy sản phẩm nào',
-                              style: TextStyle(fontSize: 16, color: Colors.grey[600], fontWeight: FontWeight.w500),
+                        if (sortedProducts.isEmpty) {
+                          return Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 32.0),
+                            child: Center(
+                              child: Text(
+                                'Không tìm thấy sản phẩm nào',
+                                style: TextStyle(fontSize: 16, color: Colors.grey[600], fontWeight: FontWeight.w500),
+                              ),
                             ),
-                          ),
-                        );
-                      }
-                      return ListView.builder(
-                        shrinkWrap: true,
-                        physics: NeverScrollableScrollPhysics(),
-                        itemCount: sortedProducts.length,
-                        itemBuilder: (context, index) {
-                          final product = sortedProducts[index];
-                          return ProductListCard(
-                            product: product,
-                            onEdit: () {
-                              if (widget.onProductTap != null) {
-                                widget.onProductTap!(product);
-                              }
-                            },
-                            onDelete: () async {
-                              final confirm = await showDialog<bool>(
-                                context: context,
-                                builder: (context) => AlertDialog(
-                                  title: const Text('Xóa sản phẩm'),
-                                  content: Text('Bạn có chắc muốn xóa sản phẩm "${product.name}"?'),
-                                  actions: [
-                                    TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Hủy')),
-                                    TextButton(onPressed: () => Navigator.pop(context, true), child: const Text('Xóa', style: TextStyle(color: Colors.red))),
-                                  ],
-                                ),
-                              );
-                              if (confirm == true) {
-                                await _productService.deleteProduct(product.id);
-                                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Đã xóa sản phẩm!')));
-                                setState(() {});
-                              }
-                            },
-                            onTap: () {
-                              if (widget.onProductTap != null) {
-                                widget.onProductTap!(product);
-                              }
-                            },
                           );
-                        },
-                      );
-                    },
+                        }
+                        return LayoutBuilder(
+                          builder: (context, constraints) {
+                            final isMobile = constraints.maxWidth < 600;
+                            if (isMobile) {
+                              // Mobile card style
+                              return Column(
+                                children: [
+                                  ...sortedProducts.map((product) {
+                                    return Container(
+                                      margin: const EdgeInsets.only(bottom: 8),
+                                      padding: const EdgeInsets.all(16),
+                                      decoration: BoxDecoration(
+                                        color: Colors.white,
+                                        borderRadius: BorderRadius.circular(12),
+                                        boxShadow: [
+                                          BoxShadow(
+                                            color: Colors.black.withOpacity(0.04),
+                                            blurRadius: 8,
+                                            offset: const Offset(0, 2),
+                                          ),
+                                        ],
+                                      ),
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          Text(product.name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 20)),
+                                          if (product.commonName.isNotEmpty)
+                                            Padding(
+                                              padding: const EdgeInsets.only(top: 2),
+                                              child: Text(product.commonName, style: TextStyle(fontSize: 16, color: Colors.grey[600], fontWeight: FontWeight.w400)),
+                                            ),
+                                          const SizedBox(height: 16),
+                                          Row(
+                                            crossAxisAlignment: CrossAxisAlignment.end,
+                                            children: [
+                                              Expanded(
+                                                child: Column(
+                                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                                  children: [
+                                                    Text('Mã vạch', style: TextStyle(fontSize: 15, color: Colors.grey[400], fontWeight: FontWeight.w500)),
+                                                    Text(product.barcode ?? '-', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500)),
+                                                  ],
+                                                ),
+                                              ),
+                                              Column(
+                                                crossAxisAlignment: CrossAxisAlignment.end,
+                                                children: [
+                                                  Text('Số lượng', style: TextStyle(fontSize: 15, color: Colors.grey[400], fontWeight: FontWeight.w500)),
+                                                  Text('${product.stock}', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+                                                ],
+                                              ),
+                                            ],
+                                          ),
+                                        ],
+                                      ),
+                                    );
+                                  }).toList(),
+                                ],
+                              );
+                            } else {
+                              // Desktop/tablet: render dạng bảng
+                              return Column(
+                                children: [
+                                  // Header row
+                                  Container(
+                                    decoration: BoxDecoration(
+                                      color: Colors.white,
+                                      borderRadius: const BorderRadius.only(
+                                        topLeft: Radius.circular(12),
+                                        topRight: Radius.circular(12),
+                                      ),
+                                      border: Border(
+                                        bottom: BorderSide(color: Colors.grey.shade200, width: 1.5),
+                                      ),
+                                    ),
+                                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                                    child: Row(
+                                      children: [
+                                        Expanded(
+                                          flex: 1,
+                                          child: Align(
+                                            alignment: Alignment.centerLeft,
+                                            child: SizedBox(
+                                              width: 32,
+                                              height: 32,
+                                              child: Theme(
+                                                data: Theme.of(context).copyWith(
+                                                  unselectedWidgetColor: Color(0xFF3a6ff8),
+                                                  checkboxTheme: CheckboxThemeData(
+                                                    shape: RoundedRectangleBorder(
+                                                      borderRadius: BorderRadius.circular(4),
+                                                    ),
+                                                    side: const BorderSide(color: Color(0xFF3a6ff8), width: 1),
+                                                    fillColor: MaterialStateProperty.resolveWith<Color?>((states) {
+                                                      if (states.contains(MaterialState.selected)) {
+                                                        return Color(0xFF3a6ff8);
+                                                      }
+                                                      return Colors.white;
+                                                    }),
+                                                    checkColor: MaterialStateProperty.all<Color>(Colors.white),
+                                                  ),
+                                                ),
+                                                child: Checkbox(
+                                                  value: selectedProductIds.length == sortedProducts.length && sortedProducts.isNotEmpty,
+                                                  onChanged: (checked) {
+                                                    setState(() {
+                                                      if (checked == true) {
+                                                        selectedProductIds.addAll(sortedProducts.map((p) => p.id));
+                                                      } else {
+                                                        selectedProductIds.clear();
+                                                      }
+                                                    });
+                                                  },
+                                                ),
+                                              ),
+                                            ),
+                                          ),
+                                        ),
+                                        Expanded(
+                                          flex: 5,
+                                          child: Align(
+                                            alignment: Alignment.centerLeft,
+                                            child: Text('Tên sản phẩm', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: textThird)),
+                                          ),
+                                        ),
+                                        Expanded(
+                                          flex: 2,
+                                          child: Align(
+                                            alignment: Alignment.center,
+                                            child: Text('Mã vạch', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: textThird)),
+                                          ),
+                                        ),
+                                        Expanded(
+                                          flex: 2,
+                                          child: Align(
+                                            alignment: Alignment.center,
+                                            child: Text('Số lượng', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: textThird)),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  // Product rows
+                                  ...sortedProducts.asMap().entries.map((entry) {
+                                    final idx = entry.key;
+                                    final product = entry.value;
+                                    final isLast = idx == sortedProducts.length - 1;
+                                    return Container(
+                                      margin: const EdgeInsets.only(bottom: 0),
+                                      decoration: BoxDecoration(
+                                        color: Colors.white,
+                                        borderRadius: isLast
+                                          ? const BorderRadius.only(
+                                              bottomLeft: Radius.circular(12),
+                                              bottomRight: Radius.circular(12),
+                                            )
+                                          : BorderRadius.zero,
+                                        border: isLast
+                                          ? null
+                                          : Border(
+                                              bottom: BorderSide(color: Colors.grey.shade200, width: 1),
+                                            ),
+                                      ),
+                                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
+                                      child: Row(
+                                        children: [
+                                          Expanded(
+                                            flex: 1,
+                                            child: Align(
+                                              alignment: Alignment.centerLeft,
+                                              child: SizedBox(
+                                                width: 32,
+                                                height: 32,
+                                                child: Theme(
+                                                  data: Theme.of(context).copyWith(
+                                                    unselectedWidgetColor: Color(0xFF3a6ff8),
+                                                    checkboxTheme: CheckboxThemeData(
+                                                      shape: RoundedRectangleBorder(
+                                                        borderRadius: BorderRadius.circular(4),
+                                                      ),
+                                                      side: const BorderSide(color: Color(0xFF3a6ff8), width: 1),
+                                                      fillColor: MaterialStateProperty.resolveWith<Color?>((states) {
+                                                        if (states.contains(MaterialState.selected)) {
+                                                          return Color(0xFF3a6ff8);
+                                                        }
+                                                        return Colors.white;
+                                                      }),
+                                                      checkColor: MaterialStateProperty.all<Color>(Colors.white),
+                                                    ),
+                                                  ),
+                                                  child: Checkbox(
+                                                    value: selectedProductIds.contains(product.id),
+                                                    onChanged: (checked) {
+                                                      setState(() {
+                                                        if (checked == true) {
+                                                          selectedProductIds.add(product.id);
+                                                        } else {
+                                                          selectedProductIds.remove(product.id);
+                                                        }
+                                                      });
+                                                    },
+                                                  ),
+                                                ),
+                                              ),
+                                            ),
+                                          ),
+                                          Expanded(
+                                            flex: 5,
+                                            child: Align(
+                                              alignment: Alignment.centerLeft,
+                                              child: Column(
+                                                crossAxisAlignment: CrossAxisAlignment.start,
+                                                children: [
+                                                  Text(product.name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                                                  if (product.commonName.isNotEmpty)
+                                                    Padding(
+                                                      padding: const EdgeInsets.only(top: 2),
+                                                      child: Text(product.commonName, style: TextStyle(fontSize: 14, color: textThird , fontWeight: FontWeight.w400)),
+                                                    ),
+                                                ],
+                                              ),
+                                            ),
+                                          ),
+                                          Expanded(
+                                            flex: 2,
+                                            child: Align(
+                                              alignment: Alignment.center,
+                                              child: Text(product.barcode ?? '-', style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 14)),
+                                            ),
+                                          ),
+                                          Expanded(
+                                            flex: 2,
+                                            child: Align(
+                                              alignment: Alignment.center,
+                                              child: Text('${product.stock}', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    );
+                                  }),
+                                  // Bulk delete button
+                                  if (selectedProductIds.isNotEmpty)
+                                    Padding(
+                                      padding: const EdgeInsets.only(top: 12, right: 8),
+                                      child: Align(
+                                        alignment: Alignment.centerRight,
+                                        child: ElevatedButton.icon(
+                                          icon: const Icon(Icons.delete),
+                                          label: const Text('Xóa các sản phẩm đã chọn'),
+                                          style: ElevatedButton.styleFrom(backgroundColor: Colors.redAccent, foregroundColor: Colors.white),
+                                          onPressed: () async {
+                                            final confirm = await showDialog<bool>(
+                                              context: context,
+                                              builder: (context) => AlertDialog(
+                                                title: const Text('Xóa sản phẩm'),
+                                                content: Text('Bạn có chắc muốn xóa \\${selectedProductIds.length} sản phẩm đã chọn?'),
+                                                actions: [
+                                                  TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Hủy')),
+                                                  TextButton(onPressed: () => Navigator.pop(context, true), child: const Text('Xóa', style: TextStyle(color: Colors.red))),
+                                                ],
+                                              ),
+                                            );
+                                            if (confirm == true) {
+                                              for (final id in selectedProductIds) {
+                                                await _productService.deleteProduct(id);
+                                              }
+                                              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Đã xóa các sản phẩm đã chọn!')));
+                                              setState(() {});
+                                            }
+                                          },
+                                        ),
+                                      ),
+                                    ),
+                                ],
+                              );
+                            }
+                          },
+                        );
+                      },
+                    ),
                   ),
                 ],
               ),

@@ -10,9 +10,10 @@ import '../screens/add_product_category_screen.dart';
 import '../screens/inventory_screen.dart';
 import '../screens/inventory_history_screen.dart';
 import 'common/design_system.dart';
+import '../screens/style_guide_screen.dart';
 
 // Định nghĩa enum cho các trang
-enum MainPage { dashboard, productList, productCategory, addProduct, inventory, report, settings, productDetail, lowStockProducts, addProductCategory, inventoryHistory }
+enum MainPage { dashboard, productList, productCategory, addProduct, inventory, report, settings, productDetail, lowStockProducts, addProductCategory, inventoryHistory, styleGuide }
 
 class MainLayout extends StatefulWidget {
   final Widget? child; // Không cần truyền child nữa, sẽ render theo _currentPage
@@ -302,6 +303,8 @@ class _MainLayoutState extends State<MainLayout> {
             });
           },
         );
+      case MainPage.styleGuide:
+        return const StyleGuideScreen();
     }
   }
 
@@ -589,6 +592,13 @@ class _SidebarState extends State<_Sidebar> {
             selected: widget.currentPage == MainPage.settings,
             isOpen: widget.isOpen,
             onTap: () => widget.onItemTap(MainPage.settings),
+          ),
+          _SidebarItem(
+            icon: Icons.palette,
+            label: 'Style Guide',
+            selected: widget.currentPage == MainPage.styleGuide,
+            isOpen: widget.isOpen,
+            onTap: () => widget.onItemTap(MainPage.styleGuide),
           ),
         ],
       ),
