@@ -3,6 +3,7 @@ import '../../models/product.dart';
 import 'package:intl/intl.dart';
 import '../add_product_screen.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import '../../widgets/common/design_system.dart';
 
 class ProductDetailScreen extends StatelessWidget {
   final Product product;
@@ -224,13 +225,13 @@ class ProductDetailScreen extends StatelessWidget {
   Widget _infoBlock(String label, String value) {
     if (value.isEmpty) return const SizedBox.shrink();
     return Padding(
-      padding: const EdgeInsets.only(bottom: 16.0),
+      padding: const EdgeInsets.only(bottom: space16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(label, style: const TextStyle(fontWeight: FontWeight.w500)),
-          const SizedBox(height: 4),
-          Text(value, style: const TextStyle(fontSize: 15)),
+          Text(label, style: small.copyWith(fontWeight: FontWeight.w500)),
+          const SizedBox(height: space4),
+          Text(value, style: body),
         ],
       ),
     );
@@ -238,18 +239,17 @@ class ProductDetailScreen extends StatelessWidget {
 
   Widget _infoBlockV2(String label, String value, {Color? color, bool bold = false}) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 16.0),
+      padding: const EdgeInsets.only(bottom: space16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(label, style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 14, color: Colors.black54)),
-          const SizedBox(height: 2),
+          Text(label, style: small.copyWith(fontWeight: FontWeight.w500, color: textSecondary)),
+          const SizedBox(height: space2),
           Text(
             value,
-            style: TextStyle(
+            style: body.copyWith(
               color: color,
               fontWeight: bold ? FontWeight.bold : FontWeight.normal,
-              fontSize: 16,
             ),
           ),
         ],

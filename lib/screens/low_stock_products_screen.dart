@@ -6,6 +6,7 @@ import '../models/product.dart';
 import '../services/product_service.dart';
 import '../widgets/product_list_card.dart';
 import '../screens/add_product_screen.dart';
+import '../widgets/common/design_system.dart';
 
 class LowStockProductsScreen extends StatefulWidget {
   final VoidCallback? onBack;
@@ -92,7 +93,7 @@ class _LowStockProductsScreenState extends State<LowStockProductsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.grey[50],
+      backgroundColor: appBackground,
       body: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
         child: Column(

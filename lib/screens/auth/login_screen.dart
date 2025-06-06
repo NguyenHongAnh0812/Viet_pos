@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import '../../widgets/common/design_system.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -72,32 +73,24 @@ class _LoginScreenState extends State<LoginScreen> {
               mainAxisAlignment: MainAxisAlignment.center,
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                const Text(
+                Text(
                   'VET-POS',
-                  style: TextStyle(
-                    fontSize: 32,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.blue,
-                  ),
+                  style: responsiveTextStyle(context, h1.copyWith(color: primaryBlue), h1Mobile.copyWith(color: primaryBlue)),
                   textAlign: TextAlign.center,
                 ),
-                const SizedBox(height: 8),
-                const Text(
+                SizedBox(height: MediaQuery.of(context).size.width < 600 ? spaceMobile : space8),
+                Text(
                   'Đăng nhập để tiếp tục',
-                  style: TextStyle(
-                    color: Colors.grey,
-                    fontSize: 14,
-                  ),
+                  style: responsiveTextStyle(context, small.copyWith(color: textSecondary), smallMobile.copyWith(color: textSecondary)),
                   textAlign: TextAlign.center,
                 ),
-                const SizedBox(height: 32),
+                SizedBox(height: MediaQuery.of(context).size.width < 600 ? spaceMobile * 4 : space32),
                 TextFormField(
                   controller: _emailController,
-                  decoration: const InputDecoration(
-                    labelText: 'Email',
-                    border: OutlineInputBorder(),
-                    prefixIcon: Icon(Icons.email),
-                    hintText: 'example@email.com',
+                  decoration: designSystemInputDecoration(
+                    label: 'Email',
+                    prefixIcon: const Icon(Icons.email),
+                    hint: 'example@email.com',
                   ),
                   keyboardType: TextInputType.emailAddress,
                   validator: (value) {
@@ -110,14 +103,13 @@ class _LoginScreenState extends State<LoginScreen> {
                     return null;
                   },
                 ),
-                const SizedBox(height: 16),
+                SizedBox(height: MediaQuery.of(context).size.width < 600 ? spaceMobile * 2 : space16),
                 TextFormField(
                   controller: _passwordController,
-                  decoration: const InputDecoration(
-                    labelText: 'Mật khẩu',
-                    border: OutlineInputBorder(),
-                    prefixIcon: Icon(Icons.lock),
-                    hintText: 'Nhập mật khẩu của bạn',
+                  decoration: designSystemInputDecoration(
+                    label: 'Mật khẩu',
+                    prefixIcon: const Icon(Icons.lock),
+                    hint: 'Nhập mật khẩu của bạn',
                   ),
                   obscureText: true,
                   validator: (value) {
@@ -128,32 +120,22 @@ class _LoginScreenState extends State<LoginScreen> {
                   },
                 ),
                 if (_errorMessage != null) ...[
-                  const SizedBox(height: 16),
+                  SizedBox(height: MediaQuery.of(context).size.width < 600 ? spaceMobile * 2 : space16),
                   Text(
                     _errorMessage!,
-                    style: const TextStyle(
-                      color: Colors.red,
-                      fontSize: 14,
-                    ),
+                    style: caption.copyWith(color: destructiveRed),
                     textAlign: TextAlign.center,
                   ),
                 ],
-                const SizedBox(height: 24),
+                SizedBox(height: MediaQuery.of(context).size.width < 600 ? spaceMobile * 3 : space24),
                 ElevatedButton(
                   onPressed: _isLoading ? null : _login,
-                  style: ElevatedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    backgroundColor: Colors.blue,
-                    foregroundColor: Colors.white,
-                  ),
+                  style: primaryButtonStyle,
                   child: _isLoading
                       ? const CircularProgressIndicator(color: Colors.white)
-                      : const Text(
-                          'Đăng nhập',
-                          style: TextStyle(fontSize: 16),
-                        ),
+                      : Text('Đăng nhập', style: body.copyWith(fontWeight: FontWeight.w600)),
                 ),
-                const SizedBox(height: 16),
+                SizedBox(height: MediaQuery.of(context).size.width < 600 ? spaceMobile * 2 : space16),
                 TextButton(
                   onPressed: _isLoading
                       ? null

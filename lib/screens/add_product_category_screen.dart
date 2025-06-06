@@ -3,6 +3,7 @@ import '../models/product_category.dart';
 import '../models/product.dart';
 import '../services/product_category_service.dart';
 import '../services/product_service.dart';
+import '../widgets/common/design_system.dart';
 
 class AddProductCategoryScreen extends StatefulWidget {
   final VoidCallback? onBack;
@@ -58,7 +59,7 @@ class _AddProductCategoryScreenState extends State<AddProductCategoryScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.grey[50],
+      backgroundColor: appBackground,
       body: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
         child: ListView(

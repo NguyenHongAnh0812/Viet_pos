@@ -5,6 +5,7 @@ import 'screens/login_screen.dart';
 import 'screens/product_list_screen.dart';
 import 'screens/add_product_screen.dart';
 import 'widgets/main_layout.dart';
+import 'widgets/common/design_system.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -75,28 +76,24 @@ class MyHomePage extends StatelessWidget {
     // than having to individually change instances of widgets.
     return Scaffold(
       appBar: AppBar(
-        // TRY THIS: Try changing the color here to a specific color (to
-        // Colors.amber, perhaps?) and trigger a hot reload to see the AppBar
-        // change color while the other colors stay the same.
-        backgroundColor: Theme.of(context).colorScheme.inversePrimary,
-        // Here we take the value from the MyHomePage object that was created by
-        // the App.build method, and use it to set our appbar title.
-        title: const Text('VET-POS'),
+        backgroundColor: appBackground,
+        title: Text('VET-POS', style: h2),
       ),
       body: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Text(
+            Text(
               'Chào mừng đến với VET-POS',
-              style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+              style: h1,
             ),
-            const SizedBox(height: 20),
+            const SizedBox(height: space20),
             ElevatedButton(
               onPressed: () {
                 // TODO: Implement login functionality
               },
-              child: const Text('Đăng nhập'),
+              style: primaryButtonStyle,
+              child: Text('Đăng nhập', style: body.copyWith(fontWeight: FontWeight.w600)),
             ),
           ],
         ),

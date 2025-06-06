@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import '../../widgets/common/design_system.dart';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -156,42 +157,30 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   },
                 ),
                 if (_errorMessage != null) ...[
-                  const SizedBox(height: 16),
+                  const SizedBox(height: space16),
                   Text(
                     _errorMessage!,
-                    style: const TextStyle(
-                      color: Colors.red,
-                      fontSize: 14,
-                    ),
+                    style: caption.copyWith(color: destructiveRed),
                     textAlign: TextAlign.center,
                   ),
                 ],
-                const SizedBox(height: 24),
+                const SizedBox(height: space24),
                 ElevatedButton(
                   onPressed: _isLoading ? null : _register,
-                  style: ElevatedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    backgroundColor: Colors.blue,
-                    foregroundColor: Colors.white,
-                  ),
+                  style: primaryButtonStyle,
                   child: _isLoading
                       ? const CircularProgressIndicator(color: Colors.white)
-                      : const Text(
-                          'Đăng ký',
-                          style: TextStyle(fontSize: 16),
-                        ),
+                      : Text('Đăng ký', style: body.copyWith(fontWeight: FontWeight.w600)),
                 ),
-                const SizedBox(height: 16),
+                const SizedBox(height: space16),
                 TextButton(
                   onPressed: _isLoading
                       ? null
                       : () => Navigator.pushReplacementNamed(context, '/login'),
-                  child: const Text(
+                  style: ghostButtonStyle,
+                  child: Text(
                     'Đã có tài khoản? Đăng nhập',
-                    style: TextStyle(
-                      color: Colors.blue,
-                      fontSize: 14,
-                    ),
+                    style: small.copyWith(color: primaryBlue),
                   ),
                 ),
               ],
