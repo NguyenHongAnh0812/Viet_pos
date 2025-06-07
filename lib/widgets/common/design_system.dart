@@ -1,20 +1,36 @@
 import 'package:flutter/material.dart';
 
+/// VET-POS Flutter Style Guide
+/// Based on the VET-POS web design system with consistent naming conventions
+
 // ===================== COLORS =====================
 const Color primaryBlue = Color(0xFF3A6FF8); // --primary
 const Color secondaryGreen = Color(0xFF67C687); // --secondary
 const Color warningOrange = Color(0xFFFFB547); // --warning
 const Color destructiveRed = Color(0xFFFF5A5F); // --destructive
-const Color borderColor = Color(0xFFD1D5DB); // --border
+const Color borderColor = Color(0xFFE4E4E7); // --border
 
 const Color appBackground = Color(0xFFF7F9FC); // --background
 const Color cardBackground = Color(0xFFFFFFFF); // --card
 const Color textPrimary = Color(0xFF1E1E1E); // --foreground
-const Color textSecondary = Color(0xFF6B7280); // --muted-foreground
-const Color textThird = Color(0xFF71717A); // --title
-const Color mutedBackground = Color(0xFFE9EDF5); // hsl(210 20% 96%)
-const Color accentBackground = Color(0xFFE9EDF5); // hsl(210 20% 96%)
-const Color accentForeground = Color(0xFF1E1E1E); // hsl(240 6% 10%)
+const Color textSecondary = Color(0xFF71717A); // --muted-foreground
+const Color textMuted = Color(0xFF71717A); // --muted-foreground
+const Color textThird = Color(0xFF94A3B8); // --text-third
+const Color mutedBackground = Color(0xFFF1F3F6); // --muted
+const Color accentBackground = Color(0xFFF1F3F6); // --accent
+const Color accentForeground = Color(0xFF18181B); // --accent-foreground
+
+// Sidebar specific colors
+const Color sidebarBackground = Color(0xFFFFFFFF);
+const Color sidebarForeground = Color(0xFF1E1E1E);
+const Color sidebarPrimary = Color(0xFF3A6FF8);
+const Color sidebarAccent = Color(0xFFF1F3F6);
+const Color sidebarBorder = Color(0xFFE4E4E7);
+
+// Status colors
+const Color successGreen = Color(0xFF67C687);
+const Color errorRed = Color(0xFFFF5A5F);
+const Color infoBlue = Color(0xFF3A6FF8);
 
 // ===================== SPACING =====================
 const double space2 = 2.0;
@@ -29,13 +45,63 @@ const double space32 = 32.0;
 const double space48 = 48.0;
 const double space64 = 64.0;
 
+// Component specific spacing
+const double cardPadding = 24.0;
+const double buttonPadding = 16.0;
+const double inputPadding = 12.0;
+const double iconSpacing = 8.0;
+const double pageHorizontalPadding = 16.0;
+const double sectionSpacing = 24.0;
+const double itemSpacing = 16.0;
+
+// ===================== SIZING =====================
+// Button Heights
+const double buttonHeightSmall = 32.0;
+const double buttonHeightMedium = 40.0;
+const double buttonHeightLarge = 48.0;
+
+// Button Widths
+const double buttonMinWidth = 64.0;
+const double buttonIconWidth = 40.0;
+
+// Input Heights
+const double inputHeight = 40.0;
+const double textareaMinHeight = 80.0;
+
+// Icon Sizes
+const double iconSmall = 16.0;
+const double iconMedium = 20.0;
+const double iconLarge = 24.0;
+const double iconXLarge = 32.0;
+
+// Border Radius
+const double borderRadiusSmall = 4.0;
+const double borderRadiusMedium = 8.0;
+const double borderRadiusLarge = 12.0;
+const double borderRadiusXLarge = 16.0;
+
+// Modal/Dialog Dimensions
+const double modalMaxWidth = 500.0;
+const double modalMaxWidthLarge = 700.0;
+const double modalMaxWidthSmall = 400.0;
+const double modalMinHeight = 200.0;
+const double modalPadding = 24.0;
+const double modalHeaderHeight = 64.0;
+const double modalFooterHeight = 72.0;
+
+// Layout
+const double sidebarWidth = 288.0;
+const double sidebarItemHeight = 40.0;
+const double headerHeight = 64.0;
+const double bottomNavHeight = 80.0;
+
 // ===================== RESPONSIVE TYPOGRAPHY =====================
-const TextStyle h1Mobile = TextStyle(fontSize: 20, fontWeight: FontWeight.bold, fontFamily: fontFamily);
-const TextStyle h2Mobile = TextStyle(fontSize: 16, fontWeight: FontWeight.bold, fontFamily: fontFamily);
-const TextStyle h3Mobile = TextStyle(fontSize: 14, fontWeight: FontWeight.w600, fontFamily: fontFamily);
-const TextStyle bodyMobile = TextStyle(fontSize: 14, fontWeight: FontWeight.normal, fontFamily: fontFamily);
-const TextStyle smallMobile = TextStyle(fontSize: 12, fontWeight: FontWeight.normal, fontFamily: fontFamily);
-const TextStyle captionMobile = TextStyle(fontSize: 11, fontWeight: FontWeight.normal, fontFamily: fontFamily);
+const TextStyle h1Mobile = TextStyle(fontSize: 20, fontWeight: FontWeight.bold, fontFamily: fontFamily, color: textPrimary);
+const TextStyle h2Mobile = TextStyle(fontSize: 16, fontWeight: FontWeight.bold, fontFamily: fontFamily, color: textPrimary);
+const TextStyle h3Mobile = TextStyle(fontSize: 14, fontWeight: FontWeight.w600, fontFamily: fontFamily, color: textPrimary);
+const TextStyle bodyMobile = TextStyle(fontSize: 14, fontWeight: FontWeight.normal, fontFamily: fontFamily, color: textPrimary);
+const TextStyle smallMobile = TextStyle(fontSize: 12, fontWeight: FontWeight.normal, fontFamily: fontFamily, color: textPrimary);
+const TextStyle captionMobile = TextStyle(fontSize: 11, fontWeight: FontWeight.normal, fontFamily: fontFamily, color: textPrimary);
 const double spaceMobile = 8.0;
 
 TextStyle responsiveTextStyle(BuildContext context, TextStyle desktop, TextStyle mobile) {
@@ -44,59 +110,120 @@ TextStyle responsiveTextStyle(BuildContext context, TextStyle desktop, TextStyle
 
 // ===================== TYPOGRAPHY =====================
 const String fontFamily = 'Inter';
-const TextStyle h1 = TextStyle(fontSize: 28, fontWeight: FontWeight.bold, fontFamily: fontFamily);
-const TextStyle h2 = TextStyle(fontSize: 22, fontWeight: FontWeight.bold, fontFamily: fontFamily);
-const TextStyle h3 = TextStyle(fontSize: 18, fontWeight: FontWeight.w600, fontFamily: fontFamily);
-const TextStyle h4 = TextStyle(fontSize: 18, fontWeight: FontWeight.w600, fontFamily: fontFamily);
-const TextStyle body = TextStyle(fontSize: 14, fontWeight: FontWeight.normal, fontFamily: fontFamily);
-const TextStyle heading = TextStyle(fontSize: 16, fontWeight: FontWeight.normal, fontFamily: fontFamily);
-const TextStyle caption = TextStyle(fontSize: 12, fontWeight: FontWeight.normal, fontFamily: fontFamily);
-const TextStyle small = TextStyle(fontSize: 14, fontWeight: FontWeight.normal, fontFamily: fontFamily);
+
+// Heading Styles
+const TextStyle h1 = TextStyle(fontSize: 32, fontWeight: FontWeight.w700, fontFamily: fontFamily, color: textPrimary, height: 1.2);
+const TextStyle h2 = TextStyle(fontSize: 24, fontWeight: FontWeight.w600, fontFamily: fontFamily, color: textPrimary, height: 1.3);
+const TextStyle h3 = TextStyle(fontSize: 20, fontWeight: FontWeight.w600, fontFamily: fontFamily, color: textPrimary, height: 1.4);
+const TextStyle h4 = TextStyle(fontSize: 18, fontWeight: FontWeight.w600, fontFamily: fontFamily, color: textPrimary, height: 1.4);
+
+// Body Text Styles
+const TextStyle bodyLarge = TextStyle(fontSize: 16, fontWeight: FontWeight.w400, fontFamily: fontFamily, color: textPrimary, height: 1.5);
+const TextStyle body = TextStyle(fontSize: 14, fontWeight: FontWeight.w400, fontFamily: fontFamily, color: textPrimary, height: 1.5);
+const TextStyle bodySmall = TextStyle(fontSize: 12, fontWeight: FontWeight.w400, fontFamily: fontFamily, color: textPrimary, height: 1.4);
+
+// Label Styles
+const TextStyle labelLarge = TextStyle(fontSize: 14, fontWeight: FontWeight.w500, fontFamily: fontFamily, color: textPrimary, height: 1.4);
+const TextStyle labelMedium = TextStyle(fontSize: 12, fontWeight: FontWeight.w500, fontFamily: fontFamily, color: textPrimary, height: 1.4);
+const TextStyle labelSmall = TextStyle(fontSize: 11, fontWeight: FontWeight.w500, fontFamily: fontFamily, color: textPrimary, height: 1.3);
+
+// Utility Styles
+const TextStyle heading = TextStyle(fontSize: 16, fontWeight: FontWeight.normal, fontFamily: fontFamily, color: textPrimary);
+const TextStyle caption = TextStyle(fontSize: 12, fontWeight: FontWeight.normal, fontFamily: fontFamily, color: textMuted);
+const TextStyle small = TextStyle(fontSize: 14, fontWeight: FontWeight.normal, fontFamily: fontFamily, color: textPrimary);
+const TextStyle mutedText = TextStyle(fontSize: 14, fontWeight: FontWeight.w400, fontFamily: fontFamily, color: textMuted, height: 1.5);
 
 // ===================== BUTTON STYLES =====================
+const double buttonBorderRadius = 6.0;
+
 ButtonStyle primaryButtonStyle = ElevatedButton.styleFrom(
   backgroundColor: primaryBlue,
   foregroundColor: Colors.white,
-  minimumSize: const Size(64, 40),
-  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-  textStyle: body.copyWith(fontWeight: FontWeight.w600),
+  minimumSize: const Size(buttonMinWidth, buttonHeightMedium),
+  padding: const EdgeInsets.symmetric(horizontal: buttonPadding, vertical: space8),
+  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(buttonBorderRadius)),
+  textStyle: labelLarge,
   elevation: 0,
 );
+
 ButtonStyle secondaryButtonStyle = OutlinedButton.styleFrom(
-  foregroundColor: secondaryGreen,
-  backgroundColor: Colors.white,
-  side: const BorderSide(color: borderColor, width: 1.5),
-  minimumSize: const Size(64, 40),
-  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-  textStyle: body.copyWith(fontWeight: FontWeight.w600),
+  foregroundColor: textPrimary,
+  backgroundColor: cardBackground,
+  side: const BorderSide(color: borderColor),
+  minimumSize: const Size(buttonMinWidth, buttonHeightMedium),
+  padding: const EdgeInsets.symmetric(horizontal: buttonPadding, vertical: space8),
+  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(buttonBorderRadius)),
+  textStyle: labelLarge,
 );
+
 ButtonStyle outlineButtonStyle = OutlinedButton.styleFrom(
   foregroundColor: textPrimary,
-  backgroundColor: Colors.white,
+  backgroundColor: cardBackground,
   side: const BorderSide(color: borderColor, width: 1.2),
-  minimumSize: const Size(64, 40),
-  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-  textStyle: body.copyWith(fontWeight: FontWeight.w600),
+  minimumSize: const Size(buttonMinWidth, buttonHeightMedium),
+  padding: const EdgeInsets.symmetric(horizontal: buttonPadding, vertical: space8),
+  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(buttonBorderRadius)),
+  textStyle: labelLarge,
 );
+
 ButtonStyle destructiveButtonStyle = ElevatedButton.styleFrom(
   backgroundColor: destructiveRed,
   foregroundColor: Colors.white,
-  minimumSize: const Size(64, 40),
-  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-  textStyle: body.copyWith(fontWeight: FontWeight.w600),
+  minimumSize: const Size(buttonMinWidth, buttonHeightMedium),
+  padding: const EdgeInsets.symmetric(horizontal: buttonPadding, vertical: space8),
+  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(buttonBorderRadius)),
+  textStyle: labelLarge,
   elevation: 0,
 );
+
 ButtonStyle ghostButtonStyle = TextButton.styleFrom(
   foregroundColor: textPrimary,
   backgroundColor: Colors.transparent,
-  minimumSize: const Size(40, 40),
-  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-  textStyle: body.copyWith(fontWeight: FontWeight.w600),
+  minimumSize: const Size(buttonIconWidth, buttonHeightMedium),
+  padding: const EdgeInsets.symmetric(horizontal: space12, vertical: space8),
+  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(buttonBorderRadius)),
+  textStyle: labelLarge,
+);
+
+// Ghost button with gray border
+ButtonStyle ghostBorderButtonStyle = OutlinedButton.styleFrom(
+  foregroundColor: textSecondary,
+  backgroundColor: Colors.transparent,
+  side: const BorderSide(color: borderColor, width: 1),
+  minimumSize: const Size(buttonMinWidth, buttonHeightMedium),
+  padding: const EdgeInsets.symmetric(horizontal: buttonPadding, vertical: space8),
+  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(buttonBorderRadius)),
+  textStyle: labelLarge,
+);
+
+// Button size variants
+ButtonStyle smallButtonStyle = ElevatedButton.styleFrom(
+  backgroundColor: primaryBlue,
+  foregroundColor: Colors.white,
+  minimumSize: const Size(buttonMinWidth, buttonHeightSmall),
+  padding: const EdgeInsets.symmetric(horizontal: space12, vertical: space4),
+  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(buttonBorderRadius)),
+  textStyle: labelMedium,
+  elevation: 0,
+);
+
+ButtonStyle largeButtonStyle = ElevatedButton.styleFrom(
+  backgroundColor: primaryBlue,
+  foregroundColor: Colors.white,
+  minimumSize: const Size(buttonMinWidth, buttonHeightLarge),
+  padding: const EdgeInsets.symmetric(horizontal: space20, vertical: space12),
+  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(buttonBorderRadius)),
+  textStyle: labelLarge,
+  elevation: 0,
+);
+
+// Icon button style
+ButtonStyle iconButtonStyle = IconButton.styleFrom(
+  backgroundColor: Colors.transparent,
+  foregroundColor: textPrimary,
+  minimumSize: const Size(buttonIconWidth, buttonIconWidth),
+  padding: const EdgeInsets.all(space8),
+  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(buttonBorderRadius)),
 );
 
 // ===================== CARD =====================
@@ -104,13 +231,51 @@ Card designSystemCard({required Widget child, EdgeInsetsGeometry? padding}) => C
   elevation: 1,
   color: cardBackground,
   shape: RoundedRectangleBorder(
-    borderRadius: BorderRadius.circular(16),
+    borderRadius: BorderRadius.circular(borderRadiusMedium),
     side: const BorderSide(color: borderColor, width: 1),
   ),
   child: Padding(
-    padding: padding ?? const EdgeInsets.all(space16),
+    padding: padding ?? const EdgeInsets.all(cardPadding),
     child: child,
   ),
+);
+
+// Form card with multiple inputs
+Card designSystemFormCard({required Widget child, String? title, EdgeInsetsGeometry? padding}) => Card(
+  elevation: 1,
+  color: cardBackground,
+  shape: RoundedRectangleBorder(
+    borderRadius: BorderRadius.circular(borderRadiusMedium),
+    side: const BorderSide(color: borderColor, width: 1),
+  ),
+  child: Padding(
+    padding: padding ?? const EdgeInsets.all(cardPadding),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        if (title != null) ...[
+          Text(title, style: h4),
+          const SizedBox(height: space16),
+        ],
+        child,
+      ],
+    ),
+  ),
+);
+
+// Box decoration for manual card styling
+BoxDecoration cardDecoration = BoxDecoration(
+  color: cardBackground,
+  borderRadius: BorderRadius.circular(borderRadiusMedium),
+  boxShadow: const [
+    BoxShadow(
+      color: Color(0x0A000000),
+      offset: Offset(0, 1),
+      blurRadius: 3,
+      spreadRadius: 0,
+    ),
+  ],
+  border: Border.all(color: borderColor, width: 1),
 );
 
 // ===================== INPUT =====================
@@ -122,6 +287,8 @@ InputDecoration designSystemInputDecoration({
   String? errorText,
   bool isDense = false,
   EdgeInsetsGeometry? contentPadding,
+  Color? fillColor,
+  bool? filled,
 }) => InputDecoration(
   labelText: label,
   hintText: hint,
@@ -129,16 +296,323 @@ InputDecoration designSystemInputDecoration({
   suffixIcon: suffixIcon,
   errorText: errorText,
   isDense: isDense,
-  contentPadding: contentPadding ?? const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+  contentPadding: contentPadding ?? const EdgeInsets.symmetric(horizontal: inputPadding, vertical: inputPadding),
+  filled: filled ?? true,
+  fillColor: fillColor ?? cardBackground,
   border: OutlineInputBorder(
-    borderRadius: BorderRadius.circular(8),
+    borderRadius: BorderRadius.circular(borderRadiusMedium),
+    borderSide: const BorderSide(color: borderColor),
+  ),
+  enabledBorder: OutlineInputBorder(
+    borderRadius: BorderRadius.circular(borderRadiusMedium),
     borderSide: const BorderSide(color: borderColor),
   ),
   focusedBorder: OutlineInputBorder(
-    borderRadius: BorderRadius.circular(8),
+    borderRadius: BorderRadius.circular(borderRadiusMedium),
     borderSide: const BorderSide(color: primaryBlue, width: 2),
   ),
+  errorBorder: OutlineInputBorder(
+    borderRadius: BorderRadius.circular(borderRadiusMedium),
+    borderSide: const BorderSide(color: destructiveRed),
+  ),
+  hintStyle: mutedText,
 );
+
+// Search input without background
+InputDecoration searchInputDecoration({
+  String? hint,
+  Widget? prefixIcon,
+  Widget? suffixIcon,
+}) => InputDecoration(
+  hintText: hint ?? 'Search...',
+  prefixIcon: prefixIcon ?? const Icon(Icons.search, color: textSecondary),
+  suffixIcon: suffixIcon,
+  contentPadding: const EdgeInsets.symmetric(horizontal: inputPadding, vertical: inputPadding),
+  filled: false,
+  border: OutlineInputBorder(
+    borderRadius: BorderRadius.circular(borderRadiusMedium),
+    borderSide: const BorderSide(color: borderColor),
+  ),
+  enabledBorder: OutlineInputBorder(
+    borderRadius: BorderRadius.circular(borderRadiusMedium),
+    borderSide: const BorderSide(color: borderColor),
+  ),
+  focusedBorder: OutlineInputBorder(
+    borderRadius: BorderRadius.circular(borderRadiusMedium),
+    borderSide: const BorderSide(color: primaryBlue, width: 2),
+  ),
+  hintStyle: mutedText,
+);
+
+// ===================== SELECT/DROPDOWN =====================
+class DesignSystemDropdownMenu<T> extends StatelessWidget {
+  final T? value;
+  final List<DropdownMenuItem<T>> items;
+  final ValueChanged<T?> onChanged;
+  final String? hint;
+  final double borderRadius;
+  final EdgeInsetsGeometry? padding;
+  final bool isExpanded;
+  
+  const DesignSystemDropdownMenu({
+    super.key,
+    required this.value,
+    required this.items,
+    required this.onChanged,
+    this.hint,
+    this.borderRadius = borderRadiusMedium,
+    this.padding,
+    this.isExpanded = true,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return DropdownButtonFormField<T>(
+      value: value,
+      items: items,
+      onChanged: onChanged,
+      isExpanded: isExpanded,
+      decoration: designSystemInputDecoration(hint: hint),
+      borderRadius: BorderRadius.circular(borderRadius),
+      style: body,
+      dropdownColor: cardBackground,
+      icon: const Icon(Icons.keyboard_arrow_down, color: textSecondary),
+      iconSize: iconLarge,
+    );
+  }
+}
+
+// Custom dropdown with better styling
+class DesignSystemSelect<T> extends StatelessWidget {
+  final T? value;
+  final List<T> options;
+  final String Function(T) getLabel;
+  final ValueChanged<T?> onChanged;
+  final String? placeholder;
+  final bool enabled;
+  
+  const DesignSystemSelect({
+    super.key,
+    required this.value,
+    required this.options,
+    required this.getLabel,
+    required this.onChanged,
+    this.placeholder,
+    this.enabled = true,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      height: inputHeight,
+      decoration: BoxDecoration(
+        color: enabled ? cardBackground : mutedBackground,
+        border: Border.all(color: borderColor),
+        borderRadius: BorderRadius.circular(borderRadiusMedium),
+      ),
+      child: DropdownButtonHideUnderline(
+        child: DropdownButton<T>(
+          value: value,
+          hint: placeholder != null 
+            ? Text(placeholder!, style: mutedText) 
+            : null,
+          isExpanded: true,
+          icon: const Icon(Icons.keyboard_arrow_down, color: textSecondary),
+          iconSize: iconLarge,
+          style: body,
+          dropdownColor: cardBackground,
+          padding: const EdgeInsets.symmetric(horizontal: inputPadding),
+          items: options.map((T option) {
+            return DropdownMenuItem<T>(
+              value: option,
+              child: Text(getLabel(option), style: body),
+            );
+          }).toList(),
+          onChanged: enabled ? onChanged : null,
+        ),
+      ),
+    );
+  }
+}
+
+// ===================== CHECKBOX =====================
+class DesignSystemCheckbox extends StatelessWidget {
+  final bool value;
+  final ValueChanged<bool?> onChanged;
+  final String? label;
+  final bool enabled;
+  
+  const DesignSystemCheckbox({
+    super.key,
+    required this.value,
+    required this.onChanged,
+    this.label,
+    this.enabled = true,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final bool isChecked = value;
+    if (label != null) {
+      return Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          SizedBox(
+            width: iconMedium,
+            height: iconMedium,
+            child: Checkbox(
+              value: value,
+              onChanged: enabled ? onChanged : null,
+              activeColor: primaryBlue,
+              checkColor: Colors.white,
+              side: BorderSide(color: isChecked ? primaryBlue : borderColor, width: 1.5),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(borderRadiusSmall),
+              ),
+            ),
+          ),
+          const SizedBox(width: space8),
+          Text(label!, style: body),
+        ],
+      );
+    }
+    
+    return SizedBox(
+      width: iconMedium,
+      height: iconMedium,
+      child: Checkbox(
+        value: value,
+        onChanged: enabled ? onChanged : null,
+        activeColor: primaryBlue,
+        checkColor: Colors.white,
+        side: BorderSide(color: isChecked ? primaryBlue : borderColor, width: 1.5),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(borderRadiusSmall),
+        ),
+      ),
+    );
+  }
+}
+
+// ===================== RADIO BUTTON =====================
+class DesignSystemRadio<T> extends StatelessWidget {
+  final T value;
+  final T? groupValue;
+  final ValueChanged<T?> onChanged;
+  final String? label;
+  final bool enabled;
+  
+  const DesignSystemRadio({
+    super.key,
+    required this.value,
+    required this.groupValue,
+    required this.onChanged,
+    this.label,
+    this.enabled = true,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    if (label != null) {
+      return Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          SizedBox(
+            width: iconMedium,
+            height: iconMedium,
+            child: Radio<T>(
+              value: value,
+              groupValue: groupValue,
+              onChanged: enabled ? onChanged : null,
+              activeColor: primaryBlue,
+              fillColor: MaterialStateProperty.resolveWith<Color>((states) {
+                if (states.contains(MaterialState.selected)) {
+                  return primaryBlue;
+                }
+                return borderColor;
+              }),
+            ),
+          ),
+          const SizedBox(width: space8),
+          Text(label!, style: body),
+        ],
+      );
+    }
+    
+    return SizedBox(
+      width: iconMedium,
+      height: iconMedium,
+      child: Radio<T>(
+        value: value,
+        groupValue: groupValue,
+        onChanged: enabled ? onChanged : null,
+        activeColor: primaryBlue,
+        fillColor: MaterialStateProperty.resolveWith<Color>((states) {
+          if (states.contains(MaterialState.selected)) {
+            return primaryBlue;
+          }
+          return borderColor;
+        }),
+      ),
+    );
+  }
+}
+
+// Radio group for multiple options
+class DesignSystemRadioGroup<T> extends StatelessWidget {
+  final List<T> options;
+  final T? value;
+  final String Function(T) getLabel;
+  final ValueChanged<T?> onChanged;
+  final Axis direction;
+  final bool enabled;
+  
+  const DesignSystemRadioGroup({
+    super.key,
+    required this.options,
+    required this.value,
+    required this.getLabel,
+    required this.onChanged,
+    this.direction = Axis.vertical,
+    this.enabled = true,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    if (direction == Axis.horizontal) {
+      return Row(
+        children: options.map((T option) {
+          return Padding(
+            padding: const EdgeInsets.only(right: space16),
+            child: DesignSystemRadio<T>(
+              value: option,
+              groupValue: value,
+              onChanged: onChanged,
+              label: getLabel(option),
+              enabled: enabled,
+            ),
+          );
+        }).toList(),
+      );
+    }
+    
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: options.map((T option) {
+        return Padding(
+          padding: const EdgeInsets.only(bottom: space8),
+          child: DesignSystemRadio<T>(
+            value: option,
+            groupValue: value,
+            onChanged: onChanged,
+            label: getLabel(option),
+            enabled: enabled,
+          ),
+        );
+      }).toList(),
+    );
+  }
+}
 
 // ===================== BADGE =====================
 class DesignSystemBadge extends StatelessWidget {
@@ -147,6 +621,7 @@ class DesignSystemBadge extends StatelessWidget {
   final EdgeInsetsGeometry? padding;
   final double? fontSize;
   final double? borderRadius;
+  
   const DesignSystemBadge({
     super.key,
     required this.text,
@@ -161,6 +636,7 @@ class DesignSystemBadge extends StatelessWidget {
     Color bg;
     Color fg;
     BoxBorder? border;
+    
     switch (variant) {
       case BadgeVariant.secondary:
         bg = secondaryGreen.withOpacity(0.12);
@@ -169,6 +645,10 @@ class DesignSystemBadge extends StatelessWidget {
       case BadgeVariant.destructive:
         bg = destructiveRed.withOpacity(0.12);
         fg = destructiveRed;
+        break;
+      case BadgeVariant.warning:
+        bg = warningOrange.withOpacity(0.12);
+        fg = warningOrange;
         break;
       case BadgeVariant.outline:
         bg = Colors.transparent;
@@ -179,11 +659,12 @@ class DesignSystemBadge extends StatelessWidget {
         bg = primaryBlue.withOpacity(0.12);
         fg = primaryBlue;
     }
+    
     return Container(
       padding: padding ?? const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       decoration: BoxDecoration(
         color: bg,
-        borderRadius: BorderRadius.circular(borderRadius ?? 12),
+        borderRadius: BorderRadius.circular(borderRadius ?? borderRadiusLarge),
         border: border,
       ),
       child: Text(
@@ -192,16 +673,94 @@ class DesignSystemBadge extends StatelessWidget {
           color: fg,
           fontSize: fontSize ?? 13,
           fontWeight: FontWeight.bold,
+          fontFamily: fontFamily,
         ),
       ),
     );
   }
 }
 
-enum BadgeVariant { defaultVariant, secondary, destructive, outline }
+enum BadgeVariant { defaultVariant, secondary, destructive, warning, outline }
 
-// ===================== DIALOG =====================
+// ===================== DIALOG/MODAL =====================
 Future<T?> showDesignSystemDialog<T>({
+  required BuildContext context,
+  required String title,
+  required Widget content,
+  List<Widget>? actions,
+  IconData? icon,
+  Color? iconColor,
+  double? maxWidth,
+  bool barrierDismissible = true,
+}) {
+  return showDialog<T>(
+    context: context,
+    barrierDismissible: barrierDismissible,
+    builder: (context) => Dialog(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(borderRadiusLarge)),
+      backgroundColor: cardBackground,
+      child: Container(
+        constraints: BoxConstraints(
+          maxWidth: maxWidth ?? modalMaxWidth,
+          minHeight: modalMinHeight,
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Header
+            Container(
+              height: modalHeaderHeight,
+              padding: const EdgeInsets.symmetric(horizontal: modalPadding),
+              decoration: const BoxDecoration(
+                border: Border(bottom: BorderSide(color: borderColor, width: 1)),
+              ),
+              child: Row(
+                children: [
+                  if (icon != null) ...[
+                    Icon(icon, color: iconColor ?? destructiveRed, size: iconLarge),
+                    const SizedBox(width: iconSpacing),
+                  ],
+                  Expanded(
+                    child: Text(title, style: h4),
+                  ),
+                  IconButton(
+                    onPressed: () => Navigator.of(context).pop(),
+                    icon: const Icon(Icons.close),
+                    style: iconButtonStyle,
+                  ),
+                ],
+              ),
+            ),
+            // Content
+            Flexible(
+              child: Padding(
+                padding: const EdgeInsets.all(modalPadding),
+                child: content,
+              ),
+            ),
+            // Actions
+            if (actions != null && actions.isNotEmpty) ...[
+              Container(
+                height: modalFooterHeight,
+                padding: const EdgeInsets.symmetric(horizontal: modalPadding, vertical: space16),
+                decoration: const BoxDecoration(
+                  border: Border(top: BorderSide(color: borderColor, width: 1)),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: _withGap(actions, space8),
+                ),
+              ),
+            ],
+          ],
+        ),
+      ),
+    ),
+  );
+}
+
+// Simple alert dialog (for quick confirmations)
+Future<T?> showDesignSystemAlert<T>({
   required BuildContext context,
   required String title,
   required Widget content,
@@ -212,52 +771,76 @@ Future<T?> showDesignSystemDialog<T>({
   return showDialog<T>(
     context: context,
     builder: (context) => AlertDialog(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(borderRadiusLarge)),
+      backgroundColor: cardBackground,
       title: Row(
         children: [
-          if (icon != null)
-            Icon(icon, color: iconColor ?? destructiveRed, size: 28),
-          if (icon != null) const SizedBox(width: 8),
-          Expanded(child: Text(title, style: h3)),
+          if (icon != null) ...[
+            Icon(icon, color: iconColor ?? destructiveRed, size: iconLarge),
+            const SizedBox(width: iconSpacing),
+          ],
+          Expanded(child: Text(title, style: h4)),
         ],
       ),
       content: content,
       actions: actions,
-      actionsPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      actionsPadding: const EdgeInsets.symmetric(horizontal: space16, vertical: space8),
     ),
   );
 }
 
-// ===================== DROPDOWN MENU =====================
-class DesignSystemDropdownMenu<T> extends StatelessWidget {
-  final T value;
-  final List<DropdownMenuItem<T>> items;
-  final ValueChanged<T?> onChanged;
-  final String? hint;
-  final double borderRadius;
-  final EdgeInsetsGeometry? padding;
-  const DesignSystemDropdownMenu({
-    super.key,
-    required this.value,
-    required this.items,
-    required this.onChanged,
-    this.hint,
-    this.borderRadius = 8,
-    this.padding,
-  });
+// Dialog decoration for manual styling
+BoxDecoration dialogDecoration = BoxDecoration(
+  color: cardBackground,
+  borderRadius: BorderRadius.circular(borderRadiusLarge),
+  boxShadow: const [
+    BoxShadow(
+      color: Color(0x1A000000),
+      offset: Offset(0, 8),
+      blurRadius: 24,
+      spreadRadius: 0,
+    ),
+  ],
+);
 
-  @override
-  Widget build(BuildContext context) {
-    return DropdownButtonFormField<T>(
-      value: value,
-      items: items,
-      onChanged: onChanged,
-      decoration: designSystemInputDecoration(hint: hint),
-      borderRadius: BorderRadius.circular(borderRadius),
-      style: body,
-      padding: padding,
-    );
-  }
+// Bottom sheet modal
+Future<T?> showDesignSystemBottomSheet<T>({
+  required BuildContext context,
+  required Widget child,
+  double? height,
+  bool isScrollControlled = false,
+}) {
+  return showModalBottomSheet<T>(
+    context: context,
+    isScrollControlled: isScrollControlled,
+    backgroundColor: Colors.transparent,
+    builder: (context) => Container(
+      height: height,
+      decoration: BoxDecoration(
+        color: cardBackground,
+        borderRadius: const BorderRadius.only(
+          topLeft: Radius.circular(borderRadiusXLarge),
+          topRight: Radius.circular(borderRadiusXLarge),
+        ),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // Handle
+          Container(
+            width: 40,
+            height: 4,
+            margin: const EdgeInsets.symmetric(vertical: space12),
+            decoration: BoxDecoration(
+              color: mutedBackground,
+              borderRadius: BorderRadius.circular(2),
+            ),
+          ),
+          Flexible(child: child),
+        ],
+      ),
+    ),
+  );
 }
 
 // ===================== ALERT =====================
@@ -266,6 +849,7 @@ class DesignSystemAlert extends StatelessWidget {
   final String? message;
   final AlertVariant variant;
   final IconData? icon;
+  
   const DesignSystemAlert({
     super.key,
     required this.title,
@@ -279,6 +863,7 @@ class DesignSystemAlert extends StatelessWidget {
     Color bg;
     Color fg;
     IconData displayIcon = icon ?? Icons.info_outline;
+    
     switch (variant) {
       case AlertVariant.warning:
         bg = warningOrange.withOpacity(0.12);
@@ -300,24 +885,25 @@ class DesignSystemAlert extends StatelessWidget {
         fg = primaryBlue;
         displayIcon = icon ?? Icons.info_outline;
     }
+    
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      padding: const EdgeInsets.symmetric(horizontal: space16, vertical: space12),
       decoration: BoxDecoration(
         color: bg,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(borderRadiusLarge),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(displayIcon, color: fg, size: 24),
-          const SizedBox(width: 12),
+          Icon(displayIcon, color: fg, size: iconLarge),
+          const SizedBox(width: space12),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(title, style: body.copyWith(fontWeight: FontWeight.bold, color: fg)),
                 if (message != null) ...[
-                  const SizedBox(height: 2),
+                  const SizedBox(height: space2),
                   Text(message!, style: small.copyWith(color: fg)),
                 ],
               ],
@@ -337,6 +923,7 @@ class DesignSystemSeparator extends StatelessWidget {
   final Color? color;
   final double? indent;
   final double? endIndent;
+  
   const DesignSystemSeparator({
     super.key,
     this.thickness = 1,
@@ -349,7 +936,7 @@ class DesignSystemSeparator extends StatelessWidget {
   Widget build(BuildContext context) {
     return Divider(
       thickness: thickness,
-      color: color ?? Colors.grey.shade200,
+      color: color ?? borderColor,
       indent: indent,
       endIndent: endIndent,
       height: thickness,
@@ -362,11 +949,12 @@ class DesignSystemSkeleton extends StatelessWidget {
   final double height;
   final double width;
   final BorderRadiusGeometry borderRadius;
+  
   const DesignSystemSkeleton({
     super.key,
     this.height = 16,
     this.width = double.infinity,
-    this.borderRadius = const BorderRadius.all(Radius.circular(8)),
+    this.borderRadius = const BorderRadius.all(Radius.circular(borderRadiusMedium)),
   });
 
   @override
@@ -375,7 +963,7 @@ class DesignSystemSkeleton extends StatelessWidget {
       height: height,
       width: width,
       decoration: BoxDecoration(
-        color: Colors.grey.shade200,
+        color: mutedBackground,
         borderRadius: borderRadius,
       ),
     );
@@ -389,6 +977,7 @@ class DesignSystemFormSection extends StatelessWidget {
   final List<Widget> children;
   final EdgeInsetsGeometry? padding;
   final double gap;
+  
   const DesignSystemFormSection({
     super.key,
     this.title,
@@ -401,14 +990,14 @@ class DesignSystemFormSection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: padding ?? const EdgeInsets.symmetric(vertical: space24),
+      padding: padding ?? const EdgeInsets.symmetric(vertical: sectionSpacing),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           if (title != null) ...[
             Text(title!, style: h2),
             if (description != null) ...[
-              const SizedBox(height: 4),
+              const SizedBox(height: space4),
               Text(description!, style: small.copyWith(color: textSecondary)),
             ],
             const SizedBox(height: space16),
@@ -428,6 +1017,7 @@ class DesignSystemFormField extends StatelessWidget {
   final String? helperText;
   final bool required;
   final double gap;
+  
   const DesignSystemFormField({
     super.key,
     required this.label,
@@ -435,7 +1025,7 @@ class DesignSystemFormField extends StatelessWidget {
     this.errorText,
     this.helperText,
     this.required = false,
-    this.gap = 8,
+    this.gap = space8,
   });
 
   @override
@@ -445,9 +1035,9 @@ class DesignSystemFormField extends StatelessWidget {
       children: [
         Row(
           children: [
-            Text(label, style: small.copyWith(fontWeight: FontWeight.w600)),
+            Text(label, style: labelMedium.copyWith(fontWeight: FontWeight.w600)),
             if (required) ...[
-              const SizedBox(width: 2),
+              const SizedBox(width: space2),
               const Text('*', style: TextStyle(color: destructiveRed, fontWeight: FontWeight.bold)),
             ],
           ],
@@ -455,11 +1045,11 @@ class DesignSystemFormField extends StatelessWidget {
         SizedBox(height: gap),
         input,
         if (helperText != null && (errorText == null || errorText!.isEmpty)) ...[
-          const SizedBox(height: 4),
+          const SizedBox(height: space4),
           Text(helperText!, style: caption.copyWith(color: textSecondary)),
         ],
         if (errorText != null && errorText!.isNotEmpty) ...[
-          const SizedBox(height: 4),
+          const SizedBox(height: space4),
           Text(errorText!, style: caption.copyWith(color: destructiveRed)),
         ],
       ],
@@ -472,6 +1062,7 @@ class DesignSystemFormActions extends StatelessWidget {
   final List<Widget> actions;
   final MainAxisAlignment alignment;
   final double gap;
+  
   const DesignSystemFormActions({
     super.key,
     required this.actions,
@@ -488,8 +1079,127 @@ class DesignSystemFormActions extends StatelessWidget {
   }
 }
 
+// ===================== NAVIGATION STYLES =====================
+BoxDecoration sidebarItemDecoration = BoxDecoration(
+  borderRadius: BorderRadius.circular(borderRadiusMedium),
+  color: Colors.transparent,
+);
+
+BoxDecoration sidebarItemActiveDecoration = BoxDecoration(
+  borderRadius: BorderRadius.circular(borderRadiusMedium),
+  color: sidebarAccent,
+);
+
+// ===================== CURRENCY FORMATTING =====================
+const String currencySymbol = '₫';
+const String currencyLocale = 'vi_VN';
+
+String formatCurrency(double amount) {
+  return '${amount.toStringAsFixed(0).replaceAllMapped(
+    RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
+    (Match m) => '${m[1]},',
+  )} $currencySymbol';
+}
+
+// ===================== RESPONSIVE UTILITIES =====================
+EdgeInsets getResponsivePadding(double screenWidth) {
+  if (screenWidth < 600) {
+    return const EdgeInsets.all(space16);
+  } else if (screenWidth < 900) {
+    return const EdgeInsets.all(space24);
+  } else {
+    return const EdgeInsets.all(space32);
+  }
+}
+
+double getResponsiveCardWidth(double screenWidth) {
+  if (screenWidth < 600) {
+    return screenWidth - (space16 * 2);
+  } else if (screenWidth < 900) {
+    return 600;
+  } else {
+    return 800;
+  }
+}
+
+bool isMobile(double screenWidth) => screenWidth < 600;
+bool isTablet(double screenWidth) => screenWidth >= 600 && screenWidth < 900;
+bool isDesktop(double screenWidth) => screenWidth >= 900;
+
+// ===================== THEME DATA =====================
+ThemeData get vetPosThemeData => ThemeData(
+  fontFamily: fontFamily,
+  colorScheme: ColorScheme.light(
+    primary: primaryBlue,
+    secondary: secondaryGreen,
+    surface: cardBackground,
+    background: appBackground,
+    error: destructiveRed,
+    onPrimary: Colors.white,
+    onSecondary: Colors.white,
+    onSurface: textPrimary,
+    onBackground: textPrimary,
+    onError: Colors.white,
+  ),
+  scaffoldBackgroundColor: appBackground,
+  appBarTheme: AppBarTheme(
+    backgroundColor: cardBackground,
+    foregroundColor: textPrimary,
+    elevation: 1,
+    shadowColor: borderColor,
+    titleTextStyle: h4,
+    toolbarHeight: headerHeight,
+  ),
+  elevatedButtonTheme: ElevatedButtonThemeData(style: primaryButtonStyle),
+  outlinedButtonTheme: OutlinedButtonThemeData(style: secondaryButtonStyle),
+  inputDecorationTheme: InputDecorationTheme(
+    filled: true,
+    fillColor: cardBackground,
+    border: designSystemInputDecoration().border,
+    enabledBorder: designSystemInputDecoration().enabledBorder,
+    focusedBorder: designSystemInputDecoration().focusedBorder,
+    errorBorder: designSystemInputDecoration().errorBorder,
+    contentPadding: designSystemInputDecoration().contentPadding,
+    hintStyle: designSystemInputDecoration().hintStyle,
+  ),
+  cardTheme: CardTheme(
+    color: cardBackground,
+    elevation: 1,
+    shape: RoundedRectangleBorder(
+      borderRadius: BorderRadius.circular(borderRadiusMedium),
+      side: const BorderSide(color: borderColor),
+    ),
+    margin: EdgeInsets.zero,
+  ),
+  dividerColor: borderColor,
+  textTheme: const TextTheme(
+    displayLarge: h1,
+    displayMedium: h2,
+    displaySmall: h3,
+    headlineMedium: h4,
+    bodyLarge: bodyLarge,
+    bodyMedium: body,
+    bodySmall: bodySmall,
+    labelLarge: labelLarge,
+    labelMedium: labelMedium,
+    labelSmall: labelSmall,
+  ),
+);
+
 // ===================== UTILS =====================
 List<Widget> _withGap(List<Widget> children, double gap) {
+  if (children.isEmpty) return [];
+  final List<Widget> result = [];
+  for (int i = 0; i < children.length; i++) {
+    result.add(children[i]);
+    if (i < children.length - 1) {
+      result.add(SizedBox(width: gap));
+    }
+  }
+  return result;
+}
+
+List<Widget> _withVerticalGap(List<Widget> children, double gap) {
   if (children.isEmpty) return [];
   final List<Widget> result = [];
   for (int i = 0; i < children.length; i++) {
@@ -499,4 +1209,532 @@ List<Widget> _withGap(List<Widget> children, double gap) {
     }
   }
   return result;
-} 
+}
+
+/// ========================================
+/// USAGE EXAMPLES
+/// ========================================
+
+/*
+// Example 1: Using colors
+Container(
+  color: primaryBlue,
+  child: Text(
+    'Hello',
+    style: TextStyle(color: Colors.white),
+  ),
+)
+
+// Example 2: Using typography
+Text(
+  'Heading Text',
+  style: h2,
+)
+
+// Example 3: Using card
+designSystemCard(
+  child: Column(children: [...]),
+)
+
+// Example 4: Using form card
+designSystemFormCard(
+  title: 'Product Information',
+  child: Column(
+    children: [
+      DesignSystemFormField(
+        label: 'Product Name',
+        required: true,
+        input: TextField(
+          decoration: designSystemInputDecoration(hint: 'Enter product name'),
+        ),
+      ),
+      // ... more form fields
+    ],
+  ),
+)
+
+// Example 5: Using button styles
+ElevatedButton(
+  style: primaryButtonStyle,
+  onPressed: () {},
+  child: Text('Primary Button'),
+)
+
+// Example 6: Ghost button with border
+OutlinedButton(
+  style: ghostBorderButtonStyle,
+  onPressed: () {},
+  child: Text('Ghost Button'),
+)
+
+// Example 7: Using input decoration
+TextField(
+  decoration: designSystemInputDecoration(
+    label: 'Tên sản phẩm',
+    hint: 'Nhập tên sản phẩm...',
+  ),
+)
+
+// Example 8: Search input without background
+TextField(
+  decoration: searchInputDecoration(
+    hint: 'Search products...',
+  ),
+)
+
+// Example 9: Using dropdown/select
+DesignSystemDropdownMenu<String>(
+  value: selectedValue,
+  items: [
+    DropdownMenuItem(value: 'option1', child: Text('Option 1')),
+    DropdownMenuItem(value: 'option2', child: Text('Option 2')),
+  ],
+  onChanged: (value) => setState(() => selectedValue = value),
+  hint: 'Select an option',
+)
+
+// Example 10: Custom select
+DesignSystemSelect<String>(
+  value: selectedOption,
+  options: ['Option 1', 'Option 2', 'Option 3'],
+  getLabel: (option) => option,
+  onChanged: (value) => setState(() => selectedOption = value),
+  placeholder: 'Choose option',
+)
+
+// Example 11: Checkbox
+DesignSystemCheckbox(
+  value: isChecked,
+  onChanged: (value) => setState(() => isChecked = value ?? false),
+  label: 'I agree to terms and conditions',
+)
+
+// Example 12: Radio button
+DesignSystemRadio<String>(
+  value: 'option1',
+  groupValue: selectedRadio,
+  onChanged: (value) => setState(() => selectedRadio = value),
+  label: 'Option 1',
+)
+
+// Example 13: Radio group
+DesignSystemRadioGroup<String>(
+  options: ['Option 1', 'Option 2', 'Option 3'],
+  value: selectedRadio,
+  getLabel: (option) => option,
+  onChanged: (value) => setState(() => selectedRadio = value),
+  direction: Axis.vertical,
+)
+
+// Example 14: Using the complete theme
+MaterialApp(
+  theme: vetPosThemeData,
+  home: YourHomeWidget(),
+)
+
+// Example 15: Currency formatting
+Text(formatCurrency(1500000)) // Output: "1,500,000 ₫"
+
+// Example 16: Responsive design
+Widget build(BuildContext context) {
+  final screenWidth = MediaQuery.of(context).size.width;
+  return Container(
+    padding: getResponsivePadding(screenWidth),
+    width: getResponsiveCardWidth(screenWidth),
+    child: YourContent(),
+  );
+}
+
+// Example 17: Using badges
+DesignSystemBadge(
+  text: 'Active',
+  variant: BadgeVariant.secondary,
+)
+
+// Example 18: Using alerts
+DesignSystemAlert(
+  title: 'Success',
+  message: 'Operation completed successfully',
+  variant: AlertVariant.success,
+)
+
+// Example 19: Form field
+DesignSystemFormField(
+  label: 'Product Name',
+  required: true,
+  input: TextField(
+    decoration: designSystemInputDecoration(hint: 'Enter product name'),
+  ),
+)
+
+// Example 20: Modal dialog
+showDesignSystemDialog(
+  context: context,
+  title: 'Confirm Delete',
+  content: Text('Are you sure you want to delete this item?'),
+  icon: Icons.delete,
+  iconColor: destructiveRed,
+  actions: [
+    TextButton(
+      onPressed: () => Navigator.pop(context),
+      child: Text('Cancel'),
+    ),
+    ElevatedButton(
+      style: destructiveButtonStyle,
+      onPressed: () => Navigator.pop(context, true),
+      child: Text('Delete'),
+    ),
+  ],
+)
+
+// Example 21: Bottom sheet
+showDesignSystemBottomSheet(
+  context: context,
+  height: 300,
+  child: YourBottomSheetContent(),
+)
+*/
+
+// ===================== SNACKBAR/TOAST =====================
+class DesignSystemSnackbar extends StatefulWidget {
+  final String message;
+  final IconData? icon;
+  final Duration duration;
+  final VoidCallback? onDismissed;
+  const DesignSystemSnackbar({
+    super.key,
+    required this.message,
+    this.icon,
+    this.duration = const Duration(seconds: 3),
+    this.onDismissed,
+  });
+
+  @override
+  State<DesignSystemSnackbar> createState() => _DesignSystemSnackbarState();
+}
+
+class _DesignSystemSnackbarState extends State<DesignSystemSnackbar> with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<Offset> _offsetAnimation;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      duration: const Duration(milliseconds: 900),
+      vsync: this,
+    );
+    _offsetAnimation = Tween<Offset>(
+      begin: const Offset(0, 1.2),
+      end: const Offset(0, 0),
+    ).animate(CurvedAnimation(
+      parent: _controller,
+      curve: Curves.easeOutExpo,
+    ));
+    _controller.forward();
+    Future.delayed(widget.duration, () {
+      if (mounted) {
+        _controller.reverse().then((_) {
+          if (widget.onDismissed != null) widget.onDismissed!();
+        });
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Align(
+      alignment: Alignment.bottomRight,
+      child: Padding(
+        padding: const EdgeInsets.only(bottom: 32, right: 32),
+        child: SlideTransition(
+          position: _offsetAnimation,
+          child: Material(
+            color: Colors.transparent,
+            child: Container(
+              decoration: BoxDecoration(
+                color: cardBackground,
+                borderRadius: BorderRadius.circular(borderRadiusMedium),
+                border: Border.all(color: borderColor),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.08),
+                    blurRadius: 16,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+              ),
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(widget.icon ?? Icons.check_circle, color: secondaryGreen, size: 20),
+                  const SizedBox(width: 12),
+                  Text(widget.message, style: bodyLarge),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// ===================== DROPDOWN MENU HOVER =====================
+class MutedDropdownMenuItem<T> extends StatelessWidget {
+  final T value;
+  final Widget child;
+  const MutedDropdownMenuItem({super.key, required this.value, required this.child});
+  @override
+  Widget build(BuildContext context) {
+    return _HoverContainer(child: child);
+  }
+}
+
+class _HoverContainer extends StatefulWidget {
+  final Widget child;
+  const _HoverContainer({required this.child});
+  @override
+  State<_HoverContainer> createState() => _HoverContainerState();
+}
+class _HoverContainerState extends State<_HoverContainer> {
+  bool _hovering = false;
+  @override
+  Widget build(BuildContext context) {
+    return MouseRegion(
+      onEnter: (_) => setState(() => _hovering = true),
+      onExit: (_) => setState(() => _hovering = false),
+      child: Container(
+        color: _hovering ? mutedBackground : Colors.transparent,
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        child: widget.child,
+      ),
+    );
+  }
+}
+
+// ===================== SHOPIFY STYLE DROPDOWN =====================
+class ShopifyDropdown<T> extends StatefulWidget {
+  final List<T> items;
+  final T? value;
+  final String Function(T) getLabel;
+  final ValueChanged<T?> onChanged;
+  final String? hint;
+  final double maxHeight;
+  final bool enabled;
+
+  const ShopifyDropdown({
+    super.key,
+    required this.items,
+    required this.value,
+    required this.getLabel,
+    required this.onChanged,
+    this.hint,
+    this.maxHeight = 260,
+    this.enabled = true,
+  });
+
+  @override
+  State<ShopifyDropdown<T>> createState() => _ShopifyDropdownState<T>();
+}
+
+class _ShopifyDropdownState<T> extends State<ShopifyDropdown<T>> {
+  final LayerLink _layerLink = LayerLink();
+  OverlayEntry? _overlayEntry;
+  bool _isOpen = false;
+  late FocusNode _focusNode;
+
+  @override
+  void initState() {
+    super.initState();
+    _focusNode = FocusNode();
+  }
+
+  @override
+  void dispose() {
+    _removeOverlay();
+    _focusNode.dispose();
+    super.dispose();
+  }
+
+  void _removeOverlay() {
+    _overlayEntry?.remove();
+    _overlayEntry = null;
+    setState(() => _isOpen = false);
+  }
+
+  void _toggleDropdown() {
+    if (_isOpen) {
+      _removeOverlay();
+    } else {
+      _showOverlay();
+    }
+  }
+
+  void _showOverlay() {
+    final RenderBox renderBox = context.findRenderObject() as RenderBox;
+    final Size size = renderBox.size;
+    _overlayEntry = OverlayEntry(
+      builder: (context) => Stack(
+        children: [
+          // Transparent barrier to detect outside tap
+          Positioned.fill(
+            child: GestureDetector(
+              onTap: _removeOverlay,
+              behavior: HitTestBehavior.translucent,
+              child: const SizedBox.expand(),
+            ),
+          ),
+          Positioned(
+            width: size.width,
+            child: CompositedTransformFollower(
+              link: _layerLink,
+              showWhenUnlinked: false,
+              offset: Offset(0, size.height + 4),
+              child: Material(
+                color: Colors.transparent,
+                child: Container(
+                  constraints: BoxConstraints(
+                    maxHeight: widget.maxHeight,
+                    minWidth: size.width,
+                  ),
+                  decoration: BoxDecoration(
+                    color: cardBackground,
+                    border: Border.all(color: borderColor),
+                    borderRadius: BorderRadius.circular(buttonBorderRadius),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.08),
+                        blurRadius: 16,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
+                  ),
+                  child: Scrollbar(
+                    thumbVisibility: true,
+                    child: ListView.builder(
+                      padding: EdgeInsets.zero,
+                      shrinkWrap: true,
+                      itemCount: widget.items.length,
+                      itemBuilder: (context, index) {
+                        final item = widget.items[index];
+                        final selected = item == widget.value;
+                        return _ShopifyDropdownItem<T>(
+                          label: widget.getLabel(item),
+                          selected: selected,
+                          onTap: () {
+                            widget.onChanged(item);
+                            _removeOverlay();
+                          },
+                        );
+                      },
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+    Overlay.of(context).insert(_overlayEntry!);
+    setState(() => _isOpen = true);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final selectedLabel = widget.value != null ? widget.getLabel(widget.value as T) : null;
+    return CompositedTransformTarget(
+      link: _layerLink,
+      child: GestureDetector(
+        onTap: widget.enabled ? _toggleDropdown : null,
+        child: Focus(
+          focusNode: _focusNode,
+          onFocusChange: (hasFocus) {
+            if (!hasFocus) _removeOverlay();
+          },
+          child: Container(
+            decoration: BoxDecoration(
+              color: widget.enabled ? cardBackground : mutedBackground,
+              border: Border.all(color: borderColor),
+              borderRadius: BorderRadius.circular(buttonBorderRadius),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.08),
+                  blurRadius: 8,
+                  offset: const Offset(0, 2),
+                ),
+              ],
+            ),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Expanded(
+                  child: Text(
+                    selectedLabel ?? (widget.hint ?? ''),
+                    style: body.copyWith(
+                      color: widget.enabled
+                          ? (selectedLabel != null ? textPrimary : textMuted)
+                          : textMuted,
+                    ),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+                Icon(
+                  _isOpen ? Icons.keyboard_arrow_up : Icons.keyboard_arrow_down,
+                  color: textSecondary,
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _ShopifyDropdownItem<T> extends StatefulWidget {
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+  const _ShopifyDropdownItem({required this.label, required this.selected, required this.onTap});
+  @override
+  State<_ShopifyDropdownItem<T>> createState() => _ShopifyDropdownItemState<T>();
+}
+
+class _ShopifyDropdownItemState<T> extends State<_ShopifyDropdownItem<T>> {
+  bool _hovering = false;
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: widget.onTap,
+      onHover: (hover) => setState(() => _hovering = hover),
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+        decoration: BoxDecoration(
+          color: _hovering
+              ? mutedBackground
+              : widget.selected
+                  ? mutedBackground.withOpacity(0.5)
+                  : Colors.transparent,
+        ),
+        child: Text(
+          widget.label,
+          style: body.copyWith(
+            color: textPrimary,
+            fontWeight: widget.selected ? FontWeight.bold : FontWeight.normal,
+          ),
+        ),
+      ),
+    );
+  }
+}
