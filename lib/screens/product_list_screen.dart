@@ -537,12 +537,7 @@ class _ProductListScreenState extends State<ProductListScreen> {
                         onPressed: _importProductsFromExcel,
                         icon: const Icon(Icons.file_upload_outlined),
                         label: const Text('Import'),
-                        style: ElevatedButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
-                         textStyle: const TextStyle(fontSize: 13, color: Colors.black, fontWeight: FontWeight.bold), 
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
-                          side: BorderSide(color: Colors.grey.shade300), 
-                        ),
+                        style: ghostBorderButtonStyle,
                       ),
                     ),
                     const SizedBox(width: 12),
@@ -555,12 +550,7 @@ class _ProductListScreenState extends State<ProductListScreen> {
                         },
                         icon: const Icon(Icons.download),
                         label: const Text('Export'),
-                        style: ElevatedButton.styleFrom(
-                         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
-                          textStyle: const TextStyle(fontSize: 13, color: Colors.black, fontWeight: FontWeight.bold), 
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
-                          side: BorderSide(color: Colors.grey.shade300), 
-                        ),
+                        style: ghostBorderButtonStyle,
                       ),
                     ),
                        const SizedBox(width: 12),
@@ -570,14 +560,7 @@ class _ProductListScreenState extends State<ProductListScreen> {
                         onPressed: () => widget.onNavigate?.call(MainPage.addProduct),
                         icon: const Icon(Icons.add),
                         label: const Text('Thêm sản phẩm'),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Color(0xFF3a6ff8),
-                          foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
-                          textStyle: const TextStyle(fontWeight: FontWeight.bold),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(5)),
-                          elevation: 0,
-                        ),
+                        style: primaryButtonStyle,
                       ),
                     ),
                  
@@ -602,23 +585,8 @@ class _ProductListScreenState extends State<ProductListScreen> {
                       children: [
                            TextField(
                             controller: _searchController,
-                            decoration: InputDecoration(
-                              hintText: 'Tìm theo tên, mã vạch...',
-                              prefixIcon: const Icon(Icons.search, size: 18),
-                              isDense: true,
-                              border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(6),
-                                borderSide: BorderSide(color: Colors.grey.shade300),
-                              ),
-                              enabledBorder: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(6),
-                                borderSide: BorderSide(color: Colors.grey.shade300),
-                              ),
-                              focusedBorder: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(6),
-                                borderSide: BorderSide(color: Colors.grey.shade400, width: 1.5),
-                              ),
-                              contentPadding: const EdgeInsets.symmetric(vertical: 2, horizontal: 8),
+                            decoration: searchInputDecoration(
+                              hint: 'Tìm theo tên, mã vạch...',
                             ),
                             style: const TextStyle(fontSize: 14),
                             onChanged: (v) => setState(() => searchText = v),

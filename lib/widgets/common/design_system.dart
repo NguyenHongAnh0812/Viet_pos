@@ -39,6 +39,7 @@ const double space8 = 8.0;
 const double space10 = 10.0;
 const double space12 = 12.0;
 const double space16 = 16.0;
+const double space18 = 18.0;
 const double space20 = 20.0;
 const double space24 = 24.0;
 const double space32 = 32.0;
@@ -48,7 +49,7 @@ const double space64 = 64.0;
 // Component specific spacing
 const double cardPadding = 24.0;
 const double buttonPadding = 16.0;
-const double inputPadding = 12.0;
+const double inputPadding = 16.0;
 const double iconSpacing = 8.0;
 const double pageHorizontalPadding = 16.0;
 const double sectionSpacing = 24.0;
@@ -140,7 +141,7 @@ ButtonStyle primaryButtonStyle = ElevatedButton.styleFrom(
   backgroundColor: primaryBlue,
   foregroundColor: Colors.white,
   minimumSize: const Size(buttonMinWidth, buttonHeightMedium),
-  padding: const EdgeInsets.symmetric(horizontal: buttonPadding, vertical: space8),
+  padding: const EdgeInsets.symmetric(horizontal: space20, vertical: space18),
   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(buttonBorderRadius)),
   textStyle: labelLarge,
   elevation: 0,
@@ -151,7 +152,7 @@ ButtonStyle secondaryButtonStyle = OutlinedButton.styleFrom(
   backgroundColor: cardBackground,
   side: const BorderSide(color: borderColor),
   minimumSize: const Size(buttonMinWidth, buttonHeightMedium),
-  padding: const EdgeInsets.symmetric(horizontal: buttonPadding, vertical: space8),
+  padding: const EdgeInsets.symmetric(horizontal: space20, vertical: space18),
   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(buttonBorderRadius)),
   textStyle: labelLarge,
 );
@@ -161,7 +162,7 @@ ButtonStyle outlineButtonStyle = OutlinedButton.styleFrom(
   backgroundColor: cardBackground,
   side: const BorderSide(color: borderColor, width: 1.2),
   minimumSize: const Size(buttonMinWidth, buttonHeightMedium),
-  padding: const EdgeInsets.symmetric(horizontal: buttonPadding, vertical: space8),
+  padding: const EdgeInsets.symmetric(horizontal: space20, vertical: space18),
   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(buttonBorderRadius)),
   textStyle: labelLarge,
 );
@@ -170,7 +171,7 @@ ButtonStyle destructiveButtonStyle = ElevatedButton.styleFrom(
   backgroundColor: destructiveRed,
   foregroundColor: Colors.white,
   minimumSize: const Size(buttonMinWidth, buttonHeightMedium),
-  padding: const EdgeInsets.symmetric(horizontal: buttonPadding, vertical: space8),
+  padding: const EdgeInsets.symmetric(horizontal: space20, vertical: space18),
   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(buttonBorderRadius)),
   textStyle: labelLarge,
   elevation: 0,
@@ -180,18 +181,18 @@ ButtonStyle ghostButtonStyle = TextButton.styleFrom(
   foregroundColor: textPrimary,
   backgroundColor: Colors.transparent,
   minimumSize: const Size(buttonIconWidth, buttonHeightMedium),
-  padding: const EdgeInsets.symmetric(horizontal: space12, vertical: space8),
+  padding: const EdgeInsets.symmetric(horizontal: space20, vertical: space18),
   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(buttonBorderRadius)),
   textStyle: labelLarge,
 );
 
 // Ghost button with gray border
 ButtonStyle ghostBorderButtonStyle = OutlinedButton.styleFrom(
-  foregroundColor: textSecondary,
-  backgroundColor: Colors.transparent,
+  foregroundColor: textPrimary,
+  backgroundColor: appBackground,
   side: const BorderSide(color: borderColor, width: 1),
   minimumSize: const Size(buttonMinWidth, buttonHeightMedium),
-  padding: const EdgeInsets.symmetric(horizontal: buttonPadding, vertical: space8),
+  padding: const EdgeInsets.symmetric(horizontal: space20, vertical: space18),
   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(buttonBorderRadius)),
   textStyle: labelLarge,
 );
@@ -208,7 +209,7 @@ ButtonStyle smallButtonStyle = ElevatedButton.styleFrom(
 );
 
 ButtonStyle largeButtonStyle = ElevatedButton.styleFrom(
-  backgroundColor: primaryBlue,
+  backgroundColor: primaryBlue, 
   foregroundColor: Colors.white,
   minimumSize: const Size(buttonMinWidth, buttonHeightLarge),
   padding: const EdgeInsets.symmetric(horizontal: space20, vertical: space12),
@@ -285,7 +286,7 @@ InputDecoration designSystemInputDecoration({
   Widget? prefixIcon,
   Widget? suffixIcon,
   String? errorText,
-  bool isDense = false,
+  bool isDense = true,
   EdgeInsetsGeometry? contentPadding,
   Color? fillColor,
   bool? filled,
@@ -296,7 +297,7 @@ InputDecoration designSystemInputDecoration({
   suffixIcon: suffixIcon,
   errorText: errorText,
   isDense: isDense,
-  contentPadding: contentPadding ?? const EdgeInsets.symmetric(horizontal: inputPadding, vertical: inputPadding),
+  contentPadding: contentPadding ?? const EdgeInsets.symmetric(horizontal: inputPadding, vertical: inputPadding - 4),
   filled: filled ?? true,
   fillColor: fillColor ?? cardBackground,
   border: OutlineInputBorder(
@@ -327,8 +328,9 @@ InputDecoration searchInputDecoration({
   hintText: hint ?? 'Search...',
   prefixIcon: prefixIcon ?? const Icon(Icons.search, color: textSecondary),
   suffixIcon: suffixIcon,
-  contentPadding: const EdgeInsets.symmetric(horizontal: inputPadding, vertical: inputPadding),
+  contentPadding: const EdgeInsets.symmetric(horizontal: inputPadding, vertical: inputPadding - 4),
   filled: false,
+  isDense: true,
   border: OutlineInputBorder(
     borderRadius: BorderRadius.circular(borderRadiusMedium),
     borderSide: const BorderSide(color: borderColor),
