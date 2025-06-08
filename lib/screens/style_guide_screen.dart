@@ -518,6 +518,7 @@ class StyleGuideScreen extends StatelessWidget {
       actions: [
         TextButton(
           onPressed: () => Navigator.pop(context),
+          style: ghostBorderButtonStyle,
           child: const Text('Cancel'),
         ),
         ElevatedButton(
