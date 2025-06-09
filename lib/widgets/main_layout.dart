@@ -445,14 +445,14 @@ class _SidebarState extends State<_Sidebar> {
 
              // Logo VET-POS
             Padding(
-              padding: const EdgeInsets.symmetric(vertical: 8),
+              padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 16),
               child: Row(
                 children: [
                   SvgPicture.asset(
                     'assets/icons/tag_icon.svg', // thay bằng icon logo của bạn
                     width: 20,
                     height: 20,
-                    color: Colors.blueAccent, // hoặc để nguyên nếu SVG có màu sẵn
+                    color: primaryBlue, // hoặc để nguyên nếu SVG có màu sẵn
                   ),
                   const SizedBox(width: 8),
                   Text(
