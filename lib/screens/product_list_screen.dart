@@ -1048,8 +1048,8 @@ class _ProductListScreenState extends State<ProductListScreen> {
                     children: [
                       Text('Danh sách sản phẩm', style: Theme.of(context).textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.bold)),
                       const SizedBox(height: 12),
-                      SizedBox(
-                        width: double.infinity,
+                      Align(
+                        alignment: Alignment.centerLeft,
                         child: ElevatedButton.icon(
                           onPressed: () => widget.onNavigate?.call(MainPage.addProduct),
                           icon: const Icon(Icons.add),

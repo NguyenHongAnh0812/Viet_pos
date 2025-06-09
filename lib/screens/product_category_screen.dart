@@ -34,7 +34,7 @@ class _ProductCategoryScreenState extends State<ProductCategoryScreen> {
             return Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const SizedBox(height: 16),
+
                 if (isMobile) ...[
                   // Heading
                   const Text('Danh mục sản phẩm', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 24)),
@@ -52,7 +52,7 @@ class _ProductCategoryScreenState extends State<ProductCategoryScreen> {
                       style: primaryButtonStyle,
                     ),
                   ),
-                  const SizedBox(height: 12),
+                  const SizedBox(height: 16),
                   SizedBox(
                     width: double.infinity,
                     child: TextField(
@@ -64,7 +64,7 @@ class _ProductCategoryScreenState extends State<ProductCategoryScreen> {
                       onChanged: (v) => setState(() => searchText = v),
                     ),
                   ),
-                  const SizedBox(height: 12),
+                  const SizedBox(height: 16),
                   SizedBox(
                     width: double.infinity,
                     child: ShopifyDropdown<String>(
@@ -98,11 +98,9 @@ class _ProductCategoryScreenState extends State<ProductCategoryScreen> {
                 ] else ...[
                   // Desktop: heading, back, add button cùng 1 dòng
                   Row(
-                    crossAxisAlignment: CrossAxisAlignment.center,
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      const SizedBox(width: 4),
-                      const Text('Danh mục sản phẩm', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 24)),
-                      const Spacer(),
+                      Text('Danh mục sản phẩm', style: Theme.of(context).textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.bold)),
                       SizedBox(
                         height: 40,
                         child: ElevatedButton.icon(
