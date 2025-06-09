@@ -169,6 +169,7 @@ class _MainLayoutState extends State<MainLayout> {
                 child: Padding(
                   padding: const EdgeInsets.symmetric(vertical: 8),
                   child: Row(
+                    
                     mainAxisAlignment: MainAxisAlignment.spaceAround,
                     children: [
                       _NavItem(
@@ -441,6 +442,31 @@ class _SidebarState extends State<_Sidebar> {
         padding: const EdgeInsets.symmetric(vertical: 8),
         children: [
           // Dashboard
+
+             // Logo VET-POS
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 8),
+              child: Row(
+                children: [
+                  SvgPicture.asset(
+                    'assets/icons/tag_icon.svg', // thay bằng icon logo của bạn
+                    width: 20,
+                    height: 20,
+                    color: Colors.blueAccent, // hoặc để nguyên nếu SVG có màu sẵn
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    'VET-POS',
+                    style: TextStyle(
+                      fontWeight: FontWeight.w700,
+                      fontSize: 18,
+                      color: Color(0xFF1F2937),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
           _SidebarItem(
             icon: SvgPicture.asset('assets/icons/databoard.svg', width: 16, height: 16),    
             label: 'Dashboard',

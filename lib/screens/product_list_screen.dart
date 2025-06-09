@@ -782,7 +782,7 @@ class _ProductListScreenState extends State<ProductListScreen> {
                                                       child: Column(
                                                         crossAxisAlignment: CrossAxisAlignment.start,
                                                         children: [
-                                                          Text('Mã vạch', style: TextStyle(fontSize: 15, color: Colors.grey[400], fontWeight: FontWeight.w500)),
+                                                          Text('Mã vạch', style: TextStyle(fontSize: 15, color: Colors.black, fontWeight: FontWeight.w500)),
                                                           Text(product.barcode ?? '-', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500)),
                                                         ],
                                                       ),
@@ -790,7 +790,7 @@ class _ProductListScreenState extends State<ProductListScreen> {
                                                     Column(
                                                       crossAxisAlignment: CrossAxisAlignment.end,
                                                       children: [
-                                                        Text('Số lượng', style: TextStyle(fontSize: 15, color: Colors.grey[400], fontWeight: FontWeight.w500)),
+                                                        Text('Số lượng', style: TextStyle(fontSize: 15, color: Colors.black, fontWeight: FontWeight.w500)),
                                                         Text('${product.stock}', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
                                                       ],
                                                     ),
@@ -865,21 +865,21 @@ class _ProductListScreenState extends State<ProductListScreen> {
                                                 flex: 5,
                                                 child: Align(
                                                   alignment: Alignment.centerLeft,
-                                                  child: Text('Tên sản phẩm', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: textThird)),
+                                                  child: Text('Tên sản phẩm', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: textSecondary)),
                                                 ),
                                               ),
                                               Expanded(
                                                 flex: 2,
                                                 child: Align(
                                                   alignment: Alignment.center,
-                                                  child: Text('Mã vạch', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: textThird)),
+                                                  child: Text('Mã vạch', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: textSecondary)),
                                                 ),
                                               ),
                                               Expanded(
                                                 flex: 2,
                                                 child: Align(
                                                   alignment: Alignment.center,
-                                                  child: Text('Số lượng', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: textThird)),
+                                                  child: Text('Số lượng', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: textSecondary)),
                                                 ),
                                               ),
                                             ],
