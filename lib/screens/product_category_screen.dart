@@ -46,7 +46,15 @@ class _ProductCategoryScreenState extends State<ProductCategoryScreen> {
                   onPressed: () async {
                     await _categoryService.syncCategoriesFromProducts();
                     setState(() {});
-                    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Đã đồng bộ danh mục từ sản phẩm!')));
+                    OverlayEntry? entry;
+                    entry = OverlayEntry(
+                      builder: (_) => DesignSystemSnackbar(
+                        message: 'Đã đồng bộ danh mục từ sản phẩm!',
+                        icon: Icons.check_circle,
+                        onDismissed: () => entry?.remove(),
+                      ),
+                    );
+                    Overlay.of(context).insert(entry);
                   },
                   icon: const Icon(Icons.sync, size: 20),
                   label: const Text('Đồng bộ danh mục từ sản phẩm'),
@@ -226,7 +234,15 @@ class _ProductCategoryScreenState extends State<ProductCategoryScreen> {
                                         if (newName?.isNotEmpty == true && newName != cat.name) {
                                           await _categoryService.renameCategory(cat.name, newName!);
                                           setState(() {});
-                                          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Đã đổi tên danh mục!')));
+                                          OverlayEntry? entry;
+                                          entry = OverlayEntry(
+                                            builder: (_) => DesignSystemSnackbar(
+                                              message: 'Đã đổi tên danh mục!',
+                                              icon: Icons.check_circle,
+                                              onDismissed: () => entry?.remove(),
+                                            ),
+                                          );
+                                          Overlay.of(context).insert(entry);
                                         }
                           },
                         ),
@@ -234,7 +250,15 @@ class _ProductCategoryScreenState extends State<ProductCategoryScreen> {
                                       icon: const Icon(Icons.delete_outline, size: 20, color: Colors.red),
                                       tooltip: 'Xóa danh mục',
                                       onPressed: isDefault ? () {
-                                        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Không thể xóa danh mục mặc định!')));
+                                        OverlayEntry? entry;
+                                        entry = OverlayEntry(
+                                          builder: (_) => DesignSystemSnackbar(
+                                            message: 'Không thể xóa danh mục mặc định!',
+                                            icon: Icons.error,
+                                            onDismissed: () => entry?.remove(),
+                                          ),
+                                        );
+                                        Overlay.of(context).insert(entry);
                                       } : () async {
                                         final confirm = await showDialog<bool>(
                               context: context,
@@ -254,7 +278,15 @@ class _ProductCategoryScreenState extends State<ProductCategoryScreen> {
                                         if (confirm == true) {
                                           await _categoryService.deleteCategory(cat.name);
                                           setState(() {});
-                                          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Đã xóa danh mục!')));
+                                          OverlayEntry? entry;
+                                          entry = OverlayEntry(
+                                            builder: (_) => DesignSystemSnackbar(
+                                              message: 'Đã xóa danh mục!',
+                                              icon: Icons.check_circle,
+                                              onDismissed: () => entry?.remove(),
+                                            ),
+                                          );
+                                          Overlay.of(context).insert(entry);
                                         }
                           },
                         ),

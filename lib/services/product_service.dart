@@ -47,14 +47,17 @@ class ProductService {
 
   // Lấy danh sách sản phẩm
   Stream<List<Product>> getProducts() {
+    print('=== Fetching Products from Firebase ===');
     return _firestore
         .collection(_collection)
-        .orderBy('createdAt', descending: true)
         .snapshots()
         .map((snapshot) {
-      return snapshot.docs
+      print('Firebase returned ${snapshot.docs.length} products');
+      final products = snapshot.docs
           .map((doc) => Product.fromMap(doc.id, doc.data()))
           .toList();
+      print('Successfully parsed ${products.length} products');
+      return products;
     });
   }
 

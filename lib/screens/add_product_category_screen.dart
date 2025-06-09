@@ -35,7 +35,15 @@ class _AddProductCategoryScreenState extends State<AddProductCategoryScreen> {
     final name = _nameController.text.trim();
     final desc = _descController.text.trim();
     if (name.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Tên danh mục là bắt buộc!')));
+      OverlayEntry? entry;
+      entry = OverlayEntry(
+        builder: (_) => DesignSystemSnackbar(
+          message: 'Tên danh mục là bắt buộc!',
+          icon: Icons.error,
+          onDismissed: () => entry?.remove(),
+        ),
+      );
+      Overlay.of(context).insert(entry);
       return;
     }
     setState(() => isSaving = true);
@@ -47,10 +55,26 @@ class _AddProductCategoryScreenState extends State<AddProductCategoryScreen> {
       for (final p in selectedProducts) {
         await _productService.updateProductCategory(p.id, name);
       }
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Tạo danh mục thành công!')));
+      OverlayEntry? entry;
+      entry = OverlayEntry(
+        builder: (_) => DesignSystemSnackbar(
+          message: 'Tạo danh mục thành công!',
+          icon: Icons.check_circle,
+          onDismissed: () => entry?.remove(),
+        ),
+      );
+      Overlay.of(context).insert(entry);
       if (widget.onBack != null) widget.onBack!();
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Lỗi: $e')));
+      OverlayEntry? entry;
+      entry = OverlayEntry(
+        builder: (_) => DesignSystemSnackbar(
+          message: 'Lỗi: $e',
+          icon: Icons.error,
+          onDismissed: () => entry?.remove(),
+        ),
+      );
+      Overlay.of(context).insert(entry);
     } finally {
       setState(() => isSaving = false);
     }

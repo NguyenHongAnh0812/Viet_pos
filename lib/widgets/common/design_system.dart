@@ -369,17 +369,20 @@ class DesignSystemDropdownMenu<T> extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return DropdownButtonFormField<T>(
-      value: value,
-      items: items,
-      onChanged: onChanged,
-      isExpanded: isExpanded,
-      decoration: designSystemInputDecoration(hint: hint),
-      borderRadius: BorderRadius.circular(borderRadius),
-      style: body,
-      dropdownColor: cardBackground,
-      icon: const Icon(Icons.keyboard_arrow_down, color: textSecondary),
-      iconSize: iconLarge,
+    return SizedBox(
+      height: inputHeight, // 40px
+      child: DropdownButtonFormField<T>(
+        value: value,
+        items: items,
+        onChanged: onChanged,
+        isExpanded: isExpanded,
+        decoration: designSystemInputDecoration(hint: hint, contentPadding: const EdgeInsets.symmetric(horizontal: inputPadding, vertical: 8)),
+        borderRadius: BorderRadius.circular(borderRadius),
+        style: body,
+        dropdownColor: cardBackground,
+        icon: const Icon(Icons.keyboard_arrow_down, color: textSecondary),
+        iconSize: iconLarge,
+      ),
     );
   }
 }
@@ -406,7 +409,7 @@ class DesignSystemSelect<T> extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      height: inputHeight,
+      height: inputHeight, // 40px
       decoration: BoxDecoration(
         color: enabled ? cardBackground : mutedBackground,
         border: Border.all(color: borderColor),
@@ -1464,13 +1467,6 @@ class _DesignSystemSnackbarState extends State<DesignSystemSnackbar> with Single
                 color: cardBackground,
                 borderRadius: BorderRadius.circular(borderRadiusMedium),
                 border: Border.all(color: borderColor),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.08),
-                    blurRadius: 16,
-                    offset: const Offset(0, 4),
-                  ),
-                ],
               ),
               padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
               child: Row(
@@ -1611,13 +1607,6 @@ class _ShopifyDropdownState<T> extends State<ShopifyDropdown<T>> {
                     color: cardBackground,
                     border: Border.all(color: borderColor),
                     borderRadius: BorderRadius.circular(buttonBorderRadius),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.08),
-                        blurRadius: 16,
-                        offset: const Offset(0, 4),
-                      ),
-                    ],
                   ),
                   child: Scrollbar(
                     thumbVisibility: true,
@@ -1653,48 +1642,44 @@ class _ShopifyDropdownState<T> extends State<ShopifyDropdown<T>> {
   @override
   Widget build(BuildContext context) {
     final selectedLabel = widget.value != null ? widget.getLabel(widget.value as T) : null;
-    return CompositedTransformTarget(
-      link: _layerLink,
-      child: GestureDetector(
-        onTap: widget.enabled ? _toggleDropdown : null,
-        child: Focus(
-          focusNode: _focusNode,
-          onFocusChange: (hasFocus) {
-            if (!hasFocus) _removeOverlay();
-          },
-          child: Container(
-            decoration: BoxDecoration(
-              color: widget.enabled ? cardBackground : mutedBackground,
-              border: Border.all(color: borderColor),
-              borderRadius: BorderRadius.circular(buttonBorderRadius),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.08),
-                  blurRadius: 8,
-                  offset: const Offset(0, 2),
-                ),
-              ],
-            ),
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Expanded(
-                  child: Text(
-                    selectedLabel ?? (widget.hint ?? ''),
-                    style: body.copyWith(
-                      color: widget.enabled
-                          ? (selectedLabel != null ? textPrimary : textMuted)
-                          : textMuted,
+    return SizedBox(
+      height: inputHeight, // 40px
+      child: CompositedTransformTarget(
+        link: _layerLink,
+        child: GestureDetector(
+          onTap: widget.enabled ? _toggleDropdown : null,
+          child: Focus(
+            focusNode: _focusNode,
+            onFocusChange: (hasFocus) {
+              if (!hasFocus) _removeOverlay();
+            },
+            child: Container(
+              decoration: BoxDecoration(
+                color: widget.enabled ? cardBackground : mutedBackground,
+                border: Border.all(color: borderColor),
+                borderRadius: BorderRadius.circular(buttonBorderRadius),
+              ),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8), // Reduce vertical padding
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Expanded(
+                    child: Text(
+                      selectedLabel ?? (widget.hint ?? ''),
+                      style: body.copyWith(
+                        color: widget.enabled
+                            ? (selectedLabel != null ? textPrimary : textMuted)
+                            : textMuted,
+                      ),
+                      overflow: TextOverflow.ellipsis,
                     ),
-                    overflow: TextOverflow.ellipsis,
                   ),
-                ),
-                Icon(
-                  _isOpen ? Icons.keyboard_arrow_up : Icons.keyboard_arrow_down,
-                  color: textSecondary,
-                ),
-              ],
+                  Icon(
+                    _isOpen ? Icons.keyboard_arrow_up : Icons.keyboard_arrow_down,
+                    color: textSecondary,
+                  ),
+                ],
+              ),
             ),
           ),
         ),

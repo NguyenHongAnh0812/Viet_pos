@@ -85,7 +85,15 @@ class _LowStockProductsScreenState extends State<LowStockProductsScreen> {
     );
     if (confirm == true) {
       await _productService.deleteProduct(product.id);
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Đã xóa sản phẩm!')));
+      OverlayEntry? entry;
+      entry = OverlayEntry(
+        builder: (_) => DesignSystemSnackbar(
+          message: 'Đã xóa sản phẩm!',
+          icon: Icons.check_circle,
+          onDismissed: () => entry?.remove(),
+        ),
+      );
+      Overlay.of(context).insert(entry);
       setState(() {});
     }
   }

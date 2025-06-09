@@ -30,34 +30,6 @@ class _MainLayoutState extends State<MainLayout> {
   MainPage _currentPage = MainPage.dashboard;
   MainPage? _previousPage;
   Product? _selectedProduct;
-  bool _isMobile = false;
-
-  @override
-  void initState() {
-    super.initState();
-    // Khởi tạo sidebar dựa trên kích thước màn hình
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) {
-        setState(() {
-          _isMobile = MediaQuery.of(context).size.width < 1024;
-          _sidebarOpen = !_isMobile;
-        });
-      }
-    });
-  }
-
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    // Cập nhật layout khi dependencies thay đổi (ví dụ: MediaQuery)
-    final newIsMobile = MediaQuery.of(context).size.width < 1024;
-    if (newIsMobile != _isMobile) {
-      setState(() {
-        _isMobile = newIsMobile;
-        _sidebarOpen = !newIsMobile;
-      });
-    }
-  }
 
   void _toggleSidebar() {
     setState(() {
@@ -69,9 +41,6 @@ class _MainLayoutState extends State<MainLayout> {
     setState(() {
       _previousPage = _currentPage;
       _currentPage = page;
-      if (_isMobile) {
-        _sidebarOpen = false;
-      }
     });
   }
 
@@ -125,56 +94,66 @@ class _MainLayoutState extends State<MainLayout> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: SafeArea(
-        child: Column(
-          children: [
-            _Header(onMenuPressed: _toggleSidebar),
-            Expanded(
-              child: _isMobile
-                  ? Stack(
-                      children: [
-                        _buildMainContent(),
-                        if (_sidebarOpen)
-                          GestureDetector(
-                            onTap: _toggleSidebar,
-                            child: Container(
-                              color: Colors.black.withOpacity(0.3),
-                            ),
-                          ),
-                        AnimatedSlide(
-                          offset: _sidebarOpen ? Offset(0, 0) : Offset(-1, 0),
-                          duration: const Duration(milliseconds: 300),
-                          curve: Curves.ease,
-                          child: SizedBox(
-                            width: 290,
-                            child: _Sidebar(
-                              isOpen: true,
-                              currentPage: _currentPage,
-                              onItemTap: _onSidebarTap,
-                            ),
-                          ),
-                        ),
-                      ],
-                    )
-                  : Row(
-                      children: [
-                        AnimatedContainer(
-                          duration: const Duration(milliseconds: 300),
-                          width: _sidebarOpen ? 290 : 70,
-                          child: _Sidebar(
-                            isOpen: _sidebarOpen,
-                            currentPage: _currentPage,
-                            onItemTap: _onSidebarTap,
-                          ),
-                        ),
-                        Expanded(child: _buildMainContent()),
-                      ],
+      body: LayoutBuilder(
+        builder: (context, constraints) {
+          final isMobile = constraints.maxWidth < 1024;
+          if (isMobile) {
+            // MOBILE: Stack + AnimatedSlide
+            return Stack(
+              children: [
+                Column(
+                  children: [
+                    _Header(onMenuPressed: _toggleSidebar),
+                    Expanded(child: _buildMainContent()),
+                  ],
+                ),
+                if (_sidebarOpen)
+                  GestureDetector(
+                    onTap: _toggleSidebar,
+                    child: Container(color: Colors.black.withOpacity(0.3)),
+                  ),
+                AnimatedSlide(
+                  offset: _sidebarOpen ? Offset(0, 0) : Offset(-1, 0),
+                  duration: const Duration(milliseconds: 300),
+                  curve: Curves.ease,
+                  child: SizedBox(
+                    width: 290,
+                    child: _Sidebar(
+                      isOpen: true,
+                      currentPage: _currentPage,
+                      onItemTap: _onSidebarTap,
                     ),
-            ),
-          ],
-        ),
+                  ),
+                ),
+              ],
+            );
+          } else {
+            // DESKTOP: Row + AnimatedContainer
+            return Row(
+              children: [
+                AnimatedContainer(
+                  duration: const Duration(milliseconds: 300),
+                  width: 290,
+                  child: _Sidebar(
+                    isOpen: true,
+                    currentPage: _currentPage,
+                    onItemTap: _onSidebarTap,
+                  ),
+                ),
+                Expanded(
+                  child: Column(
+                    children: [
+                      _Header(onMenuPressed: _toggleSidebar),
+                      Expanded(child: _buildMainContent()),
+                    ],
+                  ),
+                ),
+              ],
+            );
+          }
+        },
       ),
-      bottomNavigationBar: _isMobile
+      bottomNavigationBar: MediaQuery.of(context).size.width < 1024
           ? Container(
               decoration: BoxDecoration(
                 color: Colors.white,
