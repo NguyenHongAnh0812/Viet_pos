@@ -86,7 +86,7 @@ class _ProductListScreenState extends State<ProductListScreen> {
   Set<String> tempSelectedTags = {};
   String tempSearchText = '';
   // Multi-select state for checkboxes
-  Set<String> selectedProductIds = {};
+  final ValueNotifier<Set<String>> selectedProductIds = ValueNotifier({});
   int currentProductCount = 0;
   // Thêm biến lưu file import
   PlatformFile? _importFile;
@@ -1265,54 +1265,71 @@ class _ProductListScreenState extends State<ProductListScreen> {
                                             ),
                                           );
                                         }).toList(),
-                                      ],
+                                      ], 
                                     );
                                   } else {
                                     // Desktop/tablet: render dạng bảng
                                     return Column(
                                       children: [
                                         // Header row
-                                                                                if (selectedProductIds.isNotEmpty)
-                                          Padding(
-                                            padding: const EdgeInsets.only(top: 12, right: 8),
-                                            child: Align(
-                                              alignment: Alignment.centerRight,
-                                              child: ElevatedButton.icon(
-                                                icon: const Icon(Icons.delete),
-                                                label: const Text('Xóa các sản phẩm đã chọn'),
-                                                style: ElevatedButton.styleFrom(backgroundColor: Colors.redAccent, foregroundColor: Colors.white),
-                                                onPressed: () async {
-                                                  final confirm = await showDialog<bool>(
-                                                    context: context,
-                                                    builder: (context) => AlertDialog(
-                                                      title: const Text('Xóa sản phẩm'),
-                                                      content: Text('Bạn có chắc muốn xóa \\${selectedProductIds.length} sản phẩm đã chọn?'),
-                                                      actions: [
-                                                        TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Hủy')),
-                                                        TextButton(onPressed: () => Navigator.pop(context, true), child: const Text('Xóa', style: TextStyle(color: Colors.red))),
-                                                      ],
-                                                    ),
-                                                  );
-                                                  if (confirm == true) {
-                                                    for (final id in selectedProductIds) {
-                                                      await _productService.deleteProduct(id);
-                                                    }
-                                                    OverlayEntry? entry;
-                                                    entry = OverlayEntry(
-                                                      builder: (_) => DesignSystemSnackbar(
-                                                        message: 'Đã xóa các sản phẩm đã chọn!',
-                                                        icon: Icons.check_circle,
-                                                        onDismissed: () => entry?.remove(),
+                                        Padding(
+                                          padding: const EdgeInsets.only(top: 12, right: 8),
+                                          child: Align(
+                                            alignment: Alignment.centerRight,
+                                            child: ValueListenableBuilder<Set<String>>(
+                                              valueListenable: selectedProductIds,
+                                              builder: (context, selected, _) {
+                                                return ElevatedButton.icon(
+                                                  icon: const Icon(Icons.delete),
+                                                  label: const Text('Xóa các sản phẩm đã chọn'),
+                                                  style: ElevatedButton.styleFrom(backgroundColor: Colors.redAccent, foregroundColor: Colors.white),
+                                                  onPressed: selected.isEmpty ? null : () async {
+                                                    final confirm = await showDialog<bool>(
+                                                      context: context,
+                                                      builder: (context) => AlertDialog(
+                                                        title: const Text('Xóa sản phẩm'),
+                                                        content: Text('Bạn có chắc muốn xóa ${selected.length} sản phẩm đã chọn?'),
+                                                        actions: [
+                                                          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Hủy')),
+                                                          TextButton(onPressed: () => Navigator.pop(context, true), child: const Text('Xóa', style: TextStyle(color: Colors.red))),
+                                                        ],
                                                       ),
                                                     );
-                                                    Overlay.of(context).insert(entry);
-                                                    setState(() {});
-                                                  }
-                                                },
-                                              ),
+                                                    if (confirm == true) {
+                                                      final batch = FirebaseFirestore.instance.batch();
+                                                      int count = 0;
+                                                      for (final id in selected) {
+                                                        final ref = FirebaseFirestore.instance.collection('products').doc(id);
+                                                        batch.delete(ref);
+                                                        count++;
+                                                        if (count == 490) {
+                                                          await batch.commit();
+                                                          count = 0;
+                                                        }
+                                                      }
+                                                      if (count > 0) {
+                                                        await batch.commit();
+                                                      }
+                                                      selectedProductIds.value = {};
+                                                      OverlayEntry? entry;
+                                                      entry = OverlayEntry(
+                                                        builder: (_) => DesignSystemSnackbar(
+                                                          message: 'Đã xóa các sản phẩm đã chọn!',
+                                                          icon: Icons.check_circle,
+                                                          onDismissed: () => entry?.remove(),
+                                                        ),
+                                                      );
+                                                      Overlay.of(context).insert(entry);
+                                                      await Future.delayed(const Duration(milliseconds: 500));
+                                                      setState(() {});
+                                                    }
+                                                  },
+                                                );
+                                              },
                                             ),
                                           ),
-                                         const SizedBox(height: 16),
+                                        ),
+                                        const SizedBox(height: 16),
                                         Container(
                                           decoration: BoxDecoration(
                                             color: Colors.white,
@@ -1351,16 +1368,19 @@ class _ProductListScreenState extends State<ProductListScreen> {
                                                           checkColor: MaterialStateProperty.all<Color>(Colors.white),
                                                         ),
                                                       ),
-                                                      child: Checkbox(
-                                                        value: selectedProductIds.length == sortedProducts.length && sortedProducts.isNotEmpty,
-                                                        onChanged: (checked) {
-                                                          setState(() {
-                                                            if (checked == true) {
-                                                              selectedProductIds.addAll(sortedProducts.map((p) => p.id));
-                                                            } else {
-                                                              selectedProductIds.clear();
-                                                            }
-                                                          });
+                                                      child: ValueListenableBuilder<Set<String>>(
+                                                        valueListenable: selectedProductIds,
+                                                        builder: (context, selected, _) {
+                                                          return Checkbox(
+                                                            value: selected.length == sortedProducts.length && sortedProducts.isNotEmpty,
+                                                            onChanged: (checked) {
+                                                              if (checked == true) {
+                                                                selectedProductIds.value = Set<String>.from(sortedProducts.map((p) => p.id));
+                                                              } else {
+                                                                selectedProductIds.value = {};
+                                                              }
+                                                            },
+                                                          );
                                                         },
                                                       ),
                                                     ),
@@ -1439,16 +1459,21 @@ class _ProductListScreenState extends State<ProductListScreen> {
                                                             checkColor: MaterialStateProperty.all<Color>(Colors.white),
                                                           ),
                                                         ),
-                                                        child: Checkbox(
-                                                          value: selectedProductIds.contains(product.id),
-                                                          onChanged: (checked) {
-                                                            setState(() {
-                                                              if (checked == true) {
-                                                                selectedProductIds.add(product.id);
-                                                              } else {
-                                                                selectedProductIds.remove(product.id);
-                                                              }
-                                                            });
+                                                        child: ValueListenableBuilder<Set<String>>(
+                                                          valueListenable: selectedProductIds,
+                                                          builder: (context, selected, _) {
+                                                            return Checkbox(
+                                                              value: selected.contains(product.id),
+                                                              onChanged: (checked) {
+                                                                final newSet = Set<String>.from(selected);
+                                                                if (checked == true) {
+                                                                  newSet.add(product.id);
+                                                                } else {
+                                                                  newSet.remove(product.id);
+                                                                }
+                                                                selectedProductIds.value = newSet;
+                                                              },
+                                                            );
                                                           },
                                                         ),
                                                       ),
@@ -1490,8 +1515,6 @@ class _ProductListScreenState extends State<ProductListScreen> {
                                             ),
                                           );
                                         }),
-                                        // Bulk delete button
-
                                       ],
                                     );
                                   }
@@ -1509,6 +1532,12 @@ class _ProductListScreenState extends State<ProductListScreen> {
         ],
       ),
     );
+  }
+
+  @override
+  void dispose() {
+    selectedProductIds.dispose();
+    super.dispose();
   }
 }
 
@@ -1545,4 +1574,4 @@ class _CustomBlueThumbShape extends RoundSliderThumbShape {
     canvas.drawCircle(center, radius, fillPaint);
     canvas.drawCircle(center, radius, borderPaint);
   }
-} 
+}

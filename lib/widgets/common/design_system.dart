@@ -1527,6 +1527,7 @@ class ShopifyDropdown<T> extends StatefulWidget {
   final String? hint;
   final double maxHeight;
   final bool enabled;
+  final Color? backgroundColor;
 
   const ShopifyDropdown({
     super.key,
@@ -1537,6 +1538,7 @@ class ShopifyDropdown<T> extends StatefulWidget {
     this.hint,
     this.maxHeight = 260,
     this.enabled = true,
+    this.backgroundColor,
   });
 
   @override
@@ -1655,7 +1657,7 @@ class _ShopifyDropdownState<T> extends State<ShopifyDropdown<T>> {
             },
             child: Container(
               decoration: BoxDecoration(
-                color: widget.enabled ? cardBackground : mutedBackground,
+                color: widget.backgroundColor ?? cardBackground,
                 border: Border.all(color: borderColor),
                 borderRadius: BorderRadius.circular(buttonBorderRadius),
               ),

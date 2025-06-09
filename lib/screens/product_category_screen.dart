@@ -28,282 +28,366 @@ class _ProductCategoryScreenState extends State<ProductCategoryScreen> {
       backgroundColor: appBackground,
       body: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-            const SizedBox(height: 16),
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.center,
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final isMobile = constraints.maxWidth < 600;
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                IconButton(
-                  icon: const Icon(Icons.arrow_back),
-                  onPressed: widget.onNavigate != null ? () => widget.onNavigate!(MainPage.dashboard) : null,
-                ),
-                const SizedBox(width: 4),
-                const Text('Danh mục sản phẩm', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 24)),
-                const Spacer(),
-                ElevatedButton.icon(
-                  onPressed: () async {
-                    await _categoryService.syncCategoriesFromProducts();
-                    setState(() {});
-                    OverlayEntry? entry;
-                    entry = OverlayEntry(
-                      builder: (_) => DesignSystemSnackbar(
-                        message: 'Đã đồng bộ danh mục từ sản phẩm!',
-                        icon: Icons.check_circle,
-                        onDismissed: () => entry?.remove(),
-                      ),
-                    );
-                    Overlay.of(context).insert(entry);
-                  },
-                  icon: const Icon(Icons.sync, size: 20),
-                  label: const Text('Đồng bộ danh mục từ sản phẩm'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.grey[200],
-                    foregroundColor: Colors.blue,
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                    textStyle: const TextStyle(fontWeight: FontWeight.bold),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                    elevation: 0,
-                ),
-                ),
-                const SizedBox(width: 12),
-                ElevatedButton.icon(
-                  onPressed: () {
-                    if (widget.onNavigate != null) {
-                      widget.onNavigate!(MainPage.addProductCategory);
-                    }
-                  },
-                  icon: const Icon(Icons.add),
-                  label: const Text('Thêm danh mục'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Color(0xFF3a6ff8),
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-                    textStyle: const TextStyle(fontWeight: FontWeight.bold),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                    elevation: 0,
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 24),
-            Row(
-              children: [
-                Expanded(
-            child: TextField(
-                            controller: _searchController,
-                            decoration: InputDecoration(
-                              hintText: 'Tìm theo tên, mã vạch...',
-                              prefixIcon: const Icon(Icons.search, size: 18),
-                              isDense: true,
-                              border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(6),
-                                borderSide: BorderSide(color: Colors.grey.shade300),
-                              ),
-                              enabledBorder: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(6),
-                                borderSide: BorderSide(color: Colors.grey.shade300),
-                              ),
-                              focusedBorder: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(6),
-                                borderSide: BorderSide(color: Colors.grey.shade400, width: 1.5),
-                              ),
-                              contentPadding: const EdgeInsets.symmetric(vertical: 2, horizontal: 8),
-                            ),
-                            style: const TextStyle(fontSize: 14),
-                            onChanged: (v) => setState(() => searchText = v),
-                          ),
-          ),
-                const SizedBox(width: 16),
-                DropdownButton<String>(
-                  value: sortOption,
-                  items: const [
-                    DropdownMenuItem(value: 'name_asc', child: Text('Tên: A-Z')),
-                    DropdownMenuItem(value: 'name_desc', child: Text('Tên: Z-A')),
-                  ],
-                  onChanged: (v) => setState(() => sortOption = v!),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-              ],
-            ),
-            const SizedBox(height: 24),
-            Expanded(
-              child: StreamBuilder<List<ProductCategory>>(
-                stream: _categoryService.getCategories(),
-                builder: (context, catSnapshot) {
-                  if (catSnapshot.connectionState == ConnectionState.waiting) {
-                    return const Center(child: CircularProgressIndicator());
-                  }
-                  var categories = catSnapshot.data ?? [];
-                  if (searchText.isNotEmpty) {
-                    categories = categories.where((c) => c.name.toLowerCase().contains(searchText.toLowerCase())).toList();
-                  }
-                  if (sortOption == 'name_asc') {
-                    categories.sort((a, b) => a.name.compareTo(b.name));
-                  } else {
-                    categories.sort((a, b) => b.name.compareTo(a.name));
-                  }
-                  return StreamBuilder<List<Product>>(
-                    stream: _productService.getProducts(),
-                    builder: (context, prodSnapshot) {
-                      final products = prodSnapshot.data ?? [];
-                      return Container(
-                        margin: const EdgeInsets.only(top: 8),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(16),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withOpacity(0.03),
-                              blurRadius: 8,
-                              offset: const Offset(0, 2),
-                            ),
-                          ],
-                        ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Padding(
-                              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 18),
-                              child: Row(
-                                children: const [
-                                  Expanded(child: Text('Tên danh mục', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14))),
-                                  Text('Số sản phẩm', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
-                                ],
-                      ),
+                const SizedBox(height: 16),
+                if (isMobile) ...[
+                  // Heading
+                  const Text('Danh mục sản phẩm', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 24)),
+                  const SizedBox(height: 16),
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: ElevatedButton.icon(
+                      onPressed: () {
+                        if (widget.onNavigate != null) {
+                          widget.onNavigate!(MainPage.addProductCategory);
+                        }
+                      },
+                      icon: const Icon(Icons.add),
+                      label: const Text('Thêm danh mục'),
+                      style: primaryButtonStyle,
                     ),
-                            const Divider(height: 1),
-                            ...categories.map((cat) {
-                              final count = products.where((p) => p.category == cat.name).length;
-                              final isDefault = cat.name.trim().toLowerCase() == 'khác';
-                              return Padding(
-                                padding: const EdgeInsets.symmetric(horizontal: space24, vertical: space12),
-                                child: Row(
-                                  children: [
-                                    Expanded(child: Text(cat.name, style: h4)),
-                                    DesignSystemBadge(text: '$count'),
-                                    const SizedBox(width: space16),
-                                    IconButton(
-                                      icon: const Icon(Icons.edit, size: 14, color: Colors.blue),
-                                      tooltip: 'Đổi tên danh mục',
-                                      onPressed: () async {
-                                        String? errorText;
-                                        String? newName = cat.name;
-                                        await showDialog<void>(
-                                          context: context,
-                                          builder: (context) {
-                                            final controller = TextEditingController(text: cat.name);
-                                            return StatefulBuilder(
-                                              builder: (context, setDialogState) {
-                                                return AlertDialog(
-                                                  title: const Text('Đổi tên danh mục'),
-                                                  content: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                                                      TextField(
-                                                        controller: controller,
-                                                        decoration: InputDecoration(hintText: 'Tên mới', errorText: errorText),
-                                                      ),
-                                                    ],
-                                                  ),
-                                                  actions: [
-                                                    TextButton(onPressed: () => Navigator.pop(context), child: const Text('Hủy')),
-                                                    ElevatedButton(
-                                                      onPressed: () async {
-                                                        final input = controller.text.trim();
-                                                        if (input.isEmpty) {
-                                                          setDialogState(() => errorText = 'Tên không được để trống!');
-                                                          return;
-                                                        }
-                                                        if (categories.any((c) => c.name.toLowerCase() == input.toLowerCase() && c.name != cat.name)) {
-                                                          setDialogState(() => errorText = 'Tên danh mục đã tồn tại!');
-                                                          return;
-                                                        }
-                                                        Navigator.pop(context);
-                                                        newName = input;
-                                                      },
-                                                      child: const Text('Lưu'),
-                                                    ),
-                                                  ],
-                                                );
-                                              },
-                                            );
-                                          },
-                                        );
-                                        if (newName?.isNotEmpty == true && newName != cat.name) {
-                                          await _categoryService.renameCategory(cat.name, newName!);
-                                          setState(() {});
-                                          OverlayEntry? entry;
-                                          entry = OverlayEntry(
-                                            builder: (_) => DesignSystemSnackbar(
-                                              message: 'Đã đổi tên danh mục!',
-                                              icon: Icons.check_circle,
-                                              onDismissed: () => entry?.remove(),
-                                            ),
-                                          );
-                                          Overlay.of(context).insert(entry);
-                                        }
-                          },
-                        ),
-                        IconButton(
-                                      icon: const Icon(Icons.delete_outline, size: 20, color: Colors.red),
-                                      tooltip: 'Xóa danh mục',
-                                      onPressed: isDefault ? () {
-                                        OverlayEntry? entry;
-                                        entry = OverlayEntry(
-                                          builder: (_) => DesignSystemSnackbar(
-                                            message: 'Không thể xóa danh mục mặc định!',
-                                            icon: Icons.error,
-                                            onDismissed: () => entry?.remove(),
-                                          ),
-                                        );
-                                        Overlay.of(context).insert(entry);
-                                      } : () async {
-                                        final confirm = await showDialog<bool>(
-                              context: context,
-                              builder: (context) => AlertDialog(
-                                title: const Text('Xác nhận xóa'),
-                                            content: Text('Bạn có chắc muốn xóa danh mục "${cat.name}"?\nTất cả sản phẩm thuộc danh mục này sẽ được chuyển về "Khác".'),
-                                actions: [
-                                              TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Hủy')),
-                                  ElevatedButton(
-                                                onPressed: () => Navigator.pop(context, true),
-                                    child: const Text('Xóa'),
-                                                style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-                                  ),
-                                ],
-                              ),
-                            );
-                                        if (confirm == true) {
-                                          await _categoryService.deleteCategory(cat.name);
-                                          setState(() {});
-                                          OverlayEntry? entry;
-                                          entry = OverlayEntry(
-                                            builder: (_) => DesignSystemSnackbar(
-                                              message: 'Đã xóa danh mục!',
-                                              icon: Icons.check_circle,
-                                              onDismissed: () => entry?.remove(),
-                                            ),
-                                          );
-                                          Overlay.of(context).insert(entry);
-                                        }
-                          },
-                        ),
+                  ),
+                  const SizedBox(height: 12),
+                  SizedBox(
+                    width: double.infinity,
+                    child: TextField(
+                      controller: _searchController,
+                      decoration: searchInputDecoration(
+                        hint: 'Tìm kiếm danh mục...'
+                      ),
+                      style: const TextStyle(fontSize: 14),
+                      onChanged: (v) => setState(() => searchText = v),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  SizedBox(
+                    width: double.infinity,
+                    child: ShopifyDropdown<String>(
+                      items: const [
+                        'name_asc',
+                        'name_desc',
+                        'product_count_desc',
+                        'product_count_asc',
                       ],
+                      value: sortOption,
+                      getLabel: (key) {
+                        switch (key) {
+                          case 'name_asc':
+                            return 'Tên: A-Z';
+                          case 'name_desc':
+                            return 'Tên: Z-A';
+                          case 'product_count_desc':
+                            return 'Số sản phẩm: Nhiều nhất';
+                          case 'product_count_asc':
+                            return 'Số sản phẩm: Ít nhất';
+                          default:
+                            return key;
+                        }
+                      },
+                      onChanged: (v) => setState(() => sortOption = v ?? sortOption),
+                      hint: 'Sắp xếp',
+                      backgroundColor: Colors.transparent,
                     ),
-                              );
-                            }).toList(),
-                          ],
                   ),
-                );
-              },
-                  );
-                },
-              ),
-            ),
-          ],
+                  const SizedBox(height: 16),
+                ] else ...[
+                  // Desktop: heading, back, add button cùng 1 dòng
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      const SizedBox(width: 4),
+                      const Text('Danh mục sản phẩm', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 24)),
+                      const Spacer(),
+                      SizedBox(
+                        height: 40,
+                        child: ElevatedButton.icon(
+                          onPressed: () {
+                            if (widget.onNavigate != null) {
+                              widget.onNavigate!(MainPage.addProductCategory);
+                            }
+                          },
+                          icon: const Icon(Icons.add),
+                          label: const Text('Thêm danh mục'),
+                          style: primaryButtonStyle,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 24),
+                  Row(
+                    children: [
+                      Expanded(
+                        flex: 7,
+                        child: TextField(
+                          controller: _searchController,
+                          decoration: searchInputDecoration(
+                            hint: 'Tìm danh mục',
+                          ),
+                          style: const TextStyle(fontSize: 14),
+                          onChanged: (v) => setState(() => searchText = v),
+                        ),
+                      ),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        flex: 3,
+                        child: ShopifyDropdown<String>(
+                          items: const [
+                            'name_asc',
+                            'name_desc',
+                            'product_count_desc',
+                            'product_count_asc',
+                          ],
+                          value: sortOption,
+                          getLabel: (key) {
+                            switch (key) {
+                              case 'name_asc':
+                                return 'Tên: A-Z';
+                              case 'name_desc':
+                                return 'Tên: Z-A';
+                              case 'product_count_desc':
+                                return 'Số sản phẩm: Nhiều nhất';
+                              case 'product_count_asc':
+                                return 'Số sản phẩm: Ít nhất';
+                              default:
+                                return key;
+                            }
+                          },
+                          onChanged: (v) => setState(() => sortOption = v ?? sortOption),
+                          hint: 'Sắp xếp',
+                          backgroundColor: Colors.transparent,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 24),
+                ],
+                // Danh sách danh mục giữ nguyên
+                StreamBuilder<List<ProductCategory>>(
+                  stream: _categoryService.getCategories(),
+                  builder: (context, catSnapshot) {
+                    if (catSnapshot.connectionState == ConnectionState.waiting) {
+                      return const Center(child: CircularProgressIndicator());
+                    }
+                    var categories = catSnapshot.data ?? [];
+                    if (searchText.isNotEmpty) {
+                      categories = categories.where((c) => c.name.toLowerCase().contains(searchText.toLowerCase())).toList();
+                    }
+                    return StreamBuilder<List<Product>>(
+                      stream: _productService.getProducts(),
+                      builder: (context, prodSnapshot) {
+                        final products = prodSnapshot.data ?? [];
+                        if (sortOption == 'name_asc') {
+                          categories.sort((a, b) => a.name.compareTo(b.name));
+                        } else if (sortOption == 'name_desc') {
+                          categories.sort((a, b) => b.name.compareTo(a.name));
+                        } else if (sortOption == 'product_count_desc') {
+                          categories.sort((a, b) {
+                            final countA = products.where((p) => p.category == a.name).length;
+                            final countB = products.where((p) => p.category == b.name).length;
+                            return countB.compareTo(countA);
+                          });
+                        } else if (sortOption == 'product_count_asc') {
+                          categories.sort((a, b) {
+                            final countA = products.where((p) => p.category == a.name).length;
+                            final countB = products.where((p) => p.category == b.name).length;
+                            return countA.compareTo(countB);
+                          });
+                        }
+                        return LayoutBuilder(
+                          builder: (context, constraints) {
+                            final isMobile = constraints.maxWidth < 600;
+                            if (isMobile) {
+                              // Mobile style: card list
+                              return Column(
+                                children: [
+                                  ...categories.asMap().entries.map((entry) {
+                                    final idx = entry.key;
+                                    final cat = entry.value;
+                                    final count = products.where((p) => p.category == cat.name).length;
+                                    return _CategoryCardItem(
+                                      name: cat.name,
+                                      count: count,
+                                      isLast: idx == categories.length - 1,
+                                      onTap: () {
+                                        if (widget.onNavigate != null) widget.onNavigate!(MainPage.productCategory);
+                                      },
+                                    );
+                                  }),
+                                ],
+                              );
+                            } else {
+                              // Desktop/tablet: table style
+                              return Container(
+                                margin: const EdgeInsets.only(top: 8),
+                                decoration: BoxDecoration(
+                                  color: Colors.white,
+                                  borderRadius: BorderRadius.circular(16),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: Colors.black.withOpacity(0.03),
+                                      blurRadius: 8,
+                                      offset: const Offset(0, 2),
+                                    ),
+                                  ],
+                                ),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Padding(
+                                      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 18),
+                                      child: Row(
+                                        children: const [
+                                          Expanded(
+                                            flex: 7,
+                                            child: Align(
+                                              alignment: Alignment.centerLeft,
+                                              child: Text('Tên danh mục', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: textSecondary)),
+                                            ),
+                                          ),
+                                          Expanded(
+                                            flex: 3,
+                                            child: Align(
+                                              alignment: Alignment.center,
+                                              child: Text('Số sản phẩm', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: textSecondary)),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                    const Divider(height: 1),
+                                    ...categories.asMap().entries.map((entry) {
+                                      final idx = entry.key;
+                                      final cat = entry.value;
+                                      final count = products.where((p) => p.category == cat.name).length;
+                                      return _CategoryTableRow(
+                                        name: cat.name,
+                                        count: count,
+                                        isLast: idx == categories.length - 1,
+                                        onTap: () {
+                                          if (widget.onNavigate != null) widget.onNavigate!(MainPage.productCategory);
+                                        },
+                                      );
+                                    }),
+                                  ],
+                                ),
+                              );
+                            }
+                          },
+                        );
+                      },
+                    );
+                  },
+                ),
+              ],
+            );
+          },
+        ),
+      ),
+    );
+  }
+}
+
+class _CategoryTableRow extends StatefulWidget {
+  final String name;
+  final int count;
+  final bool isLast;
+  final VoidCallback onTap;
+  const _CategoryTableRow({required this.name, required this.count, required this.isLast, required this.onTap});
+  @override
+  State<_CategoryTableRow> createState() => _CategoryTableRowState();
+}
+class _CategoryTableRowState extends State<_CategoryTableRow> {
+  bool _hover = false;
+  @override
+  Widget build(BuildContext context) {
+    return MouseRegion(
+      onEnter: (_) => setState(() => _hover = true),
+      onExit: (_) => setState(() => _hover = false),
+      child: GestureDetector(
+        onTap: widget.onTap,
+        child: Container(
+          decoration: BoxDecoration(
+            color: _hover ? appBackground : Colors.white,
+            border: widget.isLast ? null : const Border(bottom: BorderSide(color: borderColor, width: 1)),
           ),
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+          child: Row(
+            children: [
+              Expanded(
+                flex: 7,
+                child: Align(
+                  alignment: Alignment.centerLeft,
+                  child: Text(widget.name, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14)),
+                ),
+              ),
+              Expanded(
+                flex: 3,
+                child: Align(
+                  alignment: Alignment.center,
+                  child: Text('${widget.count}', style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14)),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _CategoryCardItem extends StatefulWidget {
+  final String name;
+  final int count;
+  final bool isLast;
+  final VoidCallback onTap;
+  const _CategoryCardItem({required this.name, required this.count, required this.isLast, required this.onTap});
+  @override
+  State<_CategoryCardItem> createState() => _CategoryCardItemState();
+}
+class _CategoryCardItemState extends State<_CategoryCardItem> {
+  bool _hover = false;
+  @override
+  Widget build(BuildContext context) {
+    return MouseRegion(
+      onEnter: (_) => setState(() => _hover = true),
+      onExit: (_) => setState(() => _hover = false),
+      child: GestureDetector(
+        onTap: widget.onTap,
+        child: Container(
+          margin: EdgeInsets.only(bottom: widget.isLast ? 0 : 12),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
+          decoration: BoxDecoration(
+            color: _hover ? appBackground : Colors.white,
+            borderRadius: BorderRadius.circular(12),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.04),
+                blurRadius: 8,
+                offset: const Offset(0, 2),
+              ),
+            ],
+          ),
+          child: Row(
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(widget.name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 17)),
+                    const SizedBox(height: 6),
+                    Text('${widget.count} sản phẩm', style: const TextStyle(fontSize: 15, color: Color(0xFF64748B), fontWeight: FontWeight.w500)),
+                  ],
+                ),
+              ),
+              Icon(Icons.chevron_right, color: Colors.grey[400]),
+            ],
+          ),
+        ),
       ),
     );
   }
