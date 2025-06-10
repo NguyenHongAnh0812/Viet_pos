@@ -307,6 +307,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
         DesignSystemFormField(
           label: 'Tên thương mại',
           input: TextFormField(
+             style: const TextStyle(fontSize: 14),
             controller: _commonNameController,
             decoration: designSystemInputDecoration(label: '', fillColor: mutedBackground),
           ),
@@ -317,6 +318,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
           required: true,
           input: TextFormField(
             controller: _nameController,
+             style: const TextStyle(fontSize: 14),
             decoration: designSystemInputDecoration(label: '', fillColor: mutedBackground),
             validator: (val) => val == null || val.trim().isEmpty ? 'Vui lòng nhập tên nội bộ' : null,
           ),
@@ -329,6 +331,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
                 label: 'Barcode',
                 input: TextFormField(
                   controller: _barcodeController,
+                   style: const TextStyle(fontSize: 14),
                   decoration: designSystemInputDecoration(label: '', fillColor: mutedBackground),
                 ),
               ),
@@ -339,6 +342,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
                 label: 'SKU',
                 input: TextFormField(
                   controller: _skuController,
+                  style: const TextStyle(fontSize: 14),
                   decoration: designSystemInputDecoration(label: '', fillColor: mutedBackground),
                 ),
               ),
@@ -353,7 +357,8 @@ class _AddProductScreenState extends State<AddProductScreen> {
                 label: 'Đơn vị tính',
                 input: TextFormField(
                   controller: _unitController,
-                  decoration: designSystemInputDecoration(label: '', fillColor: mutedBackground),
+                  style: const TextStyle(fontSize: 14),
+                    decoration: designSystemInputDecoration(label: '', fillColor: mutedBackground),
                 ),
               ),
             ),
@@ -439,6 +444,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
           label: 'Mô tả',
           input: TextFormField(
             controller: _descriptionController,
+            style: const TextStyle(fontSize: 14),
             decoration: designSystemInputDecoration(label: '', fillColor: mutedBackground),
             minLines: 2,
             maxLines: 4,
@@ -449,6 +455,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
           label: 'Thành phần',
           input: TextFormField(
             controller: _ingredientsController,
+             style: const TextStyle(fontSize: 14),
             decoration: designSystemInputDecoration(label: '', fillColor: mutedBackground),
             minLines: 2,
             maxLines: 4,
@@ -459,6 +466,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
           label: 'Công dụng',
           input: TextFormField(
             controller: _usageController,
+             style: const TextStyle(fontSize: 14),
             decoration: designSystemInputDecoration(label: '', fillColor: mutedBackground),
             minLines: 2,
             maxLines: 4,
@@ -491,6 +499,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
                 label: 'Giá nhập',
                 required: true,
                 input: TextFormField(
+                   style: const TextStyle(fontSize: 14),
                   controller: _importPriceController,
                   decoration: designSystemInputDecoration(label: '', fillColor: mutedBackground, prefixIcon: Padding(padding: EdgeInsets.only(left: 8, right: 4), child: Text('₫', style: TextStyle(color: textSecondary)))),
                   keyboardType: TextInputType.number,
@@ -502,6 +511,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
               child: DesignSystemFormField(
                 label: 'Tồn kho',
                 input: TextFormField(
+                   style: const TextStyle(fontSize: 14),
                   controller: _quantityController,
                   decoration: designSystemInputDecoration(label: '', fillColor: mutedBackground),
                   keyboardType: TextInputType.number,
@@ -537,6 +547,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
               child: DesignSystemFormField(
                 label: '% Lợi nhuận',
                 input: TextFormField(
+                   style: const TextStyle(fontSize: 14),
                   decoration: designSystemInputDecoration(label: '% Lợi nhuận', fillColor: mutedBackground),
                   keyboardType: TextInputType.number,
                 ),
@@ -545,9 +556,10 @@ class _AddProductScreenState extends State<AddProductScreen> {
             const SizedBox(width: 12),
             Expanded(
               child: DesignSystemFormField(
-                label: 'Giá bán',
+                label: '',
                 required: true,
                 input: TextFormField(
+                   style: const TextStyle(fontSize: 14),
                   controller: _sellPriceController,
                   decoration: designSystemInputDecoration(label: '', fillColor: mutedBackground, prefixIcon: Padding(padding: EdgeInsets.only(left: 8, right: 4), child: Text('₫', style: TextStyle(color: textSecondary)))),
                   keyboardType: TextInputType.number,
@@ -580,6 +592,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
         DesignSystemFormField(
           label: 'Ghi chú',
           input: TextFormField(
+             style: const TextStyle(fontSize: 14),
             controller: _notesController,
             decoration: designSystemInputDecoration(label: 'Ghi chú', fillColor: mutedBackground),
             minLines: 2,
@@ -801,9 +814,10 @@ class _AddProductScreenState extends State<AddProductScreen> {
                 label: 'Giá nhập',
                 required: true,
                 input: TextFormField(
+                   style: const TextStyle(fontSize: 14),
                   controller: _importPriceController,
                   decoration: designSystemInputDecoration(
-                    label: 'Giá nhập',
+                    label: '',
                     fillColor: mutedBackground,
                     prefixIcon: Padding(
                       padding: const EdgeInsets.only(top: 5, left: 8),
@@ -832,9 +846,10 @@ class _AddProductScreenState extends State<AddProductScreen> {
                 label: 'Giá bán',
                 required: true,
                 input: TextFormField(
+                   style: const TextStyle(fontSize: 14),
                   controller: _sellPriceController,
                   decoration: designSystemInputDecoration(
-                    label: 'Giá bán',
+                    label: '',
                     fillColor: mutedBackground,
                     prefixIcon: Padding(
                       padding: const EdgeInsets.only(top: 5, left: 8),
@@ -860,6 +875,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
         DesignSystemFormField(
           label: 'Lợi nhuận gộp (%)',
           input: TextFormField(
+             style: const TextStyle(fontSize: 14),
             controller: _profitMarginController,
             decoration: designSystemInputDecoration(
               label: '20',
@@ -917,8 +933,9 @@ class _AddProductScreenState extends State<AddProductScreen> {
         DesignSystemFormField(
           label: 'Số lượng',
           input: TextFormField(
+             style: const TextStyle(fontSize: 14),
             controller: _quantityController,
-            decoration: designSystemInputDecoration(label: 'Số lượng', fillColor: mutedBackground),
+            decoration: designSystemInputDecoration(label: '', fillColor: mutedBackground),
             keyboardType: TextInputType.number,
             inputFormatters: [FilteringTextInputFormatter.digitsOnly],
           ),
@@ -946,8 +963,9 @@ class _AddProductScreenState extends State<AddProductScreen> {
         DesignSystemFormField(
           label: 'Ghi chú',
           input: TextFormField(
+             style: const TextStyle(fontSize: 14),
             controller: _notesController,
-            decoration: designSystemInputDecoration(label: 'Ghi chú', fillColor: mutedBackground),
+            decoration: designSystemInputDecoration(label: '', fillColor: mutedBackground),
             minLines: 2,
             maxLines: 4,
           ),
