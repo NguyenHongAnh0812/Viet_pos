@@ -146,7 +146,10 @@ class _AddProductScreenState extends State<AddProductScreen> {
                               Expanded(
                                 child: Padding(
                                   padding: const EdgeInsets.only(top: 4.0),
-                                  child: Text('Thêm sản phẩm', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+                                  child: Text(
+                                    'Thêm sản phẩm',
+                                    style: MediaQuery.of(context).size.width < 600 ? h1Mobile : h2,
+                                  ),
                                 ),
                               ),
                               IconButton(

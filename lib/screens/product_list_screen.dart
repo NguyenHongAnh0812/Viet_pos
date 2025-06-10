@@ -1056,7 +1056,10 @@ class _ProductListScreenState extends State<ProductListScreen> {
                     ? Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text('Danh sách sản phẩm', style: Theme.of(context).textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.bold)),
+                          Text(
+                            'Danh sách sản phẩm',
+                            style: MediaQuery.of(context).size.width < 600 ? h1Mobile : h2,
+                          ),
                           const SizedBox(height: 12),
                           Align(
                             alignment: Alignment.centerLeft,
@@ -1072,9 +1075,77 @@ class _ProductListScreenState extends State<ProductListScreen> {
                     : Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          Text('Danh sách sản phẩm', style: Theme.of(context).textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.bold)),
+                          Text(
+                            'Danh sách sản phẩm',
+                            style: MediaQuery.of(context).size.width < 600 ? h1Mobile : h2,
+                          ),
                           Row(
                             children: [
+                              // Xóa nhiều sản phẩm
+                              ValueListenableBuilder<Set<String>>(
+                                valueListenable: selectedProductIds,
+                                builder: (context, selected, _) {
+                                  if (selected.isEmpty) return const SizedBox.shrink();
+                                  return Padding(
+                                    padding: const EdgeInsets.only(right: 12),
+                                    child: ElevatedButton.icon(
+                                      icon: const Icon(Icons.delete),
+                                      label: const Text('Xóa nhiều sản phẩm'),
+                                      style: destructiveButtonStyle,
+                                      onPressed: () async {
+                                        final confirm = await showDesignSystemDialog<bool>(
+                                          context: context,
+                                          title: 'Xóa sản phẩm',
+                                          content: Text('Bạn có chắc muốn xóa ${selected.length} sản phẩm đã chọn?'),
+                                          actions: [
+                                            TextButton(
+                                              onPressed: () => Navigator.pop(context, false),
+                                              style: ghostBorderButtonStyle,
+                                              child: const Text('Hủy'),
+                                            ),
+                                            ElevatedButton(
+                                              onPressed: () => Navigator.pop(context, true),
+                                              style: destructiveButtonStyle.copyWith(
+                                                shape: MaterialStateProperty.all(RoundedRectangleBorder(borderRadius: BorderRadius.circular(6))),
+                                              ),
+                                              child: const Text('Xóa'),
+                                            ),
+                                          ],
+                                        );
+                                        if (confirm == true) {
+                                          final batch = FirebaseFirestore.instance.batch();
+                                          int count = 0;
+                                          for (final id in selected) {
+                                            final ref = FirebaseFirestore.instance.collection('products').doc(id);
+                                            batch.delete(ref);
+                                            count++;
+                                            if (count == 490) {
+                                              await batch.commit();
+                                              count = 0;
+                                            }
+                                          }
+                                          if (count > 0) {
+                                            await batch.commit();
+                                          }
+                                          selectedProductIds.value = {};
+                                          OverlayEntry? entry;
+                                          entry = OverlayEntry(
+                                            builder: (_) => DesignSystemSnackbar(
+                                              message: 'Đã xóa các sản phẩm đã chọn!',
+                                              icon: Icons.check_circle,
+                                              onDismissed: () => entry?.remove(),
+                                            ),
+                                          );
+                                          Overlay.of(context).insert(entry);
+                                          await Future.delayed(const Duration(milliseconds: 500));
+                                          setState(() {});
+                                        }
+                                      },
+                                    ),
+                                  );
+                                },
+                              ),
+                              // Import
                               ClipRRect(
                                 borderRadius: BorderRadius.circular(5),
                                 child: ElevatedButton.icon(
@@ -1085,6 +1156,7 @@ class _ProductListScreenState extends State<ProductListScreen> {
                                 ),
                               ),
                               const SizedBox(width: 12),
+                              // Export
                               ClipRRect(
                                 borderRadius: BorderRadius.circular(5),
                                 child: ElevatedButton.icon(
@@ -1098,6 +1170,7 @@ class _ProductListScreenState extends State<ProductListScreen> {
                                 ),
                               ),
                               const SizedBox(width: 12),
+                              // Thêm sản phẩm
                               ClipRRect(
                                 borderRadius: BorderRadius.circular(5),
                                 child: ElevatedButton.icon(
@@ -1168,7 +1241,8 @@ class _ProductListScreenState extends State<ProductListScreen> {
                               return const Center(child: CircularProgressIndicator());
                             }
                             final products = snapshot.data ?? [];
-                            final sortedProducts = sortProducts(products);
+                            final filteredProducts = filterProducts(products);
+                            final sortedProducts = sortProducts(filteredProducts);
                             final isMobile = MediaQuery.of(context).size.width < 600;
                             return Column(
                               children: [
@@ -1198,7 +1272,7 @@ class _ProductListScreenState extends State<ProductListScreen> {
                                       ),
                                       const SizedBox(width: 12),
                                       Text(
-                                        '${products.length} sản phẩm',
+                                        '${filteredProducts.length} sản phẩm',
                                         style: const TextStyle(color: textSecondary, fontWeight: FontWeight.w500),
                                       ),
                                     ],
@@ -1244,11 +1318,11 @@ class _ProductListScreenState extends State<ProductListScreen> {
                                                   child: Column(
                                                     crossAxisAlignment: CrossAxisAlignment.start,
                                                     children: [
-                                                      Text(product.name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                                                      Text(product.name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, fontFamily: 'Inter')),
                                                       if (product.commonName.isNotEmpty)
                                                         Padding(
                                                           padding: const EdgeInsets.only(top: 2),
-                                                          child: Text(product.commonName, style: TextStyle(fontSize: 14, color: Colors.grey[600], fontWeight: FontWeight.w400)),
+                                                          child: Text(product.commonName, style: TextStyle(fontSize: 14, color: Colors.grey[600], fontWeight: FontWeight.w400, fontFamily: 'Inter')),
                                                         ),
                                                       const SizedBox(height: 16),
                                                       Row(
@@ -1258,16 +1332,16 @@ class _ProductListScreenState extends State<ProductListScreen> {
                                                             child: Column(
                                                               crossAxisAlignment: CrossAxisAlignment.start,
                                                               children: [
-                                                                Text('Mã vạch', style: TextStyle(fontSize: 15, color: Colors.black, fontWeight: FontWeight.w500)),
-                                                                Text(product.barcode ?? '-', style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
+                                                                Text('Mã vạch', style: TextStyle(fontSize: 15, color: Colors.black, fontWeight: FontWeight.w500, fontFamily: 'Inter')),
+                                                                Text(product.barcode ?? '-', style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, fontFamily: 'Inter')),
                                                               ],
                                                             ),
                                                           ),
                                                           Column(
                                                             crossAxisAlignment: CrossAxisAlignment.end,
                                                             children: [
-                                                              Text('Số lượng', style: TextStyle(fontSize: 15, color: Colors.black, fontWeight: FontWeight.w500)),
-                                                              Text('${product.stock}', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                                                              Text('Số lượng', style: TextStyle(fontSize: 15, color: Colors.black, fontWeight: FontWeight.w500, fontFamily: 'Inter')),
+                                                              Text('${product.stock}', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, fontFamily: 'Inter')),
                                                             ],
                                                           ),
                                                         ],
@@ -1284,76 +1358,6 @@ class _ProductListScreenState extends State<ProductListScreen> {
                                         return Column(
                                           children: [
                                             // Header row
-                                            Padding(
-                                              padding: const EdgeInsets.only(top: 12, right: 8),
-                                              child: Align(
-                                                alignment: Alignment.centerRight,
-                                                child: ValueListenableBuilder<Set<String>>(
-                                                  valueListenable: selectedProductIds,
-                                                  builder: (context, selected, _) {
-                                                    return selected.isEmpty ? const SizedBox.shrink() : ElevatedButton.icon(
-                                                      icon: const Icon(Icons.delete),
-                                                      label: const Text('Xóa các sản phẩm đã chọn'),
-                                                      style: ElevatedButton.styleFrom(
-                                                        backgroundColor: Colors.redAccent,
-                                                        foregroundColor: Colors.white,
-                                                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
-                                                      ),
-                                                      onPressed: () async {
-                                                        final confirm = await showDesignSystemDialog<bool>(
-                                                          context: context,
-                                                          title: 'Xóa sản phẩm',
-                                                          content: Text('Bạn có chắc muốn xóa ${selected.length} sản phẩm đã chọn?'),
-                                                          actions: [
-                                                            TextButton(
-                                                              onPressed: () => Navigator.pop(context, false),
-                                                              style: ghostBorderButtonStyle,
-                                                              child: const Text('Hủy'),
-                                                            ),
-                                                            ElevatedButton(
-                                                              onPressed: () => Navigator.pop(context, true),
-                                                              style: destructiveButtonStyle.copyWith(
-                                                                shape: MaterialStateProperty.all(RoundedRectangleBorder(borderRadius: BorderRadius.circular(6))),
-                                                              ),
-                                                              child: const Text('Xóa'),
-                                                            ),
-                                                          ],
-                                                        );
-                                                        if (confirm == true) {
-                                                          final batch = FirebaseFirestore.instance.batch();
-                                                          int count = 0;
-                                                          for (final id in selected) {
-                                                            final ref = FirebaseFirestore.instance.collection('products').doc(id);
-                                                            batch.delete(ref);
-                                                            count++;
-                                                            if (count == 490) {
-                                                              await batch.commit();
-                                                              count = 0;
-                                                            }
-                                                          }
-                                                          if (count > 0) {
-                                                            await batch.commit();
-                                                          }
-                                                          selectedProductIds.value = {};
-                                                          OverlayEntry? entry;
-                                                          entry = OverlayEntry(
-                                                            builder: (_) => DesignSystemSnackbar(
-                                                              message: 'Đã xóa các sản phẩm đã chọn!',
-                                                              icon: Icons.check_circle,
-                                                              onDismissed: () => entry?.remove(),
-                                                            ),
-                                                          );
-                                                          Overlay.of(context).insert(entry);
-                                                          await Future.delayed(const Duration(milliseconds: 500));
-                                                          setState(() {});
-                                                        }
-                                                      },
-                                                    );
-                                                  },
-                                                ),
-                                              ),
-                                            ),
-                                            const SizedBox(height: 16),
                                             Container(
                                               decoration: BoxDecoration(
                                                 color: Colors.white,
@@ -1415,21 +1419,21 @@ class _ProductListScreenState extends State<ProductListScreen> {
                                                     flex: 5,
                                                     child: Align(
                                                       alignment: Alignment.centerLeft,
-                                                      child: Text('Tên sản phẩm', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: textSecondary)),
+                                                      child: Text('Tên sản phẩm', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: textSecondary, fontFamily: 'Inter')),
                                                     ),
                                                   ),
                                                   Expanded(
                                                     flex: 2,
                                                     child: Align(
                                                       alignment: Alignment.center,
-                                                      child: Text('Mã vạch', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: textSecondary)),
+                                                      child: Text('Mã vạch', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: textSecondary, fontFamily: 'Inter')),
                                                     ),
                                                   ),
                                                   Expanded(
                                                     flex: 2,
                                                     child: Align(
                                                       alignment: Alignment.center,
-                                                      child: Text('Số lượng', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: textSecondary)),
+                                                      child: Text('Số lượng', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: textSecondary, fontFamily: 'Inter')),
                                                     ),
                                                   ),
                                                 ],
@@ -1513,11 +1517,11 @@ class _ProductListScreenState extends State<ProductListScreen> {
                                                           child: Column(
                                                             crossAxisAlignment: CrossAxisAlignment.start,
                                                             children: [
-                                                              Text(product.name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                                                              Text(product.name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, fontFamily: 'Inter')),
                                                               if (product.commonName.isNotEmpty)
                                                                 Padding(
                                                                   padding: const EdgeInsets.only(top: 2),
-                                                                  child: Text(product.commonName, style: TextStyle(fontSize: 14, color: textThird , fontWeight: FontWeight.w400)),
+                                                                  child: Text(product.commonName, style: TextStyle(fontSize: 14, color: textThird , fontWeight: FontWeight.w400, fontFamily: 'Inter')),
                                                                 ),
                                                             ],
                                                           ),
@@ -1527,14 +1531,14 @@ class _ProductListScreenState extends State<ProductListScreen> {
                                                         flex: 2,
                                                         child: Align(
                                                           alignment: Alignment.center,
-                                                          child: Text(product.barcode ?? '-', style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 14)),
+                                                          child: Text(product.barcode ?? '-', style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 14, fontFamily: 'Inter')),
                                                         ),
                                                       ),
                                                       Expanded(
                                                         flex: 2,
                                                         child: Align(
                                                           alignment: Alignment.center,
-                                                          child: Text('${product.stock}', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                                                          child: Text('${product.stock}', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, fontFamily: 'Inter')),
                                                         ),
                                                       ),
                                                     ],

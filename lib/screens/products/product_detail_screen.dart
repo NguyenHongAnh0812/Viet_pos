@@ -499,7 +499,10 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                       Expanded(
                         child: Padding(
                           padding: const EdgeInsets.only(top: 0),
-                          child: Text('Chi tiết sản phẩm', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 22)),
+                          child: Text(
+                                    'Chi tiết sản phẩm',
+                                    style: MediaQuery.of(context).size.width < 600 ? h1Mobile : h2,
+                                  ),
                         ),
                       ),
                      

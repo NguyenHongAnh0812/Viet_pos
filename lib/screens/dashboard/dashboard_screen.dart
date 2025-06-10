@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../../models/product.dart';
 import '../../services/product_service.dart';
+import '../../widgets/common/design_system.dart';
 
 class DashboardScreen extends StatefulWidget {
   final VoidCallback? onViewProductList;
@@ -54,9 +55,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          const Text(
-                            'Bảng Điều Khiển',
-                            style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
+                         Text(
+                            'Bảng điều khiển',
+                            style: MediaQuery.of(context).size.width < 600 ? h1Mobile : h2,
                           ),
                           IconButton(
                             icon: const Icon(Icons.logout),

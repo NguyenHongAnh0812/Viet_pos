@@ -39,7 +39,10 @@ class _ProductCategoryScreenState extends State<ProductCategoryScreen> {
                 children: [
                   if (isMobile) ...[
                     // Heading
-                    const Text('Danh mục sản phẩm', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 24)),
+                    Text(
+                            'Danh mục sản phẩm',
+                            style: MediaQuery.of(context).size.width < 600 ? h1Mobile : h2,
+                          ),
                     const SizedBox(height: 16),
                     Align(
                       alignment: Alignment.centerLeft,
@@ -102,7 +105,10 @@ class _ProductCategoryScreenState extends State<ProductCategoryScreen> {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Text('Danh mục sản phẩm', style: Theme.of(context).textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.bold)),
+                       Text(
+                            'Danh sách sản phẩm',
+                            style: MediaQuery.of(context).size.width < 600 ? h1Mobile : h2,
+                          ),
                         SizedBox(
                           height: 40,
                           child: ElevatedButton.icon(
