@@ -1168,8 +1168,7 @@ class _ProductListScreenState extends State<ProductListScreen> {
                               return const Center(child: CircularProgressIndicator());
                             }
                             final products = snapshot.data ?? [];
-                            final filteredProducts = filterProducts(products);
-                            final sortedProducts = sortProducts(filteredProducts);
+                            final sortedProducts = sortProducts(products);
                             final isMobile = MediaQuery.of(context).size.width < 600;
                             return Column(
                               children: [
@@ -1199,7 +1198,7 @@ class _ProductListScreenState extends State<ProductListScreen> {
                                       ),
                                       const SizedBox(width: 12),
                                       Text(
-                                        '${filteredProducts.length} sản phẩm',
+                                        '${products.length} sản phẩm',
                                         style: const TextStyle(color: textSecondary, fontWeight: FontWeight.w500),
                                       ),
                                     ],
@@ -1226,52 +1225,55 @@ class _ProductListScreenState extends State<ProductListScreen> {
                                         return Column(
                                           children: [
                                             ...sortedProducts.map((product) {
-                                              return Container(
-                                                margin: const EdgeInsets.only(bottom: 8),
-                                                padding: const EdgeInsets.all(16),
-                                                decoration: BoxDecoration(
-                                                  color: Colors.white,
-                                                  borderRadius: BorderRadius.circular(12),
-                                                  boxShadow: [
-                                                    BoxShadow(
-                                                      color: Colors.black.withOpacity(0.04),
-                                                      blurRadius: 8,
-                                                      offset: const Offset(0, 2),
-                                                    ),
-                                                  ],
-                                                ),
-                                                child: Column(
-                                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                                  children: [
-                                                    Text(product.name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-                                                    if (product.commonName.isNotEmpty)
-                                                      Padding(
-                                                        padding: const EdgeInsets.only(top: 2),
-                                                        child: Text(product.commonName, style: TextStyle(fontSize: 14, color: Colors.grey[600], fontWeight: FontWeight.w400)),
+                                              return InkWell(
+                                                onTap: () => widget.onProductTap?.call(product),
+                                                child: Container(
+                                                  margin: const EdgeInsets.only(bottom: 8),
+                                                  padding: const EdgeInsets.all(16),
+                                                  decoration: BoxDecoration(
+                                                    color: Colors.white,
+                                                    borderRadius: BorderRadius.circular(12),
+                                                    boxShadow: [
+                                                      BoxShadow(
+                                                        color: Colors.black.withOpacity(0.04),
+                                                        blurRadius: 8,
+                                                        offset: const Offset(0, 2),
                                                       ),
-                                                    const SizedBox(height: 16),
-                                                    Row(
-                                                      crossAxisAlignment: CrossAxisAlignment.end,
-                                                      children: [
-                                                        Expanded(
-                                                          child: Column(
-                                                            crossAxisAlignment: CrossAxisAlignment.start,
+                                                    ],
+                                                  ),
+                                                  child: Column(
+                                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                                    children: [
+                                                      Text(product.name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                                                      if (product.commonName.isNotEmpty)
+                                                        Padding(
+                                                          padding: const EdgeInsets.only(top: 2),
+                                                          child: Text(product.commonName, style: TextStyle(fontSize: 14, color: Colors.grey[600], fontWeight: FontWeight.w400)),
+                                                        ),
+                                                      const SizedBox(height: 16),
+                                                      Row(
+                                                        crossAxisAlignment: CrossAxisAlignment.end,
+                                                        children: [
+                                                          Expanded(
+                                                            child: Column(
+                                                              crossAxisAlignment: CrossAxisAlignment.start,
+                                                              children: [
+                                                                Text('Mã vạch', style: TextStyle(fontSize: 15, color: Colors.black, fontWeight: FontWeight.w500)),
+                                                                Text(product.barcode ?? '-', style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
+                                                              ],
+                                                            ),
+                                                          ),
+                                                          Column(
+                                                            crossAxisAlignment: CrossAxisAlignment.end,
                                                             children: [
-                                                              Text('Mã vạch', style: TextStyle(fontSize: 15, color: Colors.black, fontWeight: FontWeight.w500)),
-                                                              Text(product.barcode ?? '-', style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
+                                                              Text('Số lượng', style: TextStyle(fontSize: 15, color: Colors.black, fontWeight: FontWeight.w500)),
+                                                              Text('${product.stock}', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
                                                             ],
                                                           ),
-                                                        ),
-                                                        Column(
-                                                          crossAxisAlignment: CrossAxisAlignment.end,
-                                                          children: [
-                                                            Text('Số lượng', style: TextStyle(fontSize: 15, color: Colors.black, fontWeight: FontWeight.w500)),
-                                                            Text('${product.stock}', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
-                                                          ],
-                                                        ),
-                                                      ],
-                                                    ),
-                                                  ],
+                                                        ],
+                                                      ),
+                                                    ],
+                                                  ),
                                                 ),
                                               );
                                             }).toList(),
@@ -1438,102 +1440,105 @@ class _ProductListScreenState extends State<ProductListScreen> {
                                               final idx = entry.key;
                                               final product = entry.value;
                                               final isLast = idx == sortedProducts.length - 1;
-                                              return Container(
-                                                margin: const EdgeInsets.only(bottom: 0),
-                                                decoration: BoxDecoration(
-                                                  color: Colors.white,
-                                                  borderRadius: isLast
-                                                    ? const BorderRadius.only(
-                                                        bottomLeft: Radius.circular(12),
-                                                        bottomRight: Radius.circular(12),
-                                                      )
-                                                    : BorderRadius.zero,
-                                                  border: isLast
-                                                    ? null
-                                                    : Border(
-                                                        bottom: BorderSide(color: Colors.grey.shade200, width: 1),
-                                                      ),
-                                                ),
-                                                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
-                                                child: Row(
-                                                  children: [
-                                                    Expanded(
-                                                      flex: 1,
-                                                      child: Align(
-                                                        alignment: Alignment.centerLeft,
-                                                        child: SizedBox(
-                                                          width: 32,
-                                                          height: 32,
-                                                          child: Theme(
-                                                            data: Theme.of(context).copyWith(
-                                                              unselectedWidgetColor: Color(0xFF3a6ff8),
-                                                              checkboxTheme: CheckboxThemeData(
-                                                                shape: RoundedRectangleBorder(
-                                                                  borderRadius: BorderRadius.circular(4),
-                                                                ),
-                                                                side: const BorderSide(color: Color(0xFF3a6ff8), width: 1),
-                                                                fillColor: MaterialStateProperty.resolveWith<Color?>((states) {
-                                                                  if (states.contains(MaterialState.selected)) {
-                                                                    return Color(0xFF3a6ff8);
-                                                                  }
-                                                                  return Colors.white;
-                                                                }),
-                                                                checkColor: MaterialStateProperty.all<Color>(Colors.white),
-                                                              ),
-                                                            ),
-                                                            child: ValueListenableBuilder<Set<String>>(
-                                                              valueListenable: selectedProductIds,
-                                                              builder: (context, selected, _) {
-                                                                return Checkbox(
-                                                                  value: selected.contains(product.id),
-                                                                  onChanged: (checked) {
-                                                                    final newSet = Set<String>.from(selected);
-                                                                    if (checked == true) {
-                                                                      newSet.add(product.id);
-                                                                    } else {
-                                                                      newSet.remove(product.id);
+                                              return InkWell(
+                                                onTap: () => widget.onProductTap?.call(product),
+                                                child: Container(
+                                                  margin: const EdgeInsets.only(bottom: 0),
+                                                  decoration: BoxDecoration(
+                                                    color: Colors.white,
+                                                    borderRadius: isLast
+                                                      ? const BorderRadius.only(
+                                                          bottomLeft: Radius.circular(12),
+                                                          bottomRight: Radius.circular(12),
+                                                        )
+                                                      : BorderRadius.zero,
+                                                    border: isLast
+                                                      ? null
+                                                      : Border(
+                                                          bottom: BorderSide(color: Colors.grey.shade200, width: 1),
+                                                        ),
+                                                  ),
+                                                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
+                                                  child: Row(
+                                                    children: [
+                                                      Expanded(
+                                                        flex: 1,
+                                                        child: Align(
+                                                          alignment: Alignment.centerLeft,
+                                                          child: SizedBox(
+                                                            width: 32,
+                                                            height: 32,
+                                                            child: Theme(
+                                                              data: Theme.of(context).copyWith(
+                                                                unselectedWidgetColor: Color(0xFF3a6ff8),
+                                                                checkboxTheme: CheckboxThemeData(
+                                                                  shape: RoundedRectangleBorder(
+                                                                    borderRadius: BorderRadius.circular(4),
+                                                                  ),
+                                                                  side: const BorderSide(color: Color(0xFF3a6ff8), width: 1),
+                                                                  fillColor: MaterialStateProperty.resolveWith<Color?>((states) {
+                                                                    if (states.contains(MaterialState.selected)) {
+                                                                      return Color(0xFF3a6ff8);
                                                                     }
-                                                                    selectedProductIds.value = newSet;
-                                                                  },
-                                                                );
-                                                              },
+                                                                    return Colors.white;
+                                                                  }),
+                                                                  checkColor: MaterialStateProperty.all<Color>(Colors.white),
+                                                                ),
+                                                              ),
+                                                              child: ValueListenableBuilder<Set<String>>(
+                                                                valueListenable: selectedProductIds,
+                                                                builder: (context, selected, _) {
+                                                                  return Checkbox(
+                                                                    value: selected.contains(product.id),
+                                                                    onChanged: (checked) {
+                                                                      final newSet = Set<String>.from(selected);
+                                                                      if (checked == true) {
+                                                                        newSet.add(product.id);
+                                                                      } else {
+                                                                        newSet.remove(product.id);
+                                                                      }
+                                                                      selectedProductIds.value = newSet;
+                                                                    },
+                                                                  );
+                                                                },
+                                                              ),
                                                             ),
                                                           ),
                                                         ),
                                                       ),
-                                                    ),
-                                                    Expanded(
-                                                      flex: 5,
-                                                      child: Align(
-                                                        alignment: Alignment.centerLeft,
-                                                        child: Column(
-                                                          crossAxisAlignment: CrossAxisAlignment.start,
-                                                          children: [
-                                                            Text(product.name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-                                                            if (product.commonName.isNotEmpty)
-                                                              Padding(
-                                                                padding: const EdgeInsets.only(top: 2),
-                                                                child: Text(product.commonName, style: TextStyle(fontSize: 14, color: textThird , fontWeight: FontWeight.w400)),
-                                                              ),
-                                                          ],
+                                                      Expanded(
+                                                        flex: 5,
+                                                        child: Align(
+                                                          alignment: Alignment.centerLeft,
+                                                          child: Column(
+                                                            crossAxisAlignment: CrossAxisAlignment.start,
+                                                            children: [
+                                                              Text(product.name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                                                              if (product.commonName.isNotEmpty)
+                                                                Padding(
+                                                                  padding: const EdgeInsets.only(top: 2),
+                                                                  child: Text(product.commonName, style: TextStyle(fontSize: 14, color: textThird , fontWeight: FontWeight.w400)),
+                                                                ),
+                                                            ],
+                                                          ),
                                                         ),
                                                       ),
-                                                    ),
-                                                    Expanded(
-                                                      flex: 2,
-                                                      child: Align(
-                                                        alignment: Alignment.center,
-                                                        child: Text(product.barcode ?? '-', style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 14)),
+                                                      Expanded(
+                                                        flex: 2,
+                                                        child: Align(
+                                                          alignment: Alignment.center,
+                                                          child: Text(product.barcode ?? '-', style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 14)),
+                                                        ),
                                                       ),
-                                                    ),
-                                                    Expanded(
-                                                      flex: 2,
-                                                      child: Align(
-                                                        alignment: Alignment.center,
-                                                        child: Text('${product.stock}', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                                                      Expanded(
+                                                        flex: 2,
+                                                        child: Align(
+                                                          alignment: Alignment.center,
+                                                          child: Text('${product.stock}', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                                                        ),
                                                       ),
-                                                    ),
-                                                  ],
+                                                    ],
+                                                  ),
                                                 ),
                                               );
                                             }),

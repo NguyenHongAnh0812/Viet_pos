@@ -297,6 +297,7 @@ InputDecoration designSystemInputDecoration({
   suffixIcon: suffixIcon,
   errorText: errorText,
   isDense: isDense,
+  floatingLabelBehavior: FloatingLabelBehavior.never,
   contentPadding: contentPadding ?? const EdgeInsets.symmetric(horizontal: inputPadding, vertical: inputPadding - 4),
   filled: filled ?? true,
   fillColor: fillColor ?? cardBackground,

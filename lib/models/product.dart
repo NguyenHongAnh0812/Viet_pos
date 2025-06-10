@@ -39,7 +39,22 @@ class Product {
     required this.isActive,
     required this.createdAt,
     required this.updatedAt,
-  });
+  }) : assert(id != null),
+      // assert(name.isNotEmpty, 'name is empty'),
+     //  assert(commonName.isNotEmpty, 'commonName is empty'),
+      //  assert(category.isNotEmpty, 'category is empty'),
+      // assert(unit.isNotEmpty, 'unit is empty'),
+       //assert(tags != null, 'tags is null'),
+      //  assert(description.isNotEmpty, 'description is empty'),
+      //  assert(usage.isNotEmpty, 'usage is empty'),
+      //  assert(ingredients.isNotEmpty, 'ingredients is empty'),
+      //  assert(notes.isNotEmpty, 'notes is empty'),
+       assert(stock != null, 'stock is null');
+       //assert(importPrice != null, 'importPrice is null'),
+       //assert(salePrice != null, 'salePrice is null'),
+       //assert(isActive != null, 'isActive is null'),
+       //assert(createdAt != null, 'createdAt is null'),
+       //assert(updatedAt != null, 'updatedAt is null');
 
   // Convert to Map for Firestore
   Map<String, dynamic> toMap() {
