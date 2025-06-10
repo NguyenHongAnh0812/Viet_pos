@@ -36,7 +36,6 @@ migrate_working_dir/
 /build/macos
 /build/windows
 /build/linux
-/build/web
 /build/linux
 /build/linux
 # Symbolication related
