@@ -232,14 +232,8 @@ class _ProductCategoryScreenState extends State<ProductCategoryScreen> {
                                   margin: const EdgeInsets.only(top: 8),
                                   decoration: BoxDecoration(
                                     color: Colors.white,
-                                    borderRadius: BorderRadius.circular(16),
-                                    boxShadow: [
-                                      BoxShadow(
-                                        color: Colors.black.withOpacity(0.03),
-                                        blurRadius: 8,
-                                        offset: const Offset(0, 2),
-                                      ),
-                                    ],
+                                    border: Border.all(color: Color(0xFFE4E4E7)),
+                                    borderRadius: BorderRadius.circular(8),
                                   ),
                                   child: Column(
                                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -265,7 +259,7 @@ class _ProductCategoryScreenState extends State<ProductCategoryScreen> {
                                           ],
                                         ),
                                       ),
-                                      const Divider(height: 1),
+                                      Divider(height: 1, color: borderColor),
                                       ...categories.asMap().entries.map((entry) {
                                         final idx = entry.key;
                                         final cat = entry.value;

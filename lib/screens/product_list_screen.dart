@@ -1306,14 +1306,8 @@ class _ProductListScreenState extends State<ProductListScreen> {
                                                   padding: const EdgeInsets.all(16),
                                                   decoration: BoxDecoration(
                                                     color: Colors.white,
-                                                    borderRadius: BorderRadius.circular(12),
-                                                    boxShadow: [
-                                                      BoxShadow(
-                                                        color: Colors.black.withOpacity(0.04),
-                                                        blurRadius: 8,
-                                                        offset: const Offset(0, 2),
-                                                      ),
-                                                    ],
+                                                    border: Border.all(color: borderColor),
+                                                    borderRadius: BorderRadius.circular(8),
                                                   ),
                                                   child: Column(
                                                     crossAxisAlignment: CrossAxisAlignment.start,
