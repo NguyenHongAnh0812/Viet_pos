@@ -23,29 +23,42 @@ class _InventoryHistoryScreenState extends State<InventoryHistoryScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF7F8FA),
-      body: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                IconButton(
-                  icon: const Icon(Icons.arrow_back),
-                  onPressed: widget.onBack,
+      backgroundColor: appBackground,
+      body: Center(
+        child: Container(
+          width: double.infinity,
+          constraints: const BoxConstraints(maxWidth: 1400),
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  IconButton(
+                    icon: const Icon(Icons.arrow_back),
+                    onPressed: widget.onBack,
+                  ),
+                  const SizedBox(width: 4),
+                  const Text('Lịch sử kiểm kê', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 28)),
+                ],
+              ),
+              const SizedBox(height: 4),
+              const Text('Xem các phiên kiểm kê trước đây', style: TextStyle(color: textSecondary)),
+              const SizedBox(height: 20),
+              designSystemCard(
+                child: _buildFilterPanel(),
+              ),
+              const SizedBox(height: 16),
+              Expanded(
+                child: designSystemCard(
+                  child: Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: _buildSessionList(),
+                  ),
                 ),
-                const SizedBox(width: 4),
-                const Text('Lịch sử kiểm kê', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 28)),
-              ],
-            ),
-            const SizedBox(height: 4),
-            const Text('Xem các phiên kiểm kê trước đây', style: TextStyle(color: Colors.black54)),
-            const SizedBox(height: 20),
-            _buildFilterPanel(),
-            const SizedBox(height: 16),
-            Expanded(child: _buildSessionList()),
-          ],
+              ),
+            ],
+          ),
         ),
       ),
     );

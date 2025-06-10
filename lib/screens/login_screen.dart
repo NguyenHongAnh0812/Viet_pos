@@ -39,6 +39,10 @@ class _LoginScreenState extends State<LoginScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isMobile = screenWidth < 600;
+    final cardWidth = isMobile ? screenWidth - 48 : 400.0;
+
     return Scaffold(
       backgroundColor: appBackground,
       body: Center(
@@ -48,34 +52,134 @@ class _LoginScreenState extends State<LoginScreen> {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Text('Đăng nhập', style: responsiveTextStyle(context, h2.copyWith(fontWeight: FontWeight.bold), h2Mobile.copyWith(fontWeight: FontWeight.bold))),
-                SizedBox(height: MediaQuery.of(context).size.width < 1024 ? spaceMobile * 3 : space24),
-                TextField(
-                  controller: _emailController,
-                  decoration: designSystemInputDecoration(label: 'Email'),
-                  keyboardType: TextInputType.emailAddress,
-                ),
-                SizedBox(height: MediaQuery.of(context).size.width < 1024 ? spaceMobile * 2 : space16),
-                TextField(
-                  controller: _passwordController,
-                  decoration: designSystemInputDecoration(label: 'Mật khẩu'),
-                  obscureText: true,
-                ),
-                SizedBox(height: MediaQuery.of(context).size.width < 1024 ? spaceMobile * 3 : space24),
-                SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton(
-                    onPressed: _loading ? null : _login,
-                    style: primaryButtonStyle,
-                    child: _loading
-                        ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))
-                        : Text('Đăng nhập', style: responsiveTextStyle(context, body.copyWith(fontWeight: FontWeight.w600, color: Colors.white), bodyMobile.copyWith(fontWeight: FontWeight.w600, color: Colors.white))),
+                // Logo and Title
+                Container(
+                  width: cardWidth,
+                  padding: const EdgeInsets.all(32),
+                  decoration: BoxDecoration(
+                    color: cardBackground,
+                    borderRadius: BorderRadius.circular(borderRadiusLarge),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.05),
+                        blurRadius: 10,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
+                  ),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      // Logo
+                      Container(
+                        width: 80,
+                        height: 80,
+                        decoration: BoxDecoration(
+                          color: primaryBlue.withOpacity(0.1),
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(
+                          Icons.pets,
+                          size: 40,
+                          color: primaryBlue,
+                        ),
+                      ),
+                      const SizedBox(height: 24),
+                      // Title
+                      Text(
+                        'VET-POS',
+                        style: h1.copyWith(
+                          color: primaryBlue,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        'Đăng nhập vào hệ thống',
+                        style: body.copyWith(
+                          color: textSecondary,
+                        ),
+                      ),
+                      const SizedBox(height: 32),
+                      // Email Field
+                      TextField(
+                        controller: _emailController,
+                        decoration: designSystemInputDecoration(
+                          label: 'Email',
+                          prefixIcon: const Icon(Icons.email_outlined, color: textSecondary),
+                        ),
+                        keyboardType: TextInputType.emailAddress,
+                      ),
+                      const SizedBox(height: 16),
+                      // Password Field
+                      TextField(
+                        controller: _passwordController,
+                        decoration: designSystemInputDecoration(
+                          label: 'Mật khẩu',
+                          prefixIcon: const Icon(Icons.lock_outline, color: textSecondary),
+                        ),
+                        obscureText: true,
+                      ),
+                      const SizedBox(height: 24),
+                      // Login Button
+                      SizedBox(
+                        width: double.infinity,
+                        child: ElevatedButton(
+                          onPressed: _loading ? null : _login,
+                          style: primaryButtonStyle,
+                          child: _loading
+                              ? const SizedBox(
+                                  width: 20,
+                                  height: 20,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                                  ),
+                                )
+                              : Text(
+                                  'Đăng nhập',
+                                  style: body.copyWith(
+                                    fontWeight: FontWeight.w600,
+                                    color: Colors.white,
+                                  ),
+                                ),
+                        ),
+                      ),
+                      if (_error != null) ...[
+                        const SizedBox(height: 16),
+                        Container(
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: destructiveRed.withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(borderRadiusMedium),
+                          ),
+                          child: Row(
+                            children: [
+                              const Icon(
+                                Icons.error_outline,
+                                color: destructiveRed,
+                                size: 20,
+                              ),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: Text(
+                                  _error!,
+                                  style: caption.copyWith(color: destructiveRed),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ],
                   ),
                 ),
-                if (_error != null) ...[
-                  SizedBox(height: MediaQuery.of(context).size.width < 1024 ? spaceMobile * 2 : space16),
-                  Text(_error!, style: responsiveTextStyle(context, caption.copyWith(color: destructiveRed), captionMobile.copyWith(color: destructiveRed))),
-                ]
+                // Footer
+                const SizedBox(height: 24),
+                Text(
+                  '© 2024 VET-POS. All rights reserved.',
+                  style: caption.copyWith(color: textSecondary),
+                ),
               ],
             ),
           ),

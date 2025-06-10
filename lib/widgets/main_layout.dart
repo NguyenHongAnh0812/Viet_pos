@@ -248,14 +248,13 @@ class _MainLayoutState extends State<MainLayout> {
         );
       case MainPage.addProduct:
         return AddProductScreen(
-          product: _selectedProduct,
-          isEdit: _selectedProduct != null,
+          product: null,
+          isEdit: false,
           onBack: _openProductList,
         );
       case MainPage.productDetail:
         return ProductDetailScreen(
           product: _selectedProduct!,
-          onEdit: _openEditProduct,
           onBack: _openProductList,
         );
       case MainPage.inventory:

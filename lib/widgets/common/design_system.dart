@@ -8,7 +8,7 @@ const Color primaryBlue = Color(0xFF3A6FF8); // --primary
 const Color secondaryGreen = Color(0xFF67C687); // --secondary
 const Color warningOrange = Color(0xFFFFB547); // --warning
 const Color destructiveRed = Color(0xFFFF5A5F); // --destructive
-const Color borderColor = Color(0xFFE4E4E7); // --border
+const Color borderColor = Color(0xFFE5E7EB); // --border
 
 const Color appBackground = Color(0xFFF7F9FC); // --background
 const Color cardBackground = Color(0xFFFFFFFF); // --card
@@ -297,6 +297,7 @@ InputDecoration designSystemInputDecoration({
   suffixIcon: suffixIcon,
   errorText: errorText,
   isDense: isDense,
+  floatingLabelBehavior: FloatingLabelBehavior.never,
   contentPadding: contentPadding ?? const EdgeInsets.symmetric(horizontal: inputPadding, vertical: inputPadding - 4),
   filled: filled ?? true,
   fillColor: fillColor ?? cardBackground,

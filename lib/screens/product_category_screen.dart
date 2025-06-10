@@ -39,7 +39,10 @@ class _ProductCategoryScreenState extends State<ProductCategoryScreen> {
                 children: [
                   if (isMobile) ...[
                     // Heading
-                    const Text('Danh mục sản phẩm', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 24)),
+                    Text(
+                            'Danh mục sản phẩm',
+                            style: MediaQuery.of(context).size.width < 600 ? h1Mobile : h2,
+                          ),
                     const SizedBox(height: 16),
                     Align(
                       alignment: Alignment.centerLeft,
@@ -102,7 +105,10 @@ class _ProductCategoryScreenState extends State<ProductCategoryScreen> {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Text('Danh mục sản phẩm', style: Theme.of(context).textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.bold)),
+                       Text(
+                            'Danh sách sản phẩm',
+                            style: MediaQuery.of(context).size.width < 600 ? h1Mobile : h2,
+                          ),
                         SizedBox(
                           height: 40,
                           child: ElevatedButton.icon(
@@ -226,14 +232,8 @@ class _ProductCategoryScreenState extends State<ProductCategoryScreen> {
                                   margin: const EdgeInsets.only(top: 8),
                                   decoration: BoxDecoration(
                                     color: Colors.white,
-                                    borderRadius: BorderRadius.circular(16),
-                                    boxShadow: [
-                                      BoxShadow(
-                                        color: Colors.black.withOpacity(0.03),
-                                        blurRadius: 8,
-                                        offset: const Offset(0, 2),
-                                      ),
-                                    ],
+                                    border: Border.all(color: Color(0xFFE4E4E7)),
+                                    borderRadius: BorderRadius.circular(8),
                                   ),
                                   child: Column(
                                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -259,7 +259,7 @@ class _ProductCategoryScreenState extends State<ProductCategoryScreen> {
                                           ],
                                         ),
                                       ),
-                                      const Divider(height: 1),
+                                      Divider(height: 1, color: borderColor),
                                       ...categories.asMap().entries.map((entry) {
                                         final idx = entry.key;
                                         final cat = entry.value;
