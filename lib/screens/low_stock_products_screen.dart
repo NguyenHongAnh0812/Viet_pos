@@ -27,7 +27,7 @@ class _LowStockProductsScreenState extends State<LowStockProductsScreen> {
     final sheet = excel['Sheet1'];
     final headers = [
       'Tên danh pháp',
-      'Tên thường gọi',
+      'Tên thương mại',
       'Danh mục',
       'Mã vạch',
       'SKU',

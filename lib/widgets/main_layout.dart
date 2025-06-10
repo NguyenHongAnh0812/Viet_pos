@@ -41,6 +41,10 @@ class _MainLayoutState extends State<MainLayout> {
     setState(() {
       _previousPage = _currentPage;
       _currentPage = page;
+      // Đóng sidebar nếu là mobile
+      if (MediaQuery.of(context).size.width < 1024) {
+        _sidebarOpen = false;
+      }
     });
   }
 
@@ -193,11 +197,7 @@ class _MainLayoutState extends State<MainLayout> {
                         onTap: () => _onNavTap(1),
                       ),
                       _NavCenterButton(
-                        icon: SvgPicture.asset(
-                          'assets/icons/add.svg',
-                          width: 16,
-                          height: 16,
-                        ),
+                        icon: Icon(Icons.add, size: 24, color: Colors.white,),
                         label: 'Thêm mới',
                         onTap: () => _onSidebarTap(MainPage.addProduct),
                       ),
@@ -350,10 +350,11 @@ class _Header extends StatelessWidget {
       alignment: Alignment.centerLeft,
       child: Row(
         children: [
-          IconButton(
-            icon: SvgPicture.asset('assets/icons/databoard.svg', width: 16, height: 16),
-            onPressed: onMenuPressed,
-          ),
+          if (MediaQuery.of(context).size.width < 1024)
+            IconButton(
+              icon: SvgPicture.asset('assets/icons/menu.svg', width: 16, height: 16),
+              onPressed: onMenuPressed,
+            ),
           const SizedBox(width: 8),
           const Text(
             'VET-POS',

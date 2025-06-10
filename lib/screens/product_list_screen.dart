@@ -260,8 +260,8 @@ class _ProductListScreenState extends State<ProductListScreen> {
 
         // Mapping header tiếng Việt sang tên trường tiếng Anh
         final headerMapping = {
-          'tên danh pháp': 'name',
-          'tên thường gọi': 'commonName',
+          'tên nội bộ': 'name',
+          'tên thương mại': 'commonName',
           'danh mục sản phẩm': 'category',
           'mã vạch': 'barcode',
           'sku': 'sku',
@@ -361,8 +361,8 @@ class _ProductListScreenState extends State<ProductListScreen> {
         print('Excel headers (gốc): $headers');
         // Mapping header tiếng Việt sang tên trường tiếng Anh
         final headerMapping = {
-          'tên danh pháp': 'name',
-          'tên thường gọi': 'commonName',
+          'tên nội bộ': 'name',
+          'tên thương mại': 'commonName',
           'danh mục sản phẩm': 'category',
           'mã vạch': 'barcode',
           'sku': 'sku',
@@ -473,8 +473,8 @@ class _ProductListScreenState extends State<ProductListScreen> {
     final sheet = excel['Sheet1'];
     // Header tiếng Việt
     final headers = [
-      'Tên danh pháp',
-      'Tên thường gọi',
+      'Tên nội bộ',
+      'Tên thương mại',
       'Danh mục sản phẩm',
       'Mã vạch',
       'SKU',
@@ -630,7 +630,7 @@ class _ProductListScreenState extends State<ProductListScreen> {
                   controlAffinity: ListTileControlAffinity.leading,
                   contentPadding: EdgeInsets.zero,
                   title: const Text(
-                    'Ghi đè sản phẩm có Tên khoa học trùng khớp. Các giá trị hiện tại sẽ được thay thế cho tất cả các cột có trong CSV.',
+                    'Ghi đè sản phẩm có Tên nội bộ trùng khớp. Các giá trị hiện tại sẽ được thay thế cho tất cả các cột có trong CSV.',
                     style: TextStyle(fontSize: 14, fontWeight: FontWeight.w400),
                   ),
                 ),
@@ -726,7 +726,7 @@ class _ProductListScreenState extends State<ProductListScreen> {
     if (_csvPreviewHeaders == null || _csvPreviewRows == null) return;
 
     // Lọc và sắp xếp lại các cột cần hiển thị
-    final requiredHeaders = ['Tên pháp danh', 'Tên thường gọi', 'Mã vạch', 'SKU', 'Giá nhập', 'Giá bán', 'Tồn kho'];
+    final requiredHeaders = ['Tên nội bộ', 'Tên thương mại', 'Mã vạch', 'SKU', 'Giá nhập', 'Giá bán', 'Tồn kho'];
     final headerIndices = <int>[];
     
     for (var header in requiredHeaders) {
@@ -752,40 +752,46 @@ class _ProductListScreenState extends State<ProductListScreen> {
         children: [
           const Text('Xem trước dữ liệu', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20)),
           const SizedBox(height: 16),
-          Container(
-            decoration: BoxDecoration(
-              color: cardBackground,
-              borderRadius: BorderRadius.circular(6),
-              border: Border.all(color: borderColor),
-            ),
+          SizedBox(
+            height: MediaQuery.of(context).size.height * 0.5,
             child: SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              child: DataTable(
-                columns: displayHeaders.map((h) => DataColumn(
-                  label: Container(
-                    constraints: const BoxConstraints(minWidth: 120),
-                    child: Text(h, 
-                      style: const TextStyle(fontWeight: FontWeight.bold, color: textSecondary),
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ),
-                )).toList(),
-                rows: displayRows.map((row) => DataRow(
-                  cells: row.map((cell) => DataCell(
-                    Container(
-                      constraints: const BoxConstraints(minWidth: 120),
-                      child: Text(cell.toString(), 
-                        style: const TextStyle(fontWeight: FontWeight.w500),
-                        overflow: TextOverflow.ellipsis,
+              scrollDirection: Axis.vertical,
+              child: Container(
+                decoration: BoxDecoration(
+                  color: cardBackground,
+                  borderRadius: BorderRadius.circular(6),
+                  border: Border.all(color: borderColor),
+                ),
+                child: SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: DataTable(
+                    columns: displayHeaders.map((h) => DataColumn(
+                      label: Container(
+                        constraints: const BoxConstraints(minWidth: 120),
+                        child: Text(h, 
+                          style: const TextStyle(fontWeight: FontWeight.bold, color: textSecondary),
+                          overflow: TextOverflow.ellipsis,
+                        ),
                       ),
-                    ),
-                  )).toList(),
-                )).toList(),
-                headingRowHeight: 48,
-                dataRowHeight: 48,
-                horizontalMargin: 16,
-                columnSpacing: 24,
-                dividerThickness: 0.5,
+                    )).toList(),
+                    rows: displayRows.map((row) => DataRow(
+                      cells: row.map((cell) => DataCell(
+                        Container(
+                          constraints: const BoxConstraints(minWidth: 120),
+                          child: Text(cell.toString(), 
+                            style: const TextStyle(fontWeight: FontWeight.w500),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      )).toList(),
+                    )).toList(),
+                    headingRowHeight: 48,
+                    dataRowHeight: 48,
+                    horizontalMargin: 16,
+                    columnSpacing: 24,
+                    dividerThickness: 0.5,
+                  ),
+                ),
               ),
             ),
           ),
@@ -819,11 +825,11 @@ class _ProductListScreenState extends State<ProductListScreen> {
     for (int i = 0; i < headers.length; i++) {
       final header = headers[i].trim().toLowerCase();
       switch (header) {
-        case 'tên pháp danh':
-        case 'tên danh pháp':
+        case 'tên nội bộ':
+        case 'tên nội bộ':
           headerMap[i] = 'name';
           break;
-        case 'tên thường gọi':
+        case 'tên thương mại':
           headerMap[i] = 'commonName';
           break;
         case 'mã vạch':
@@ -944,7 +950,7 @@ class _ProductListScreenState extends State<ProductListScreen> {
         data['updatedAt'] = FieldValue.serverTimestamp();
 
         if (_overwrite) {
-          // Tìm sản phẩm theo tên khoa học
+          // Tìm sản phẩm theo tên nội bộ
           final query = await FirebaseFirestore.instance
               .collection('products')
               .where('name', isEqualTo: data['name'])
@@ -1037,59 +1043,23 @@ class _ProductListScreenState extends State<ProductListScreen> {
     final isMobile = MediaQuery.of(context).size.width < 1024;
     return Scaffold(
       backgroundColor: appBackground,
-      body: Column(
-        children: [
-          // Header
-          Padding(
-            padding: const EdgeInsets.all(16),
-            child: isMobile
-                ? Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text('Danh sách sản phẩm', style: Theme.of(context).textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.bold)),
-                      const SizedBox(height: 12),
-                      Align(
-                        alignment: Alignment.centerLeft,
-                        child: ElevatedButton.icon(
-                          onPressed: () => widget.onNavigate?.call(MainPage.addProduct),
-                          icon: const Icon(Icons.add),
-                          label: const Text('Thêm sản phẩm'),
-                          style: primaryButtonStyle,
-                        ),
-                      ),
-                    ],
-                  )
-                : Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text('Danh sách sản phẩm', style: Theme.of(context).textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.bold)),
-                      Row(
+      body: Center(
+        child: Container(
+          width: double.infinity,
+          constraints: const BoxConstraints(maxWidth: 1400),
+          child: Column(
+            children: [
+              // Header
+              Padding(
+                padding: const EdgeInsets.all(16),
+                child: isMobile
+                    ? Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          ClipRRect(
-                            borderRadius: BorderRadius.circular(5),
-                            child: ElevatedButton.icon(
-                              onPressed: _showImportDialog,
-                              icon: const Icon(Icons.file_upload_outlined),
-                              label: const Text('Import'),
-                              style: ghostBorderButtonStyle,
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          ClipRRect(
-                            borderRadius: BorderRadius.circular(5),
-                            child: ElevatedButton.icon(
-                              onPressed: () async {
-                                final products = await _productService.getProducts().first;
-                                await _exportProductsToExcel(products);
-                              },
-                              icon: const Icon(Icons.download),
-                              label: const Text('Export'),
-                              style: ghostBorderButtonStyle,
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          ClipRRect(
-                            borderRadius: BorderRadius.circular(5),
+                          Text('Danh sách sản phẩm', style: Theme.of(context).textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.bold)),
+                          const SizedBox(height: 12),
+                          Align(
+                            alignment: Alignment.centerLeft,
                             child: ElevatedButton.icon(
                               onPressed: () => widget.onNavigate?.call(MainPage.addProduct),
                               icon: const Icon(Icons.add),
@@ -1098,438 +1068,492 @@ class _ProductListScreenState extends State<ProductListScreen> {
                             ),
                           ),
                         ],
+                      )
+                    : Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text('Danh sách sản phẩm', style: Theme.of(context).textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.bold)),
+                          Row(
+                            children: [
+                              ClipRRect(
+                                borderRadius: BorderRadius.circular(5),
+                                child: ElevatedButton.icon(
+                                  onPressed: _showImportDialog,
+                                  icon: const Icon(Icons.file_upload_outlined),
+                                  label: const Text('Import'),
+                                  style: ghostBorderButtonStyle,
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              ClipRRect(
+                                borderRadius: BorderRadius.circular(5),
+                                child: ElevatedButton.icon(
+                                  onPressed: () async {
+                                    final products = await _productService.getProducts().first;
+                                    await _exportProductsToExcel(products);
+                                  },
+                                  icon: const Icon(Icons.download),
+                                  label: const Text('Export'),
+                                  style: ghostBorderButtonStyle,
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              ClipRRect(
+                                borderRadius: BorderRadius.circular(5),
+                                child: ElevatedButton.icon(
+                                  onPressed: () => widget.onNavigate?.call(MainPage.addProduct),
+                                  icon: const Icon(Icons.add),
+                                  label: const Text('Thêm sản phẩm'),
+                                  style: primaryButtonStyle,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
                       ),
-                    ],
-                  ),
-          ),
-          const SizedBox(height: 20),
-          // Search and Filter Section
-          Expanded(
-            child: SingleChildScrollView(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Search Bar
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                    child: Stack(
-                      alignment: Alignment.centerRight,
-                      children: [
-                        TextField(
-                          controller: _searchController,
-                          decoration: searchInputDecoration(
-                            hint: 'Tìm theo tên, mã vạch...',
-                          ),
-                          style: const TextStyle(fontSize: 14),
-                          onChanged: (v) => setState(() => searchText = v),
-                        ),
-                        Positioned(
-                          right: 0,
-                          top: 0,
-                          bottom: 0,
-                          child: InkWell(
-                            onTap: () {
-                              // TODO: Implement QR scan logic
-                            },
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 12.0),
-                              child: Icon(
-                                Icons.qr_code_scanner,
-                                size: 24,
-                                color: Colors.grey[600],
-                              ),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 16.0),
-                  // Product List and Filter/Sort Row together in StreamBuilder
-                  Padding(
-                    padding: const EdgeInsets.only(left: 16.0, right: 16.0, bottom: 80.0),
-                    child: StreamBuilder<List<Product>>(
-                      stream: _productService.getProducts(),
-                      builder: (context, snapshot) {
-                        if (snapshot.hasError) {
-                          return Center(child: Text('Lỗi: ${snapshot.error}'));
-                        }
-                        if (snapshot.connectionState == ConnectionState.waiting) {
-                          return const Center(child: CircularProgressIndicator());
-                        }
-                        final products = snapshot.data ?? [];
-                        final filteredProducts = filterProducts(products);
-                        final sortedProducts = sortProducts(filteredProducts);
-                        final isMobile = MediaQuery.of(context).size.width < 600;
-                        return Column(
+              ),
+              const SizedBox(height: 20),
+              // Search and Filter Section
+              Expanded(
+                child: SingleChildScrollView(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Search Bar
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                        child: Stack(
+                          alignment: Alignment.centerRight,
                           children: [
-                            // Filter and Sort Row
-                            Padding(
-                              padding: const EdgeInsets.symmetric(horizontal: 0.0),
-                              child: Row(
-                                children: [
-                                  SizedBox(
-                                    width: isMobile ? 160 : 200,
-                                    child: ShopifyDropdown<String>(
-                                      items: sortOptions.map((o) => o['key'] as String).toList(),
-                                      value: sortOption,
-                                      getLabel: (key) => sortOptions.firstWhere((o) => o['key'] == key)['label'],
-                                      onChanged: (val) => setState(() => sortOption = val ?? sortOption),
-                                      hint: 'Tên: A - Z',
-                                    ),
-                                  ),
-                                  const Spacer(),
-                                  OutlinedButton.icon(
-                                    onPressed: () {
-                                      setState(() => isFilterOpen = !isFilterOpen);
-                                    },
-                                    icon: const Icon(Icons.filter_alt_outlined),
-                                    label: const Text('Bộ lọc'),
-                                    style: secondaryButtonStyle,
-                                  ),
-                                  const SizedBox(width: 12),
-                                  Text(
-                                    '${filteredProducts.length} sản phẩm',
-                                    style: const TextStyle(color: textSecondary, fontWeight: FontWeight.w500),
-                                  ),
-                                ],
+                            TextField(
+                              controller: _searchController,
+                              decoration: searchInputDecoration(
+                                hint: 'Tìm theo tên, mã vạch...',
                               ),
+                              style: const TextStyle(fontSize: 14),
+                              onChanged: (v) => setState(() => searchText = v),
                             ),
-                            const SizedBox(height: 16.0),
-                            // Product List
-                            if (sortedProducts.isEmpty)
-                              Padding(
-                                padding: const EdgeInsets.symmetric(vertical: 32.0),
-                                child: Center(
-                                  child: Text(
-                                    'Không tìm thấy sản phẩm nào',
-                                    style: TextStyle(fontSize: 16, color: Colors.grey[600], fontWeight: FontWeight.w500),
+                            Positioned(
+                              right: 0,
+                              top: 0,
+                              bottom: 0,
+                              child: InkWell(
+                                onTap: () {
+                                  // TODO: Implement QR scan logic
+                                },
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 12.0),
+                                  child: Icon(
+                                    Icons.qr_code_scanner,
+                                    size: 24,
+                                    color: Colors.grey[600],
                                   ),
                                 ),
-                              )
-                            else
-                              LayoutBuilder(
-                                builder: (context, constraints) {
-                                  final isMobile = constraints.maxWidth < 600;
-                                  if (isMobile) {
-                                    // Mobile card style
-                                    return Column(
-                                      children: [
-                                        ...sortedProducts.map((product) {
-                                          return Container(
-                                            margin: const EdgeInsets.only(bottom: 8),
-                                            padding: const EdgeInsets.all(16),
-                                            decoration: BoxDecoration(
-                                              color: Colors.white,
-                                              borderRadius: BorderRadius.circular(12),
-                                              boxShadow: [
-                                                BoxShadow(
-                                                  color: Colors.black.withOpacity(0.04),
-                                                  blurRadius: 8,
-                                                  offset: const Offset(0, 2),
-                                                ),
-                                              ],
-                                            ),
-                                            child: Column(
-                                              crossAxisAlignment: CrossAxisAlignment.start,
-                                              children: [
-                                                Text(product.name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 20)),
-                                                if (product.commonName.isNotEmpty)
-                                                  Padding(
-                                                    padding: const EdgeInsets.only(top: 2),
-                                                    child: Text(product.commonName, style: TextStyle(fontSize: 16, color: Colors.grey[600], fontWeight: FontWeight.w400)),
-                                                  ),
-                                                const SizedBox(height: 16),
-                                                Row(
-                                                  crossAxisAlignment: CrossAxisAlignment.end,
-                                                  children: [
-                                                    Expanded(
-                                                      child: Column(
-                                                        crossAxisAlignment: CrossAxisAlignment.start,
-                                                        children: [
-                                                          Text('Mã vạch', style: TextStyle(fontSize: 15, color: Colors.black, fontWeight: FontWeight.w500)),
-                                                          Text(product.barcode ?? '-', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500)),
-                                                        ],
-                                                      ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 16.0),
+                      // Product List and Filter/Sort Row together in StreamBuilder
+                      Padding(
+                        padding: const EdgeInsets.only(left: 16.0, right: 16.0, bottom: 80.0),
+                        child: StreamBuilder<List<Product>>(
+                          stream: _productService.getProducts(),
+                          builder: (context, snapshot) {
+                            if (snapshot.hasError) {
+                              return Center(child: Text('Lỗi: ${snapshot.error}'));
+                            }
+                            if (snapshot.connectionState == ConnectionState.waiting) {
+                              return const Center(child: CircularProgressIndicator());
+                            }
+                            final products = snapshot.data ?? [];
+                            final filteredProducts = filterProducts(products);
+                            final sortedProducts = sortProducts(filteredProducts);
+                            final isMobile = MediaQuery.of(context).size.width < 600;
+                            return Column(
+                              children: [
+                                // Filter and Sort Row
+                                Padding(
+                                  padding: const EdgeInsets.symmetric(horizontal: 0.0),
+                                  child: Row(
+                                    children: [
+                                      SizedBox(
+                                        width: isMobile ? 160 : 200,
+                                        child: ShopifyDropdown<String>(
+                                          items: sortOptions.map((o) => o['key'] as String).toList(),
+                                          value: sortOption,
+                                          getLabel: (key) => sortOptions.firstWhere((o) => o['key'] == key)['label'],
+                                          onChanged: (val) => setState(() => sortOption = val ?? sortOption),
+                                          hint: 'Tên: A - Z',
+                                        ),
+                                      ),
+                                      const Spacer(),
+                                      OutlinedButton.icon(
+                                        onPressed: () {
+                                          setState(() => isFilterOpen = !isFilterOpen);
+                                        },
+                                        icon: const Icon(Icons.filter_alt_outlined),
+                                        label: const Text('Bộ lọc'),
+                                        style: secondaryButtonStyle,
+                                      ),
+                                      const SizedBox(width: 12),
+                                      Text(
+                                        '${filteredProducts.length} sản phẩm',
+                                        style: const TextStyle(color: textSecondary, fontWeight: FontWeight.w500),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                const SizedBox(height: 16.0),
+                                // Product List
+                                if (sortedProducts.isEmpty)
+                                  Padding(
+                                    padding: const EdgeInsets.symmetric(vertical: 32.0),
+                                    child: Center(
+                                      child: Text(
+                                        'Không tìm thấy sản phẩm nào',
+                                        style: TextStyle(fontSize: 16, color: Colors.grey[600], fontWeight: FontWeight.w500),
+                                      ),
+                                    ),
+                                  )
+                                else
+                                  LayoutBuilder(
+                                    builder: (context, constraints) {
+                                      final isMobile = constraints.maxWidth < 600;
+                                      if (isMobile) {
+                                        // Mobile card style
+                                        return Column(
+                                          children: [
+                                            ...sortedProducts.map((product) {
+                                              return Container(
+                                                margin: const EdgeInsets.only(bottom: 8),
+                                                padding: const EdgeInsets.all(16),
+                                                decoration: BoxDecoration(
+                                                  color: Colors.white,
+                                                  borderRadius: BorderRadius.circular(12),
+                                                  boxShadow: [
+                                                    BoxShadow(
+                                                      color: Colors.black.withOpacity(0.04),
+                                                      blurRadius: 8,
+                                                      offset: const Offset(0, 2),
                                                     ),
-                                                    Column(
+                                                  ],
+                                                ),
+                                                child: Column(
+                                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                                  children: [
+                                                    Text(product.name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                                                    if (product.commonName.isNotEmpty)
+                                                      Padding(
+                                                        padding: const EdgeInsets.only(top: 2),
+                                                        child: Text(product.commonName, style: TextStyle(fontSize: 14, color: Colors.grey[600], fontWeight: FontWeight.w400)),
+                                                      ),
+                                                    const SizedBox(height: 16),
+                                                    Row(
                                                       crossAxisAlignment: CrossAxisAlignment.end,
                                                       children: [
-                                                        Text('Số lượng', style: TextStyle(fontSize: 15, color: Colors.black, fontWeight: FontWeight.w500)),
-                                                        Text('${product.stock}', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+                                                        Expanded(
+                                                          child: Column(
+                                                            crossAxisAlignment: CrossAxisAlignment.start,
+                                                            children: [
+                                                              Text('Mã vạch', style: TextStyle(fontSize: 15, color: Colors.black, fontWeight: FontWeight.w500)),
+                                                              Text(product.barcode ?? '-', style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
+                                                            ],
+                                                          ),
+                                                        ),
+                                                        Column(
+                                                          crossAxisAlignment: CrossAxisAlignment.end,
+                                                          children: [
+                                                            Text('Số lượng', style: TextStyle(fontSize: 15, color: Colors.black, fontWeight: FontWeight.w500)),
+                                                            Text('${product.stock}', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                                                          ],
+                                                        ),
                                                       ],
                                                     ),
                                                   ],
                                                 ),
-                                              ],
-                                            ),
-                                          );
-                                        }).toList(),
-                                      ], 
-                                    );
-                                  } else {
-                                    // Desktop/tablet: render dạng bảng
-                                    return Column(
-                                      children: [
-                                        // Header row
-                                        Padding(
-                                          padding: const EdgeInsets.only(top: 12, right: 8),
-                                          child: Align(
-                                            alignment: Alignment.centerRight,
-                                            child: ValueListenableBuilder<Set<String>>(
-                                              valueListenable: selectedProductIds,
-                                              builder: (context, selected, _) {
-                                                return ElevatedButton.icon(
-                                                  icon: const Icon(Icons.delete),
-                                                  label: const Text('Xóa các sản phẩm đã chọn'),
-                                                  style: ElevatedButton.styleFrom(backgroundColor: Colors.redAccent, foregroundColor: Colors.white),
-                                                  onPressed: selected.isEmpty ? null : () async {
-                                                    final confirm = await showDialog<bool>(
-                                                      context: context,
-                                                      builder: (context) => AlertDialog(
-                                                        title: const Text('Xóa sản phẩm'),
-                                                        content: Text('Bạn có chắc muốn xóa ${selected.length} sản phẩm đã chọn?'),
-                                                        actions: [
-                                                          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Hủy')),
-                                                          TextButton(onPressed: () => Navigator.pop(context, true), child: const Text('Xóa', style: TextStyle(color: Colors.red))),
-                                                        ],
+                                              );
+                                            }).toList(),
+                                          ], 
+                                        );
+                                      } else {
+                                        // Desktop/tablet: render dạng bảng
+                                        return Column(
+                                          children: [
+                                            // Header row
+                                            Padding(
+                                              padding: const EdgeInsets.only(top: 12, right: 8),
+                                              child: Align(
+                                                alignment: Alignment.centerRight,
+                                                child: ValueListenableBuilder<Set<String>>(
+                                                  valueListenable: selectedProductIds,
+                                                  builder: (context, selected, _) {
+                                                    return selected.isEmpty ? const SizedBox.shrink() : ElevatedButton.icon(
+                                                      icon: const Icon(Icons.delete),
+                                                      label: const Text('Xóa các sản phẩm đã chọn'),
+                                                      style: ElevatedButton.styleFrom(
+                                                        backgroundColor: Colors.redAccent,
+                                                        foregroundColor: Colors.white,
+                                                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
                                                       ),
-                                                    );
-                                                    if (confirm == true) {
-                                                      final batch = FirebaseFirestore.instance.batch();
-                                                      int count = 0;
-                                                      for (final id in selected) {
-                                                        final ref = FirebaseFirestore.instance.collection('products').doc(id);
-                                                        batch.delete(ref);
-                                                        count++;
-                                                        if (count == 490) {
-                                                          await batch.commit();
-                                                          count = 0;
-                                                        }
-                                                      }
-                                                      if (count > 0) {
-                                                        await batch.commit();
-                                                      }
-                                                      selectedProductIds.value = {};
-                                                      OverlayEntry? entry;
-                                                      entry = OverlayEntry(
-                                                        builder: (_) => DesignSystemSnackbar(
-                                                          message: 'Đã xóa các sản phẩm đã chọn!',
-                                                          icon: Icons.check_circle,
-                                                          onDismissed: () => entry?.remove(),
-                                                        ),
-                                                      );
-                                                      Overlay.of(context).insert(entry);
-                                                      await Future.delayed(const Duration(milliseconds: 500));
-                                                      setState(() {});
-                                                    }
-                                                  },
-                                                );
-                                              },
-                                            ),
-                                          ),
-                                        ),
-                                        const SizedBox(height: 16),
-                                        Container(
-                                          decoration: BoxDecoration(
-                                            color: Colors.white,
-                                            borderRadius: const BorderRadius.only(
-                                              topLeft: Radius.circular(12),
-                                              topRight: Radius.circular(12),
-                                            ),
-                                            border: Border(
-                                              bottom: BorderSide(color: Colors.grey.shade200, width: 1.5),
-                                            ),
-                                          ),
-                                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                                          child: Row(
-                                            children: [
-                                              Expanded(
-                                                flex: 1,
-                                                child: Align(
-                                                  alignment: Alignment.centerLeft,
-                                                  child: SizedBox(
-                                                    width: 32,
-                                                    height: 32,
-                                                    child: Theme(
-                                                      data: Theme.of(context).copyWith(
-                                                        unselectedWidgetColor: Color(0xFF3a6ff8),
-                                                        checkboxTheme: CheckboxThemeData(
-                                                          shape: RoundedRectangleBorder(
-                                                            borderRadius: BorderRadius.circular(4),
-                                                          ),
-                                                          side: const BorderSide(color: Color(0xFF3a6ff8), width: 1),
-                                                          fillColor: MaterialStateProperty.resolveWith<Color?>((states) {
-                                                            if (states.contains(MaterialState.selected)) {
-                                                              return Color(0xFF3a6ff8);
-                                                            }
-                                                            return Colors.white;
-                                                          }),
-                                                          checkColor: MaterialStateProperty.all<Color>(Colors.white),
-                                                        ),
-                                                      ),
-                                                      child: ValueListenableBuilder<Set<String>>(
-                                                        valueListenable: selectedProductIds,
-                                                        builder: (context, selected, _) {
-                                                          return Checkbox(
-                                                            value: selected.length == sortedProducts.length && sortedProducts.isNotEmpty,
-                                                            onChanged: (checked) {
-                                                              if (checked == true) {
-                                                                selectedProductIds.value = Set<String>.from(sortedProducts.map((p) => p.id));
-                                                              } else {
-                                                                selectedProductIds.value = {};
-                                                              }
-                                                            },
-                                                          );
-                                                        },
-                                                      ),
-                                                    ),
-                                                  ),
-                                                ),
-                                              ),
-                                              Expanded(
-                                                flex: 5,
-                                                child: Align(
-                                                  alignment: Alignment.centerLeft,
-                                                  child: Text('Tên sản phẩm', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: textSecondary)),
-                                                ),
-                                              ),
-                                              Expanded(
-                                                flex: 2,
-                                                child: Align(
-                                                  alignment: Alignment.center,
-                                                  child: Text('Mã vạch', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: textSecondary)),
-                                                ),
-                                              ),
-                                              Expanded(
-                                                flex: 2,
-                                                child: Align(
-                                                  alignment: Alignment.center,
-                                                  child: Text('Số lượng', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: textSecondary)),
-                                                ),
-                                              ),
-                                            ],
-                                          ),
-                                        ),
-                                        // Product rows
-                                        ...sortedProducts.asMap().entries.map((entry) {
-                                          final idx = entry.key;
-                                          final product = entry.value;
-                                          final isLast = idx == sortedProducts.length - 1;
-                                          return Container(
-                                            margin: const EdgeInsets.only(bottom: 0),
-                                            decoration: BoxDecoration(
-                                              color: Colors.white,
-                                              borderRadius: isLast
-                                                ? const BorderRadius.only(
-                                                    bottomLeft: Radius.circular(12),
-                                                    bottomRight: Radius.circular(12),
-                                                  )
-                                                : BorderRadius.zero,
-                                              border: isLast
-                                                ? null
-                                                : Border(
-                                                    bottom: BorderSide(color: Colors.grey.shade200, width: 1),
-                                                  ),
-                                            ),
-                                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
-                                            child: Row(
-                                              children: [
-                                                Expanded(
-                                                  flex: 1,
-                                                  child: Align(
-                                                    alignment: Alignment.centerLeft,
-                                                    child: SizedBox(
-                                                      width: 32,
-                                                      height: 32,
-                                                      child: Theme(
-                                                        data: Theme.of(context).copyWith(
-                                                          unselectedWidgetColor: Color(0xFF3a6ff8),
-                                                          checkboxTheme: CheckboxThemeData(
-                                                            shape: RoundedRectangleBorder(
-                                                              borderRadius: BorderRadius.circular(4),
+                                                      onPressed: () async {
+                                                        final confirm = await showDesignSystemDialog<bool>(
+                                                          context: context,
+                                                          title: 'Xóa sản phẩm',
+                                                          content: Text('Bạn có chắc muốn xóa ${selected.length} sản phẩm đã chọn?'),
+                                                          actions: [
+                                                            TextButton(
+                                                              onPressed: () => Navigator.pop(context, false),
+                                                              style: ghostBorderButtonStyle,
+                                                              child: const Text('Hủy'),
                                                             ),
-                                                            side: const BorderSide(color: Color(0xFF3a6ff8), width: 1),
-                                                            fillColor: MaterialStateProperty.resolveWith<Color?>((states) {
-                                                              if (states.contains(MaterialState.selected)) {
-                                                                return Color(0xFF3a6ff8);
-                                                              }
-                                                              return Colors.white;
-                                                            }),
-                                                            checkColor: MaterialStateProperty.all<Color>(Colors.white),
-                                                          ),
-                                                        ),
-                                                        child: ValueListenableBuilder<Set<String>>(
-                                                          valueListenable: selectedProductIds,
-                                                          builder: (context, selected, _) {
-                                                            return Checkbox(
-                                                              value: selected.contains(product.id),
-                                                              onChanged: (checked) {
-                                                                final newSet = Set<String>.from(selected);
-                                                                if (checked == true) {
-                                                                  newSet.add(product.id);
-                                                                } else {
-                                                                  newSet.remove(product.id);
+                                                            ElevatedButton(
+                                                              onPressed: () => Navigator.pop(context, true),
+                                                              style: destructiveButtonStyle.copyWith(
+                                                                shape: MaterialStateProperty.all(RoundedRectangleBorder(borderRadius: BorderRadius.circular(6))),
+                                                              ),
+                                                              child: const Text('Xóa'),
+                                                            ),
+                                                          ],
+                                                        );
+                                                        if (confirm == true) {
+                                                          final batch = FirebaseFirestore.instance.batch();
+                                                          int count = 0;
+                                                          for (final id in selected) {
+                                                            final ref = FirebaseFirestore.instance.collection('products').doc(id);
+                                                            batch.delete(ref);
+                                                            count++;
+                                                            if (count == 490) {
+                                                              await batch.commit();
+                                                              count = 0;
+                                                            }
+                                                          }
+                                                          if (count > 0) {
+                                                            await batch.commit();
+                                                          }
+                                                          selectedProductIds.value = {};
+                                                          OverlayEntry? entry;
+                                                          entry = OverlayEntry(
+                                                            builder: (_) => DesignSystemSnackbar(
+                                                              message: 'Đã xóa các sản phẩm đã chọn!',
+                                                              icon: Icons.check_circle,
+                                                              onDismissed: () => entry?.remove(),
+                                                            ),
+                                                          );
+                                                          Overlay.of(context).insert(entry);
+                                                          await Future.delayed(const Duration(milliseconds: 500));
+                                                          setState(() {});
+                                                        }
+                                                      },
+                                                    );
+                                                  },
+                                                ),
+                                              ),
+                                            ),
+                                            const SizedBox(height: 16),
+                                            Container(
+                                              decoration: BoxDecoration(
+                                                color: Colors.white,
+                                                borderRadius: const BorderRadius.only(
+                                                  topLeft: Radius.circular(12),
+                                                  topRight: Radius.circular(12),
+                                                ),
+                                                border: Border(
+                                                  bottom: BorderSide(color: Colors.grey.shade200, width: 1.5),
+                                                ),
+                                              ),
+                                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                                              child: Row(
+                                                children: [
+                                                  Expanded(
+                                                    flex: 1,
+                                                    child: Align(
+                                                      alignment: Alignment.centerLeft,
+                                                      child: SizedBox(
+                                                        width: 32,
+                                                        height: 32,
+                                                        child: Theme(
+                                                          data: Theme.of(context).copyWith(
+                                                            unselectedWidgetColor: Color(0xFF3a6ff8),
+                                                            checkboxTheme: CheckboxThemeData(
+                                                              shape: RoundedRectangleBorder(
+                                                                borderRadius: BorderRadius.circular(4),
+                                                              ),
+                                                              side: const BorderSide(color: Color(0xFF3a6ff8), width: 1),
+                                                              fillColor: MaterialStateProperty.resolveWith<Color?>((states) {
+                                                                if (states.contains(MaterialState.selected)) {
+                                                                  return Color(0xFF3a6ff8);
                                                                 }
-                                                                selectedProductIds.value = newSet;
-                                                              },
-                                                            );
-                                                          },
+                                                                return Colors.white;
+                                                              }),
+                                                              checkColor: MaterialStateProperty.all<Color>(Colors.white),
+                                                            ),
+                                                          ),
+                                                          child: ValueListenableBuilder<Set<String>>(
+                                                            valueListenable: selectedProductIds,
+                                                            builder: (context, selected, _) {
+                                                              return Checkbox(
+                                                                value: selected.length == sortedProducts.length && sortedProducts.isNotEmpty,
+                                                                onChanged: (checked) {
+                                                                  if (checked == true) {
+                                                                    selectedProductIds.value = Set<String>.from(sortedProducts.map((p) => p.id));
+                                                                  } else {
+                                                                    selectedProductIds.value = {};
+                                                                  }
+                                                                },
+                                                              );
+                                                            },
+                                                          ),
                                                         ),
                                                       ),
                                                     ),
                                                   ),
-                                                ),
-                                                Expanded(
-                                                  flex: 5,
-                                                  child: Align(
-                                                    alignment: Alignment.centerLeft,
-                                                    child: Column(
-                                                      crossAxisAlignment: CrossAxisAlignment.start,
-                                                      children: [
-                                                        Text(product.name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-                                                        if (product.commonName.isNotEmpty)
-                                                          Padding(
-                                                            padding: const EdgeInsets.only(top: 2),
-                                                            child: Text(product.commonName, style: TextStyle(fontSize: 14, color: textThird , fontWeight: FontWeight.w400)),
-                                                          ),
-                                                      ],
+                                                  Expanded(
+                                                    flex: 5,
+                                                    child: Align(
+                                                      alignment: Alignment.centerLeft,
+                                                      child: Text('Tên sản phẩm', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: textSecondary)),
                                                     ),
                                                   ),
-                                                ),
-                                                Expanded(
-                                                  flex: 2,
-                                                  child: Align(
-                                                    alignment: Alignment.center,
-                                                    child: Text(product.barcode ?? '-', style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 14)),
+                                                  Expanded(
+                                                    flex: 2,
+                                                    child: Align(
+                                                      alignment: Alignment.center,
+                                                      child: Text('Mã vạch', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: textSecondary)),
+                                                    ),
                                                   ),
-                                                ),
-                                                Expanded(
-                                                  flex: 2,
-                                                  child: Align(
-                                                    alignment: Alignment.center,
-                                                    child: Text('${product.stock}', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                                                  Expanded(
+                                                    flex: 2,
+                                                    child: Align(
+                                                      alignment: Alignment.center,
+                                                      child: Text('Số lượng', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: textSecondary)),
+                                                    ),
                                                   ),
-                                                ),
-                                              ],
+                                                ],
+                                              ),
                                             ),
-                                          );
-                                        }),
-                                      ],
-                                    );
-                                  }
-                                },
-                              ),
-                          ],
-                        );
-                      },
-                    ),
+                                            // Product rows
+                                            ...sortedProducts.asMap().entries.map((entry) {
+                                              final idx = entry.key;
+                                              final product = entry.value;
+                                              final isLast = idx == sortedProducts.length - 1;
+                                              return Container(
+                                                margin: const EdgeInsets.only(bottom: 0),
+                                                decoration: BoxDecoration(
+                                                  color: Colors.white,
+                                                  borderRadius: isLast
+                                                    ? const BorderRadius.only(
+                                                        bottomLeft: Radius.circular(12),
+                                                        bottomRight: Radius.circular(12),
+                                                      )
+                                                    : BorderRadius.zero,
+                                                  border: isLast
+                                                    ? null
+                                                    : Border(
+                                                        bottom: BorderSide(color: Colors.grey.shade200, width: 1),
+                                                      ),
+                                                ),
+                                                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
+                                                child: Row(
+                                                  children: [
+                                                    Expanded(
+                                                      flex: 1,
+                                                      child: Align(
+                                                        alignment: Alignment.centerLeft,
+                                                        child: SizedBox(
+                                                          width: 32,
+                                                          height: 32,
+                                                          child: Theme(
+                                                            data: Theme.of(context).copyWith(
+                                                              unselectedWidgetColor: Color(0xFF3a6ff8),
+                                                              checkboxTheme: CheckboxThemeData(
+                                                                shape: RoundedRectangleBorder(
+                                                                  borderRadius: BorderRadius.circular(4),
+                                                                ),
+                                                                side: const BorderSide(color: Color(0xFF3a6ff8), width: 1),
+                                                                fillColor: MaterialStateProperty.resolveWith<Color?>((states) {
+                                                                  if (states.contains(MaterialState.selected)) {
+                                                                    return Color(0xFF3a6ff8);
+                                                                  }
+                                                                  return Colors.white;
+                                                                }),
+                                                                checkColor: MaterialStateProperty.all<Color>(Colors.white),
+                                                              ),
+                                                            ),
+                                                            child: ValueListenableBuilder<Set<String>>(
+                                                              valueListenable: selectedProductIds,
+                                                              builder: (context, selected, _) {
+                                                                return Checkbox(
+                                                                  value: selected.contains(product.id),
+                                                                  onChanged: (checked) {
+                                                                    final newSet = Set<String>.from(selected);
+                                                                    if (checked == true) {
+                                                                      newSet.add(product.id);
+                                                                    } else {
+                                                                      newSet.remove(product.id);
+                                                                    }
+                                                                    selectedProductIds.value = newSet;
+                                                                  },
+                                                                );
+                                                              },
+                                                            ),
+                                                          ),
+                                                        ),
+                                                      ),
+                                                    ),
+                                                    Expanded(
+                                                      flex: 5,
+                                                      child: Align(
+                                                        alignment: Alignment.centerLeft,
+                                                        child: Column(
+                                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                                          children: [
+                                                            Text(product.name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                                                            if (product.commonName.isNotEmpty)
+                                                              Padding(
+                                                                padding: const EdgeInsets.only(top: 2),
+                                                                child: Text(product.commonName, style: TextStyle(fontSize: 14, color: textThird , fontWeight: FontWeight.w400)),
+                                                              ),
+                                                          ],
+                                                        ),
+                                                      ),
+                                                    ),
+                                                    Expanded(
+                                                      flex: 2,
+                                                      child: Align(
+                                                        alignment: Alignment.center,
+                                                        child: Text(product.barcode ?? '-', style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 14)),
+                                                      ),
+                                                    ),
+                                                    Expanded(
+                                                      flex: 2,
+                                                      child: Align(
+                                                        alignment: Alignment.center,
+                                                        child: Text('${product.stock}', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                                                      ),
+                                                    ),
+                                                  ],
+                                                ),
+                                              );
+                                            }),
+                                          ],
+                                        );
+                                      }
+                                    },
+                                  ),
+                              ],
+                            );
+                          },
+                        ),
+                      ),
+                    ],
                   ),
-                ],
+                ),
               ),
-            ),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }

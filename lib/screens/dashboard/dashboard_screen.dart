@@ -37,126 +37,126 @@ class _DashboardScreenState extends State<DashboardScreen> {
       builder: (context, constraints) {
         return SingleChildScrollView(
           padding: const EdgeInsets.all(15),
-          child: ConstrainedBox(
-            constraints: BoxConstraints(
-              minWidth: 0,
-              maxWidth: constraints.maxWidth,
-            ),
-            child: StreamBuilder<List<Product>>(
-              stream: _productService.getProducts(),
-              builder: (context, snapshot) {
-                final products = snapshot.data ?? [];
-                final lowStockCount = products.where((p) => (p.stock ?? 0) < 60).length;
-                final isMobile = MediaQuery.of(context).size.width < 1024;
-                return Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Header content
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        const Text(
-                          'Bảng Điều Khiển',
-                          style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
-                        ),
-                        IconButton(
-                          icon: const Icon(Icons.logout),
-                          tooltip: 'Đăng xuất',
-                          onPressed: () => _signOut(context),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 24),
-                    // Dashboard cards
-                    isMobile
-                        ? Column(
-                            crossAxisAlignment: CrossAxisAlignment.stretch,
-                            children: [
-                              _DashboardCard(
-                                title: 'Tổng Sản Phẩm',
-                                value: '${products.length}',
-                                icon: Icons.inventory_2,
-                                onTap: widget.onViewProductList ?? () {},
-                              ),
-                              const SizedBox(height: 3),
-                              _DashboardCard(
-                                title: 'Lịch Sử Kiểm Kê',
-                                value: '2',
-                                icon: Icons.history,
-                                onTap: () {},
-                              ),
-                            ],
-                          )
-                        : Row(
-                            children: [
-                              Expanded(
-                                child: _DashboardCard(
+          child: Center(
+            child: Container(
+              width: double.infinity,
+              constraints: const BoxConstraints(maxWidth: 1400),
+              child: StreamBuilder<List<Product>>(
+                stream: _productService.getProducts(),
+                builder: (context, snapshot) {
+                  final products = snapshot.data ?? [];
+                  final lowStockCount = products.where((p) => (p.stock ?? 0) < 60).length;
+                  final isMobile = MediaQuery.of(context).size.width < 1024;
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Header content
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          const Text(
+                            'Bảng Điều Khiển',
+                            style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
+                          ),
+                          IconButton(
+                            icon: const Icon(Icons.logout),
+                            tooltip: 'Đăng xuất',
+                            onPressed: () => _signOut(context),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 24),
+                      // Dashboard cards
+                      isMobile
+                          ? Column(
+                              crossAxisAlignment: CrossAxisAlignment.stretch,
+                              children: [
+                                _DashboardCard(
                                   title: 'Tổng Sản Phẩm',
                                   value: '${products.length}',
                                   icon: Icons.inventory_2,
                                   onTap: widget.onViewProductList ?? () {},
                                 ),
-                              ),
-                              const SizedBox(width: 16),
-                              Expanded(
-                                child: _DashboardCard(
+                                const SizedBox(height: 3),
+                                _DashboardCard(
                                   title: 'Lịch Sử Kiểm Kê',
                                   value: '2',
                                   icon: Icons.history,
                                   onTap: () {},
                                 ),
-                              ),
-                            ],
-                          ),
-                    // Cảnh báo sản phẩm sắp hết hàng
-                    const SizedBox(height: 0),
-                    if (lowStockCount > 0)
-                      GestureDetector(
-                        onTap: widget.onViewLowStockProducts,
-                        child: Container(
-                          padding: const EdgeInsets.all(16),
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(color: Colors.grey.shade200),
-                          ),
-                          child: Row(
-                            children: [
-                              const Icon(Icons.warning, color: Colors.orange),
-                              const SizedBox(width: 8),
-                              Expanded(child: Text('$lowStockCount sản phẩm sắp hết hàng', style: const TextStyle(color: Colors.black, fontWeight: FontWeight.w600))),
-                              const Text('Cần được xử lý', style: TextStyle(fontWeight: FontWeight.bold)),
-                            ],
+                              ],
+                            )
+                          : Row(
+                              children: [
+                                Expanded(
+                                  child: _DashboardCard(
+                                    title: 'Tổng Sản Phẩm',
+                                    value: '${products.length}',
+                                    icon: Icons.inventory_2,
+                                    onTap: widget.onViewProductList ?? () {},
+                                  ),
+                                ),
+                                const SizedBox(width: 16),
+                                Expanded(
+                                  child: _DashboardCard(
+                                    title: 'Lịch Sử Kiểm Kê',
+                                    value: '2',
+                                    icon: Icons.history,
+                                    onTap: () {},
+                                  ),
+                                ),
+                              ],
+                            ),
+                      // Cảnh báo sản phẩm sắp hết hàng
+                      const SizedBox(height: 0),
+                      if (lowStockCount > 0)
+                        GestureDetector(
+                          onTap: widget.onViewLowStockProducts,
+                          child: Container(
+                            padding: const EdgeInsets.all(16),
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(color: Colors.grey.shade200),
+                            ),
+                            child: Row(
+                              children: [
+                                const Icon(Icons.warning, color: Colors.orange),
+                                const SizedBox(width: 8),
+                                Expanded(child: Text('$lowStockCount sản phẩm sắp hết hàng', style: const TextStyle(color: Colors.black, fontWeight: FontWeight.w600))),
+                                const Text('Cần được xử lý', style: TextStyle(fontWeight: FontWeight.bold)),
+                              ],
+                            ),
                           ),
                         ),
+                      const SizedBox(height: 24),
+                      const Text(
+                        'Hoạt Động Gần Đây',
+                        style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
                       ),
-                    const SizedBox(height: 24),
-                    const Text(
-                      'Hoạt Động Gần Đây',
-                      style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-                    ),
-                    const SizedBox(height: 12),
-                    _RecentActivity(
-                      icon: Icons.event_available,
-                      title: 'Kiểm kê hoàn thành',
-                      subtitle: 'Đã kiểm tra 25 sản phẩm',
-                      time: '15/04/2024, 10:23',
-                    ),
-                    _RecentActivity(
-                      icon: Icons.add,
-                      title: 'Thêm mới sản phẩm',
-                      subtitle: 'Amoxicillin 250mg',
-                      time: '14/04/2024, 16:17',
-                    ),
-                    _RecentActivity(
-                      icon: Icons.warning,
-                      title: 'Cảnh báo hàng sắp hết',
-                      subtitle: '3 sản phẩm sắp hết hàng',
-                      time: '13/04/2024, 09:41',
-                    ),
-                  ],
-                );
-              },
+                      const SizedBox(height: 12),
+                      _RecentActivity(
+                        icon: Icons.event_available,
+                        title: 'Kiểm kê hoàn thành',
+                        subtitle: 'Đã kiểm tra 25 sản phẩm',
+                        time: '15/04/2024, 10:23',
+                      ),
+                      _RecentActivity(
+                        icon: Icons.add,
+                        title: 'Thêm mới sản phẩm',
+                        subtitle: 'Amoxicillin 250mg',
+                        time: '14/04/2024, 16:17',
+                      ),
+                      _RecentActivity(
+                        icon: Icons.warning,
+                        title: 'Cảnh báo hàng sắp hết',
+                        subtitle: '3 sản phẩm sắp hết hàng',
+                        time: '13/04/2024, 09:41',
+                      ),
+                    ],
+                  );
+                },
+              ),
             ),
           ),
         );

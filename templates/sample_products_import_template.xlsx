@@ -1,5 +1,5 @@
 [Excel file with the following columns and data]
-Tên danh pháp | Tên thường gọi | Danh mục sản phẩm | Mã vạch | SKU | Đơn vị tính | Tags | Mô tả | Công dụng | Thành phần | Ghi chú | Số lượng sản phẩm | Giá nhập | Giá bán | Trạng thái
+Tên danh pháp | Tên thương mại | Danh mục sản phẩm | Mã vạch | SKU | Đơn vị tính | Tags | Mô tả | Công dụng | Thành phần | Ghi chú | Số lượng sản phẩm | Giá nhập | Giá bán | Trạng thái
 Amoxicillin 500mg | Amoxicillin | Kháng sinh | 8931234567890 | AMO500 | Viên | kháng sinh, phổ rộng | Thuốc kháng sinh phổ rộng, điều trị nhiễm khuẩn | Uống 1-2 viên/lần, 2-3 lần/ngày | Amoxicillin trihydrate 500mg | Bảo quản nơi khô ráo, tránh ánh nắng trực tiếp | 100 | 25000 | 35000 | Còn bán
 Paracetamol 500mg | Paracetamol | Giảm đau | 8931234567891 | PAR500 | Viên | giảm đau, hạ sốt | Thuốc giảm đau, hạ sốt | Uống 1-2 viên/lần khi đau hoặc sốt | Paracetamol 500mg | Không dùng quá 4g/ngày | 200 | 15000 | 25000 | Còn bán
 Vitamin C 500mg | Vitamin C | Vitamin | 8931234567892 | VIT500 | Viên | vitamin, bổ sung | Vitamin C bổ sung, tăng sức đề kháng | Uống 1 viên/ngày sau bữa ăn | Ascorbic acid 500mg | Bảo quản nơi khô ráo | 150 | 20000 | 30000 | Còn bán

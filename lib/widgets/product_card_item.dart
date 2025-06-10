@@ -36,7 +36,7 @@ class ProductCardItem extends StatelessWidget {
                     if (product.commonName.isNotEmpty)
                       Padding(
                         padding: const EdgeInsets.only(top: 2),
-                        child: Text(product.commonName, style: const TextStyle(color: Colors.black87)),
+                        child: Text(product.commonName, style: const TextStyle(color: Colors.black87), semanticsLabel: 'Tên thương mại'),
                       ),
                     if ((product.barcode ?? '').isNotEmpty)
                       Padding(

@@ -26,243 +26,190 @@ class _ProductCategoryScreenState extends State<ProductCategoryScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: appBackground,
-      body: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-        child: LayoutBuilder(
-          builder: (context, constraints) {
-            final isMobile = constraints.maxWidth < 600;
-            return Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-
-                if (isMobile) ...[
-                  // Heading
-                  const Text('Danh mục sản phẩm', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 24)),
-                  const SizedBox(height: 16),
-                  Align(
-                    alignment: Alignment.centerLeft,
-                    child: ElevatedButton.icon(
-                      onPressed: () {
-                        if (widget.onNavigate != null) {
-                          widget.onNavigate!(MainPage.addProductCategory);
-                        }
-                      },
-                      icon: const Icon(Icons.add),
-                      label: const Text('Thêm danh mục'),
-                      style: primaryButtonStyle,
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  SizedBox(
-                    width: double.infinity,
-                    child: TextField(
-                      controller: _searchController,
-                      decoration: searchInputDecoration(
-                        hint: 'Tìm kiếm danh mục...'
+      body: Center(
+        child: Container(
+          width: double.infinity,
+          constraints: const BoxConstraints(maxWidth: 1400),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              final isMobile = constraints.maxWidth < 600;
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  if (isMobile) ...[
+                    // Heading
+                    const Text('Danh mục sản phẩm', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 24)),
+                    const SizedBox(height: 16),
+                    Align(
+                      alignment: Alignment.centerLeft,
+                      child: ElevatedButton.icon(
+                        onPressed: () {
+                          if (widget.onNavigate != null) {
+                            widget.onNavigate!(MainPage.addProductCategory);
+                          }
+                        },
+                        icon: const Icon(Icons.add),
+                        label: const Text('Thêm danh mục'),
+                        style: primaryButtonStyle,
                       ),
-                      style: const TextStyle(fontSize: 14),
-                      onChanged: (v) => setState(() => searchText = v),
                     ),
-                  ),
-                  const SizedBox(height: 16),
-                  SizedBox(
-                    width: double.infinity,
-                    child: ShopifyDropdown<String>(
-                      items: const [
-                        'name_asc',
-                        'name_desc',
-                        'product_count_desc',
-                        'product_count_asc',
-                      ],
-                      value: sortOption,
-                      getLabel: (key) {
-                        switch (key) {
-                          case 'name_asc':
-                            return 'Tên: A-Z';
-                          case 'name_desc':
-                            return 'Tên: Z-A';
-                          case 'product_count_desc':
-                            return 'Số sản phẩm: Nhiều nhất';
-                          case 'product_count_asc':
-                            return 'Số sản phẩm: Ít nhất';
-                          default:
-                            return key;
-                        }
-                      },
-                      onChanged: (v) => setState(() => sortOption = v ?? sortOption),
-                      hint: 'Sắp xếp',
-                      backgroundColor: Colors.transparent,
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                ] else ...[
-                  // Desktop: heading, back, add button cùng 1 dòng
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text('Danh mục sản phẩm', style: Theme.of(context).textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.bold)),
-                      SizedBox(
-                        height: 40,
-                        child: ElevatedButton.icon(
-                          onPressed: () {
-                            if (widget.onNavigate != null) {
-                              widget.onNavigate!(MainPage.addProductCategory);
-                            }
-                          },
-                          icon: const Icon(Icons.add),
-                          label: const Text('Thêm danh mục'),
-                          style: primaryButtonStyle,
+                    const SizedBox(height: 16),
+                    SizedBox(
+                      width: double.infinity,
+                      child: TextField(
+                        controller: _searchController,
+                        decoration: searchInputDecoration(
+                          hint: 'Tìm kiếm danh mục...'
                         ),
+                        style: const TextStyle(fontSize: 14),
+                        onChanged: (v) => setState(() => searchText = v),
                       ),
-                    ],
-                  ),
-                  const SizedBox(height: 24),
-                  Row(
-                    children: [
-                      Expanded(
-                        flex: 7,
-                        child: TextField(
-                          controller: _searchController,
-                          decoration: searchInputDecoration(
-                            hint: 'Tìm danh mục',
+                    ),
+                    const SizedBox(height: 16),
+                    SizedBox(
+                      width: double.infinity,
+                      child: ShopifyDropdown<String>(
+                        items: const [
+                          'name_asc',
+                          'name_desc',
+                          'product_count_desc',
+                          'product_count_asc',
+                        ],
+                        value: sortOption,
+                        getLabel: (key) {
+                          switch (key) {
+                            case 'name_asc':
+                              return 'Tên: A-Z';
+                            case 'name_desc':
+                              return 'Tên: Z-A';
+                            case 'product_count_desc':
+                              return 'Số sản phẩm: Nhiều nhất';
+                            case 'product_count_asc':
+                              return 'Số sản phẩm: Ít nhất';
+                            default:
+                              return key;
+                          }
+                        },
+                        onChanged: (v) => setState(() => sortOption = v ?? sortOption),
+                        hint: 'Sắp xếp',
+                        backgroundColor: Colors.transparent,
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                  ] else ...[
+                    // Desktop: heading, back, add button cùng 1 dòng
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text('Danh mục sản phẩm', style: Theme.of(context).textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.bold)),
+                        SizedBox(
+                          height: 40,
+                          child: ElevatedButton.icon(
+                            onPressed: () {
+                              if (widget.onNavigate != null) {
+                                widget.onNavigate!(MainPage.addProductCategory);
+                              }
+                            },
+                            icon: const Icon(Icons.add),
+                            label: const Text('Thêm danh mục'),
+                            style: primaryButtonStyle,
                           ),
-                          style: const TextStyle(fontSize: 14),
-                          onChanged: (v) => setState(() => searchText = v),
                         ),
-                      ),
-                      const SizedBox(width: 16),
-                      Expanded(
-                        flex: 3,
-                        child: ShopifyDropdown<String>(
-                          items: const [
-                            'name_asc',
-                            'name_desc',
-                            'product_count_desc',
-                            'product_count_asc',
-                          ],
-                          value: sortOption,
-                          getLabel: (key) {
-                            switch (key) {
-                              case 'name_asc':
-                                return 'Tên: A-Z';
-                              case 'name_desc':
-                                return 'Tên: Z-A';
-                              case 'product_count_desc':
-                                return 'Số sản phẩm: Nhiều nhất';
-                              case 'product_count_asc':
-                                return 'Số sản phẩm: Ít nhất';
-                              default:
-                                return key;
-                            }
-                          },
-                          onChanged: (v) => setState(() => sortOption = v ?? sortOption),
-                          hint: 'Sắp xếp',
-                          backgroundColor: Colors.transparent,
+                      ],
+                    ),
+                    const SizedBox(height: 24),
+                    Row(
+                      children: [
+                        Expanded(
+                          flex: 7,
+                          child: TextField(
+                            controller: _searchController,
+                            decoration: searchInputDecoration(
+                              hint: 'Tìm danh mục',
+                            ),
+                            style: const TextStyle(fontSize: 14),
+                            onChanged: (v) => setState(() => searchText = v),
+                          ),
                         ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 24),
-                ],
-                // Danh sách danh mục giữ nguyên
-                StreamBuilder<List<ProductCategory>>(
-                  stream: _categoryService.getCategories(),
-                  builder: (context, catSnapshot) {
-                    if (catSnapshot.connectionState == ConnectionState.waiting) {
-                      return const Center(child: CircularProgressIndicator());
-                    }
-                    var categories = catSnapshot.data ?? [];
-                    if (searchText.isNotEmpty) {
-                      categories = categories.where((c) => c.name.toLowerCase().contains(searchText.toLowerCase())).toList();
-                    }
-                    return StreamBuilder<List<Product>>(
-                      stream: _productService.getProducts(),
-                      builder: (context, prodSnapshot) {
-                        final products = prodSnapshot.data ?? [];
-                        if (sortOption == 'name_asc') {
-                          categories.sort((a, b) => a.name.compareTo(b.name));
-                        } else if (sortOption == 'name_desc') {
-                          categories.sort((a, b) => b.name.compareTo(a.name));
-                        } else if (sortOption == 'product_count_desc') {
-                          categories.sort((a, b) {
-                            final countA = products.where((p) => p.category == a.name).length;
-                            final countB = products.where((p) => p.category == b.name).length;
-                            return countB.compareTo(countA);
-                          });
-                        } else if (sortOption == 'product_count_asc') {
-                          categories.sort((a, b) {
-                            final countA = products.where((p) => p.category == a.name).length;
-                            final countB = products.where((p) => p.category == b.name).length;
-                            return countA.compareTo(countB);
-                          });
-                        }
-                        return LayoutBuilder(
-                          builder: (context, constraints) {
-                            final isMobile = constraints.maxWidth < 600;
-                            if (isMobile) {
-                              // Mobile style: card list
-                              return Column(
-                                children: [
-                                  ...categories.asMap().entries.map((entry) {
-                                    final idx = entry.key;
-                                    final cat = entry.value;
-                                    final count = products.where((p) => p.category == cat.name).length;
-                                    return _CategoryCardItem(
-                                      name: cat.name,
-                                      count: count,
-                                      isLast: idx == categories.length - 1,
-                                      onTap: () {
-                                        if (widget.onNavigate != null) widget.onNavigate!(MainPage.productCategory);
-                                      },
-                                    );
-                                  }),
-                                ],
-                              );
-                            } else {
-                              // Desktop/tablet: table style
-                              return Container(
-                                margin: const EdgeInsets.only(top: 8),
-                                decoration: BoxDecoration(
-                                  color: Colors.white,
-                                  borderRadius: BorderRadius.circular(16),
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: Colors.black.withOpacity(0.03),
-                                      blurRadius: 8,
-                                      offset: const Offset(0, 2),
-                                    ),
-                                  ],
-                                ),
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
+                        const SizedBox(width: 16),
+                        Expanded(
+                          flex: 3,
+                          child: ShopifyDropdown<String>(
+                            items: const [
+                              'name_asc',
+                              'name_desc',
+                              'product_count_desc',
+                              'product_count_asc',
+                            ],
+                            value: sortOption,
+                            getLabel: (key) {
+                              switch (key) {
+                                case 'name_asc':
+                                  return 'Tên: A-Z';
+                                case 'name_desc':
+                                  return 'Tên: Z-A';
+                                case 'product_count_desc':
+                                  return 'Số sản phẩm: Nhiều nhất';
+                                case 'product_count_asc':
+                                  return 'Số sản phẩm: Ít nhất';
+                                default:
+                                  return key;
+                              }
+                            },
+                            onChanged: (v) => setState(() => sortOption = v ?? sortOption),
+                            hint: 'Sắp xếp',
+                            backgroundColor: Colors.transparent,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 24),
+                  ],
+                  // Danh sách danh mục giữ nguyên
+                  StreamBuilder<List<ProductCategory>>(
+                    stream: _categoryService.getCategories(),
+                    builder: (context, catSnapshot) {
+                      if (catSnapshot.connectionState == ConnectionState.waiting) {
+                        return const Center(child: CircularProgressIndicator());
+                      }
+                      var categories = catSnapshot.data ?? [];
+                      if (searchText.isNotEmpty) {
+                        categories = categories.where((c) => c.name.toLowerCase().contains(searchText.toLowerCase())).toList();
+                      }
+                      return StreamBuilder<List<Product>>(
+                        stream: _productService.getProducts(),
+                        builder: (context, prodSnapshot) {
+                          final products = prodSnapshot.data ?? [];
+                          if (sortOption == 'name_asc') {
+                            categories.sort((a, b) => a.name.compareTo(b.name));
+                          } else if (sortOption == 'name_desc') {
+                            categories.sort((a, b) => b.name.compareTo(a.name));
+                          } else if (sortOption == 'product_count_desc') {
+                            categories.sort((a, b) {
+                              final countA = products.where((p) => p.category == a.name).length;
+                              final countB = products.where((p) => p.category == b.name).length;
+                              return countB.compareTo(countA);
+                            });
+                          } else if (sortOption == 'product_count_asc') {
+                            categories.sort((a, b) {
+                              final countA = products.where((p) => p.category == a.name).length;
+                              final countB = products.where((p) => p.category == b.name).length;
+                              return countA.compareTo(countB);
+                            });
+                          }
+                          return LayoutBuilder(
+                            builder: (context, constraints) {
+                              final isMobile = constraints.maxWidth < 600;
+                              if (isMobile) {
+                                // Mobile style: card list
+                                return Column(
                                   children: [
-                                    Padding(
-                                      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 18),
-                                      child: Row(
-                                        children: const [
-                                          Expanded(
-                                            flex: 7,
-                                            child: Align(
-                                              alignment: Alignment.centerLeft,
-                                              child: Text('Tên danh mục', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: textSecondary)),
-                                            ),
-                                          ),
-                                          Expanded(
-                                            flex: 3,
-                                            child: Align(
-                                              alignment: Alignment.center,
-                                              child: Text('Số sản phẩm', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: textSecondary)),
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                    const Divider(height: 1),
                                     ...categories.asMap().entries.map((entry) {
                                       final idx = entry.key;
                                       final cat = entry.value;
                                       final count = products.where((p) => p.category == cat.name).length;
-                                      return _CategoryTableRow(
+                                      return _CategoryCardItem(
                                         name: cat.name,
                                         count: count,
                                         isLast: idx == categories.length - 1,
@@ -272,18 +219,74 @@ class _ProductCategoryScreenState extends State<ProductCategoryScreen> {
                                       );
                                     }),
                                   ],
-                                ),
-                              );
-                            }
-                          },
-                        );
-                      },
-                    );
-                  },
-                ),
-              ],
-            );
-          },
+                                );
+                              } else {
+                                // Desktop/tablet: table style
+                                return Container(
+                                  margin: const EdgeInsets.only(top: 8),
+                                  decoration: BoxDecoration(
+                                    color: Colors.white,
+                                    borderRadius: BorderRadius.circular(16),
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: Colors.black.withOpacity(0.03),
+                                        blurRadius: 8,
+                                        offset: const Offset(0, 2),
+                                      ),
+                                    ],
+                                  ),
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Padding(
+                                        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 18),
+                                        child: Row(
+                                          children: const [
+                                            Expanded(
+                                              flex: 7,
+                                              child: Align(
+                                                alignment: Alignment.centerLeft,
+                                                child: Text('Tên danh mục', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: textSecondary)),
+                                              ),
+                                            ),
+                                            Expanded(
+                                              flex: 3,
+                                              child: Align(
+                                                alignment: Alignment.center,
+                                                child: Text('Số sản phẩm', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: textSecondary)),
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                      const Divider(height: 1),
+                                      ...categories.asMap().entries.map((entry) {
+                                        final idx = entry.key;
+                                        final cat = entry.value;
+                                        final count = products.where((p) => p.category == cat.name).length;
+                                        return _CategoryTableRow(
+                                          name: cat.name,
+                                          count: count,
+                                          isLast: idx == categories.length - 1,
+                                          onTap: () {
+                                            if (widget.onNavigate != null) widget.onNavigate!(MainPage.productCategory);
+                                          },
+                                        );
+                                      }),
+                                    ],
+                                  ),
+                                );
+                              }
+                            },
+                          );
+                        },
+                      );
+                    },
+                  ),
+                ],
+              );
+            },
+          ),
         ),
       ),
     );

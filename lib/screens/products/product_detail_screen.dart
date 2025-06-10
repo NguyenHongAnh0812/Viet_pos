@@ -29,7 +29,8 @@ class ProductDetailScreen extends StatelessWidget {
         padding: const EdgeInsets.all(24),
         child: Center(
           child: Container(
-            constraints: const BoxConstraints(maxWidth: 900),
+            width: double.infinity,
+            constraints: const BoxConstraints(maxWidth: 1400),
             padding: const EdgeInsets.all(24),
             decoration: BoxDecoration(
               color: Colors.white,
