@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../../widgets/common/design_system.dart';
+import '../../widgets/main_layout.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -31,13 +32,20 @@ class _LoginScreenState extends State<LoginScreen> {
       });
 
       try {
-        await FirebaseAuth.instance.signInWithEmailAndPassword(
+        final userCredential = await FirebaseAuth.instance.signInWithEmailAndPassword(
           email: _emailController.text.trim(),
           password: _passwordController.text.trim(),
         );
-        // Đăng nhập thành công, chuyển đến màn hình chính
-        if (mounted) {
-          Navigator.pushReplacementNamed(context, '/dashboard');
+
+        if (userCredential.user != null) {
+          // Lưu trạng thái đăng nhập
+          await FirebaseAuth.instance.setPersistence(Persistence.LOCAL);
+          
+          if (mounted) {
+            Navigator.of(context).pushReplacement(
+              MaterialPageRoute(builder: (context) => const MainLayout()),
+            );
+          }
         }
       } on FirebaseAuthException catch (e) {
         setState(() {
@@ -50,6 +58,10 @@ class _LoginScreenState extends State<LoginScreen> {
           } else {
             _errorMessage = e.message ?? 'Đã xảy ra lỗi khi đăng nhập';
           }
+        });
+      } catch (e) {
+        setState(() {
+          _errorMessage = 'Đã xảy ra lỗi không xác định';
         });
       } finally {
         if (mounted) {

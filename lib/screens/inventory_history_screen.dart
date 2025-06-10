@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../services/inventory_service.dart';
 import '../models/inventory_session.dart';
 import 'package:intl/intl.dart';
+import '../widgets/common/design_system.dart';
 
 class InventoryHistoryScreen extends StatefulWidget {
   final VoidCallback? onBack;
@@ -151,50 +152,16 @@ class _InventoryHistoryScreenState extends State<InventoryHistoryScreen> {
 
   void _showExportSuccess(BuildContext context) {
     final overlay = Overlay.of(context);
-    final entry = OverlayEntry(
-      builder: (context) => Positioned(
-        bottom: 32,
-        right: 32,
-        child: Material(
-          color: Colors.transparent,
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 18),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: Colors.grey.shade200),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.08),
-                  blurRadius: 16,
-                  offset: const Offset(0, 4),
-                ),
-              ],
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Container(
-                  margin: const EdgeInsets.only(top: 2, right: 12),
-                  child: const Icon(Icons.check_circle, color: Colors.black, size: 24),
-                ),
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: const [
-                    Text('Xuất dữ liệu thành công', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-                    SizedBox(height: 2),
-                    Text('Dữ liệu kiểm kê đã được tải xuống.', style: TextStyle(color: Colors.black54)),
-                  ],
-                ),
-              ],
-            ),
-          ),
-        ),
+    OverlayEntry? entry;
+    entry = OverlayEntry(
+      builder: (_) => DesignSystemSnackbar(
+        message: 'Xuất dữ liệu thành công',
+        icon: Icons.check_circle,
+        onDismissed: () => entry?.remove(),
       ),
     );
     overlay.insert(entry);
-    Future.delayed(const Duration(seconds: 2), () => entry.remove());
+    Future.delayed(const Duration(seconds: 2), () => entry?.remove());
   }
 
   Widget _buildSessionPanel(InventorySession session) {

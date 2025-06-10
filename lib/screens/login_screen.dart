@@ -11,8 +11,8 @@ class LoginScreen extends StatefulWidget {
 }
 
 class _LoginScreenState extends State<LoginScreen> {
-  final _emailController = TextEditingController();
-  final _passwordController = TextEditingController();
+  final _emailController = TextEditingController(text: 'admin123@gmail.com');
+  final _passwordController = TextEditingController(text: 'admin123');
   String? _error;
   bool _loading = false;
 
@@ -69,7 +69,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     style: primaryButtonStyle,
                     child: _loading
                         ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))
-                        : Text('Đăng nhập', style: responsiveTextStyle(context, body.copyWith(fontWeight: FontWeight.w600), bodyMobile.copyWith(fontWeight: FontWeight.w600))),
+                        : Text('Đăng nhập', style: responsiveTextStyle(context, body.copyWith(fontWeight: FontWeight.w600, color: Colors.white), bodyMobile.copyWith(fontWeight: FontWeight.w600, color: Colors.white))),
                   ),
                 ),
                 if (_error != null) ...[

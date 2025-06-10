@@ -29,7 +29,8 @@ class ProductDetailScreen extends StatelessWidget {
         padding: const EdgeInsets.all(24),
         child: Center(
           child: Container(
-            constraints: const BoxConstraints(maxWidth: 900),
+            width: double.infinity,
+            constraints: const BoxConstraints(maxWidth: 1400),
             padding: const EdgeInsets.all(24),
             decoration: BoxDecoration(
               color: Colors.white,
@@ -179,9 +180,15 @@ class ProductDetailScreen extends StatelessWidget {
                         if (confirm != true) return;
                         // Kiểm tra tồn kho
                         if (product.stock > 0) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text('Không thể xóa sản phẩm còn tồn kho.')),
+                          OverlayEntry? entry;
+                          entry = OverlayEntry(
+                            builder: (_) => DesignSystemSnackbar(
+                              message: 'Không thể xóa sản phẩm còn tồn kho.',
+                              icon: Icons.error,
+                              onDismissed: () => entry?.remove(),
+                            ),
                           );
+                          Overlay.of(context).insert(entry);
                           return;
                         }
                         // Giả lập kiểm tra đã từng kiểm kê/giao dịch (nếu có trường hasTransaction hoặc hasInventoryHistory)
@@ -189,17 +196,29 @@ class ProductDetailScreen extends StatelessWidget {
                         if (hasTransaction) {
                           // Chỉ cho ngừng hoạt động
                           await FirebaseFirestore.instance.collection('products').doc(product.id).update({'isActive': false});
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text('Sản phẩm đã được chuyển sang trạng thái ngừng hoạt động.')),
+                          OverlayEntry? entry;
+                          entry = OverlayEntry(
+                            builder: (_) => DesignSystemSnackbar(
+                              message: 'Sản phẩm đã được chuyển sang trạng thái ngừng hoạt động.',
+                              icon: Icons.check_circle,
+                              onDismissed: () => entry?.remove(),
+                            ),
                           );
+                          Overlay.of(context).insert(entry);
                           if (onBack != null) onBack!();
                           return;
                         }
                         // Xóa sản phẩm
                         await FirebaseFirestore.instance.collection('products').doc(product.id).delete();
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('Đã xóa sản phẩm thành công!')),
+                        OverlayEntry? entry;
+                        entry = OverlayEntry(
+                          builder: (_) => DesignSystemSnackbar(
+                            message: 'Đã xóa sản phẩm thành công!',
+                            icon: Icons.check_circle,
+                            onDismissed: () => entry?.remove(),
+                          ),
                         );
+                        Overlay.of(context).insert(entry);
                         if (onBack != null) onBack!();
                       },
                       icon: const Icon(Icons.delete),

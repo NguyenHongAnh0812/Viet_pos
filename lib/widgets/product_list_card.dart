@@ -38,7 +38,7 @@ class ProductListCard extends StatelessWidget {
                     const SizedBox(height: 2),
                     Text(
                       product.commonName,
-                      style: TextStyle(color: Colors.grey[700], fontSize: 15, fontWeight: FontWeight.w500),
+                      style: TextStyle(color: Colors.grey[700], fontSize: 15, fontWeight: FontWeight.w500), semanticsLabel: 'Tên thương mại',
                     ),
                     const SizedBox(height: 2),
                     Text(

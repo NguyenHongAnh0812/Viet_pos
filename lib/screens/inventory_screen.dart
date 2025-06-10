@@ -316,7 +316,7 @@ class _InventoryScreenState extends State<InventoryScreen> with SingleTickerProv
                         if (p.commonName != null && p.commonName.isNotEmpty)
                           Padding(
                             padding: const EdgeInsets.only(top: 2, bottom: 2),
-                            child: Text(p.commonName, style: const TextStyle(fontSize: 13, color: Colors.black54)),
+                            child: Text(p.commonName, style: const TextStyle(fontSize: 13, color: Colors.black54), semanticsLabel: 'Tên thương mại'),
                           ),
                         // Hiển thị lần cuối cập nhật
                         Text(
@@ -541,7 +541,7 @@ class _InventoryScreenState extends State<InventoryScreen> with SingleTickerProv
                                               ),
                                           ],
                                         ),
-                                        Text(p.commonName, style: const TextStyle(fontSize: 13, color: Colors.black54)),
+                                        Text(p.commonName, style: const TextStyle(fontSize: 13, color: Colors.black54), semanticsLabel: 'Tên thương mại'),
                                         Text(
                                           p.updatedAt != null
                                             ? 'Lần cuối cập nhật: ${p.updatedAt.toString().substring(0, 16).replaceAll('T', ' ')}'

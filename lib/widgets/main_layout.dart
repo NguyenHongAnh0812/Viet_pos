@@ -11,6 +11,7 @@ import '../screens/inventory_screen.dart';
 import '../screens/inventory_history_screen.dart';
 import 'common/design_system.dart';
 import '../screens/style_guide_screen.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 
 // Định nghĩa enum cho các trang
 enum MainPage { dashboard, productList, productCategory, addProduct, inventory, report, settings, productDetail, lowStockProducts, addProductCategory, inventoryHistory, styleGuide }
@@ -29,34 +30,6 @@ class _MainLayoutState extends State<MainLayout> {
   MainPage _currentPage = MainPage.dashboard;
   MainPage? _previousPage;
   Product? _selectedProduct;
-  bool _isMobile = false;
-
-  @override
-  void initState() {
-    super.initState();
-    // Khởi tạo sidebar dựa trên kích thước màn hình
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) {
-        setState(() {
-          _isMobile = MediaQuery.of(context).size.width < 1024;
-          _sidebarOpen = !_isMobile;
-        });
-      }
-    });
-  }
-
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    // Cập nhật layout khi dependencies thay đổi (ví dụ: MediaQuery)
-    final newIsMobile = MediaQuery.of(context).size.width < 1024;
-    if (newIsMobile != _isMobile) {
-      setState(() {
-        _isMobile = newIsMobile;
-        _sidebarOpen = !newIsMobile;
-      });
-    }
-  }
 
   void _toggleSidebar() {
     setState(() {
@@ -68,7 +41,8 @@ class _MainLayoutState extends State<MainLayout> {
     setState(() {
       _previousPage = _currentPage;
       _currentPage = page;
-      if (_isMobile) {
+      // Đóng sidebar nếu là mobile
+      if (MediaQuery.of(context).size.width < 1024) {
         _sidebarOpen = false;
       }
     });
@@ -124,54 +98,66 @@ class _MainLayoutState extends State<MainLayout> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Column(
-        children: [
-          _Header(onMenuPressed: _toggleSidebar),
-          Expanded(
-            child: _isMobile
-                ? Stack(
+      body: LayoutBuilder(
+        builder: (context, constraints) {
+          final isMobile = constraints.maxWidth < 1024;
+          if (isMobile) {
+            // MOBILE: Stack + AnimatedSlide
+            return Stack(
+              children: [
+                Column(
+                  children: [
+                    _Header(onMenuPressed: _toggleSidebar),
+                    Expanded(child: _buildMainContent()),
+                  ],
+                ),
+                if (_sidebarOpen)
+                  GestureDetector(
+                    onTap: _toggleSidebar,
+                    child: Container(color: Colors.black.withOpacity(0.3)),
+                  ),
+                AnimatedSlide(
+                  offset: _sidebarOpen ? Offset(0, 0) : Offset(-1, 0),
+                  duration: const Duration(milliseconds: 300),
+                  curve: Curves.ease,
+                  child: SizedBox(
+                    width: 290,
+                    child: _Sidebar(
+                      isOpen: true,
+                      currentPage: _currentPage,
+                      onItemTap: _onSidebarTap,
+                    ),
+                  ),
+                ),
+              ],
+            );
+          } else {
+            // DESKTOP: Row + AnimatedContainer
+            return Row(
+              children: [
+                AnimatedContainer(
+                  duration: const Duration(milliseconds: 300),
+                  width: 290,
+                  child: _Sidebar(
+                    isOpen: true,
+                    currentPage: _currentPage,
+                    onItemTap: _onSidebarTap,
+                  ),
+                ),
+                Expanded(
+                  child: Column(
                     children: [
-                      _buildMainContent(),
-                      if (_sidebarOpen)
-                        GestureDetector(
-                          onTap: _toggleSidebar,
-                          child: Container(
-                            color: Colors.black.withOpacity(0.3),
-                          ),
-                        ),
-                      AnimatedSlide(
-                        offset: _sidebarOpen ? Offset(0, 0) : Offset(-1, 0),
-                        duration: const Duration(milliseconds: 300),
-                        curve: Curves.ease,
-                        child: SizedBox(
-                          width: 290,
-                          child: _Sidebar(
-                            isOpen: true,
-                            currentPage: _currentPage,
-                            onItemTap: _onSidebarTap,
-                          ),
-                        ),
-                      ),
-                    ],
-                  )
-                : Row(
-                    children: [
-                      AnimatedContainer(
-                        duration: const Duration(milliseconds: 300),
-                        width: _sidebarOpen ? 290 : 70,
-                        child: _Sidebar(
-                          isOpen: _sidebarOpen,
-                          currentPage: _currentPage,
-                          onItemTap: _onSidebarTap,
-                        ),
-                      ),
+                      _Header(onMenuPressed: _toggleSidebar),
                       Expanded(child: _buildMainContent()),
                     ],
                   ),
-          ),
-        ],
+                ),
+              ],
+            );
+          }
+        },
       ),
-      bottomNavigationBar: _isMobile
+      bottomNavigationBar: MediaQuery.of(context).size.width < 1024
           ? Container(
               decoration: BoxDecoration(
                 color: Colors.white,
@@ -187,33 +173,50 @@ class _MainLayoutState extends State<MainLayout> {
                 child: Padding(
                   padding: const EdgeInsets.symmetric(vertical: 8),
                   child: Row(
+                    
                     mainAxisAlignment: MainAxisAlignment.spaceAround,
                     children: [
                       _NavItem(
-                        icon: Icons.dashboard,
+                        icon: SvgPicture.asset(
+                          'assets/icons/databoard.svg',
+                          width: 16,
+                          height: 16,
+                        ),
                         label: 'Trang chủ',
                         selected: _currentPage == MainPage.dashboard,
                         onTap: () => _onNavTap(0),
                       ),
                       _NavItem(
-                        icon: Icons.inventory_2,
+                        icon: SvgPicture.asset(
+                          'assets/icons/inventory.svg',
+                          width: 16,
+                          height: 16,
+                        ),
                         label: 'Kiểm kê',
                         selected: _currentPage == MainPage.inventory,
                         onTap: () => _onNavTap(1),
                       ),
                       _NavCenterButton(
-                        icon: Icons.add,
+                        icon: Icon(Icons.add, size: 24, color: Colors.white,),
                         label: 'Thêm mới',
                         onTap: () => _onSidebarTap(MainPage.addProduct),
                       ),
                       _NavItem(
-                        icon: Icons.inventory,
+                        icon: SvgPicture.asset(
+                          'assets/icons/products.svg',
+                          width: 16,
+                          height: 16,
+                        ),
                         label: 'Sản phẩm',
                         selected: _currentPage == MainPage.productList,
                         onTap: () => _onNavTap(2),
                       ),
                       _NavItem(
-                        icon: Icons.bar_chart,
+                        icon: SvgPicture.asset(
+                          'assets/icons/report.svg',
+                          width: 16,
+                          height: 16,
+                        ),
                         label: 'Báo cáo',
                         selected: _currentPage == MainPage.report,
                         onTap: () => _onNavTap(3),
@@ -347,10 +350,11 @@ class _Header extends StatelessWidget {
       alignment: Alignment.centerLeft,
       child: Row(
         children: [
-          IconButton(
-            icon: const Icon(Icons.menu),
-            onPressed: onMenuPressed,
-          ),
+          if (MediaQuery.of(context).size.width < 1024)
+            IconButton(
+              icon: SvgPicture.asset('assets/icons/menu.svg', width: 16, height: 16),
+              onPressed: onMenuPressed,
+            ),
           const SizedBox(width: 8),
           const Text(
             'VET-POS',
@@ -383,7 +387,7 @@ class _SidebarState extends State<_Sidebar> {
   };
 
   Widget _sidebarParentItem({
-    required IconData icon,
+    required Widget icon,
     required String label,
     required bool open,
     required VoidCallback onTap,
@@ -399,7 +403,7 @@ class _SidebarState extends State<_Sidebar> {
           borderRadius: BorderRadius.circular(5),
         ),
         child: ListTile(
-          leading: Icon(icon, color: (open || selected) ? primaryBlue : textSecondary),
+          leading: icon,
           title: Padding(
             padding: const EdgeInsets.only(left: space10),
             child: Text(
@@ -439,8 +443,33 @@ class _SidebarState extends State<_Sidebar> {
         padding: const EdgeInsets.symmetric(vertical: 8),
         children: [
           // Dashboard
+
+             // Logo VET-POS
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 16),
+              child: Row(
+                children: [
+                  SvgPicture.asset(
+                    'assets/icons/tag_icon.svg', // thay bằng icon logo của bạn
+                    width: 20,
+                    height: 20,
+                    color: primaryBlue, // hoặc để nguyên nếu SVG có màu sẵn
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    'VET-POS',
+                    style: TextStyle(
+                      fontWeight: FontWeight.w700,
+                      fontSize: 18,
+                      color: Color(0xFF1F2937),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
           _SidebarItem(
-            icon: Icons.dashboard,
+            icon: SvgPicture.asset('assets/icons/databoard.svg', width: 16, height: 16),    
             label: 'Dashboard',
             selected: widget.currentPage == MainPage.dashboard,
             isOpen: widget.isOpen,
@@ -448,7 +477,7 @@ class _SidebarState extends State<_Sidebar> {
           ),
           // Sản phẩm
           _sidebarParentItem(
-            icon: Icons.dashboard,
+            icon: SvgPicture.asset('assets/icons/products.svg', width: 16, height: 16),
             label: 'Sản phẩm',
             open: _openMenus['product']!,
             selected: false,
@@ -460,14 +489,14 @@ class _SidebarState extends State<_Sidebar> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   _SidebarItem(
-                    icon: Icons.dashboard,
+                    icon: SvgPicture.asset('assets/icons/products.svg', width: 16, height: 16),
                     label: 'Tất cả sản phẩm',
                     selected: widget.currentPage == MainPage.productList,
                     isOpen: widget.isOpen,
                     onTap: () => widget.onItemTap(MainPage.productList),
                   ),
                   _SidebarItem(
-                    icon: Icons.list,
+                    icon: SvgPicture.asset('assets/icons/list_products.svg', width: 16, height: 16),
                     label: 'Danh mục sản phẩm',
                     selected: widget.currentPage == MainPage.productCategory,
                     isOpen: widget.isOpen,
@@ -573,28 +602,28 @@ class _SidebarState extends State<_Sidebar> {
           //   ),
           // Các mục sidebar khác
           _SidebarItem(
-            icon: Icons.dashboard,
+            icon: SvgPicture.asset('assets/icons/inventory.svg', width: 16, height: 16),
             label: 'Kiểm kê kho',
             selected: widget.currentPage == MainPage.inventory,
             isOpen: widget.isOpen,
             onTap: () => widget.onItemTap(MainPage.inventory),
           ),
           _SidebarItem(
-            icon: Icons.dashboard,
+            icon: SvgPicture.asset('assets/icons/report.svg', width: 16, height: 16),
             label: 'Báo cáo',
             selected: widget.currentPage == MainPage.report,
             isOpen: widget.isOpen,
             onTap: () => widget.onItemTap(MainPage.report),
           ),
           _SidebarItem(
-            icon: Icons.settings,
+            icon: SvgPicture.asset('assets/icons/setting.svg', width: 16, height: 16),
             label: 'Cài đặt chung',
             selected: widget.currentPage == MainPage.settings,
             isOpen: widget.isOpen,
             onTap: () => widget.onItemTap(MainPage.settings),
           ),
           _SidebarItem(
-            icon: Icons.palette,
+            icon: Icon(Icons.palette, size: 16),
             label: 'Style Guide',
             selected: widget.currentPage == MainPage.styleGuide,
             isOpen: widget.isOpen,
@@ -639,7 +668,7 @@ class _SidebarLinePainter extends CustomPainter {
 }
 
 class _SidebarItem extends StatelessWidget {
-  final IconData icon;
+  final Widget icon;
   final String label;
   final bool selected;
   final bool isOpen;
@@ -667,7 +696,7 @@ class _SidebarItem extends StatelessWidget {
           borderRadius: BorderRadius.circular(5),
         ),
         child: ListTile(
-          leading: Icon(icon, color: selected ? primaryBlue : textSecondary),
+          leading: icon,
           title: isOpen
               ? Padding(
                   padding: const EdgeInsets.only(left: space10),
@@ -690,7 +719,7 @@ class _SidebarItem extends StatelessWidget {
 
 // Thêm các widget mới cho nav bar mobile
 class _NavItem extends StatelessWidget {
-  final IconData icon;
+  final Widget icon;
   final String label;
   final bool selected;
   final VoidCallback onTap;
@@ -711,11 +740,7 @@ class _NavItem extends StatelessWidget {
                   )
                 : null,
             padding: const EdgeInsets.all(8),
-            child: Icon(
-              icon,
-              color: selected ? primaryBlue : textSecondary,
-              size: 20,
-            ),
+            child: icon,
           ),
           const SizedBox(height: 2),
           Text(
@@ -733,7 +758,7 @@ class _NavItem extends StatelessWidget {
 }
 
 class _NavCenterButton extends StatelessWidget {
-  final IconData icon;
+  final Widget icon;
   final String label;
   final VoidCallback onTap;
   const _NavCenterButton({required this.icon, required this.label, required this.onTap});
@@ -759,11 +784,7 @@ class _NavCenterButton extends StatelessWidget {
                 ),
               ],
             ),
-            child: Icon(
-              icon,
-              color: Colors.white,
-              size: 28,
-            ),
+            child: icon,
           ),
         ),
         const SizedBox(height: 2),

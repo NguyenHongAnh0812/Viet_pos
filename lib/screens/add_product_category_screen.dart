@@ -35,7 +35,15 @@ class _AddProductCategoryScreenState extends State<AddProductCategoryScreen> {
     final name = _nameController.text.trim();
     final desc = _descController.text.trim();
     if (name.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Tên danh mục là bắt buộc!')));
+      OverlayEntry? entry;
+      entry = OverlayEntry(
+        builder: (_) => DesignSystemSnackbar(
+          message: 'Tên danh mục là bắt buộc!',
+          icon: Icons.error,
+          onDismissed: () => entry?.remove(),
+        ),
+      );
+      Overlay.of(context).insert(entry);
       return;
     }
     setState(() => isSaving = true);
@@ -47,10 +55,26 @@ class _AddProductCategoryScreenState extends State<AddProductCategoryScreen> {
       for (final p in selectedProducts) {
         await _productService.updateProductCategory(p.id, name);
       }
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Tạo danh mục thành công!')));
+      OverlayEntry? entry;
+      entry = OverlayEntry(
+        builder: (_) => DesignSystemSnackbar(
+          message: 'Tạo danh mục thành công!',
+          icon: Icons.check_circle,
+          onDismissed: () => entry?.remove(),
+        ),
+      );
+      Overlay.of(context).insert(entry);
       if (widget.onBack != null) widget.onBack!();
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Lỗi: $e')));
+      OverlayEntry? entry;
+      entry = OverlayEntry(
+        builder: (_) => DesignSystemSnackbar(
+          message: 'Lỗi: $e',
+          icon: Icons.error,
+          onDismissed: () => entry?.remove(),
+        ),
+      );
+      Overlay.of(context).insert(entry);
     } finally {
       setState(() => isSaving = false);
     }
@@ -61,7 +85,7 @@ class _AddProductCategoryScreenState extends State<AddProductCategoryScreen> {
     return Scaffold(
       backgroundColor: appBackground,
       body: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
         child: ListView(
           children: [
             Row(
@@ -77,65 +101,54 @@ class _AddProductCategoryScreenState extends State<AddProductCategoryScreen> {
             ),
             const SizedBox(height: 24),
             // Thông tin danh mục
-            Container(
-              padding: const EdgeInsets.all(24),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(16),
-              ),
+            designSystemFormCard(
+              title: 'Thông tin danh mục',
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text('Thông tin danh mục', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
-                  const SizedBox(height: 4),
-                  const Text('Nhập thông tin cơ bản cho danh mục sản phẩm', style: TextStyle(color: Colors.black54)),
+                  Text('Nhập thông tin cơ bản cho danh mục sản phẩm', style: small.copyWith(color: textSecondary)),
                   const SizedBox(height: 20),
-                  TextField(
-                    controller: _nameController,
-                    decoration: const InputDecoration(
-                      labelText: 'Tên danh mục *',
-                      hintText: 'Nhập tên danh mục',
-                      border: OutlineInputBorder(),
+                  DesignSystemFormField(
+                    label: 'Tên danh mục',
+                    required: true,
+                    input: TextField(
+                      controller: _nameController,
+                      decoration: designSystemInputDecoration(
+                        hint: 'Nhập tên danh mục',
+                      ),
                     ),
                   ),
                   const SizedBox(height: 16),
-                  TextField(
-                    controller: _descController,
-                    minLines: 2,
-                    maxLines: 4,
-                    decoration: const InputDecoration(
-                      labelText: 'Mô tả danh mục',
-                      hintText: 'Nhập mô tả danh mục',
-                      border: OutlineInputBorder(),
+                  DesignSystemFormField(
+                    label: 'Mô tả danh mục',
+                    input: TextField(
+                      controller: _descController,
+                      minLines: 2,
+                      maxLines: 4,
+                      decoration: designSystemInputDecoration(
+                        hint: 'Nhập mô tả danh mục',
+                      ),
                     ),
+                    helperText: 'Mô tả ngắn gọn về danh mục sản phẩm này',
                   ),
-                  const SizedBox(height: 8),
-                  const Text('Mô tả ngắn gọn về danh mục sản phẩm này', style: TextStyle(color: Colors.black54, fontSize: 13)),
                 ],
               ),
             ),
             const SizedBox(height: 24),
             // Sản phẩm trong danh mục
-            Container(
-              padding: const EdgeInsets.all(24),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(16),
-              ),
+            designSystemFormCard(
+              title: 'Sản phẩm trong danh mục',
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text('Sản phẩm trong danh mục', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
-                  const SizedBox(height: 4),
-                  const Text('Chọn phương thức thêm sản phẩm vào danh mục', style: TextStyle(color: Colors.black54)),
+                  Text('Chọn phương thức thêm sản phẩm vào danh mục', style: small.copyWith(color: textSecondary)),
                   const SizedBox(height: 16),
-                  // Tabs
                   Container(
                     margin: const EdgeInsets.only(bottom: 16),
                     decoration: BoxDecoration(
-                      color: Colors.grey[100],
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: Colors.grey.shade300),
+                      color: mutedBackground,
+                      borderRadius: BorderRadius.circular(borderRadiusMedium),
+                      border: Border.all(color: borderColor),
                     ),
                     child: Row(
                       children: [
@@ -145,12 +158,12 @@ class _AddProductCategoryScreenState extends State<AddProductCategoryScreen> {
                             child: Container(
                               padding: const EdgeInsets.symmetric(vertical: 14),
                               decoration: BoxDecoration(
-                                color: _selectedTab == 0 ? Colors.white : Colors.transparent,
-                                borderRadius: BorderRadius.circular(8),
+                                color: _selectedTab == 0 ? cardBackground : Colors.transparent,
+                                borderRadius: BorderRadius.circular(borderRadiusMedium),
                                 boxShadow: _selectedTab == 0 ? [BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 2)] : [],
                               ),
                               alignment: Alignment.center,
-                              child: Text('Gán thủ công', style: TextStyle(fontWeight: FontWeight.bold, color: _selectedTab == 0 ? Colors.blue : Colors.black54)),
+                              child: Text('Gán thủ công', style: labelLarge.copyWith(color: _selectedTab == 0 ? primaryBlue : textSecondary)),
                             ),
                           ),
                         ),
@@ -160,12 +173,12 @@ class _AddProductCategoryScreenState extends State<AddProductCategoryScreen> {
                             child: Container(
                               padding: const EdgeInsets.symmetric(vertical: 14),
                               decoration: BoxDecoration(
-                                color: _selectedTab == 1 ? Colors.white : Colors.transparent,
-                                borderRadius: BorderRadius.circular(8),
+                                color: _selectedTab == 1 ? cardBackground : Colors.transparent,
+                                borderRadius: BorderRadius.circular(borderRadiusMedium),
                                 boxShadow: _selectedTab == 1 ? [BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 2)] : [],
                               ),
                               alignment: Alignment.center,
-                              child: Text('Điều kiện tự động', style: TextStyle(fontWeight: FontWeight.bold, color: _selectedTab == 1 ? Colors.blue : Colors.black54)),
+                              child: Text('Điều kiện tự động', style: labelLarge.copyWith(color: _selectedTab == 1 ? primaryBlue : textSecondary)),
                             ),
                           ),
                         ),
@@ -175,11 +188,7 @@ class _AddProductCategoryScreenState extends State<AddProductCategoryScreen> {
                   if (_selectedTab == 0) ...[
                     TextField(
                       onChanged: (v) => setState(() => searchText = v),
-                      decoration: const InputDecoration(
-                        hintText: 'Tìm theo tên sản phẩm...',
-                        prefixIcon: Icon(Icons.search),
-                        border: OutlineInputBorder(),
-                      ),
+                      decoration: searchInputDecoration(hint: 'Tìm theo tên sản phẩm...'),
                     ),
                     const SizedBox(height: 8),
                     if (searchText.isEmpty)
@@ -187,11 +196,11 @@ class _AddProductCategoryScreenState extends State<AddProductCategoryScreen> {
                         margin: const EdgeInsets.only(bottom: 8),
                         padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 16),
                         decoration: BoxDecoration(
-                          color: Colors.grey[100],
-                          borderRadius: BorderRadius.circular(6),
-                          border: Border.all(color: Colors.grey.shade300),
+                          color: mutedBackground,
+                          borderRadius: BorderRadius.circular(borderRadiusSmall),
+                          border: Border.all(color: borderColor),
                         ),
-                        child: const Text('Nhập tên sản phẩm để tìm kiếm', style: TextStyle(color: Colors.black54)),
+                        child: Text('Nhập tên sản phẩm để tìm kiếm', style: small.copyWith(color: textSecondary)),
                       ),
                     if (searchText.isNotEmpty)
                       StreamBuilder<List<Product>>(
@@ -207,9 +216,9 @@ class _AddProductCategoryScreenState extends State<AddProductCategoryScreen> {
                           return Container(
                             margin: const EdgeInsets.only(top: 4),
                             decoration: BoxDecoration(
-                              color: Colors.white,
-                              borderRadius: BorderRadius.circular(12),
-                              border: Border.all(color: Colors.grey.shade300),
+                              color: cardBackground,
+                              borderRadius: BorderRadius.circular(borderRadiusLarge),
+                              border: Border.all(color: borderColor),
                             ),
                             child: Column(
                               children: [
@@ -217,8 +226,8 @@ class _AddProductCategoryScreenState extends State<AddProductCategoryScreen> {
                                 Container(
                                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 12),
                                   decoration: BoxDecoration(
-                                    color: Colors.grey[50],
-                                    borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
+                                    color: mutedBackground,
+                                    borderRadius: const BorderRadius.vertical(top: Radius.circular(borderRadiusLarge)),
                                   ),
                                   child: Row(
                                     children: const [
@@ -238,8 +247,8 @@ class _AddProductCategoryScreenState extends State<AddProductCategoryScreen> {
                                       Container(
                                         margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                                         decoration: BoxDecoration(
-                                          color: selectedProducts.contains(p) ? Colors.blue.withOpacity(0.06) : Colors.transparent,
-                                          borderRadius: BorderRadius.circular(8),
+                                          color: selectedProducts.contains(p) ? primaryBlue.withOpacity(0.06) : Colors.transparent,
+                                          borderRadius: BorderRadius.circular(borderRadiusSmall),
                                         ),
                                         child: Row(
                                           children: [
@@ -294,8 +303,8 @@ class _AddProductCategoryScreenState extends State<AddProductCategoryScreen> {
                                                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                                                 decoration: BoxDecoration(
                                                   color: Colors.transparent,
-                                                  border: Border.all(color: Colors.grey.shade400),
-                                                  borderRadius: BorderRadius.circular(12),
+                                                  border: Border.all(color: borderColor),
+                                                  borderRadius: BorderRadius.circular(borderRadiusMedium),
                                                 ),
                                                 child: Text('${p.stock}', style: const TextStyle(fontWeight: FontWeight.bold)),
                                               ),
@@ -343,9 +352,9 @@ class _AddProductCategoryScreenState extends State<AddProductCategoryScreen> {
                         if (_showSelectedPanel && selectedProducts.isNotEmpty)
                           Container(
                             decoration: BoxDecoration(
-                              color: Colors.white,
-                              borderRadius: BorderRadius.circular(12),
-                              border: Border.all(color: Colors.grey.shade300),
+                              color: cardBackground,
+                              borderRadius: BorderRadius.circular(borderRadiusLarge),
+                              border: Border.all(color: borderColor),
                             ),
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
@@ -354,10 +363,10 @@ class _AddProductCategoryScreenState extends State<AddProductCategoryScreen> {
                                   width: double.infinity,
                                   padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 14),
                                   decoration: const BoxDecoration(
-                                    color: Color(0xFFF6F8FA),
-                                    borderRadius: BorderRadius.vertical(top: Radius.circular(12)),
+                                    color: mutedBackground,
+                                    borderRadius: BorderRadius.vertical(top: Radius.circular(borderRadiusLarge)),
                                   ),
-                                  child: Text('Sản phẩm đã chọn (${selectedProducts.length})', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
+                                  child: Text('Sản phẩm đã chọn (${selectedProducts.length})', style: labelLarge.copyWith(fontWeight: FontWeight.w600, fontSize: 14)),
                                 ),
                                 const SizedBox(height: 6),
                                 ConstrainedBox(
@@ -371,9 +380,9 @@ class _AddProductCategoryScreenState extends State<AddProductCategoryScreen> {
                                       final p = selectedProducts[i];
                                       return Container(
                                         decoration: BoxDecoration(
-                                          border: Border.all(color: Colors.grey.shade200),
-                                          borderRadius: BorderRadius.circular(8),
-                                          color: Colors.white,
+                                          border: Border.all(color: borderColor),
+                                          borderRadius: BorderRadius.circular(borderRadiusSmall),
+                                          color: cardBackground,
                                         ),
                                         padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 16),
                                         child: Row(
@@ -394,8 +403,8 @@ class _AddProductCategoryScreenState extends State<AddProductCategoryScreen> {
                                                         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                                                         decoration: BoxDecoration(
                                                           color: Colors.transparent,
-                                                          border: Border.all(color: Colors.grey),
-                                                          borderRadius: BorderRadius.circular(8),
+                                                          border: Border.all(color: borderColor),
+                                                          borderRadius: BorderRadius.circular(borderRadiusSmall),
                                                         ),
                                                         child: Text('SL: ${p.stock}', style: const TextStyle(fontWeight: FontWeight.w600)),
                                                       ),
@@ -437,14 +446,10 @@ class _AddProductCategoryScreenState extends State<AddProductCategoryScreen> {
                 const SizedBox(width: 16),
                 ElevatedButton(
                   onPressed: isSaving ? null : _createCategory,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Color(0xFF3a6ff8),
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
-                    textStyle: const TextStyle(fontWeight: FontWeight.bold),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                  ),
-                  child: isSaving ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white)) : const Text('Tạo danh mục'),
+                  style: primaryButtonStyle,
+                  child: isSaving
+                      ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                      : const Text('Tạo danh mục'),
                 ),
               ],
             ),
