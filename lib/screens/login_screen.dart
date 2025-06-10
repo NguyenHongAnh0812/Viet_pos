@@ -104,6 +104,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       // Email Field
                       TextField(
                         controller: _emailController,
+                        style: const TextStyle(fontSize: 14),
                         decoration: designSystemInputDecoration(
                           label: 'Email',
                           prefixIcon: const Icon(Icons.email_outlined, color: textSecondary),
@@ -114,6 +115,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       // Password Field
                       TextField(
                         controller: _passwordController,
+                        style: const TextStyle(fontSize: 14),
                         decoration: designSystemInputDecoration(
                           label: 'Mật khẩu',
                           prefixIcon: const Icon(Icons.lock_outline, color: textSecondary),
