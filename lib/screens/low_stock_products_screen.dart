@@ -35,17 +35,17 @@ class _LowStockProductsScreenState extends State<LowStockProductsScreen> {
       'Giá bán',
       'Số lượng',
     ];
-    sheet.appendRow(headers);
+    sheet.appendRow(headers.map((h) => ex.TextCellValue(h)).toList());
     for (final p in products) {
       sheet.appendRow([
-        p.name,
-        p.commonName,
-        p.category,
-        p.barcode ?? '',
-        p.sku ?? '',
-        p.tags.join(', '),
-        p.salePrice,
-        p.stock,
+        ex.TextCellValue(p.name),
+        ex.TextCellValue(p.commonName),
+        ex.TextCellValue(p.category),
+        ex.TextCellValue(p.barcode ?? ''),
+        ex.TextCellValue(p.sku ?? ''),
+        ex.TextCellValue(p.tags.join(', ')),
+        ex.DoubleCellValue(p.salePrice),
+        ex.IntCellValue(p.stock),
       ]);
     }
     final fileBytes = excel.encode()!;

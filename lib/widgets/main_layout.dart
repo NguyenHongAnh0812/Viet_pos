@@ -392,35 +392,12 @@ class _SidebarState extends State<_Sidebar> {
     required VoidCallback onTap,
     bool selected = false,
   }) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 180),
-        curve: Curves.ease,
-        decoration: BoxDecoration(
-          color: (open || selected) ? primaryBlue.withOpacity(0.08) : Colors.transparent,
-          borderRadius: BorderRadius.circular(5),
-        ),
-        child: ListTile(
-          leading: icon,
-          title: Padding(
-            padding: const EdgeInsets.only(left: space10),
-            child: Text(
-              label,
-              style: small.copyWith(
-                fontWeight: (open || selected) ? FontWeight.bold : FontWeight.normal,
-                color: textPrimary,
-              ),
-              overflow: TextOverflow.ellipsis,
-              softWrap: false,
-            ),
-          ),
-          trailing: Icon(open ? Icons.expand_less : Icons.expand_more, color: textSecondary, size: 20),
-          minLeadingWidth: 0,
-          horizontalTitleGap: 0,
-          onTap: onTap,
-        ),
-      ),
+    return _SidebarParentItemWidget(
+      icon: icon,
+      label: label,
+      open: open,
+      onTap: onTap,
+      selected: selected,
     );
   }
 
@@ -666,7 +643,7 @@ class _SidebarLinePainter extends CustomPainter {
   bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
 
-class _SidebarItem extends StatelessWidget {
+class _SidebarItem extends StatefulWidget {
   final Widget icon;
   final String label;
   final bool selected;
@@ -681,11 +658,24 @@ class _SidebarItem extends StatelessWidget {
   });
 
   @override
+  State<_SidebarItem> createState() => _SidebarItemState();
+}
+
+class _SidebarItemState extends State<_SidebarItem> {
+  bool _isHovering = false;
+
+  @override
   Widget build(BuildContext context) {
-    final bool showHighlight = selected;
+    final bool showHighlight = widget.selected;
+    Color textColor = textThird;
+    if (showHighlight) {
+      textColor = primaryBlue;
+    } else if (_isHovering) {
+      textColor = textActive;
+    }
     return MouseRegion(
-      onEnter: (_) {},
-      onExit: (_) {},
+      onEnter: (_) => setState(() => _isHovering = true),
+      onExit: (_) => setState(() => _isHovering = false),
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 180),
         curve: Curves.ease,
@@ -695,13 +685,13 @@ class _SidebarItem extends StatelessWidget {
           borderRadius: BorderRadius.circular(5),
         ),
         child: ListTile(
-          leading: icon,
-          title: isOpen
+          leading: widget.icon,
+          title: widget.isOpen
               ? Padding(
                   padding: const EdgeInsets.only(left: space10),
                   child: Text(
-                    label,
-                    style: small.copyWith(fontWeight: FontWeight.bold, color: textPrimary),
+                    widget.label,
+                    style: small.copyWith(fontWeight: FontWeight.bold, color: textColor),
                     overflow: TextOverflow.ellipsis,
                     softWrap: false,
                   ),
@@ -709,7 +699,77 @@ class _SidebarItem extends StatelessWidget {
               : null,
           minLeadingWidth: 0,
           horizontalTitleGap: 0,
-          onTap: onTap,
+          dense: true,
+          contentPadding: const EdgeInsets.symmetric(vertical: 0, horizontal: 8),
+          onTap: widget.onTap,
+        ),
+      ),
+    );
+  }
+}
+
+class _SidebarParentItemWidget extends StatefulWidget {
+  final Widget icon;
+  final String label;
+  final bool open;
+  final VoidCallback onTap;
+  final bool selected;
+  const _SidebarParentItemWidget({
+    required this.icon,
+    required this.label,
+    required this.open,
+    required this.onTap,
+    this.selected = false,
+  });
+
+  @override
+  State<_SidebarParentItemWidget> createState() => _SidebarParentItemWidgetState();
+}
+
+class _SidebarParentItemWidgetState extends State<_SidebarParentItemWidget> {
+  bool _isHovering = false;
+
+  @override
+  Widget build(BuildContext context) {
+    Color textColor = textThird;
+    if (widget.open || widget.selected) {
+      textColor = primaryBlue;
+    } else if (_isHovering) {
+      textColor = textActive;
+    }
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+      child: MouseRegion(
+        onEnter: (_) => setState(() => _isHovering = true),
+        onExit: (_) => setState(() => _isHovering = false),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 180),
+          curve: Curves.ease,
+          decoration: BoxDecoration(
+            color: (widget.open || widget.selected) ? primaryBlue.withOpacity(0.08) : Colors.transparent,
+            borderRadius: BorderRadius.circular(5),
+          ),
+          child: ListTile(
+            leading: widget.icon,
+            title: Padding(
+              padding: const EdgeInsets.only(left: space10),
+              child: Text(
+                widget.label,
+                style: small.copyWith(
+                  fontWeight: (widget.open || widget.selected) ? FontWeight.bold : FontWeight.normal,
+                  color: textColor,
+                ),
+                overflow: TextOverflow.ellipsis,
+                softWrap: false,
+              ),
+            ),
+            trailing: Icon(widget.open ? Icons.expand_less : Icons.expand_more, color: textSecondary, size: 20),
+            minLeadingWidth: 0,
+            horizontalTitleGap: 0,
+            dense: true,
+            contentPadding: const EdgeInsets.symmetric(vertical: 0, horizontal: 8),
+            onTap: widget.onTap,
+          ),
         ),
       ),
     );

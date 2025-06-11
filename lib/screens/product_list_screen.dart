@@ -5,7 +5,7 @@ import 'package:intl/intl.dart' show NumberFormat;
 import '../widgets/main_layout.dart';
 import 'products/product_detail_screen.dart';
 import 'package:file_picker/file_picker.dart';
-import 'package:excel/excel.dart' as ex;
+import 'package:excel/excel.dart' as excel;
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:csv/csv.dart';
 import 'dart:convert';
@@ -353,8 +353,8 @@ class _ProductListScreenState extends State<ProductListScreen> {
         print('Tổng số sản phẩm hợp lệ được import: ${products.length}');
       } else {
         // Xử lý file Excel
-        final excel = ex.Excel.decodeBytes(bytes);
-        final sheet = excel.tables[excel.tables.keys.first];
+        final excelFile = excel.Excel.decodeBytes(bytes);
+        final sheet = excelFile.tables[excelFile.tables.keys.first];
         if (sheet == null) throw 'Sheet không hợp lệ';
         
         final headers = sheet.rows.first.map((cell) => cell?.value.toString().trim().toLowerCase() ?? '').toList();
@@ -469,8 +469,8 @@ class _ProductListScreenState extends State<ProductListScreen> {
   }
 
   Future<void> _exportProductsToExcel(List<Product> products) async {
-    final excel = ex.Excel.createExcel();
-    final sheet = excel['Sheet1'];
+    final excelFile = excel.Excel.createExcel();
+    final sheet = excelFile['Sheet1'];
     // Header tiếng Việt
     final headers = [
       'Tên nội bộ',
@@ -491,29 +491,29 @@ class _ProductListScreenState extends State<ProductListScreen> {
       'Ngày tạo',
       'Ngày cập nhật',
     ];
-    sheet.appendRow(headers);
+    sheet.appendRow(headers.map((h) => excel.TextCellValue(h)).toList());
     for (final p in products) {
       sheet.appendRow([
-        p.name,
-        p.commonName,
-        p.category,
-        p.barcode ?? '',
-        p.sku ?? '',
-        p.unit,
-        p.tags.join(', '),
-        p.description,
-        p.usage,
-        p.ingredients,
-        p.notes,
-        p.stock,
-        p.importPrice,
-        p.salePrice,
-        p.isActive ? 'Còn bán' : 'Ngừng bán',
-        p.createdAt.toString(),
-        p.updatedAt.toString(),
+        excel.TextCellValue(p.name),
+        excel.TextCellValue(p.commonName),
+        excel.TextCellValue(p.category),
+        excel.TextCellValue(p.barcode ?? ''),
+        excel.TextCellValue(p.sku ?? ''),
+        excel.TextCellValue(p.unit),
+        excel.TextCellValue(p.tags.join(', ')),
+        excel.TextCellValue(p.description),
+        excel.TextCellValue(p.usage),
+        excel.TextCellValue(p.ingredients),
+        excel.TextCellValue(p.notes),
+        excel.IntCellValue(p.stock),
+        excel.DoubleCellValue(p.importPrice),
+        excel.DoubleCellValue(p.salePrice),
+        excel.TextCellValue(p.isActive ? 'Còn bán' : 'Ngừng bán'),
+        excel.TextCellValue(p.createdAt.toString()),
+        excel.TextCellValue(p.updatedAt.toString()),
       ]);
     }
-    final fileBytes = excel.encode()!;
+    final fileBytes = excelFile.encode()!;
     final fileName = 'products_export_${DateTime.now().millisecondsSinceEpoch}.xlsx';
     final blob = html.Blob([fileBytes], 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
     final url = html.Url.createObjectUrlFromBlob(blob);
@@ -663,8 +663,8 @@ class _ProductListScreenState extends State<ProductListScreen> {
                                 final content = String.fromCharCodes(file.bytes!);
                                 rows = const CsvToListConverter(eol: '\n', shouldParseNumbers: false).convert(content);
                               } else if (file.extension == 'xlsx') {
-                                final excel = ex.Excel.decodeBytes(file.bytes!);
-                                final sheet = excel.tables[excel.tables.keys.first];
+                                final excelFile = excel.Excel.decodeBytes(file.bytes!);
+                                final sheet = excelFile.tables[excelFile.tables.keys.first];
                                 if (sheet != null) {
                                   rows = sheet.rows.map((r) => r.map((c) => c?.value?.toString() ?? '').toList()).toList();
                                 }
@@ -1413,21 +1413,21 @@ class _ProductListScreenState extends State<ProductListScreen> {
                                                     flex: 5,
                                                     child: Align(
                                                       alignment: Alignment.centerLeft,
-                                                      child: Text('Tên sản phẩm', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: textSecondary, fontFamily: 'Inter')),
+                                                      child: Text('Tên sản phẩm', style: labelLarge.copyWith(fontWeight: FontWeight.w700)),
                                                     ),
                                                   ),
                                                   Expanded(
                                                     flex: 2,
                                                     child: Align(
                                                       alignment: Alignment.center,
-                                                      child: Text('Mã vạch', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: textSecondary, fontFamily: 'Inter')),
+                                                      child: Text('Mã vạch', style: body.copyWith(color: Colors.grey[600])),
                                                     ),
                                                   ),
                                                   Expanded(
                                                     flex: 2,
                                                     child: Align(
                                                       alignment: Alignment.center,
-                                                      child: Text('Số lượng', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: textSecondary, fontFamily: 'Inter')),
+                                                      child: Text('Số lượng', style: labelMedium.copyWith(fontWeight: FontWeight.w600)),
                                                     ),
                                                   ),
                                                 ],
@@ -1511,11 +1511,11 @@ class _ProductListScreenState extends State<ProductListScreen> {
                                                           child: Column(
                                                             crossAxisAlignment: CrossAxisAlignment.start,
                                                             children: [
-                                                              Text(product.name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, fontFamily: 'Inter')),
+                                                              Text(product.name, style: labelLarge.copyWith(fontWeight: FontWeight.w700)),
                                                               if (product.commonName.isNotEmpty)
                                                                 Padding(
                                                                   padding: const EdgeInsets.only(top: 2),
-                                                                  child: Text(product.commonName, style: TextStyle(fontSize: 14, color: textThird , fontWeight: FontWeight.w400, fontFamily: 'Inter')),
+                                                                  child: Text(product.commonName, style: body.copyWith(color: textThird)),
                                                                 ),
                                                             ],
                                                           ),
@@ -1525,14 +1525,14 @@ class _ProductListScreenState extends State<ProductListScreen> {
                                                         flex: 2,
                                                         child: Align(
                                                           alignment: Alignment.center,
-                                                          child: Text(product.barcode ?? '-', style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 14, fontFamily: 'Inter')),
+                                                          child: Text(product.barcode ?? '-', style: body.copyWith(color: textSecondary)),
                                                         ),
                                                       ),
                                                       Expanded(
                                                         flex: 2,
                                                         child: Align(
                                                           alignment: Alignment.center,
-                                                          child: Text('${product.stock}', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, fontFamily: 'Inter')),
+                                                          child: Text('${product.stock}', style: labelMedium.copyWith(fontWeight: FontWeight.w600)),
                                                         ),
                                                       ),
                                                     ],
