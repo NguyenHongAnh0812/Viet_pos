@@ -64,6 +64,7 @@ class ProductListScreen extends StatefulWidget {
   final RangeValues? filterStockRange;
   final String? filterStatus;
   final Set<String>? filterTags;
+  final Stream<List<Product>>? productStream;
   const ProductListScreen({
     super.key,
     this.onProductTap,
@@ -74,6 +75,7 @@ class ProductListScreen extends StatefulWidget {
     this.filterStockRange,
     this.filterStatus,
     this.filterTags,
+    this.productStream,
   });
 
   @override
@@ -1241,7 +1243,7 @@ class _ProductListScreenState extends State<ProductListScreen> {
                       Padding(
                         padding: const EdgeInsets.only(left: 16.0, right: 16.0, bottom: 80.0),
                         child: StreamBuilder<List<Product>>(
-                          stream: _productService.getProducts(),
+                          stream: widget.productStream ?? _productService.getProducts(),
                           builder: (context, snapshot) {
                             if (snapshot.hasError) {
                               return Center(child: Text('Lỗi: ${snapshot.error}'));

@@ -12,6 +12,7 @@ import '../screens/inventory_history_screen.dart';
 import 'common/design_system.dart';
 import '../screens/style_guide_screen.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import '../services/product_service.dart';
 
 // Định nghĩa enum cho các trang
 enum MainPage { dashboard, productList, productCategory, addProduct, inventory, report, settings, productDetail, lowStockProducts, addProductCategory, inventoryHistory, styleGuide }
@@ -44,6 +45,15 @@ class _MainLayoutState extends State<MainLayout> {
   RangeValues stockRange = const RangeValues(0, 99999);
   String status = 'Tất cả';
   Set<String> selectedTags = {};
+
+  // Thêm biến stream sản phẩm
+  late final Stream<List<Product>> _productStream;
+
+  @override
+  void initState() {
+    super.initState();
+    _productStream = ProductService().getProducts();
+  }
 
   void _toggleSidebar() {
     setState(() {
@@ -360,6 +370,7 @@ class _MainLayoutState extends State<MainLayout> {
           filterStockRange: stockRange,
           filterStatus: status,
           filterTags: selectedTags,
+          productStream: _productStream,
         );
       case MainPage.productCategory:
         return ProductCategoryScreen(
