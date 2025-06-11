@@ -64,7 +64,8 @@ class ProductListScreen extends StatefulWidget {
   final RangeValues? filterStockRange;
   final String? filterStatus;
   final Set<String>? filterTags;
-  final Stream<List<Product>>? productStream;
+  final List<Product>? allProducts;
+  final bool isLoadingProducts;
   const ProductListScreen({
     super.key,
     this.onProductTap,
@@ -75,7 +76,8 @@ class ProductListScreen extends StatefulWidget {
     this.filterStockRange,
     this.filterStatus,
     this.filterTags,
-    this.productStream,
+    this.allProducts,
+    this.isLoadingProducts = false,
   });
 
   @override
@@ -580,6 +582,22 @@ class _ProductListScreenState extends State<ProductListScreen> {
     super.initState();
     // Reset filter về mặc định mỗi lần vào màn hình
     searchText = '';
+  }
+
+  @override
+  void didUpdateWidget(covariant ProductListScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.filterCategory != oldWidget.filterCategory ||
+        widget.filterPriceRange != oldWidget.filterPriceRange ||
+        widget.filterStockRange != oldWidget.filterStockRange ||
+        widget.filterStatus != oldWidget.filterStatus ||
+        widget.filterTags != oldWidget.filterTags) {
+      setState(() {
+        searchText = '';
+        sortOption = 'name_asc';
+        // reset các biến local khác nếu cần
+      });
+    }
   }
 
   Future<void> _showImportDialog() async {
@@ -1242,16 +1260,12 @@ class _ProductListScreenState extends State<ProductListScreen> {
                       // Product List and Filter/Sort Row together in StreamBuilder
                       Padding(
                         padding: const EdgeInsets.only(left: 16.0, right: 16.0, bottom: 80.0),
-                        child: StreamBuilder<List<Product>>(
-                          stream: widget.productStream ?? _productService.getProducts(),
-                          builder: (context, snapshot) {
-                            if (snapshot.hasError) {
-                              return Center(child: Text('Lỗi: ${snapshot.error}'));
-                            }
-                            if (snapshot.connectionState == ConnectionState.waiting) {
+                        child: Builder(
+                          builder: (context) {
+                            if (widget.isLoadingProducts) {
                               return const Center(child: CircularProgressIndicator());
                             }
-                            final products = snapshot.data ?? [];
+                            final products = widget.allProducts ?? [];
                             // Cập nhật filter ranges khi có dữ liệu mới
                             updateFilterRanges(products);
                             final filteredProducts = filterProducts(products);
@@ -1519,31 +1533,21 @@ class _ProductListScreenState extends State<ProductListScreen> {
                                                         flex: 5,
                                                         child: Align(
                                                           alignment: Alignment.centerLeft,
-                                                          child: Column(
-                                                            crossAxisAlignment: CrossAxisAlignment.start,
-                                                            children: [
-                                                              Text(product.name, style: labelLarge.copyWith(fontWeight: FontWeight.w700)),
-                                                              if (product.commonName.isNotEmpty)
-                                                                Padding(
-                                                                  padding: const EdgeInsets.only(top: 2),
-                                                                  child: Text(product.commonName, style: body.copyWith(color: textThird)),
-                                                                ),
-                                                            ],
-                                                          ),
+                                                          child: Text(product.name, style: bodyLarge.copyWith(fontWeight: FontWeight.w600)),
                                                         ),
                                                       ),
                                                       Expanded(
                                                         flex: 2,
                                                         child: Align(
                                                           alignment: Alignment.center,
-                                                          child: Text(product.barcode ?? '-', style: body.copyWith(color: textSecondary)),
+                                                          child: Text(product.barcode ?? '-', style: body),
                                                         ),
                                                       ),
                                                       Expanded(
                                                         flex: 2,
                                                         child: Align(
                                                           alignment: Alignment.center,
-                                                          child: Text('${product.stock}', style: labelMedium.copyWith(fontWeight: FontWeight.w600)),
+                                                          child: Text('${product.stock}', style: body),
                                                         ),
                                                       ),
                                                     ],

@@ -46,13 +46,23 @@ class _MainLayoutState extends State<MainLayout> {
   String status = 'Tất cả';
   Set<String> selectedTags = {};
 
-  // Thêm biến stream sản phẩm
-  late final Stream<List<Product>> _productStream;
+  // Key để rebuild ProductListScreen
+  int productListKey = 0;
+
+  // State cho data sản phẩm
+  List<Product>? allProducts;
+  bool isLoadingProducts = true;
 
   @override
   void initState() {
     super.initState();
-    _productStream = ProductService().getProducts();
+    fetchProducts();
+  }
+
+  void fetchProducts() async {
+    setState(() => isLoadingProducts = true);
+    allProducts = await ProductService().getProducts().first;
+    setState(() => isLoadingProducts = false);
   }
 
   void _toggleSidebar() {
@@ -123,6 +133,10 @@ class _MainLayoutState extends State<MainLayout> {
 
   void _onSidebarTap(MainPage page) {
     setState(() {
+      // Nếu chuyển sang trang danh sách sản phẩm thì reset filter
+      if (page == MainPage.productList) {
+        _resetFilter();
+      }
       _previousPage = _currentPage;
       _currentPage = page;
       // Đóng sidebar nếu là mobile
@@ -167,8 +181,10 @@ class _MainLayoutState extends State<MainLayout> {
   // Điều hướng mở lại danh sách sản phẩm
   void _openProductList() {
     setState(() {
+      _resetFilter();
       _currentPage = MainPage.productList;
       _selectedProduct = null;
+      productListKey++;
     });
   }
 
@@ -318,32 +334,35 @@ class _MainLayoutState extends State<MainLayout> {
           Positioned.fill(
             child: GestureDetector(
               onTap: _closeFilterSidebar,
-              child: Container(color: Colors.black.withOpacity(0.3)),
+              child: Container(color: Colors.black.withOpacity(0.8)),
             ),
           ),
-          AnimatedPositioned(
-            duration: const Duration(milliseconds: 600),
-            curve: Curves.easeInOutCubic,
-            top: 0,
-            bottom: 0,
-            right: isFilterSidebarOpen ? 0 : -360,
-            width: 340,
-            child: Material(
-              elevation: 8,
-              color: Colors.white,
-              borderRadius: const BorderRadius.only(topLeft: Radius.circular(12), bottomLeft: Radius.circular(12)),
-              child: SafeArea(
-                child: FilterSidebarContent(
-                  onClose: _closeFilterSidebar,
-                  categories: categories,
-                  tags: tags,
-                  selectedCategory: selectedCategory,
-                  priceRange: priceRange,
-                  stockRange: stockRange,
-                  status: status,
-                  selectedTags: selectedTags,
-                  onApply: _applyFilter,
-                  onReset: _resetFilter,
+          AnimatedSlide(
+            offset: isFilterSidebarOpen ? Offset(0, 0) : Offset(1, 0),
+            duration: const Duration(milliseconds: 300),
+            curve: Curves.ease,
+            child: Align(
+              alignment: Alignment.centerRight,
+              child: SizedBox(
+                width: 340,
+                child: Material(
+                  elevation: 8,
+                  color: Colors.white,
+                  borderRadius: const BorderRadius.only(topLeft: Radius.circular(0), bottomLeft: Radius.circular(0)),
+                  child: SafeArea(
+                    child: FilterSidebarContent(
+                      onClose: _closeFilterSidebar,
+                      categories: categories,
+                      tags: tags,
+                      selectedCategory: selectedCategory,
+                      priceRange: priceRange,
+                      stockRange: stockRange,
+                      status: status,
+                      selectedTags: selectedTags,
+                      onApply: _applyFilter,
+                      onReset: _resetFilter,
+                    ),
+                  ),
                 ),
               ),
             ),
@@ -362,6 +381,7 @@ class _MainLayoutState extends State<MainLayout> {
         );
       case MainPage.productList:
         return ProductListScreen(
+          key: ValueKey('product-list-$productListKey'),
           onProductTap: _openProductDetail,
           onNavigate: _onSidebarTap,
           onOpenFilterSidebar: _openFilterSidebar,
@@ -370,7 +390,8 @@ class _MainLayoutState extends State<MainLayout> {
           filterStockRange: stockRange,
           filterStatus: status,
           filterTags: selectedTags,
-          productStream: _productStream,
+          allProducts: allProducts,
+          isLoadingProducts: isLoadingProducts,
         );
       case MainPage.productCategory:
         return ProductCategoryScreen(

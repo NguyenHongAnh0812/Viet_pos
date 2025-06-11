@@ -1828,22 +1828,21 @@ class _FilterSidebarContentState extends State<FilterSidebarContent> {
             ],
           ),
         ),
-        const Divider(height: 1),
         Expanded(
           child: SingleChildScrollView(
             padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const SizedBox(height: 16),
+                const SizedBox(height: 6),
                 Text('Danh mục sản phẩm', style: labelLarge),
                 const SizedBox(height: 8),
-                DesignSystemSelect<String>(
+                ShopifyDropdown<String>(
+                  items: widget.categories,
                   value: selectedCategory,
-                  options: widget.categories,
                   getLabel: (c) => c,
                   onChanged: (val) => setState(() => selectedCategory = val ?? 'Tất cả'),
-                  placeholder: 'Chọn danh mục',
+                  hint: 'Chọn danh mục',
                 ),
                 const SizedBox(height: 24),
                 Text('Khoảng giá', style: labelLarge),
@@ -1899,19 +1898,25 @@ class _FilterSidebarContentState extends State<FilterSidebarContent> {
                 Wrap(
                   spacing: 8,
                   runSpacing: 8,
-                  children: widget.tags.map((tag) => FilterChip(
-                    label: Text(tag, style: bodySmall),
-                    selected: selectedTags.contains(tag),
-                    onSelected: (v) => setState(() {
-                      if (v) {
-                        selectedTags.add(tag);
-                      } else {
-                        selectedTags.remove(tag);
-                      }
-                    }),
-                    selectedColor: primaryBlue.withOpacity(0.12),
-                    checkmarkColor: primaryBlue,
-                  )).toList(),
+                  children: widget.tags.map((tag) {
+                    final isSelected = selectedTags.contains(tag);
+                    return GestureDetector(
+                      onTap: () => setState(() {
+                        if (isSelected) {
+                          selectedTags.remove(tag);
+                        } else {
+                          selectedTags.add(tag);
+                        }
+                      }),
+                      child: DesignSystemBadge(
+                        text: tag,
+                        variant: isSelected ? BadgeVariant.secondary : BadgeVariant.outline,
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                        fontSize: 13,
+                        borderRadius: 16,
+                      ),
+                    );
+                  }).toList(),
                 ),
                 const SizedBox(height: 32),
                 Row(
