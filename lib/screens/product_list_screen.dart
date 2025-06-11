@@ -58,7 +58,23 @@ class BlueBorderThumbShape extends RoundSliderThumbShape {
 class ProductListScreen extends StatefulWidget {
   final Function(Product)? onProductTap;
   final Function(MainPage)? onNavigate;
-  const ProductListScreen({super.key, this.onProductTap, this.onNavigate});
+  final VoidCallback? onOpenFilterSidebar;
+  final String? filterCategory;
+  final RangeValues? filterPriceRange;
+  final RangeValues? filterStockRange;
+  final String? filterStatus;
+  final Set<String>? filterTags;
+  const ProductListScreen({
+    super.key,
+    this.onProductTap,
+    this.onNavigate,
+    this.onOpenFilterSidebar,
+    this.filterCategory,
+    this.filterPriceRange,
+    this.filterStockRange,
+    this.filterStatus,
+    this.filterTags,
+  });
 
   @override
   State<ProductListScreen> createState() => _ProductListScreenState();
@@ -67,13 +83,13 @@ class ProductListScreen extends StatefulWidget {
 class _ProductListScreenState extends State<ProductListScreen> {
   final _productService = ProductService();
   final TextEditingController _searchController = TextEditingController();
-  String selectedCategory = 'Tất cả';
-  RangeValues priceRange = const RangeValues(0, 1000000);
-  RangeValues stockRange = const RangeValues(0, 99999);
-  String status = 'Tất cả';
-  Set<String> selectedTags = {};
+  String get selectedCategory => widget.filterCategory ?? 'Tất cả';
+  RangeValues get priceRange => widget.filterPriceRange ?? const RangeValues(0, 1000000);
+  RangeValues get stockRange => widget.filterStockRange ?? const RangeValues(0, 99999);
+  String get status => widget.filterStatus ?? 'Tất cả';
+  Set<String> get selectedTags => widget.filterTags ?? {};
   String searchText = '';
-  bool isFilterOpen = false;
+  bool isFilterSidebarOpen = false;
   String sortOption = 'name_asc';
   int minStock = 0;
   int maxStock = 99999;
@@ -551,8 +567,6 @@ class _ProductListScreenState extends State<ProductListScreen> {
             maxStock = newMaxStock;
             minPrice = newMinPrice;
             maxPrice = newMaxPrice;
-            stockRange = RangeValues(minStock.toDouble(), maxStock.toDouble());
-            priceRange = RangeValues(minPrice, maxPrice);
           });
         });
       }
@@ -563,11 +577,6 @@ class _ProductListScreenState extends State<ProductListScreen> {
   void initState() {
     super.initState();
     // Reset filter về mặc định mỗi lần vào màn hình
-    selectedCategory = 'Tất cả';
-    status = 'Tất cả';
-    selectedTags = {};
-    priceRange = const RangeValues(0, 1000000);
-    stockRange = const RangeValues(0, 99999);
     searchText = '';
   }
 
@@ -1241,6 +1250,8 @@ class _ProductListScreenState extends State<ProductListScreen> {
                               return const Center(child: CircularProgressIndicator());
                             }
                             final products = snapshot.data ?? [];
+                            // Cập nhật filter ranges khi có dữ liệu mới
+                            updateFilterRanges(products);
                             final filteredProducts = filterProducts(products);
                             final sortedProducts = sortProducts(filteredProducts);
                             final isMobile = MediaQuery.of(context).size.width < 600;
@@ -1263,9 +1274,7 @@ class _ProductListScreenState extends State<ProductListScreen> {
                                       ),
                                       const Spacer(),
                                       OutlinedButton.icon(
-                                        onPressed: () {
-                                          setState(() => isFilterOpen = !isFilterOpen);
-                                        },
+                                        onPressed: widget.onOpenFilterSidebar,
                                         icon: const Icon(Icons.filter_alt_outlined),
                                         label: const Text('Bộ lọc'),
                                         style: secondaryButtonStyle,

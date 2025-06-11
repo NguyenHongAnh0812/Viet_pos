@@ -28,6 +28,7 @@ const Color sidebarForeground = Color(0xFF1E1E1E);
 const Color sidebarPrimary = Color(0xFF3A6FF8);
 const Color sidebarAccent = Color(0xFFF1F3F6);
 const Color sidebarBorder = Color(0xFFE4E4E7);
+const Color sidebarHoverBackground = Color(0xFFF3F4F6); // sidebar hover background
 
 // Status colors
 const Color successGreen = Color(0xFF67C687);
@@ -1740,4 +1741,242 @@ class _ShopifyDropdownItemState<T> extends State<_ShopifyDropdownItem<T>> {
       ),
     );
   }
+}
+
+class FilterSidebarContent extends StatefulWidget {
+  final VoidCallback? onClose;
+  final List<String> categories;
+  final List<String> tags;
+  final String selectedCategory;
+  final RangeValues priceRange;
+  final RangeValues stockRange;
+  final String status;
+  final Set<String> selectedTags;
+  final void Function({required String category, required RangeValues price, required RangeValues stock, required String statusValue, required Set<String> tagsValue}) onApply;
+  final VoidCallback onReset;
+  const FilterSidebarContent({
+    Key? key,
+    this.onClose,
+    required this.categories,
+    required this.tags,
+    required this.selectedCategory,
+    required this.priceRange,
+    required this.stockRange,
+    required this.status,
+    required this.selectedTags,
+    required this.onApply,
+    required this.onReset,
+  }) : super(key: key);
+
+  @override
+  State<FilterSidebarContent> createState() => _FilterSidebarContentState();
+}
+
+class _FilterSidebarContentState extends State<FilterSidebarContent> {
+  late String selectedCategory;
+  late RangeValues priceRange;
+  late RangeValues stockRange;
+  late String status;
+  late Set<String> selectedTags;
+
+  @override
+  void initState() {
+    super.initState();
+    selectedCategory = widget.selectedCategory;
+    priceRange = widget.priceRange;
+    stockRange = widget.stockRange;
+    status = widget.status;
+    selectedTags = Set<String>.from(widget.selectedTags);
+  }
+
+  void _reset() {
+    setState(() {
+      selectedCategory = 'Tất cả';
+      priceRange = const RangeValues(3000, 375000);
+      stockRange = const RangeValues(50, 500);
+      status = 'Tất cả';
+      selectedTags.clear();
+    });
+    widget.onReset();
+  }
+
+  void _apply() {
+    widget.onApply(
+      category: selectedCategory,
+      price: priceRange,
+      stock: stockRange,
+      statusValue: status,
+      tagsValue: selectedTags,
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text('Bộ lọc sản phẩm', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20)),
+              IconButton(
+                icon: const Icon(Icons.close),
+                onPressed: widget.onClose,
+              ),
+            ],
+          ),
+        ),
+        const Divider(height: 1),
+        Expanded(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const SizedBox(height: 16),
+                Text('Danh mục sản phẩm', style: labelLarge),
+                const SizedBox(height: 8),
+                DesignSystemSelect<String>(
+                  value: selectedCategory,
+                  options: widget.categories,
+                  getLabel: (c) => c,
+                  onChanged: (val) => setState(() => selectedCategory = val ?? 'Tất cả'),
+                  placeholder: 'Chọn danh mục',
+                ),
+                const SizedBox(height: 24),
+                Text('Khoảng giá', style: labelLarge),
+                const SizedBox(height: 8),
+                // Tạm thời ẩn range slider
+                // designSystemRangeSlider(
+                //   context: context,
+                //   values: priceRange,
+                //   min: 3000,
+                //   max: 375000,
+                //   divisions: 100,
+                //   onChanged: (v) => setState(() => priceRange = v),
+                // ),
+                // Row(
+                //   mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                //   children: [
+                //     Text('${priceRange.start.toStringAsFixed(0)}đ', style: caption),
+                //     Text('${priceRange.end.toStringAsFixed(0)}đ', style: caption),
+                //   ],
+                // ),
+                const SizedBox(height: 24),
+                Text('Tồn kho', style: labelLarge),
+                const SizedBox(height: 8),
+                // Tạm thời ẩn range slider
+                // designSystemRangeSlider(
+                //   context: context,
+                //   values: stockRange,
+                //   min: 50,
+                //   max: 500,
+                //   divisions: 50,
+                //   onChanged: (v) => setState(() => stockRange = v),
+                // ),
+                // Row(
+                //   mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                //   children: [
+                //     Text('${stockRange.start.toInt()}', style: caption),
+                //     Text('${stockRange.end.toInt()}', style: caption),
+                //   ],
+                // ),
+                const SizedBox(height: 24),
+                Text('Trạng thái sản phẩm', style: labelLarge),
+                const SizedBox(height: 8),
+                DesignSystemRadioGroup<String>(
+                  options: const ['Tất cả', 'Còn bán', 'Ngừng bán'],
+                  value: status,
+                  getLabel: (s) => s,
+                  onChanged: (v) => setState(() => status = v ?? 'Tất cả'),
+                  direction: Axis.vertical,
+                ),
+                const SizedBox(height: 24),
+                Text('Tags', style: labelLarge),
+                const SizedBox(height: 8),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: widget.tags.map((tag) => FilterChip(
+                    label: Text(tag, style: bodySmall),
+                    selected: selectedTags.contains(tag),
+                    onSelected: (v) => setState(() {
+                      if (v) {
+                        selectedTags.add(tag);
+                      } else {
+                        selectedTags.remove(tag);
+                      }
+                    }),
+                    selectedColor: primaryBlue.withOpacity(0.12),
+                    checkmarkColor: primaryBlue,
+                  )).toList(),
+                ),
+                const SizedBox(height: 32),
+                Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton(
+                        onPressed: _reset,
+                        child: const Text('Xóa bộ lọc'),
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: ElevatedButton(
+                        onPressed: _apply,
+                        style: primaryButtonStyle,
+                        child: const Text('Áp dụng'),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+// ===================== RANGE SLIDER =====================
+Widget designSystemRangeSlider({
+  required BuildContext context,
+  required RangeValues values,
+  required double min,
+  required double max,
+  required ValueChanged<RangeValues> onChanged,
+  int? divisions,
+  String? label,
+  Color? activeColor,
+  Color? inactiveColor,
+  double trackHeight = 4,
+  double thumbRadius = 10,
+  double overlayRadius = 18,
+}) {
+  return SliderTheme(
+    data: SliderTheme.of(context).copyWith(
+      activeTrackColor: activeColor ?? primaryBlue,
+      inactiveTrackColor: inactiveColor ?? borderColor,
+      trackHeight: trackHeight,
+      rangeThumbShape: RoundRangeSliderThumbShape(enabledThumbRadius: thumbRadius),
+      overlayShape: RoundSliderOverlayShape(overlayRadius: overlayRadius),
+      thumbColor: activeColor ?? primaryBlue,
+      overlayColor: (activeColor ?? primaryBlue).withOpacity(0.12),
+      valueIndicatorColor: activeColor ?? primaryBlue,
+      tickMarkShape: const RoundSliderTickMarkShape(),
+      activeTickMarkColor: borderColor,
+      inactiveTickMarkColor: borderColor.withOpacity(0.5),
+    ),
+    child: RangeSlider(
+      values: values,
+      min: min,
+      max: max,
+      divisions: divisions,
+      labels: label != null ? RangeLabels(label, label) : null,
+      onChanged: onChanged,
+    ),
+  );
 }

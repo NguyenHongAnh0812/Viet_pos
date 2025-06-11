@@ -30,11 +30,85 @@ class _MainLayoutState extends State<MainLayout> {
   MainPage _currentPage = MainPage.dashboard;
   MainPage? _previousPage;
   Product? _selectedProduct;
+  bool isFilterSidebarOpen = false;
+
+  // Filter state
+  List<String> categories = ['Tất cả', 'Kháng sinh', 'Vitamin', 'Bổ sung', 'NSAID'];
+  List<String> tags = [
+    'antibiotic', 'prescription', 'vitamin', 'supplement', 'flea', 'tick', 'pet care',
+    'dewormer', 'injection', 'livestock', 'pain relief', 'anti-inflammatory',
+    'anesthetic', 'sedative', 'veterinary', 'analgesic', 'parasiticide', 'poultry'
+  ];
+  String selectedCategory = 'Tất cả';
+  RangeValues priceRange = const RangeValues(0, 1000000);
+  RangeValues stockRange = const RangeValues(0, 99999);
+  String status = 'Tất cả';
+  Set<String> selectedTags = {};
 
   void _toggleSidebar() {
     setState(() {
       _sidebarOpen = !_sidebarOpen;
     });
+  }
+
+  void _openFilterSidebar() {
+    setState(() {
+      isFilterSidebarOpen = true;
+    });
+  }
+
+  void _closeFilterSidebar() {
+    setState(() {
+      isFilterSidebarOpen = false;
+    });
+  }
+
+  void _applyFilter({
+    required String category,
+    required RangeValues price,
+    required RangeValues stock,
+    required String statusValue,
+    required Set<String> tagsValue,
+  }) {
+    setState(() {
+      selectedCategory = category;
+      priceRange = price;
+      stockRange = stock;
+      status = statusValue;
+      selectedTags = tagsValue;
+      isFilterSidebarOpen = false;
+    });
+  }
+
+  void _resetFilter() {
+    setState(() {
+      selectedCategory = 'Tất cả';
+      priceRange = const RangeValues(0, 1000000);
+      stockRange = const RangeValues(0, 99999);
+      status = 'Tất cả';
+      selectedTags.clear();
+    });
+  }
+
+  // Thêm hàm mới để cập nhật filter ranges
+  void updateFilterRanges(List<Product> products) {
+    if (products.isNotEmpty) {
+      int newMinStock = products.map((p) => p.stock).reduce((a, b) => a < b ? a : b);
+      int newMaxStock = products.map((p) => p.stock).reduce((a, b) => a > b ? a : b);
+      double newMinPrice = products.map((p) => p.salePrice).reduce((a, b) => a < b ? a : b);
+      double newMaxPrice = products.map((p) => p.salePrice).reduce((a, b) => a > b ? a : b);
+
+      // Clamp lại giá trị filter hiện tại để không vượt quá min/max mới
+      double newStartPrice = priceRange.start.clamp(newMinPrice, newMaxPrice);
+      double newEndPrice = priceRange.end.clamp(newMinPrice, newMaxPrice);
+      double newStartStock = stockRange.start.clamp(newMinStock.toDouble(), newMaxStock.toDouble());
+      double newEndStock = stockRange.end.clamp(newMinStock.toDouble(), newMaxStock.toDouble());
+
+      setState(() {
+        stockRange = RangeValues(newStartStock, newEndStock);
+        priceRange = RangeValues(newStartPrice, newEndPrice);
+      });
+    }
   }
 
   void _onSidebarTap(MainPage page) {
@@ -97,136 +171,175 @@ class _MainLayoutState extends State<MainLayout> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: LayoutBuilder(
-        builder: (context, constraints) {
-          final isMobile = constraints.maxWidth < 1024;
-          if (isMobile) {
-            // MOBILE: Stack + AnimatedSlide
-            return Stack(
-              children: [
-                Column(
+    return Stack(
+      children: [
+        Scaffold(
+          body: LayoutBuilder(
+            builder: (context, constraints) {
+              final isMobile = constraints.maxWidth < 1024;
+              if (isMobile) {
+                // MOBILE: Stack + AnimatedSlide
+                return Stack(
                   children: [
-                    _Header(onMenuPressed: _toggleSidebar),
-                    Expanded(child: _buildMainContent()),
+                    Column(
+                      children: [
+                        _Header(onMenuPressed: _toggleSidebar),
+                        Expanded(child: _buildMainContent()),
+                      ],
+                    ),
+                    if (_sidebarOpen)
+                      GestureDetector(
+                        onTap: _toggleSidebar,
+                        child: Container(color: Colors.black.withOpacity(0.3)),
+                      ),
+                    AnimatedSlide(
+                      offset: _sidebarOpen ? Offset(0, 0) : Offset(-1, 0),
+                      duration: const Duration(milliseconds: 300),
+                      curve: Curves.ease,
+                      child: SizedBox(
+                        width: 290,
+                        child: _Sidebar(
+                          isOpen: true,
+                          currentPage: _currentPage,
+                          onItemTap: _onSidebarTap,
+                        ),
+                      ),
+                    ),
                   ],
-                ),
-                if (_sidebarOpen)
-                  GestureDetector(
-                    onTap: _toggleSidebar,
-                    child: Container(color: Colors.black.withOpacity(0.3)),
+                );
+              } else {
+                // DESKTOP: Row + AnimatedContainer
+                return Row(
+                  children: [
+                    AnimatedContainer(
+                      duration: const Duration(milliseconds: 300),
+                      width: 290,
+                      child: _Sidebar(
+                        isOpen: true,
+                        currentPage: _currentPage,
+                        onItemTap: _onSidebarTap,
+                      ),
+                    ),
+                    Expanded(
+                      child: Column(
+                        children: [
+                          _Header(onMenuPressed: _toggleSidebar),
+                          Expanded(child: _buildMainContent()),
+                        ],
+                      ),
+                    ),
+                  ],
+                );
+              }
+            },
+          ),
+          bottomNavigationBar: MediaQuery.of(context).size.width < 1024
+              ? Container(
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.04),
+                        blurRadius: 8,
+                        offset: Offset(0, -2),
+                      ),
+                    ],
                   ),
-                AnimatedSlide(
-                  offset: _sidebarOpen ? Offset(0, 0) : Offset(-1, 0),
-                  duration: const Duration(milliseconds: 300),
-                  curve: Curves.ease,
-                  child: SizedBox(
-                    width: 290,
-                    child: _Sidebar(
-                      isOpen: true,
-                      currentPage: _currentPage,
-                      onItemTap: _onSidebarTap,
+                  child: SafeArea(
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 8),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceAround,
+                        children: [
+                          _NavItem(
+                            icon: SvgPicture.asset(
+                              'assets/icons/databoard.svg',
+                              width: 16,
+                              height: 16,
+                            ),
+                            label: 'Trang chủ',
+                            selected: _currentPage == MainPage.dashboard,
+                            onTap: () => _onNavTap(0),
+                          ),
+                          _NavItem(
+                            icon: SvgPicture.asset(
+                              'assets/icons/inventory.svg',
+                              width: 16,
+                              height: 16,
+                            ),
+                            label: 'Kiểm kê',
+                            selected: _currentPage == MainPage.inventory,
+                            onTap: () => _onNavTap(1),
+                          ),
+                          _NavCenterButton(
+                            icon: Icon(Icons.add, size: 24, color: Colors.white,),
+                            label: 'Thêm mới',
+                            onTap: () => _onSidebarTap(MainPage.addProduct),
+                          ),
+                          _NavItem(
+                            icon: SvgPicture.asset(
+                              'assets/icons/products.svg',
+                              width: 16,
+                              height: 16,
+                            ),
+                            label: 'Sản phẩm',
+                            selected: _currentPage == MainPage.productList,
+                            onTap: () => _onNavTap(2),
+                          ),
+                          _NavItem(
+                            icon: SvgPicture.asset(
+                              'assets/icons/report.svg',
+                              width: 16,
+                              height: 16,
+                            ),
+                            label: 'Báo cáo',
+                            selected: _currentPage == MainPage.report,
+                            onTap: () => _onNavTap(3),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
-                ),
-              ],
-            );
-          } else {
-            // DESKTOP: Row + AnimatedContainer
-            return Row(
-              children: [
-                AnimatedContainer(
-                  duration: const Duration(milliseconds: 300),
-                  width: 290,
-                  child: _Sidebar(
-                    isOpen: true,
-                    currentPage: _currentPage,
-                    onItemTap: _onSidebarTap,
-                  ),
-                ),
-                Expanded(
-                  child: Column(
-                    children: [
-                      _Header(onMenuPressed: _toggleSidebar),
-                      Expanded(child: _buildMainContent()),
-                    ],
-                  ),
-                ),
-              ],
-            );
-          }
-        },
-      ),
-      bottomNavigationBar: MediaQuery.of(context).size.width < 1024
-          ? Container(
-              decoration: BoxDecoration(
-                color: Colors.white,
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.04),
-                    blurRadius: 8,
-                    offset: Offset(0, -2),
-                  ),
-                ],
-              ),
+                )
+              : null,
+        ),
+        // Overlay + Sidebar Filter
+        if (isFilterSidebarOpen) ...[
+          Positioned.fill(
+            child: GestureDetector(
+              onTap: _closeFilterSidebar,
+              child: Container(color: Colors.black.withOpacity(0.3)),
+            ),
+          ),
+          AnimatedPositioned(
+            duration: const Duration(milliseconds: 600),
+            curve: Curves.easeInOutCubic,
+            top: 0,
+            bottom: 0,
+            right: isFilterSidebarOpen ? 0 : -360,
+            width: 340,
+            child: Material(
+              elevation: 8,
+              color: Colors.white,
+              borderRadius: const BorderRadius.only(topLeft: Radius.circular(12), bottomLeft: Radius.circular(12)),
               child: SafeArea(
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 8),
-                  child: Row(
-                    
-                    mainAxisAlignment: MainAxisAlignment.spaceAround,
-                    children: [
-                      _NavItem(
-                        icon: SvgPicture.asset(
-                          'assets/icons/databoard.svg',
-                          width: 16,
-                          height: 16,
-                        ),
-                        label: 'Trang chủ',
-                        selected: _currentPage == MainPage.dashboard,
-                        onTap: () => _onNavTap(0),
-                      ),
-                      _NavItem(
-                        icon: SvgPicture.asset(
-                          'assets/icons/inventory.svg',
-                          width: 16,
-                          height: 16,
-                        ),
-                        label: 'Kiểm kê',
-                        selected: _currentPage == MainPage.inventory,
-                        onTap: () => _onNavTap(1),
-                      ),
-                      _NavCenterButton(
-                        icon: Icon(Icons.add, size: 24, color: Colors.white,),
-                        label: 'Thêm mới',
-                        onTap: () => _onSidebarTap(MainPage.addProduct),
-                      ),
-                      _NavItem(
-                        icon: SvgPicture.asset(
-                          'assets/icons/products.svg',
-                          width: 16,
-                          height: 16,
-                        ),
-                        label: 'Sản phẩm',
-                        selected: _currentPage == MainPage.productList,
-                        onTap: () => _onNavTap(2),
-                      ),
-                      _NavItem(
-                        icon: SvgPicture.asset(
-                          'assets/icons/report.svg',
-                          width: 16,
-                          height: 16,
-                        ),
-                        label: 'Báo cáo',
-                        selected: _currentPage == MainPage.report,
-                        onTap: () => _onNavTap(3),
-                      ),
-                    ],
-                  ),
+                child: FilterSidebarContent(
+                  onClose: _closeFilterSidebar,
+                  categories: categories,
+                  tags: tags,
+                  selectedCategory: selectedCategory,
+                  priceRange: priceRange,
+                  stockRange: stockRange,
+                  status: status,
+                  selectedTags: selectedTags,
+                  onApply: _applyFilter,
+                  onReset: _resetFilter,
                 ),
               ),
-            )
-          : null,
+            ),
+          ),
+        ],
+      ],
     );
   }
 
@@ -241,6 +354,12 @@ class _MainLayoutState extends State<MainLayout> {
         return ProductListScreen(
           onProductTap: _openProductDetail,
           onNavigate: _onSidebarTap,
+          onOpenFilterSidebar: _openFilterSidebar,
+          filterCategory: selectedCategory,
+          filterPriceRange: priceRange,
+          filterStockRange: stockRange,
+          filterStatus: status,
+          filterTags: selectedTags,
         );
       case MainPage.productCategory:
         return ProductCategoryScreen(
@@ -673,17 +792,19 @@ class _SidebarItemState extends State<_SidebarItem> {
     } else if (_isHovering) {
       textColor = textActive;
     }
-    return MouseRegion(
-      onEnter: (_) => setState(() => _isHovering = true),
-      onExit: (_) => setState(() => _isHovering = false),
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 180),
-        curve: Curves.ease,
-        margin: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-        decoration: BoxDecoration(
-          color: showHighlight ? primaryBlue.withOpacity(0.08) : Colors.transparent,
-          borderRadius: BorderRadius.circular(5),
-        ),
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+      decoration: BoxDecoration(
+        color: showHighlight
+            ? primaryBlue.withOpacity(0.08)
+            : _isHovering
+                ? sidebarHoverBackground
+                : Colors.transparent,
+        borderRadius: BorderRadius.circular(5),
+      ),
+      child: MouseRegion(
+        onEnter: (_) => setState(() => _isHovering = true),
+        onExit: (_) => setState(() => _isHovering = false),
         child: ListTile(
           leading: widget.icon,
           title: widget.isOpen
@@ -691,7 +812,14 @@ class _SidebarItemState extends State<_SidebarItem> {
                   padding: const EdgeInsets.only(left: space10),
                   child: Text(
                     widget.label,
-                    style: small.copyWith(fontWeight: FontWeight.bold, color: textColor),
+                    style: small.copyWith(
+                      fontWeight: showHighlight ? FontWeight.bold : FontWeight.normal,
+                      color: showHighlight
+                          ? primaryBlue
+                          : _isHovering
+                              ? textActive
+                              : textThird,
+                    ),
                     overflow: TextOverflow.ellipsis,
                     softWrap: false,
                   ),
@@ -702,6 +830,7 @@ class _SidebarItemState extends State<_SidebarItem> {
           dense: true,
           contentPadding: const EdgeInsets.symmetric(vertical: 0, horizontal: 8),
           onTap: widget.onTap,
+          tileColor: Colors.transparent,
         ),
       ),
     );
@@ -737,39 +866,44 @@ class _SidebarParentItemWidgetState extends State<_SidebarParentItemWidget> {
     } else if (_isHovering) {
       textColor = textActive;
     }
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+      decoration: BoxDecoration(
+        color: (widget.open || widget.selected)
+            ? primaryBlue.withOpacity(0.08)
+            : _isHovering
+                ? sidebarHoverBackground
+                : Colors.transparent,
+        borderRadius: BorderRadius.circular(5),
+      ),
       child: MouseRegion(
         onEnter: (_) => setState(() => _isHovering = true),
         onExit: (_) => setState(() => _isHovering = false),
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 180),
-          curve: Curves.ease,
-          decoration: BoxDecoration(
-            color: (widget.open || widget.selected) ? primaryBlue.withOpacity(0.08) : Colors.transparent,
-            borderRadius: BorderRadius.circular(5),
-          ),
-          child: ListTile(
-            leading: widget.icon,
-            title: Padding(
-              padding: const EdgeInsets.only(left: space10),
-              child: Text(
-                widget.label,
-                style: small.copyWith(
-                  fontWeight: (widget.open || widget.selected) ? FontWeight.bold : FontWeight.normal,
-                  color: textColor,
-                ),
-                overflow: TextOverflow.ellipsis,
-                softWrap: false,
+        child: ListTile(
+          leading: widget.icon,
+          title: Padding(
+            padding: const EdgeInsets.only(left: space10),
+            child: Text(
+              widget.label,
+              style: small.copyWith(
+                fontWeight: (widget.open || widget.selected) ? FontWeight.bold : FontWeight.normal,
+                color: (widget.open || widget.selected)
+                    ? primaryBlue
+                    : _isHovering
+                        ? textActive
+                        : textThird,
               ),
+              overflow: TextOverflow.ellipsis,
+              softWrap: false,
             ),
-            trailing: Icon(widget.open ? Icons.expand_less : Icons.expand_more, color: textSecondary, size: 20),
-            minLeadingWidth: 0,
-            horizontalTitleGap: 0,
-            dense: true,
-            contentPadding: const EdgeInsets.symmetric(vertical: 0, horizontal: 8),
-            onTap: widget.onTap,
           ),
+          trailing: Icon(widget.open ? Icons.expand_less : Icons.expand_more, color: textSecondary, size: 20),
+          minLeadingWidth: 0,
+          horizontalTitleGap: 0,
+          dense: true,
+          contentPadding: const EdgeInsets.symmetric(vertical: 0, horizontal: 8),
+          onTap: widget.onTap,
+          tileColor: Colors.transparent,
         ),
       ),
     );
