@@ -110,44 +110,46 @@ TextStyle getInterTextStyle({
   required FontWeight fontWeight,
   Color color = textPrimary,
   double? height,
+  double? letterSpacing,
 }) {
   return GoogleFonts.inter(
     fontSize: fontSize,
     fontWeight: fontWeight,
     color: color,
     height: height,
+    letterSpacing: letterSpacing,
   );
 }
 
 // Heading Styles
-TextStyle get h1 => getInterTextStyle(fontSize: 24, fontWeight: FontWeight.w700, height: 1.2);
-TextStyle get h2 => getInterTextStyle(fontSize: 24, fontWeight: FontWeight.w700, height: 1.2);
-TextStyle get h3 => getInterTextStyle(fontSize: 20, fontWeight: FontWeight.w600, height: 1.4);
-TextStyle get h4 => getInterTextStyle(fontSize: 18, fontWeight: FontWeight.w600, height: 1.4);
+TextStyle get h1 => getInterTextStyle(fontSize: 24, fontWeight: FontWeight.w700, height: 1.2, letterSpacing: 0.0);
+TextStyle get h2 => getInterTextStyle(fontSize: 24, fontWeight: FontWeight.w700, height: 1.2, letterSpacing: 0.0);
+TextStyle get h3 => getInterTextStyle(fontSize: 20, fontWeight: FontWeight.w600, height: 1.4, letterSpacing: 0.0);
+TextStyle get h4 => getInterTextStyle(fontSize: 18, fontWeight: FontWeight.w600, height: 1.4, letterSpacing: 0.0);
 
 // Body Text Styles
-TextStyle get bodyLarge => getInterTextStyle(fontSize: 16, fontWeight: FontWeight.w400, height: 1.5);
-TextStyle get body => getInterTextStyle(fontSize: 14, fontWeight: FontWeight.w400, height: 1.5);
-TextStyle get bodySmall => getInterTextStyle(fontSize: 12, fontWeight: FontWeight.w400, height: 1.4);
+TextStyle get bodyLarge => getInterTextStyle(fontSize: 16, fontWeight: FontWeight.w400, height: 1.5, letterSpacing: 0.0);
+TextStyle get body => getInterTextStyle(fontSize: 14, fontWeight: FontWeight.w400, height: 1.5, letterSpacing: 0.0);
+TextStyle get bodySmall => getInterTextStyle(fontSize: 12, fontWeight: FontWeight.w400, height: 1.4, letterSpacing: 0.0);
 
 // Label Styles
-TextStyle get labelLarge => getInterTextStyle(fontSize: 14, fontWeight: FontWeight.w500, height: 1.4);
-TextStyle get labelMedium => getInterTextStyle(fontSize: 12, fontWeight: FontWeight.w500, height: 1.4);
-TextStyle get labelSmall => getInterTextStyle(fontSize: 11, fontWeight: FontWeight.w500, height: 1.3);
+TextStyle get labelLarge => getInterTextStyle(fontSize: 14, fontWeight: FontWeight.w500, height: 1.4, letterSpacing: 0.0);
+TextStyle get labelMedium => getInterTextStyle(fontSize: 12, fontWeight: FontWeight.w500, height: 1.4, letterSpacing: 0.0);
+TextStyle get labelSmall => getInterTextStyle(fontSize: 11, fontWeight: FontWeight.w500, height: 1.3, letterSpacing: 0.0);
 
 // Utility Styles
-TextStyle get heading => getInterTextStyle(fontSize: 16, fontWeight: FontWeight.w400);
-TextStyle get caption => getInterTextStyle(fontSize: 12, fontWeight: FontWeight.w400, color: textMuted);
-TextStyle get small => getInterTextStyle(fontSize: 14, fontWeight: FontWeight.w400);
-TextStyle get mutedText => getInterTextStyle(fontSize: 14, fontWeight: FontWeight.w400, color: textMuted, height: 1.5);
+TextStyle get heading => getInterTextStyle(fontSize: 16, fontWeight: FontWeight.w400, letterSpacing: 0.0);
+TextStyle get caption => getInterTextStyle(fontSize: 12, fontWeight: FontWeight.w400, color: textMuted, letterSpacing: 0.0);
+TextStyle get small => getInterTextStyle(fontSize: 14, fontWeight: FontWeight.w400, letterSpacing: 0.0);
+TextStyle get mutedText => getInterTextStyle(fontSize: 14, fontWeight: FontWeight.w400, color: textMuted, height: 1.5, letterSpacing: 0.0);
 
 // Mobile Styles
-TextStyle get h1Mobile => getInterTextStyle(fontSize: 20, fontWeight: FontWeight.w700);
-TextStyle get h2Mobile => getInterTextStyle(fontSize: 16, fontWeight: FontWeight.w700);
-TextStyle get h3Mobile => getInterTextStyle(fontSize: 14, fontWeight: FontWeight.w600);
-TextStyle get bodyMobile => getInterTextStyle(fontSize: 14, fontWeight: FontWeight.w400);
-TextStyle get smallMobile => getInterTextStyle(fontSize: 12, fontWeight: FontWeight.w400);
-TextStyle get captionMobile => getInterTextStyle(fontSize: 11, fontWeight: FontWeight.w400);
+TextStyle get h1Mobile => getInterTextStyle(fontSize: 20, fontWeight: FontWeight.w700, letterSpacing: 0.0);
+TextStyle get h2Mobile => getInterTextStyle(fontSize: 16, fontWeight: FontWeight.w700, letterSpacing: 0.0);
+TextStyle get h3Mobile => getInterTextStyle(fontSize: 14, fontWeight: FontWeight.w600, letterSpacing: 0.0);
+TextStyle get bodyMobile => getInterTextStyle(fontSize: 14, fontWeight: FontWeight.w400, letterSpacing: 0.0);
+TextStyle get smallMobile => getInterTextStyle(fontSize: 12, fontWeight: FontWeight.w400, letterSpacing: 0.0);
+TextStyle get captionMobile => getInterTextStyle(fontSize: 11, fontWeight: FontWeight.w400, letterSpacing: 0.0);
 
 // ===================== BUTTON STYLES =====================
 const double buttonBorderRadius = 6.0;
@@ -1847,41 +1849,39 @@ class _FilterSidebarContentState extends State<FilterSidebarContent> {
                 const SizedBox(height: 24),
                 Text('Khoảng giá', style: labelLarge),
                 const SizedBox(height: 8),
-                // Tạm thời ẩn range slider
-                // designSystemRangeSlider(
-                //   context: context,
-                //   values: priceRange,
-                //   min: 3000,
-                //   max: 375000,
-                //   divisions: 100,
-                //   onChanged: (v) => setState(() => priceRange = v),
-                // ),
-                // Row(
-                //   mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                //   children: [
-                //     Text('${priceRange.start.toStringAsFixed(0)}đ', style: caption),
-                //     Text('${priceRange.end.toStringAsFixed(0)}đ', style: caption),
-                //   ],
-                // ),
+                designSystemRangeSlider(
+                  context: context,
+                  values: priceRange,
+                  min: widget.priceRange.start,
+                  max: widget.priceRange.end,
+                  divisions: 100,
+                  onChanged: (v) => setState(() => priceRange = v),
+                ),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text('${priceRange.start.toStringAsFixed(0)}₫', style: caption),
+                    Text('${priceRange.end.toStringAsFixed(0)}₫', style: caption),
+                  ],
+                ),
                 const SizedBox(height: 24),
                 Text('Tồn kho', style: labelLarge),
                 const SizedBox(height: 8),
-                // Tạm thời ẩn range slider
-                // designSystemRangeSlider(
-                //   context: context,
-                //   values: stockRange,
-                //   min: 50,
-                //   max: 500,
-                //   divisions: 50,
-                //   onChanged: (v) => setState(() => stockRange = v),
-                // ),
-                // Row(
-                //   mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                //   children: [
-                //     Text('${stockRange.start.toInt()}', style: caption),
-                //     Text('${stockRange.end.toInt()}', style: caption),
-                //   ],
-                // ),
+                designSystemRangeSlider(
+                  context: context,
+                  values: stockRange,
+                  min: widget.stockRange.start,
+                  max: widget.stockRange.end,
+                  divisions: 50,
+                  onChanged: (v) => setState(() => stockRange = v),
+                ),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text('${stockRange.start.toInt()}', style: caption),
+                    Text('${stockRange.end.toInt()}', style: caption),
+                  ],
+                ),
                 const SizedBox(height: 24),
                 Text('Trạng thái sản phẩm', style: labelLarge),
                 const SizedBox(height: 8),

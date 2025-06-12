@@ -128,6 +128,12 @@ class _MainLayoutState extends State<MainLayout> {
         stockRange = RangeValues(newStartStock, newEndStock);
         priceRange = RangeValues(newStartPrice, newEndPrice);
       });
+    } else {
+      // Nếu không có sản phẩm, min/max là 0-0
+      setState(() {
+        stockRange = const RangeValues(0, 0);
+        priceRange = const RangeValues(0, 0);
+      });
     }
   }
 
@@ -193,6 +199,10 @@ class _MainLayoutState extends State<MainLayout> {
       _previousPage = _currentPage;
       _currentPage = MainPage.lowStockProducts;
     });
+  }
+
+  void reloadProducts() {
+    fetchProducts();
   }
 
   @override
@@ -392,6 +402,7 @@ class _MainLayoutState extends State<MainLayout> {
           filterTags: selectedTags,
           allProducts: allProducts,
           isLoadingProducts: isLoadingProducts,
+          onReloadProducts: reloadProducts,
         );
       case MainPage.productCategory:
         return ProductCategoryScreen(

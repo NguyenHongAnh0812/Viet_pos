@@ -81,6 +81,28 @@ class Product {
 
   // Create from Firestore document
   factory Product.fromMap(String id, Map<String, dynamic> map) {
+    DateTime? createdAt;
+    DateTime? updatedAt;
+    try {
+      if (map['createdAt'] is Timestamp) {
+        createdAt = (map['createdAt'] as Timestamp).toDate();
+      } else if (map['createdAt'] is DateTime) {
+        createdAt = map['createdAt'] as DateTime;
+      } else if (map['createdAt'] != null) {
+        createdAt = DateTime.tryParse(map['createdAt'].toString());
+      }
+    } catch (_) {}
+    try {
+      if (map['updatedAt'] is Timestamp) {
+        updatedAt = (map['updatedAt'] as Timestamp).toDate();
+      } else if (map['updatedAt'] is DateTime) {
+        updatedAt = map['updatedAt'] as DateTime;
+      } else if (map['updatedAt'] != null) {
+        updatedAt = DateTime.tryParse(map['updatedAt'].toString());
+      }
+    } catch (_) {}
+    createdAt ??= DateTime.now();
+    updatedAt ??= DateTime.now();
     return Product(
       id: id,
       name: map['name'] ?? '',
@@ -98,8 +120,8 @@ class Product {
       importPrice: (map['importPrice'] ?? 0).toDouble(),
       salePrice: (map['salePrice'] ?? 0).toDouble(),
       isActive: map['isActive'] ?? true,
-      createdAt: (map['createdAt'] as Timestamp).toDate(),
-      updatedAt: (map['updatedAt'] as Timestamp).toDate(),
+      createdAt: createdAt,
+      updatedAt: updatedAt,
     );
   }
 

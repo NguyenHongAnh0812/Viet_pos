@@ -66,6 +66,7 @@ class ProductListScreen extends StatefulWidget {
   final Set<String>? filterTags;
   final List<Product>? allProducts;
   final bool isLoadingProducts;
+  final VoidCallback? onReloadProducts;
   const ProductListScreen({
     super.key,
     this.onProductTap,
@@ -78,6 +79,7 @@ class ProductListScreen extends StatefulWidget {
     this.filterTags,
     this.allProducts,
     this.isLoadingProducts = false,
+    this.onReloadProducts,
   });
 
   @override
@@ -88,8 +90,8 @@ class _ProductListScreenState extends State<ProductListScreen> {
   final _productService = ProductService();
   final TextEditingController _searchController = TextEditingController();
   String get selectedCategory => widget.filterCategory ?? 'Tất cả';
-  RangeValues get priceRange => widget.filterPriceRange ?? const RangeValues(0, 1000000);
-  RangeValues get stockRange => widget.filterStockRange ?? const RangeValues(0, 99999);
+  RangeValues get priceRange => widget.filterPriceRange ?? const RangeValues(0, 0);
+  RangeValues get stockRange => widget.filterStockRange ?? const RangeValues(0, 0);
   String get status => widget.filterStatus ?? 'Tất cả';
   Set<String> get selectedTags => widget.filterTags ?? {};
   String searchText = '';
@@ -113,6 +115,11 @@ class _ProductListScreenState extends State<ProductListScreen> {
   bool _overwrite = false;
   List<List<String>>? _csvPreviewRows;
   List<String>? _csvPreviewHeaders;
+
+  // Infinite scroll state
+  final int itemsPerPage = 10;
+  int currentPage = 1;
+  bool isLoadingMore = false;
 
   final List<Map<String, dynamic>> sortOptions = [
     {
@@ -574,6 +581,19 @@ class _ProductListScreenState extends State<ProductListScreen> {
           });
         });
       }
+    }
+  }
+
+  void checkExtremeProducts(List<Product> products) {
+    final stock99999 = products.where((p) => p.stock == 99999).toList();
+    final price1000000 = products.where((p) => p.salePrice == 1000000).toList();
+    print('--- Sản phẩm có tồn kho = 99999 ---');
+    for (final p in stock99999) {
+      print('ID: \\${p.id}, Tên: \\${p.name}, Tồn kho: \\${p.stock}');
+    }
+    print('--- Sản phẩm có giá bán = 1,000,000 ---');
+    for (final p in price1000000) {
+      print('ID: \\${p.id}, Tên: \\${p.name}, Giá bán: \\${p.salePrice}');
     }
   }
 
@@ -1066,10 +1086,43 @@ class _ProductListScreenState extends State<ProductListScreen> {
     }
   }
 
+  void _handleScroll(ScrollNotification scrollInfo, int totalItems) {
+    if (!isLoadingMore && scrollInfo.metrics.pixels >= scrollInfo.metrics.maxScrollExtent - 100) {
+      final maxPage = (totalItems / itemsPerPage).ceil();
+      if (currentPage < maxPage) {
+        setState(() {
+          isLoadingMore = true;
+          currentPage++;
+        });
+        Future.delayed(const Duration(milliseconds: 300), () {
+          if (mounted) setState(() => isLoadingMore = false);
+        });
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
+    print('DEBUG: allProducts = \\${widget.allProducts}');
+    print('DEBUG: isLoadingProducts = \\${widget.isLoadingProducts}');
+    final products = widget.allProducts ?? [];
+    checkExtremeProducts(products);
+    print('DEBUG: products.length = \\${products.length}');
+    // Cập nhật filter ranges khi có dữ liệu mới
+    if (products.isEmpty) {
+      return Center(
+        child: widget.isLoadingProducts
+            ? const CircularProgressIndicator()
+            : const Text('Không có dữ liệu sản phẩm nào trong hệ thống.', style: TextStyle(color: Colors.black54)),
+      );
+    }
+    updateFilterRanges(products);
+    final filteredProducts = filterProducts(products);
+    print('DEBUG: filteredProducts.length = \\${filteredProducts.length}');
+    final sortedProducts = sortProducts(filteredProducts);
+    final isMobile = MediaQuery.of(context).size.width < 600;
+    final pagedProducts = sortedProducts.take(currentPage * itemsPerPage).toList();
     final numberFormat = NumberFormat('#,###', 'vi_VN');
-    final isMobile = MediaQuery.of(context).size.width < 1024;
     return Scaffold(
       backgroundColor: appBackground,
       body: Center(
@@ -1142,32 +1195,46 @@ class _ProductListScreenState extends State<ProductListScreen> {
                                           ],
                                         );
                                         if (confirm == true) {
-                                          final batch = FirebaseFirestore.instance.batch();
-                                          int count = 0;
-                                          for (final id in selected) {
-                                            final ref = FirebaseFirestore.instance.collection('products').doc(id);
-                                            batch.delete(ref);
-                                            count++;
-                                            if (count == 490) {
-                                              await batch.commit();
-                                              count = 0;
+                                          try {
+                                            final batch = FirebaseFirestore.instance.batch();
+                                            int count = 0;
+                                            for (final id in selected) {
+                                              final ref = FirebaseFirestore.instance.collection('products').doc(id);
+                                              batch.delete(ref);
+                                              count++;
+                                              if (count == 490) {
+                                                await batch.commit();
+                                                count = 0;
+                                              }
                                             }
+                                            if (count > 0) {
+                                              await batch.commit();
+                                            }
+                                            selectedProductIds.value = {};
+                                            OverlayEntry? entry;
+                                            entry = OverlayEntry(
+                                              builder: (_) => DesignSystemSnackbar(
+                                                message: 'Đã xóa các sản phẩm đã chọn!',
+                                                icon: Icons.check_circle,
+                                                onDismissed: () => entry?.remove(),
+                                              ),
+                                            );
+                                            Overlay.of(context).insert(entry);
+                                            await Future.delayed(const Duration(milliseconds: 500));
+                                            if (mounted) {
+                                              setState(() {}); // Cập nhật lại UI
+                                              // Nếu có callback reload hoặc fetch lại sản phẩm, gọi ở đây:
+                                              if (widget.onReloadProducts != null) {
+                                                widget.onReloadProducts!();
+                                              }
+                                              // Hoặc gọi fetchProducts() nếu có hàm này
+                                            }
+                                          } catch (e) {
+                                            print('Lỗi khi xóa sản phẩm: $e');
+                                            ScaffoldMessenger.of(context).showSnackBar(
+                                              SnackBar(content: Text('Lỗi khi xóa sản phẩm: $e')),
+                                            );
                                           }
-                                          if (count > 0) {
-                                            await batch.commit();
-                                          }
-                                          selectedProductIds.value = {};
-                                          OverlayEntry? entry;
-                                          entry = OverlayEntry(
-                                            builder: (_) => DesignSystemSnackbar(
-                                              message: 'Đã xóa các sản phẩm đã chọn!',
-                                              icon: Icons.check_circle,
-                                              onDismissed: () => entry?.remove(),
-                                            ),
-                                          );
-                                          Overlay.of(context).insert(entry);
-                                          await Future.delayed(const Duration(milliseconds: 500));
-                                          setState(() {});
                                         }
                                       },
                                     ),
@@ -1265,12 +1332,9 @@ class _ProductListScreenState extends State<ProductListScreen> {
                             if (widget.isLoadingProducts) {
                               return const Center(child: CircularProgressIndicator());
                             }
-                            final products = widget.allProducts ?? [];
-                            // Cập nhật filter ranges khi có dữ liệu mới
-                            updateFilterRanges(products);
-                            final filteredProducts = filterProducts(products);
-                            final sortedProducts = sortProducts(filteredProducts);
                             final isMobile = MediaQuery.of(context).size.width < 600;
+                            final pagedProducts = sortedProducts.take(currentPage * itemsPerPage).toList();
+
                             return Column(
                               children: [
                                 // Filter and Sort Row
@@ -1304,192 +1368,184 @@ class _ProductListScreenState extends State<ProductListScreen> {
                                   ),
                                 ),
                                 const SizedBox(height: 16.0),
-                                // Product List
-                                if (sortedProducts.isEmpty)
-                                  Padding(
-                                    padding: const EdgeInsets.symmetric(vertical: 32.0),
-                                    child: Center(
-                                      child: Text(
-                                        'Không tìm thấy sản phẩm nào',
-                                        style: TextStyle(fontSize: 16, color: Colors.grey[600], fontWeight: FontWeight.w500),
-                                      ),
-                                    ),
-                                  )
-                                else
-                                  LayoutBuilder(
-                                    builder: (context, constraints) {
-                                      final isMobile = constraints.maxWidth < 600;
-                                      if (isMobile) {
-                                        // Mobile card style
-                                        return Column(
-                                          children: [
-                                            ...sortedProducts.map((product) {
-                                              return InkWell(
-                                                onTap: () => widget.onProductTap?.call(product),
-                                                child: Container(
-                                                  margin: const EdgeInsets.only(bottom: 8),
-                                                  padding: const EdgeInsets.all(16),
-                                                  decoration: BoxDecoration(
-                                                    color: Colors.white,
-                                                    border: Border.all(color: borderColor),
-                                                    borderRadius: BorderRadius.circular(8),
+                                // Product List with infinite scroll
+                                Container(
+                                  decoration: BoxDecoration(
+                                    color: Colors.white,
+                                    borderRadius: BorderRadius.circular(12),
+                                    border: Border.all(color: Colors.grey.shade200, width: 1.5),
+                                  ),
+                                  child: Column(
+                                    children: [
+                                      if (!isMobile)
+                                        Container(
+                                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                                          decoration: BoxDecoration(
+                                            color: Colors.white,
+                                            borderRadius: const BorderRadius.only(
+                                              topLeft: Radius.circular(12),
+                                              topRight: Radius.circular(12),
+                                            ),
+                                            border: const Border(
+                                              bottom: BorderSide(color: Color(0xFFE0E0E0), width: 1),
+                                            ),
+                                          ),
+                                          child: Row(
+                                            children: [
+                                              SizedBox(
+                                                width: 128,
+                                                height: 32,
+                                                child: Theme(
+                                                  data: Theme.of(context).copyWith(
+                                                    unselectedWidgetColor: Color(0xFF3a6ff8),
+                                                    checkboxTheme: CheckboxThemeData(
+                                                      shape: RoundedRectangleBorder(
+                                                        borderRadius: BorderRadius.circular(4),
+                                                      ),
+                                                      side: const BorderSide(color: Color(0xFF3a6ff8), width: 1),
+                                                      fillColor: MaterialStateProperty.resolveWith<Color?>((states) {
+                                                        if (states.contains(MaterialState.selected)) {
+                                                          return Color(0xFF3a6ff8);
+                                                        }
+                                                        return Colors.white;
+                                                      }),
+                                                      checkColor: MaterialStateProperty.all<Color>(Colors.white),
+                                                    ),
                                                   ),
-                                                  child: Column(
-                                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                                    children: [
-                                                      Text(product.name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, fontFamily: 'Inter')),
-                                                      if (product.commonName.isNotEmpty)
-                                                        Padding(
-                                                          padding: const EdgeInsets.only(top: 2),
-                                                          child: Text(product.commonName, style: TextStyle(fontSize: 14, color: Colors.grey[600], fontWeight: FontWeight.w400, fontFamily: 'Inter')),
-                                                        ),
-                                                      const SizedBox(height: 16),
-                                                      Row(
-                                                        crossAxisAlignment: CrossAxisAlignment.end,
+                                                  child: ValueListenableBuilder<Set<String>>(
+                                                    valueListenable: selectedProductIds,
+                                                    builder: (context, selected, _) {
+                                                      return Checkbox(
+                                                        value: selected.length == pagedProducts.length,
+                                                        onChanged: pagedProducts.isEmpty ? null : (checked) {
+                                                          if (checked == true) {
+                                                            selectedProductIds.value = Set<String>.from(pagedProducts.map((p) => p.id));
+                                                          } else {
+                                                            selectedProductIds.value = {};
+                                                          }
+                                                        },
+                                                      );
+                                                    },
+                                                  ),
+                                                ),
+                                              ),
+                                              Expanded(
+                                                flex: 5,
+                                                child: Align(
+                                                  alignment: Alignment.centerLeft,
+                                                  child: Text('Tên sản phẩm', style: labelLarge.copyWith(fontWeight: FontWeight.w700)),
+                                                ),
+                                              ),
+                                              Expanded(
+                                                flex: 2,
+                                                child: Align(
+                                                  alignment: Alignment.center,
+                                                  child: Text('Mã vạch', style: body.copyWith(color: Colors.grey[600])),
+                                                ),
+                                              ),
+                                              Expanded(
+                                                flex: 2,
+                                                child: Align(
+                                                  alignment: Alignment.center,
+                                                  child: Text('Số lượng', style: labelMedium.copyWith(fontWeight: FontWeight.w600)),
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                      // Danh sách sản phẩm hoặc thông báo trống
+                                      if (pagedProducts.isEmpty)
+                                        Padding(
+                                          padding: const EdgeInsets.symmetric(vertical: 32.0),
+                                          child: Center(
+                                            child: Text(
+                                              'Không tìm thấy sản phẩm nào',
+                                              style: TextStyle(fontSize: 16, color: Colors.grey[600], fontWeight: FontWeight.w500),
+                                            ),
+                                          ),
+                                        )
+                                      else
+                                        SizedBox(
+                                          height: MediaQuery.of(context).size.height * 0.6,
+                                          child: NotificationListener<ScrollNotification>(
+                                            onNotification: (scrollInfo) {
+                                              _handleScroll(scrollInfo, sortedProducts.length);
+                                              return false;
+                                            },
+                                            child: ListView.builder(
+                                              itemCount: pagedProducts.length + (isLoadingMore ? 1 : 0),
+                                              itemBuilder: (context, index) {
+                                                if (index == pagedProducts.length) {
+                                                  return const Padding(
+                                                    padding: EdgeInsets.symmetric(vertical: 16),
+                                                    child: Center(child: CircularProgressIndicator()),
+                                                  );
+                                                }
+                                                final product = pagedProducts[index];
+                                                final isMobile = MediaQuery.of(context).size.width < 600;
+                                                if (isMobile) {
+                                                  // Mobile card style như cũ
+                                                  return InkWell(
+                                                    onTap: () => widget.onProductTap?.call(product),
+                                                    child: Container(
+                                                      margin: const EdgeInsets.only(bottom: 8),
+                                                      padding: const EdgeInsets.all(16),
+                                                      decoration: BoxDecoration(
+                                                        color: Colors.white,
+                                                        border: Border.all(color: borderColor),
+                                                        borderRadius: BorderRadius.circular(8),
+                                                      ),
+                                                      child: Column(
+                                                        crossAxisAlignment: CrossAxisAlignment.start,
                                                         children: [
-                                                          Expanded(
-                                                            child: Column(
-                                                              crossAxisAlignment: CrossAxisAlignment.start,
-                                                              children: [
-                                                                Text('Mã vạch', style: TextStyle(fontSize: 15, color: Colors.black, fontWeight: FontWeight.w500, fontFamily: 'Inter')),
-                                                                Text(product.barcode ?? '-', style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, fontFamily: 'Inter')),
-                                                              ],
+                                                          Text(product.name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, fontFamily: 'Inter')),
+                                                          if (product.commonName.isNotEmpty)
+                                                            Padding(
+                                                              padding: const EdgeInsets.only(top: 2),
+                                                              child: Text(product.commonName, style: TextStyle(fontSize: 14, color: Colors.grey[600], fontWeight: FontWeight.w400, fontFamily: 'Inter')),
                                                             ),
-                                                          ),
-                                                          Column(
+                                                          const SizedBox(height: 16),
+                                                          Row(
                                                             crossAxisAlignment: CrossAxisAlignment.end,
                                                             children: [
-                                                              Text('Số lượng', style: TextStyle(fontSize: 15, color: Colors.black, fontWeight: FontWeight.w500, fontFamily: 'Inter')),
-                                                              Text('${product.stock}', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, fontFamily: 'Inter')),
+                                                              Expanded(
+                                                                child: Column(
+                                                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                                                  children: [
+                                                                    Text('Mã vạch', style: TextStyle(fontSize: 15, color: Colors.black, fontWeight: FontWeight.w500, fontFamily: 'Inter')),
+                                                                    Text(product.barcode ?? '-', style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, fontFamily: 'Inter')),
+                                                                  ],
+                                                                ),
+                                                              ),
+                                                              Column(
+                                                                crossAxisAlignment: CrossAxisAlignment.end,
+                                                                children: [
+                                                                  Text('Số lượng', style: TextStyle(fontSize: 15, color: Colors.black, fontWeight: FontWeight.w500, fontFamily: 'Inter')),
+                                                                  Text('${product.stock}', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, fontFamily: 'Inter')),
+                                                                ],
+                                                              ),
                                                             ],
                                                           ),
                                                         ],
                                                       ),
-                                                    ],
-                                                  ),
-                                                ),
-                                              );
-                                            }).toList(),
-                                          ], 
-                                        );
-                                      } else {
-                                        // Desktop/tablet: render dạng bảng
-                                        return Column(
-                                          children: [
-                                            // Header row
-                                            Container(
-                                              decoration: BoxDecoration(
-                                                color: Colors.white,
-                                                borderRadius: const BorderRadius.only(
-                                                  topLeft: Radius.circular(12),
-                                                  topRight: Radius.circular(12),
-                                                ),
-                                                border: Border(
-                                                  bottom: BorderSide(color: Colors.grey.shade200, width: 1.5),
-                                                ),
-                                              ),
-                                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                                              child: Row(
-                                                children: [
-                                                  Expanded(
-                                                    flex: 1,
-                                                    child: Align(
-                                                      alignment: Alignment.centerLeft,
-                                                      child: SizedBox(
-                                                        width: 32,
-                                                        height: 32,
-                                                        child: Theme(
-                                                          data: Theme.of(context).copyWith(
-                                                            unselectedWidgetColor: Color(0xFF3a6ff8),
-                                                            checkboxTheme: CheckboxThemeData(
-                                                              shape: RoundedRectangleBorder(
-                                                                borderRadius: BorderRadius.circular(4),
-                                                              ),
-                                                              side: const BorderSide(color: Color(0xFF3a6ff8), width: 1),
-                                                              fillColor: MaterialStateProperty.resolveWith<Color?>((states) {
-                                                                if (states.contains(MaterialState.selected)) {
-                                                                  return Color(0xFF3a6ff8);
-                                                                }
-                                                                return Colors.white;
-                                                              }),
-                                                              checkColor: MaterialStateProperty.all<Color>(Colors.white),
-                                                            ),
-                                                          ),
-                                                          child: ValueListenableBuilder<Set<String>>(
-                                                            valueListenable: selectedProductIds,
-                                                            builder: (context, selected, _) {
-                                                              return Checkbox(
-                                                                value: selected.length == sortedProducts.length && sortedProducts.isNotEmpty,
-                                                                onChanged: (checked) {
-                                                                  if (checked == true) {
-                                                                    selectedProductIds.value = Set<String>.from(sortedProducts.map((p) => p.id));
-                                                                  } else {
-                                                                    selectedProductIds.value = {};
-                                                                  }
-                                                                },
-                                                              );
-                                                            },
-                                                          ),
-                                                        ),
-                                                      ),
                                                     ),
-                                                  ),
-                                                  Expanded(
-                                                    flex: 5,
-                                                    child: Align(
-                                                      alignment: Alignment.centerLeft,
-                                                      child: Text('Tên sản phẩm', style: labelLarge.copyWith(fontWeight: FontWeight.w700)),
-                                                    ),
-                                                  ),
-                                                  Expanded(
-                                                    flex: 2,
-                                                    child: Align(
-                                                      alignment: Alignment.center,
-                                                      child: Text('Mã vạch', style: body.copyWith(color: Colors.grey[600])),
-                                                    ),
-                                                  ),
-                                                  Expanded(
-                                                    flex: 2,
-                                                    child: Align(
-                                                      alignment: Alignment.center,
-                                                      child: Text('Số lượng', style: labelMedium.copyWith(fontWeight: FontWeight.w600)),
-                                                    ),
-                                                  ),
-                                                ],
-                                              ),
-                                            ),
-                                            // Product rows
-                                            ...sortedProducts.asMap().entries.map((entry) {
-                                              final idx = entry.key;
-                                              final product = entry.value;
-                                              final isLast = idx == sortedProducts.length - 1;
-                                              return InkWell(
-                                                onTap: () => widget.onProductTap?.call(product),
-                                                child: Container(
-                                                  margin: const EdgeInsets.only(bottom: 0),
-                                                  decoration: BoxDecoration(
-                                                    color: Colors.white,
-                                                    borderRadius: isLast
-                                                      ? const BorderRadius.only(
-                                                          bottomLeft: Radius.circular(12),
-                                                          bottomRight: Radius.circular(12),
-                                                        )
-                                                      : BorderRadius.zero,
-                                                    border: isLast
-                                                      ? null
-                                                      : Border(
+                                                  );
+                                                } else {
+                                                  // Desktop/tablet: render dạng bảng với checkbox chọn nhiều
+                                                  return InkWell(
+                                                    onTap: () => widget.onProductTap?.call(product),
+                                                    child: Container(
+                                                      decoration: BoxDecoration(
+                                                        color: Colors.white,
+                                                        border: Border(
                                                           bottom: BorderSide(color: Colors.grey.shade200, width: 1),
                                                         ),
-                                                  ),
-                                                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
-                                                  child: Row(
-                                                    children: [
-                                                      Expanded(
-                                                        flex: 1,
-                                                        child: Align(
-                                                          alignment: Alignment.centerLeft,
-                                                          child: SizedBox(
-                                                            width: 32,
+                                                      ),
+                                                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
+                                                      child: Row(
+                                                        children: [
+                                                          SizedBox(
+                                                            width: 128,
                                                             height: 32,
                                                             child: Theme(
                                                               data: Theme.of(context).copyWith(
@@ -1527,39 +1583,43 @@ class _ProductListScreenState extends State<ProductListScreen> {
                                                               ),
                                                             ),
                                                           ),
-                                                        ),
+                                                          Expanded(
+                                                            flex: 5,
+                                                            child: Column(
+                                                              crossAxisAlignment: CrossAxisAlignment.start,
+                                                              children: [
+                                                                Text(product.name, style: bodyLarge.copyWith(fontWeight: FontWeight.w700)),
+                                                                if (product.commonName.isNotEmpty)
+                                                                  Text(product.commonName, style: body.copyWith(color: Colors.grey[600])),
+                                                              ],
+                                                            ),
+                                                          ),
+                                                          Expanded(
+                                                            flex: 2,
+                                                            child: Align(
+                                                              alignment: Alignment.center,
+                                                              child: Text(product.barcode ?? '-', style: body),
+                                                            ),
+                                                          ),
+                                                          Expanded(
+                                                            flex: 2,
+                                                            child: Align(
+                                                              alignment: Alignment.center,
+                                                              child: Text('${product.stock}', style: bodyLarge.copyWith(fontWeight: FontWeight.w600)),
+                                                            ),
+                                                          ),
+                                                        ],
                                                       ),
-                                                      Expanded(
-                                                        flex: 5,
-                                                        child: Align(
-                                                          alignment: Alignment.centerLeft,
-                                                          child: Text(product.name, style: bodyLarge.copyWith(fontWeight: FontWeight.w600)),
-                                                        ),
-                                                      ),
-                                                      Expanded(
-                                                        flex: 2,
-                                                        child: Align(
-                                                          alignment: Alignment.center,
-                                                          child: Text(product.barcode ?? '-', style: body),
-                                                        ),
-                                                      ),
-                                                      Expanded(
-                                                        flex: 2,
-                                                        child: Align(
-                                                          alignment: Alignment.center,
-                                                          child: Text('${product.stock}', style: body),
-                                                        ),
-                                                      ),
-                                                    ],
-                                                  ),
-                                                ),
-                                              );
-                                            }),
-                                          ],
-                                        );
-                                      }
-                                    },
+                                                    ),
+                                                  );
+                                                }
+                                              },
+                                            ),
+                                          ),
+                                        ),
+                                    ],
                                   ),
+                                ),
                               ],
                             );
                           },
