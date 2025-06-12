@@ -13,9 +13,11 @@ import 'common/design_system.dart';
 import '../screens/style_guide_screen.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import '../services/product_service.dart';
+import '../screens/invoice_import_list_screen.dart';
+import '../screens/invoice_import_screen.dart';
 
 // Định nghĩa enum cho các trang
-enum MainPage { dashboard, productList, productCategory, addProduct, inventory, report, settings, productDetail, lowStockProducts, addProductCategory, inventoryHistory, styleGuide }
+enum MainPage { dashboard, productList, productCategory, addProduct, inventory, report, settings, productDetail, lowStockProducts, addProductCategory, inventoryHistory, styleGuide, invoiceImportList, invoiceImport }
 
 class MainLayout extends StatefulWidget {
   final Widget? child; // Không cần truyền child nữa, sẽ render theo _currentPage
@@ -469,6 +471,12 @@ class _MainLayoutState extends State<MainLayout> {
         );
       case MainPage.styleGuide:
         return const StyleGuideScreen();
+      case MainPage.invoiceImportList:
+        return const InvoiceImportListScreen();
+      case MainPage.invoiceImport:
+        return const InvoiceImportScreen();
+      default:
+        return const DashboardScreen();
     }
   }
 
@@ -766,6 +774,13 @@ class _SidebarState extends State<_Sidebar> {
             selected: widget.currentPage == MainPage.styleGuide,
             isOpen: widget.isOpen,
             onTap: () => widget.onItemTap(MainPage.styleGuide),
+          ),
+          _SidebarItem(
+            icon: SvgPicture.asset('assets/icons/invoice_import.svg', width: 16, height: 16),
+            label: 'Import Hóa đơn',
+            selected: widget.currentPage == MainPage.invoiceImportList,
+            isOpen: widget.isOpen,
+            onTap: () => widget.onItemTap(MainPage.invoiceImportList),
           ),
         ],
       ),

@@ -4,6 +4,8 @@ import 'firebase_options.dart';
 import 'screens/login_screen.dart';
 import 'screens/product_list_screen.dart';
 import 'screens/add_product_screen.dart';
+import 'screens/invoice_import_screen.dart';
+import 'screens/invoice_import_list_screen.dart';
 import 'widgets/main_layout.dart';
 import 'widgets/common/design_system.dart';
 
@@ -31,6 +33,8 @@ class MyApp extends StatelessWidget {
         '/main': (context) => const MainLayout(),
         '/products': (context) => const ProductListScreen(),
         '/addProduct': (context) => const AddProductScreen(),
+        '/invoice-imports': (context) => const InvoiceImportListScreen(),
+        '/invoice-import': (context) => const InvoiceImportScreen(),
       },
     );
   }

@@ -22,39 +22,24 @@ class Product {
 
   Product({
     required this.id,
-    required this.name,
-    required this.commonName,
-    required this.category,
+    this.name = '',
+    this.commonName = '',
+    this.category = 'Khác',
     this.barcode,
     this.sku,
-    required this.unit,
-    required this.tags,
-    required this.description,
-    required this.usage,
-    required this.ingredients,
-    required this.notes,
-    required this.stock,
-    required this.importPrice,
-    required this.salePrice,
-    required this.isActive,
+    this.unit = '',
+    this.tags = const [],
+    this.description = '',
+    this.usage = '',
+    this.ingredients = '',
+    this.notes = '',
+    this.stock = 0,
+    this.importPrice = 0,
+    this.salePrice = 0,
+    this.isActive = true,
     required this.createdAt,
     required this.updatedAt,
-  }) : assert(id != null),
-      // assert(name.isNotEmpty, 'name is empty'),
-     //  assert(commonName.isNotEmpty, 'commonName is empty'),
-      //  assert(category.isNotEmpty, 'category is empty'),
-      // assert(unit.isNotEmpty, 'unit is empty'),
-       //assert(tags != null, 'tags is null'),
-      //  assert(description.isNotEmpty, 'description is empty'),
-      //  assert(usage.isNotEmpty, 'usage is empty'),
-      //  assert(ingredients.isNotEmpty, 'ingredients is empty'),
-      //  assert(notes.isNotEmpty, 'notes is empty'),
-       assert(stock != null, 'stock is null');
-       //assert(importPrice != null, 'importPrice is null'),
-       //assert(salePrice != null, 'salePrice is null'),
-       //assert(isActive != null, 'isActive is null'),
-       //assert(createdAt != null, 'createdAt is null'),
-       //assert(updatedAt != null, 'updatedAt is null');
+  });
 
   // Convert to Map for Firestore
   Map<String, dynamic> toMap() {
@@ -103,11 +88,12 @@ class Product {
     } catch (_) {}
     createdAt ??= DateTime.now();
     updatedAt ??= DateTime.now();
+
     return Product(
       id: id,
-      name: map['name'] ?? '',
+      name: map['name'] ?? map['commonName'] ?? '', // Cho phép sử dụng commonName nếu name trống
       commonName: map['commonName'] ?? '',
-      category: map['category'] ?? '',
+      category: map['category'] ?? 'Khác',
       barcode: map['barcode'],
       sku: map['sku'],
       unit: map['unit'] ?? '',

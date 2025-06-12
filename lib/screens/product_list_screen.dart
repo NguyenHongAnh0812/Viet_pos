@@ -208,8 +208,11 @@ class _ProductListScreenState extends State<ProductListScreen> {
       
       // Search text filter - Only apply if search text is not empty
       if (searchText.isNotEmpty) {
-        if (!p.name.toLowerCase().contains(searchText.toLowerCase()) && 
-            !(p.barcode != null && p.barcode!.toLowerCase().contains(searchText.toLowerCase()))) {
+        final searchLower = searchText.toLowerCase();
+        // Tìm theo tên nội bộ, tên thương mại và mã vạch
+        if (!p.name.toLowerCase().contains(searchLower) && 
+            !p.commonName.toLowerCase().contains(searchLower) &&
+            !(p.barcode != null && p.barcode!.toLowerCase().contains(searchLower))) {
           return false;
         }
       }
