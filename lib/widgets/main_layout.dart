@@ -18,6 +18,7 @@ import '../screens/invoice_import_screen.dart';
 import '../screens/inventory_detail_screen.dart';
 import '../screens/inventory_create_session_screen.dart';
 import '../screens/distributor_screen.dart';
+import '../screens/settings_screen.dart';
 
 // Định nghĩa enum cho các trang
 enum MainPage { dashboard, productList, productCategory, addProduct, inventory, report, settings, productDetail, lowStockProducts, addProductCategory, inventoryHistory, styleGuide, invoiceImportList, invoiceImport, inventoryDetail, inventoryCreateSession, distributor }
@@ -453,7 +454,13 @@ class MainLayoutState extends State<MainLayout> {
       case MainPage.report:
         return Center(child: Text('Báo cáo (chưa cài đặt)'));
       case MainPage.settings:
-        return Center(child: Text('Cài đặt (chưa cài đặt)'));
+        return SettingsScreen(
+          onBack: () {
+            setState(() {
+              _currentPage = MainPage.dashboard;
+            });
+          },
+        );
       case MainPage.lowStockProducts:
         return LowStockProductsScreen(
           onBack: () {
@@ -675,6 +682,8 @@ class _SidebarState extends State<_Sidebar> {
             isOpen: widget.isOpen,
             onTap: () => widget.onItemTap(MainPage.distributor),
           ),
+          // Cài đặt
+
           // Đơn nhập hàng
           // _sidebarParentItem(
           //   icon: Icons.dashboard,
@@ -776,26 +785,34 @@ class _SidebarState extends State<_Sidebar> {
             isOpen: widget.isOpen,
             onTap: () => widget.onItemTap(MainPage.report),
           ),
+          // _SidebarItem(
+          //   icon: SvgPicture.asset('assets/icons/setting.svg', width: 16, height: 16),
+          //   label: 'Cài đặt chung',
+          //   selected: widget.currentPage == MainPage.settings,
+          //   isOpen: widget.isOpen,
+          //   onTap: () => widget.onItemTap(MainPage.settings),
+          // ),
+
           _SidebarItem(
-            icon: SvgPicture.asset('assets/icons/setting.svg', width: 16, height: 16),
-            label: 'Cài đặt chung',
-            selected: widget.currentPage == MainPage.settings,
+            icon: SvgPicture.asset('assets/icons/order.svg', width: 16, height: 16),
+            label: 'Import Hóa đơn',
+            selected: widget.currentPage == MainPage.invoiceImportList,
             isOpen: widget.isOpen,
-            onTap: () => widget.onItemTap(MainPage.settings),
+            onTap: () => widget.onItemTap(MainPage.invoiceImportList),
           ),
-          _SidebarItem(
+                    _SidebarItem(
             icon: Icon(Icons.palette, size: 16),
             label: 'Style Guide',
             selected: widget.currentPage == MainPage.styleGuide,
             isOpen: widget.isOpen,
             onTap: () => widget.onItemTap(MainPage.styleGuide),
           ),
-          _SidebarItem(
-            icon: SvgPicture.asset('assets/icons/invoice_import.svg', width: 16, height: 16),
-            label: 'Import Hóa đơn',
-            selected: widget.currentPage == MainPage.invoiceImportList,
+                    _SidebarItem(
+            icon: Icon(Icons.settings_outlined, size: 16),
+            label: 'Cài đặt',
+            selected: widget.currentPage == MainPage.settings,
             isOpen: widget.isOpen,
-            onTap: () => widget.onItemTap(MainPage.invoiceImportList),
+            onTap: () => widget.onItemTap(MainPage.settings),
           ),
         ],
       ),

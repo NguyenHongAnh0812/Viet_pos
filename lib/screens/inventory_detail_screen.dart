@@ -220,383 +220,389 @@ class _InventoryDetailScreenState extends State<InventoryDetailScreen> {
     return Scaffold(
       backgroundColor: const Color(0xFFF7F8FA),
       body: SafeArea(
-        child: Column(
-          children: [
-            // Heading with back arrow
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
-              color: const Color(0xFFF7F8FA),
-              child: Row(
-                children: [
-                  IconButton(
-                    icon: const Icon(Icons.arrow_back_ios_new, color: Color(0xFF222B45)),
-                    onPressed: () {
-                      final mainLayoutState = context.findAncestorStateOfType<MainLayoutState>();
-                      if (mainLayoutState != null) {
-                        mainLayoutState.onSidebarTap(MainPage.inventory);
-                      }
-                    },
-                  ),
-                  const SizedBox(width: 8),
-                  const Text(
-                    'Chi tiết kiểm kê',
-                    style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 24,
-                      color: Color(0xFF222B45),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            Expanded(
-              child: SingleChildScrollView(
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 0),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+        child: Center(
+          child: Container(
+            width: double.infinity,
+            constraints: const BoxConstraints(maxWidth: 1400),
+            child: Column(
+              children: [
+                // Heading with back arrow
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
+                  color: const Color(0xFFF7F8FA),
+                  child: Row(
                     children: [
-                      // Header
-                      Container(
-                        width: double.infinity,
-                        padding: const EdgeInsets.all(24),
-                        margin: const EdgeInsets.only(bottom: 24),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(12),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withOpacity(0.05),
-                              blurRadius: 10,
-                              offset: const Offset(0, 2),
-                            ),
-                          ],
-                        ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            // Tiêu đề và nhãn trạng thái trên 1 dòng, dãn đều 2 bên
-                            Row(
-                              children: [
-                                Expanded(
-                                  child: Text(
-                                    session['name']?.isNotEmpty == true ? session['name'] : 'Kiểm kê kho',
-                                    style: h2.copyWith(fontWeight: FontWeight.bold, color: textPrimary),
-                                  ),
-                                ),
-                                Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-                                  decoration: BoxDecoration(
-                                    border: Border.all(color: primaryBlue),
-                                    borderRadius: BorderRadius.circular(24),
-                                    color: Colors.white,
-                                  ),
-                                  child: Text(
-                                    displayStatus,
-                                    style: body.copyWith(color: primaryBlue, fontWeight: FontWeight.bold),
-                                  ),
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 24),
-                            // 4 cột thông tin
-                            Row(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                // Cột 1: Ngày kiểm kê, cập nhật kho, ghi chú
-                                Expanded(
-                                  flex: 2,
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      Text('Ngày kiểm kê', style: body.copyWith(color: textSecondary)),
-                                      const SizedBox(height: 4),
-                                      Text((session['createdAt'] as Timestamp).toDate().toString().split(' ')[0], style: body.copyWith(fontWeight: FontWeight.bold, color: textPrimary)),
-                                      const SizedBox(height: 16),
-                                      Text('Cập nhật kho', style: body.copyWith(fontWeight: FontWeight.w500, color: textPrimary)),
-                                      const SizedBox(height: 4),
-                                      Text(displayStatus, style: body.copyWith(fontWeight: FontWeight.w500, color: textPrimary)),
-                                      const SizedBox(height: 16),
-                                      Text('Ghi chú', style: body.copyWith(color: textSecondary)),
-                                      const SizedBox(height: 4),
-                                      Text(session['note'] ?? '', style: body.copyWith(fontWeight: FontWeight.w500, color: textPrimary)),
-                                    ],
-                                  ),
-                                ),
-                                // Cột 2: Người kiểm kê
-                                Expanded(
-                                  flex: 2,
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      Text('Người kiểm kê', style: body.copyWith(color: textSecondary)),
-                                      const SizedBox(height: 4),
-                                      Text(_userInfo?['name'] ?? session['createdBy'] ?? '', style: body.copyWith(fontWeight: FontWeight.bold, color: textPrimary)),
-                                      if (_userInfo?['email'] != null)
-                                        Text(_userInfo?['email'] ?? '', style: body.copyWith(color: textSecondary)),
-                                    ],
-                                  ),
-                                ),
-                                // Cột 3: Số sản phẩm
-                                Expanded(
-                                  flex: 1,
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      Text('Số sản phẩm', style: body.copyWith(color: textSecondary)),
-                                      const SizedBox(height: 4),
-                                      Text('$totalProducts', style: body.copyWith(fontWeight: FontWeight.w500, color: textPrimary)),
-                                    ],
-                                  ),
-                                ),
-                                // Cột 4: Số sản phẩm lệch
-                                Expanded(
-                                  flex: 1,
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      Text('Số sản phẩm lệch', style: body.copyWith(color: textSecondary)),
-                                      const SizedBox(height: 4),
-                                      Text('$diffCount', style: body.copyWith(fontWeight: FontWeight.bold, color: diffCount > 0 ? warningOrange : textSecondary)),
-                                    ],
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ],
+                      IconButton(
+                        icon: const Icon(Icons.arrow_back_ios_new, color: Color(0xFF222B45)),
+                        onPressed: () {
+                          final mainLayoutState = context.findAncestorStateOfType<MainLayoutState>();
+                          if (mainLayoutState != null) {
+                            mainLayoutState.onSidebarTap(MainPage.inventory);
+                          }
+                        },
+                      ),
+                      const SizedBox(width: 8),
+                      const Text(
+                        'Chi tiết kiểm kê',
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 24,
+                          color: Color(0xFF222B45),
                         ),
                       ),
-                      // Search and action buttons
-                      Row(
+                    ],
+                  ),
+                ),
+                Expanded(
+                  child: SingleChildScrollView(
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 0),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Expanded(
-                            child: TextField(
-                              controller: _searchController,
-                              onChanged: (v) => setState(() => _searchText = v),
-                              decoration: InputDecoration(
-                                hintText: 'Tìm kiếm sản phẩm...',
-                                prefixIcon: const Icon(Icons.search, color: textSecondary),
-                                border: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(8),
-                                  borderSide: const BorderSide(color: borderColor),
+                          // Header
+                          Container(
+                            width: double.infinity,
+                            padding: const EdgeInsets.all(24),
+                            margin: const EdgeInsets.only(bottom: 24),
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(12),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black.withOpacity(0.05),
+                                  blurRadius: 10,
+                                  offset: const Offset(0, 2),
                                 ),
-                                enabledBorder: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(8),
-                                  borderSide: const BorderSide(color: borderColor),
+                              ],
+                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                // Tiêu đề và nhãn trạng thái trên 1 dòng, dãn đều 2 bên
+                                Row(
+                                  children: [
+                                    Expanded(
+                                      child: Text(
+                                        session['name']?.isNotEmpty == true ? session['name'] : 'Kiểm kê kho',
+                                        style: h2.copyWith(fontWeight: FontWeight.bold, color: textPrimary),
+                                      ),
+                                    ),
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+                                      decoration: BoxDecoration(
+                                        border: Border.all(color: primaryBlue),
+                                        borderRadius: BorderRadius.circular(24),
+                                        color: Colors.white,
+                                      ),
+                                      child: Text(
+                                        displayStatus,
+                                        style: body.copyWith(color: primaryBlue, fontWeight: FontWeight.bold),
+                                      ),
+                                    ),
+                                  ],
                                 ),
-                                focusedBorder: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(8),
-                                  borderSide: const BorderSide(color: primaryBlue, width: 1.5),
+                                const SizedBox(height: 24),
+                                // 4 cột thông tin
+                                Row(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    // Cột 1: Ngày kiểm kê, cập nhật kho, ghi chú
+                                    Expanded(
+                                      flex: 2,
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          Text('Ngày kiểm kê', style: body.copyWith(color: textSecondary)),
+                                          const SizedBox(height: 4),
+                                          Text((session['createdAt'] as Timestamp).toDate().toString().split(' ')[0], style: body.copyWith(fontWeight: FontWeight.bold, color: textPrimary)),
+                                          const SizedBox(height: 16),
+                                          Text('Cập nhật kho', style: body.copyWith(fontWeight: FontWeight.w500, color: textPrimary)),
+                                          const SizedBox(height: 4),
+                                          Text(displayStatus, style: body.copyWith(fontWeight: FontWeight.w500, color: textPrimary)),
+                                          const SizedBox(height: 16),
+                                          Text('Ghi chú', style: body.copyWith(color: textSecondary)),
+                                          const SizedBox(height: 4),
+                                          Text(session['note'] ?? '', style: body.copyWith(fontWeight: FontWeight.w500, color: textPrimary)),
+                                        ],
+                                      ),
+                                    ),
+                                    // Cột 2: Người kiểm kê
+                                    Expanded(
+                                      flex: 2,
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          Text('Người kiểm kê', style: body.copyWith(color: textSecondary)),
+                                          const SizedBox(height: 4),
+                                          Text(_userInfo?['name'] ?? session['createdBy'] ?? '', style: body.copyWith(fontWeight: FontWeight.bold, color: textPrimary)),
+                                          if (_userInfo?['email'] != null)
+                                            Text(_userInfo?['email'] ?? '', style: body.copyWith(color: textSecondary)),
+                                        ],
+                                      ),
+                                    ),
+                                    // Cột 3: Số sản phẩm
+                                    Expanded(
+                                      flex: 1,
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          Text('Số sản phẩm', style: body.copyWith(color: textSecondary)),
+                                          const SizedBox(height: 4),
+                                          Text('$totalProducts', style: body.copyWith(fontWeight: FontWeight.w500, color: textPrimary)),
+                                        ],
+                                      ),
+                                    ),
+                                    // Cột 4: Số sản phẩm lệch
+                                    Expanded(
+                                      flex: 1,
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          Text('Số sản phẩm lệch', style: body.copyWith(color: textSecondary)),
+                                          const SizedBox(height: 4),
+                                          Text('$diffCount', style: body.copyWith(fontWeight: FontWeight.bold, color: diffCount > 0 ? warningOrange : textSecondary)),
+                                        ],
+                                      ),
+                                    ),
+                                  ],
                                 ),
-                                filled: true,
-                                isDense: true,
-                                 fillColor: Colors.transparent,
-                              ),
+                              ],
                             ),
                           ),
-                          const SizedBox(width: 16),
-                          if (!isCompleted && !isUpdated) ...[
-                            const SizedBox(width: 16),
-                            ElevatedButton(
-                              onPressed: _completeLoading
-                                  ? null
-                                  : () async {
-                                      final confirmed = await showDialog<bool>(
-                                        context: context,
-                                        builder: (context) => AlertDialog(
-                                          title: const Text('Xác nhận hoàn tất phiên kiểm kê?'),
-                                          content: const Text('Sau khi hoàn tất, bạn không thể thay đổi số liệu kiểm kê.'),
-                                          actions: [
-                                            TextButton(
-                                              onPressed: () => Navigator.pop(context, false),
-                                              child: const Text('Hủy'),
+                          // Search and action buttons
+                          Row(
+                            children: [
+                              Expanded(
+                                child: TextField(
+                                  controller: _searchController,
+                                  onChanged: (v) => setState(() => _searchText = v),
+                                  decoration: InputDecoration(
+                                    hintText: 'Tìm kiếm sản phẩm...',
+                                    prefixIcon: const Icon(Icons.search, color: textSecondary),
+                                    border: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(8),
+                                      borderSide: const BorderSide(color: borderColor),
+                                    ),
+                                    enabledBorder: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(8),
+                                      borderSide: const BorderSide(color: borderColor),
+                                    ),
+                                    focusedBorder: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(8),
+                                      borderSide: const BorderSide(color: primaryBlue, width: 1.5),
+                                    ),
+                                    filled: true,
+                                    isDense: true,
+                                     fillColor: Colors.transparent,
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 16),
+                              if (!isCompleted && !isUpdated) ...[
+                                const SizedBox(width: 16),
+                                ElevatedButton(
+                                  onPressed: _completeLoading
+                                      ? null
+                                      : () async {
+                                          final confirmed = await showDialog<bool>(
+                                            context: context,
+                                            builder: (context) => AlertDialog(
+                                              title: const Text('Xác nhận hoàn tất phiên kiểm kê?'),
+                                              content: const Text('Sau khi hoàn tất, bạn không thể thay đổi số liệu kiểm kê.'),
+                                              actions: [
+                                                TextButton(
+                                                  onPressed: () => Navigator.pop(context, false),
+                                                  child: const Text('Hủy'),
+                                                ),
+                                                ElevatedButton(
+                                                  onPressed: () => Navigator.pop(context, true),
+                                                  child: const Text('Xác nhận'),
+                                                ),
+                                              ],
                                             ),
-                                            ElevatedButton(
-                                              onPressed: () => Navigator.pop(context, true),
-                                              child: const Text('Xác nhận'),
+                                          );
+                                          if (confirmed == true) {
+                                            _confirmCompleteInventory();
+                                          }
+                                        },
+                                  style: primaryButtonStyle,
+                                  child: _completeLoading
+                                      ? SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                                      : const Text('Hoàn tất kiểm kê'),
+                                ),
+                              ] else if (isCompleted && !isUpdated) ...[
+                                ElevatedButton(
+                                  onPressed: _updateStockLoading ? null : _updateStock,
+                                  style: primaryButtonStyle,
+                                  child: _updateStockLoading
+                                      ? SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                                      : const Text('Cập nhật tồn kho'),
+                                ),
+                              ]
+                            ],
+                          ),
+                          const SizedBox(height: 16),
+                          // Table header
+                
+                          // Product list
+                          Container(
+                            decoration: BoxDecoration(
+                              color: Colors.transparent,
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(color: borderColor),
+                            ),
+                            child: Column(
+                              children: [
+                                // Header row
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                                  decoration: const BoxDecoration(
+                                    color: Colors.transparent,
+                                    border: Border(
+                                      bottom: BorderSide(color: borderColor, width: 1),
+                                    ),
+                                  ),
+                                  child: Row(
+                                    children: [
+                                      Expanded(flex: 3, child: Text('Tên sản phẩm', style: body.copyWith(fontWeight: FontWeight.bold, color: textSecondary))),
+                                      Expanded(flex: 2, child: Text('Số lượng hệ thống', textAlign: TextAlign.center, style: body.copyWith(fontWeight: FontWeight.bold, color: textSecondary))),
+                                      Expanded(flex: 2, child: Text('Số lượng thực tế', textAlign: TextAlign.center, style: body.copyWith(fontWeight: FontWeight.bold, color: textSecondary))),
+                                      Expanded(flex: 2, child: Text('Chênh lệch', textAlign: TextAlign.center, style: body.copyWith(fontWeight: FontWeight.bold, color: textSecondary))),
+                                      Expanded(flex: 3, child: Text('Ghi chú', style: body.copyWith(fontWeight: FontWeight.bold, color: textSecondary))),
+                                    ],
+                                  ),
+                                ),
+                                // Product rows
+                                SizedBox(
+                                  height: MediaQuery.of(context).size.height * 0.6 - 48, // trừ chiều cao header
+                                  child: ListView.builder(
+                                    shrinkWrap: true,
+                                    physics: const ClampingScrollPhysics(),
+                                    itemCount: filteredItems.length,
+                                    itemBuilder: (context, i) {
+                                      final item = filteredItems[i];
+                                      final id = item['id'] ?? item['productId'];
+                                      final actualController = _actualControllers[id] ??= TextEditingController(text: (item['actualStock']?.toString() ?? ''));
+                                      final noteController = _noteControllers[id] ??= TextEditingController(text: (item['note']?.toString() ?? ''));
+                                      final systemStock = item['systemStock'] ?? 0;
+                                      final actualStock = int.tryParse(actualController.text) ?? 0;
+                                      final diff = actualController.text.isEmpty ? null : actualStock - systemStock;
+                                      final rowColor = actualController.text.isEmpty
+                                        ? Colors.grey[100]
+                                        : diff != null && diff > 0
+                                          ? Colors.green[50]
+                                          : diff != null && diff < 0
+                                            ? Colors.orange[50]
+                                            : Colors.white;
+                                      return Container(
+                                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                                        decoration: BoxDecoration(
+                                          color: rowColor,
+                                          border: Border(
+                                            bottom: BorderSide(color: borderColor, width: 1),
+                                          ),
+                                        ),
+                                        child: Row(
+                                          children: [
+                                            Expanded(flex: 3, child: Text((item['productName'] ?? '').toString(), style: body.copyWith(fontWeight: FontWeight.bold,color: textPrimary))),
+                                            Expanded(flex: 2, child: Text('${item['systemStock']}', textAlign: TextAlign.center, style: body)),
+                                            Expanded(
+                                              flex: 2,
+                                              child: (!isCompleted && !isUpdated)
+                                                  ? SizedBox(
+                                                      width: 90,
+                                                      child: Focus(
+                                                        onFocusChange: (hasFocus) async {
+                                                          if (!hasFocus) {
+                                                            final actual = int.tryParse(actualController.text) ?? 0;
+                                                            final diff = actual - (item['systemStock'] ?? 0);
+                                                            await _itemService.updateItem(item['id'], {'actualStock': actual, 'diff': diff});
+                                                          }
+                                                        },
+                                                        child: TextField(
+                                                          controller: actualController,
+                                                          keyboardType: TextInputType.number,
+                                                          textAlign: TextAlign.center,
+                                                          inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                                                          onChanged: (v) {
+                                                            setState(() {});
+                                                          },
+                                                          enabled: !isCompleted && !isUpdated,
+                                                          decoration: InputDecoration(
+                                                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(6)),
+                                                            isDense: true,
+                                                          ),
+                                                        ),
+                                                      ),
+                                                    )
+                                                  : Center(
+                                                      child: Text(
+                                                        (item['actualStock']?.toString() ?? '').isEmpty
+                                                          ? '—'
+                                                          : item['actualStock'].toString(),
+                                                        textAlign: TextAlign.center,
+                                                        style: body,
+                                                      ),
+                                                    ),
+                                            ),
+                                            Expanded(
+                                              flex: 2,
+                                              child: Center(
+                                                child: actualController.text.isEmpty
+                                                    ? Text('—', style: body.copyWith(color: textSecondary))
+                                                    : diff != null && diff > 0
+                                                        ? Text('+$diff', style: body.copyWith(color: Colors.green[700], fontWeight: FontWeight.bold))
+                                                        : diff != null && diff < 0
+                                                            ? Text('$diff', style: body.copyWith(color: warningOrange, fontWeight: FontWeight.bold))
+                                                            : Text('0', style: body),
+                                              ),
+                                            ),
+                                            Expanded(
+                                              flex: 3,
+                                              child: (!isCompleted && !isUpdated)
+                                                  ? TextField(
+                                                      controller: noteController,
+                                                      onChanged: (v) async {
+                                                        await _itemService.updateItem(item['id'], {'note': v});
+                                                      },
+                                                      enabled: !isCompleted && !isUpdated,
+                                                      style: body,
+                                                      decoration: InputDecoration(
+                                                        hintText: 'Ghi chú...',
+                                                        hintStyle: body.copyWith(color: textSecondary),
+                                                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(6)),
+                                                        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(6), borderSide: BorderSide(color: borderColor)),
+                                                        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(6), borderSide: BorderSide(color: primaryBlue, width: 1.5)),
+                                                        filled: true,
+                                                        fillColor: Colors.transparent,
+                                                        isDense: true,
+                                                      ),
+                                                    )
+                                                  : Text(
+                                                      (item['note'] ?? '').toString().trim().isEmpty ? '—' : item['note'],
+                                                      style: body,
+                                                    ),
                                             ),
                                           ],
                                         ),
                                       );
-                                      if (confirmed == true) {
-                                        _confirmCompleteInventory();
-                                      }
                                     },
-                              style: primaryButtonStyle,
-                              child: _completeLoading
-                                  ? SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                                  : const Text('Hoàn tất kiểm kê'),
+                                  ),
+                                ),
+                              ],
                             ),
-                          ] else if (isCompleted && !isUpdated) ...[
-                            ElevatedButton(
-                              onPressed: _updateStockLoading ? null : _updateStock,
-                              style: primaryButtonStyle,
-                              child: _updateStockLoading
-                                  ? SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                                  : const Text('Cập nhật tồn kho'),
-                            ),
-                          ]
+                          ),
+                          const SizedBox(height: 24),
                         ],
                       ),
-                      const SizedBox(height: 16),
-                      // Table header
-              
-                      // Product list
-                      Container(
-                        decoration: BoxDecoration(
-                          color: Colors.transparent,
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: borderColor),
-                        ),
-                        child: Column(
-                          children: [
-                            // Header row
-                            Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                              decoration: const BoxDecoration(
-                                color: Colors.transparent,
-                                border: Border(
-                                  bottom: BorderSide(color: borderColor, width: 1),
-                                ),
-                              ),
-                              child: Row(
-                                children: [
-                                  Expanded(flex: 3, child: Text('Tên sản phẩm', style: body.copyWith(fontWeight: FontWeight.bold, color: textSecondary))),
-                                  Expanded(flex: 2, child: Text('Số lượng hệ thống', textAlign: TextAlign.center, style: body.copyWith(fontWeight: FontWeight.bold, color: textSecondary))),
-                                  Expanded(flex: 2, child: Text('Số lượng thực tế', textAlign: TextAlign.center, style: body.copyWith(fontWeight: FontWeight.bold, color: textSecondary))),
-                                  Expanded(flex: 2, child: Text('Chênh lệch', textAlign: TextAlign.center, style: body.copyWith(fontWeight: FontWeight.bold, color: textSecondary))),
-                                  Expanded(flex: 3, child: Text('Ghi chú', style: body.copyWith(fontWeight: FontWeight.bold, color: textSecondary))),
-                                ],
-                              ),
-                            ),
-                            // Product rows
-                            SizedBox(
-                              height: MediaQuery.of(context).size.height * 0.6 - 48, // trừ chiều cao header
-                              child: ListView.builder(
-                                shrinkWrap: true,
-                                physics: const ClampingScrollPhysics(),
-                                itemCount: filteredItems.length,
-                                itemBuilder: (context, i) {
-                                  final item = filteredItems[i];
-                                  final id = item['id'] ?? item['productId'];
-                                  final actualController = _actualControllers[id] ??= TextEditingController(text: (item['actualStock']?.toString() ?? ''));
-                                  final noteController = _noteControllers[id] ??= TextEditingController(text: (item['note']?.toString() ?? ''));
-                                  final systemStock = item['systemStock'] ?? 0;
-                                  final actualStock = int.tryParse(actualController.text) ?? 0;
-                                  final diff = actualController.text.isEmpty ? null : actualStock - systemStock;
-                                  final rowColor = actualController.text.isEmpty
-                                    ? Colors.grey[100]
-                                    : diff != null && diff > 0
-                                      ? Colors.green[50]
-                                      : diff != null && diff < 0
-                                        ? Colors.orange[50]
-                                        : Colors.white;
-                                  return Container(
-                                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                                    decoration: BoxDecoration(
-                                      color: rowColor,
-                                      border: Border(
-                                        bottom: BorderSide(color: borderColor, width: 1),
-                                      ),
-                                    ),
-                                    child: Row(
-                                      children: [
-                                        Expanded(flex: 3, child: Text((item['productName'] ?? '').toString(), style: body.copyWith(fontWeight: FontWeight.bold,color: textPrimary))),
-                                        Expanded(flex: 2, child: Text('${item['systemStock']}', textAlign: TextAlign.center, style: body)),
-                                        Expanded(
-                                          flex: 2,
-                                          child: (!isCompleted && !isUpdated)
-                                              ? SizedBox(
-                                                  width: 90,
-                                                  child: Focus(
-                                                    onFocusChange: (hasFocus) async {
-                                                      if (!hasFocus) {
-                                                        final actual = int.tryParse(actualController.text) ?? 0;
-                                                        final diff = actual - (item['systemStock'] ?? 0);
-                                                        await _itemService.updateItem(item['id'], {'actualStock': actual, 'diff': diff});
-                                                      }
-                                                    },
-                                                    child: TextField(
-                                                      controller: actualController,
-                                                      keyboardType: TextInputType.number,
-                                                      textAlign: TextAlign.center,
-                                                      inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                                                      onChanged: (v) {
-                                                        setState(() {});
-                                                      },
-                                                      enabled: !isCompleted && !isUpdated,
-                                                      decoration: InputDecoration(
-                                                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(6)),
-                                                        isDense: true,
-                                                      ),
-                                                    ),
-                                                  ),
-                                                )
-                                              : Center(
-                                                  child: Text(
-                                                    (item['actualStock']?.toString() ?? '').isEmpty
-                                                      ? '—'
-                                                      : item['actualStock'].toString(),
-                                                    textAlign: TextAlign.center,
-                                                    style: body,
-                                                  ),
-                                                ),
-                                        ),
-                                        Expanded(
-                                          flex: 2,
-                                          child: Center(
-                                            child: actualController.text.isEmpty
-                                                ? Text('—', style: body.copyWith(color: textSecondary))
-                                                : diff != null && diff > 0
-                                                    ? Text('+$diff', style: body.copyWith(color: Colors.green[700], fontWeight: FontWeight.bold))
-                                                    : diff != null && diff < 0
-                                                        ? Text('$diff', style: body.copyWith(color: warningOrange, fontWeight: FontWeight.bold))
-                                                        : Text('0', style: body),
-                                          ),
-                                        ),
-                                        Expanded(
-                                          flex: 3,
-                                          child: (!isCompleted && !isUpdated)
-                                              ? TextField(
-                                                  controller: noteController,
-                                                  onChanged: (v) async {
-                                                    await _itemService.updateItem(item['id'], {'note': v});
-                                                  },
-                                                  enabled: !isCompleted && !isUpdated,
-                                                  style: body,
-                                                  decoration: InputDecoration(
-                                                    hintText: 'Ghi chú...',
-                                                    hintStyle: body.copyWith(color: textSecondary),
-                                                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(6)),
-                                                    enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(6), borderSide: BorderSide(color: borderColor)),
-                                                    focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(6), borderSide: BorderSide(color: primaryBlue, width: 1.5)),
-                                                    filled: true,
-                                                    fillColor: Colors.transparent,
-                                                    isDense: true,
-                                                  ),
-                                                )
-                                              : Text(
-                                                  (item['note'] ?? '').toString().trim().isEmpty ? '—' : item['note'],
-                                                  style: body,
-                                                ),
-                                        ),
-                                      ],
-                                    ),
-                                  );
-                                },
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(height: 24),
-                    ],
+                    ),
                   ),
                 ),
-              ),
+              ],
             ),
-          ],
+          ),
         ),
       ),
     );

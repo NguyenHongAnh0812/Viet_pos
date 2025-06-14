@@ -4,11 +4,13 @@ class ProductCategory {
   final String id;
   final String name;
   final String description;
+  final String? parentId;
 
   ProductCategory({
     required this.id,
     required this.name,
     required this.description,
+    this.parentId,
   });
 
   factory ProductCategory.fromFirestore(DocumentSnapshot doc) {
@@ -17,6 +19,7 @@ class ProductCategory {
       id: doc.id,
       name: data['name'] ?? '',
       description: data['description'] ?? '',
+      parentId: data['parentId'],
     );
   }
 
@@ -24,6 +27,7 @@ class ProductCategory {
     return {
       'name': name,
       'description': description,
+      if (parentId != null) 'parentId': parentId,
     };
   }
 
@@ -31,11 +35,13 @@ class ProductCategory {
     String? id,
     String? name,
     String? description,
+    String? parentId,
   }) {
     return ProductCategory(
       id: id ?? this.id,
       name: name ?? this.name,
       description: description ?? this.description,
+      parentId: parentId ?? this.parentId,
     );
   }
 } 
