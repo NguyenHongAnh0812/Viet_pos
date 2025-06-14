@@ -86,14 +86,14 @@ class _InvoiceImportScreenState extends State<InvoiceImportScreen> {
 
     // Tìm vị trí các cột cần lọc
     final headers = _excelData[0];
-    final dienGiaiIndex = headers.indexWhere((h) => h.toString().contains('Tên thương mại'));
+    final dienGiaiIndex = headers.indexWhere((h) => h.toString().contains('Product'));
     final donViTinhIndex = headers.indexWhere((h) => h.toString().contains('Đơn vị tính'));
     final soLuongIndex = headers.indexWhere((h) => h.toString().contains('Số lượng'));
     final toImportIndex = headers.indexWhere((h) => h.toString().contains('To import'));
 
     if (dienGiaiIndex == -1 || donViTinhIndex == -1 || soLuongIndex == -1 || toImportIndex == -1) {
       setState(() {
-        _status = 'Không tìm thấy một hoặc nhiều cột cần thiết (Tên thương mại, Đơn vị tính, Số lượng, To import)';
+        _status = 'Không tìm thấy một hoặc nhiều cột cần thiết (Product, Đơn vị tính, Số lượng, To import)';
       });
       return;
     }
@@ -145,7 +145,7 @@ class _InvoiceImportScreenState extends State<InvoiceImportScreen> {
 
     // In dữ liệu đã lọc và gộp
     print('\n=== DỮ LIỆU ĐÃ LỌC VÀ GỘP ===');
-    print('Tên thương mại | Đơn vị tính | Số lượng');
+    print('Product | Đơn vị tính | Số lượng');
     for (var row in _mergedData) {
       print('${row[0]} | ${row[1]} | ${row[2]}');
     }
@@ -301,7 +301,7 @@ class _InvoiceImportScreenState extends State<InvoiceImportScreen> {
                   child: SingleChildScrollView(
                     child: DataTable(
                       columns: const [
-                        DataColumn(label: Text('Tên thương mại')),
+                        DataColumn(label: Text('Product')),
                         DataColumn(label: Text('Đơn vị tính')),
                         DataColumn(label: Text('Số lượng')),
                       ],
@@ -327,7 +327,7 @@ class _InvoiceImportScreenState extends State<InvoiceImportScreen> {
                   child: SingleChildScrollView(
                     child: DataTable(
                       columns: const [
-                        DataColumn(label: Text('Tên thương mại')),
+                        DataColumn(label: Text('Product')),
                         DataColumn(label: Text('Đơn vị tính')),
                         DataColumn(label: Text('Số lượng')),
                       ],

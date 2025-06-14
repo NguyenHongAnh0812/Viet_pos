@@ -66,10 +66,10 @@ class _InventoryScreenState extends State<InventoryScreen> with SingleTickerProv
                 const Spacer(),
                 ElevatedButton.icon(
                   onPressed: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (context) => const InventoryCreateSessionScreen()),
-                    );
+                    final mainLayoutState = context.findAncestorStateOfType<MainLayoutState>();
+                    if (mainLayoutState != null) {
+                      mainLayoutState.onSidebarTap(MainPage.inventoryCreateSession);
+                    }
                   },
                   icon: const Icon(Icons.add),
                   label: const Text('Tạo phiên kiểm kê'),
@@ -143,7 +143,7 @@ class _InventoryScreenState extends State<InventoryScreen> with SingleTickerProv
               ),
             ),
           ],
-            ),
+        ),
             const SizedBox(height: space24),
                     Expanded(
               child: StreamBuilder<List<InventorySession>>(

@@ -16,9 +16,10 @@ import '../services/product_service.dart';
 import '../screens/invoice_import_list_screen.dart';
 import '../screens/invoice_import_screen.dart';
 import '../screens/inventory_detail_screen.dart';
+import '../screens/inventory_create_session_screen.dart';
 
 // Định nghĩa enum cho các trang
-enum MainPage { dashboard, productList, productCategory, addProduct, inventory, report, settings, productDetail, lowStockProducts, addProductCategory, inventoryHistory, styleGuide, invoiceImportList, invoiceImport, inventoryDetail }
+enum MainPage { dashboard, productList, productCategory, addProduct, inventory, report, settings, productDetail, lowStockProducts, addProductCategory, inventoryHistory, styleGuide, invoiceImportList, invoiceImport, inventoryDetail, inventoryCreateSession }
 
 class MainLayout extends StatefulWidget {
   final Widget? child; // Không cần truyền child nữa, sẽ render theo _currentPage
@@ -497,6 +498,8 @@ class MainLayoutState extends State<MainLayout> {
       case MainPage.inventoryDetail:
         if (_selectedInventorySessionId == null) return const SizedBox();
         return InventoryDetailScreen(sessionId: _selectedInventorySessionId!);
+      case MainPage.inventoryCreateSession:
+        return InventoryCreateSessionScreen();
       default:
         return const DashboardScreen();
     }

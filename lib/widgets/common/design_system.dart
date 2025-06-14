@@ -128,7 +128,7 @@ TextStyle get h3 => getInterTextStyle(fontSize: 20, fontWeight: FontWeight.w600,
 TextStyle get h4 => getInterTextStyle(fontSize: 18, fontWeight: FontWeight.w600, height: 1.4, letterSpacing: 0.0);
 
 // Body Text Styles
-TextStyle get bodyLarge => getInterTextStyle(fontSize: 16, fontWeight: FontWeight.w400, height: 1.5, letterSpacing: 0.0);
+TextStyle get bodyLarge => getInterTextStyle(fontSize: 14, fontWeight: FontWeight.w400, height: 1.5, letterSpacing: 0.0);
 TextStyle get body => getInterTextStyle(fontSize: 14, fontWeight: FontWeight.w400, height: 1.5, letterSpacing: 0.0);
 TextStyle get bodySmall => getInterTextStyle(fontSize: 12, fontWeight: FontWeight.w400, height: 1.4, letterSpacing: 0.0);
 

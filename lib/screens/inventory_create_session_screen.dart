@@ -8,6 +8,7 @@ import '../models/inventory_session.dart';
 import '../services/inventory_item_service.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import '../widgets/main_layout.dart';
 
 class InventoryCreateSessionScreen extends StatefulWidget {
   const InventoryCreateSessionScreen({Key? key}) : super(key: key);
@@ -37,22 +38,29 @@ class _InventoryCreateSessionScreenState extends State<InventoryCreateSessionScr
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: appBackground,
-      appBar: AppBar(
-        backgroundColor: appBackground,
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: textPrimary),
-          onPressed: () => Navigator.of(context).pop(),
-        ),
-        title: Text('Tạo phiên kiểm kê', style: h1),
-      ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
+      child: SingleChildScrollView(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            // Heading với nút back và tiêu đề
+            Row(
+              children: [
+                IconButton(
+                  icon: const Icon(Icons.arrow_back, color: textPrimary),
+                  onPressed: () {
+                    final mainLayoutState = context.findAncestorStateOfType<MainLayoutState>();
+                    if (mainLayoutState != null) {
+                      mainLayoutState.onSidebarTap(MainPage.inventory);
+                    }
+                  },
+                ),
+                const SizedBox(width: 4),
+                const Text('Tạo phiên kiểm kê', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 24, color: textPrimary)),
+              ],
+            ),
+            const SizedBox(height: 24),
             // Thông tin cơ bản
             Container(
               decoration: BoxDecoration(
@@ -326,12 +334,10 @@ class _InventoryCreateSessionScreenState extends State<InventoryCreateSessionScr
                     }
                     setState(() => _saving = false);
                     if (!mounted) return;
-                    Navigator.pushReplacement(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => InventoryDetailScreen(sessionId: sessionId),
-                      ),
-                    );
+                    final mainLayoutState = context.findAncestorStateOfType<MainLayoutState>();
+                    if (mainLayoutState != null) {
+                      mainLayoutState.openInventoryDetail(sessionId);
+                    }
                   },
                   style: primaryButtonStyle,
                   child: _saving ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white)) : const Text('Tạo và bắt đầu kiểm kê'),
