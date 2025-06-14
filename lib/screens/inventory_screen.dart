@@ -101,164 +101,163 @@ class _InventoryScreenState extends State<InventoryScreen> with SingleTickerProv
                         borderRadius: BorderRadius.circular(8),
                         borderSide: const BorderSide(color: primaryBlue, width: 1.5),
                       ),
-                      contentPadding: const EdgeInsets.symmetric(vertical: 0, horizontal: 16),
+                      isDense: true,
                       filled: true,
-                      fillColor: cardBackground,
+                      fillColor: Colors.transparent,
                     ),
                   ),
                 ),
                 const SizedBox(width: space16),
                 SizedBox(
                   width: 200,
-                  child: DropdownButtonFormField<String>(
-                    value: _selectedStatus,
+                  child: ShopifyDropdown<String>(
                     items: const [
-                      DropdownMenuItem(value: 'Tất cả trạng thái', child: Text('Tất cả trạng thái')),
-                      DropdownMenuItem(value: 'Nháp', child: Text('Nháp')),
-                      DropdownMenuItem(value: 'Đang kiểm kê', child: Text('Đang kiểm kê')),
-                      DropdownMenuItem(value: 'Đã hoàn tất', child: Text('Đã hoàn tất')),
-                      DropdownMenuItem(value: 'Đã cập nhật kho', child: Text('Đã cập nhật kho')),
+                      'Tất cả trạng thái',
+                      'Nháp',
+                      'Đang kiểm kê',
+                      'Đã hoàn tất',
+                      'Đã cập nhật kho',
                     ],
+                    value: _selectedStatus,
+                    getLabel: (v) => v,
                     onChanged: (v) {
                       if (v != null) setState(() => _selectedStatus = v);
                     },
-                    style: bodyLarge.copyWith(color: textPrimary),
-                    decoration: InputDecoration(
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(8),
-                        borderSide: const BorderSide(color: borderColor),
-                      ),
-                      enabledBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(8),
-                        borderSide: const BorderSide(color: borderColor),
-                      ),
-                      focusedBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(8),
-                        borderSide: const BorderSide(color: primaryBlue, width: 1.5),
-                      ),
-                      contentPadding: const EdgeInsets.symmetric(vertical: 0, horizontal: 12),
-                      filled: true,
-                      fillColor: cardBackground,
-                    ),
-              ),
-            ),
+                    hint: 'Chọn trạng thái',
+                    backgroundColor: Colors.transparent,
+                  ),
+                ),
           ],
         ),
             const SizedBox(height: space24),
-                    Expanded(
-              child: StreamBuilder<List<InventorySession>>(
-                stream: _inventoryService.getAllSessions(),
-                            builder: (context, snapshot) {
-                  final sessions = snapshot.data ?? [];
-                  final filtered = sessions.where((session) {
-                    final matchesStatus = _selectedStatus == 'Tất cả trạng thái' || session.status == _selectedStatus;
-                    final search = _searchController.text.trim().toLowerCase();
-                    final matchesSearch = search.isEmpty ||
-                      session.note.toLowerCase().contains(search) ||
-                      session.createdBy.toLowerCase().contains(search);
-                    return matchesStatus && matchesSearch;
-                  }).toList();
-                  return ListView.separated(
-                    itemCount: filtered.length,
-                    separatorBuilder: (_, __) => const SizedBox(height: space16),
-                    itemBuilder: (context, i) {
-                      final session = filtered[i];
-                      return GestureDetector(
-                        onTap: () {
-                          // Gọi MainLayout để mở chi tiết kiểm kê trong main content
-                          final mainLayoutState = context.findAncestorStateOfType<MainLayoutState>();
-                          if (mainLayoutState != null) {
-                            mainLayoutState.openInventoryDetail(session.id);
-                          }
-                        },
-                        child: Container(
-                          decoration: BoxDecoration(
-                            color: cardBackground,
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(color: borderColor),
-                          ),
-                          padding: const EdgeInsets.all(space20),
-                          child: Row(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                                    Row(
-                                      children: [
-                                        Text(session.note.isNotEmpty ? session.note : 'Phiên kiểm kê', style: h3.copyWith(color: textPrimary)),
-                                        const SizedBox(width: space8),
-                                        DesignSystemBadge(
-                                          text: session.status,
-                                          variant: session.status == 'Đã cập nhật kho'
-                                              ? BadgeVariant.secondary
-                                              : session.status == 'Đã hoàn tất'
-                                                  ? BadgeVariant.warning
-                                                  : session.status == 'Đang kiểm kê'
-                                                      ? BadgeVariant.defaultVariant
-                                                      : BadgeVariant.outline,
-                          ),
-                        ],
-                      ),
-                                    const SizedBox(height: space4),
-                                    Text('Ngày: ${session.createdAt.day}/${session.createdAt.month}/${session.createdAt.year}', style: bodyLarge.copyWith(color: textSecondary)),
-                                    const SizedBox(height: space8),
-                                    Row(
+            StreamBuilder<List<InventorySession>>(
+              stream: _inventoryService.getAllSessions(),
+              builder: (context, snapshot) {
+                final sessions = snapshot.data ?? [];
+                final filtered = sessions.where((session) {
+                  final matchesStatus = _selectedStatus == 'Tất cả trạng thái' || session.status == _selectedStatus;
+                  final search = _searchController.text.trim().toLowerCase();
+                  final matchesSearch = search.isEmpty ||
+                    session.note.toLowerCase().contains(search) ||
+                    session.createdBy.toLowerCase().contains(search);
+                  return matchesStatus && matchesSearch;
+                }).toList();
+                return Container(
+                  decoration: BoxDecoration(
+                    color: Colors.transparent,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: borderColor),
+                  ),
+                  child: Column(
                     children: [
-                                        Icon(Icons.person, size: 16, color: textSecondary),
-                                        const SizedBox(width: space4),
-                                        Text(session.createdBy, style: bodyLarge.copyWith(color: textSecondary)),
-                                      ],
-                                    ),
-              ],
-            ),
-          ),
-                              Column(
-                                crossAxisAlignment: CrossAxisAlignment.end,
-                                children: [
-                                  Row(
-                                    children: [
-                                      Text('Số sản phẩm: ', style: bodyLarge.copyWith(color: textSecondary)),
-                                      Text('${session.products.length}', style: bodyLarge.copyWith(color: textPrimary, fontWeight: FontWeight.bold)),
-                                    ],
-                                  ),
-                                  const SizedBox(height: space4),
-                                  Row(
-                                    children: [
-                                      Text('Lệch: ', style: bodyLarge.copyWith(color: textSecondary)),
-                                      Text(
-                                        '${session.products.where((p) => p.diff != 0).length}',
-                                        style: bodyLarge.copyWith(
-                                          color: session.products.where((p) => p.diff != 0).isNotEmpty ? warningOrange : textPrimary,
-                                          fontWeight: FontWeight.bold,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                  const SizedBox(height: space4),
-                                  Row(
-                                    children: [
-                                      Text('Cập nhật kho: ', style: bodyLarge.copyWith(color: textSecondary)),
-                                      session.status == 'Đã cập nhật kho'
-                                          ? const Icon(Icons.check_circle, color: successGreen, size: 20)
-                                          : Text('—', style: h3.copyWith(color: textSecondary)),
-                                    ],
-                            ),
+                      // Header row
+                      Container(
+                        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+                        decoration: const BoxDecoration(
+                          border: Border(
+                            bottom: BorderSide(color: Color(0xFFE5E7EB), width: 1),
+                          ),
+                        ),
+                        child: Row(
+                          children: const [
+                            Expanded(flex: 3, child: Text('Tên phiên kiểm kê', style: TextStyle(color: textMuted, fontWeight: FontWeight.bold))),
+                            Expanded(flex: 2, child: Text('Ngày tạo', textAlign: TextAlign.center, style: TextStyle(color: textMuted, fontWeight: FontWeight.bold))),
+                            Expanded(flex: 2, child: Text('Trạng thái', textAlign: TextAlign.center, style: TextStyle(color: textMuted, fontWeight: FontWeight.bold))),
+                            Expanded(flex: 2, child: Text('Số sản phẩm', textAlign: TextAlign.center, style: TextStyle(color: textMuted, fontWeight: FontWeight.bold))),
+                            Expanded(flex: 2, child: Text('Số sản phẩm lệch', textAlign: TextAlign.center, style: TextStyle(color: textMuted, fontWeight: FontWeight.bold))),
+                            Expanded(flex: 2, child: Text('Đã cập nhật kho', textAlign: TextAlign.center, style: TextStyle(color: textMuted, fontWeight: FontWeight.bold))),
                           ],
                         ),
-                      ],
-                    ),
+                      ),
+                      for (int i = 0; i < filtered.length; i++)
+                        GestureDetector(
+                          onTap: () {
+                            final mainLayoutState = context.findAncestorStateOfType<MainLayoutState>();
+                            if (mainLayoutState != null) {
+                              mainLayoutState.openInventoryDetail(filtered[i].id);
+                            }
+                          },
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 16),
+                            decoration: BoxDecoration(
+                              color: Colors.transparent,
+                              border: i < filtered.length - 1
+                                  ? const Border(bottom: BorderSide(color: Color(0xFFE5E7EB), width: 1))
+                                  : null,
+                            ),
+                            child: Row(
+                              children: [
+                                // Tên phiên kiểm kê
+                                Expanded(
+                                  flex: 3,
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(filtered[i].note.isNotEmpty ? filtered[i].note : 'Phiên kiểm kê', style: body.copyWith(color: textPrimary, fontWeight: FontWeight.bold)),
+                                      if (filtered[i].note.isNotEmpty)
+                                        Text(filtered[i].note, style: body.copyWith(color: textSecondary)),
+                                    ],
+                                  ),
+                                ),
+                                // Ngày tạo
+                                Expanded(
+                                  flex: 2,
+                                  child: Text('${filtered[i].createdAt.day}/${filtered[i].createdAt.month}/${filtered[i].createdAt.year}', textAlign: TextAlign.center, style: body.copyWith(color: textPrimary)),
+                                ),
+                                // Trạng thái
+                                Expanded(
+                                  flex: 2,
+                                  child: Center(
+                                    child: DesignSystemBadge(
+                                      text: filtered[i].status,
+                                      variant: filtered[i].status == 'Đã cập nhật kho'
+                                          ? BadgeVariant.secondary
+                                          : filtered[i].status == 'Đã hoàn tất'
+                                              ? BadgeVariant.warning
+                                              : filtered[i].status == 'Đang kiểm kê'
+                                                  ? BadgeVariant.defaultVariant
+                                                  : BadgeVariant.outline,
+                                    ),
+                                  ),
+                                ),
+                                // Số sản phẩm
+                                Expanded(
+                                  flex: 2,
+                                  child: Text('${filtered[i].products.length}', textAlign: TextAlign.center, style: body.copyWith(color: textPrimary)),
+                                ),
+                                // Số sản phẩm lệch
+                                Expanded(
+                                  flex: 2,
+                                  child: Text(
+                                    '${filtered[i].products.where((p) => p.diff != 0).length}',
+                                    textAlign: TextAlign.center,
+                                    style: body.copyWith(
+                                      color: filtered[i].products.where((p) => p.diff != 0).isNotEmpty ? warningOrange : textPrimary,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ),
+                                // Đã cập nhật kho
+                                Expanded(
+                                  flex: 2,
+                                  child: Center(
+                                    child: filtered[i].status == 'Đã cập nhật kho'
+                                        ? const Icon(Icons.check_circle, color: successGreen, size: 20)
+                                        : Text('—', style: h3.copyWith(color: textSecondary)),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
                         ),
-                      );
-                    },
-                  );
-                                                },
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                      ),
+                    ],
+                  ),
+                );
+              },
+            ),
+          ],
+        ),
+      ),
     );
   }
 

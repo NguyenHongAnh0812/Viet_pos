@@ -211,6 +211,8 @@ class _InventoryCreateSessionScreenState extends State<InventoryCreateSessionScr
                             groupValue: _selectMode,
                             onChanged: (v) => setState(() => _selectMode = v!),
                             title: Text('Tất cả sản phẩm (${products.length} sản phẩm)', style: bodyLarge.copyWith(color: textPrimary)),
+                            dense: true,
+                            contentPadding: const EdgeInsets.symmetric(vertical: 0, horizontal: 0),
                           ),
                           RadioListTile<int>(
                             value: 1,
@@ -224,12 +226,16 @@ class _InventoryCreateSessionScreenState extends State<InventoryCreateSessionScr
                                     onChanged: (v) => setState(() => _selectedCategory = v),
                                   )
                                 : null,
+                            dense: true,
+                            contentPadding: const EdgeInsets.symmetric(vertical: 0, horizontal: 0),
                           ),
                           RadioListTile<int>(
                             value: 2,
                             groupValue: _selectMode,
                             onChanged: (v) => setState(() => _selectMode = v!),
                             title: Text('Chọn sản phẩm cụ thể', style: bodyLarge.copyWith(color: textPrimary)),
+                            dense: true,
+                            contentPadding: const EdgeInsets.symmetric(vertical: 0, horizontal: 0),
                           ),
                         ],
                       ),
@@ -247,19 +253,41 @@ class _InventoryCreateSessionScreenState extends State<InventoryCreateSessionScr
                               itemCount: products.length,
                               itemBuilder: (context, i) {
                                 final p = products[i];
-                                return CheckboxListTile(
-                                  value: _selectedProducts.contains(p.id),
-                                  onChanged: (v) {
-                                    setState(() {
-                                      if (v == true) {
-                                        _selectedProducts.add(p.id);
-                                      } else {
-                                        _selectedProducts.remove(p.id);
-                                      }
-                                    });
-                                  },
-                                  title: Text(p.name, style: bodyLarge.copyWith(color: textPrimary)),
-                                  subtitle: p.commonName.isNotEmpty ? Text(p.commonName, style: bodyLarge.copyWith(color: textSecondary)) : null,
+                                return Padding(
+                                  padding: const EdgeInsets.symmetric(vertical: 0),
+                                  child: Row(
+                                    crossAxisAlignment: CrossAxisAlignment.center,
+                                    children: [
+                                      Checkbox(
+                                        value: _selectedProducts.contains(p.id),
+                                        onChanged: (v) {
+                                          setState(() {
+                                            if (v == true) {
+                                              _selectedProducts.add(p.id);
+                                            } else {
+                                              _selectedProducts.remove(p.id);
+                                            }
+                                          });
+                                        },
+                                        materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                        visualDensity: VisualDensity.compact,
+                                      ),
+                                      Expanded(
+                                        child: Align(
+                                          alignment: Alignment.centerLeft,
+                                          child: Column(
+                                            mainAxisSize: MainAxisSize.min,
+                                            crossAxisAlignment: CrossAxisAlignment.start,
+                                            children: [
+                                              Text(p.name, style: bodyLarge.copyWith(color: textPrimary)),
+                                              if (p.commonName.isNotEmpty)
+                                                Text(p.commonName, style: bodyLarge.copyWith(color: textSecondary)),
+                                            ],
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
                                 );
                               },
                             ),

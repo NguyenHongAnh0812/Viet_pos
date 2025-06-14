@@ -1436,21 +1436,21 @@ class _ProductListScreenState extends State<ProductListScreen> {
                                                 flex: 5,
                                                 child: Align(
                                                   alignment: Alignment.centerLeft,
-                                                  child: Text('Tên sản phẩm', style: labelLarge.copyWith(fontWeight: FontWeight.w700)),
+                                                  child: Text('Tên sản phẩm', style: TextStyle(color: textMuted, fontWeight: FontWeight.bold)),
                                                 ),
                                               ),
                                               Expanded(
                                                 flex: 2,
                                                 child: Align(
                                                   alignment: Alignment.center,
-                                                  child: Text('Mã vạch', style: body.copyWith(color: Colors.grey[600])),
+                                                  child: Text('Mã vạch', style: TextStyle(color: textMuted, fontWeight: FontWeight.bold)),
                                                 ),
                                               ),
                                               Expanded(
                                                 flex: 2,
                                                 child: Align(
                                                   alignment: Alignment.center,
-                                                  child: Text('Số lượng', style: labelMedium.copyWith(fontWeight: FontWeight.w600)),
+                                                  child: Text('Số lượng', style: TextStyle(color: textMuted, fontWeight: FontWeight.bold)),
                                                 ),
                                               ),
                                             ],
