@@ -132,7 +132,7 @@ class _InventoryScreenState extends State<InventoryScreen> with SingleTickerProv
             const SizedBox(height: space24),
             StreamBuilder<List<InventorySession>>(
               stream: _inventoryService.getAllSessions(),
-              builder: (context, snapshot) {
+          builder: (context, snapshot) {
                 final sessions = snapshot.data ?? [];
                 final filtered = sessions.where((session) {
                   final matchesStatus = _selectedStatus == 'Tất cả trạng thái' || session.status == _selectedStatus;
@@ -185,14 +185,14 @@ class _InventoryScreenState extends State<InventoryScreen> with SingleTickerProv
                                   ? const Border(bottom: BorderSide(color: Color(0xFFE5E7EB), width: 1))
                                   : null,
                             ),
-                            child: Row(
-                              children: [
+                              child: Row(
+                                children: [
                                 // Tên phiên kiểm kê
-                                Expanded(
-                                  flex: 3,
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
+                                  Expanded(
+                                    flex: 3,
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
                                       Text(filtered[i].note.isNotEmpty ? filtered[i].note : 'Phiên kiểm kê', style: body.copyWith(color: textPrimary, fontWeight: FontWeight.bold)),
                                       if (filtered[i].note.isNotEmpty)
                                         Text(filtered[i].note, style: body.copyWith(color: textSecondary)),
@@ -226,7 +226,7 @@ class _InventoryScreenState extends State<InventoryScreen> with SingleTickerProv
                                   child: Text('${filtered[i].products.length}', textAlign: TextAlign.center, style: body.copyWith(color: textPrimary)),
                                 ),
                                 // Số sản phẩm lệch
-                                Expanded(
+                                  Expanded(
                                   flex: 2,
                                   child: Text(
                                     '${filtered[i].products.where((p) => p.diff != 0).length}',
@@ -238,18 +238,18 @@ class _InventoryScreenState extends State<InventoryScreen> with SingleTickerProv
                                   ),
                                 ),
                                 // Đã cập nhật kho
-                                Expanded(
-                                  flex: 2,
-                                  child: Center(
+                                  Expanded(
+                                    flex: 2,
+                                    child: Center(
                                     child: filtered[i].status == 'Đã cập nhật kho'
                                         ? const Icon(Icons.check_circle, color: successGreen, size: 20)
                                         : Text('—', style: h3.copyWith(color: textSecondary)),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ),
                     ],
                   ),
                 );

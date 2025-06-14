@@ -21,6 +21,7 @@ class Product {
   final bool isActive;        // Trạng thái
   final DateTime createdAt;   // Ngày tạo
   final DateTime updatedAt;   // Ngày cập nhật
+  final String? distributor; // Tên nhà phân phối (optional)
 
   Product({
     required this.id,
@@ -43,6 +44,7 @@ class Product {
     this.isActive = true,
     required this.createdAt,
     required this.updatedAt,
+    this.distributor,
   });
 
   // Convert to Map for Firestore
@@ -67,6 +69,7 @@ class Product {
       'isActive': isActive,
       'createdAt': createdAt,
       'updatedAt': updatedAt,
+      'distributor': distributor,
     };
   }
 
@@ -116,6 +119,7 @@ class Product {
       isActive: map['isActive'] ?? true,
       createdAt: createdAt,
       updatedAt: updatedAt,
+      distributor: map['distributor'],
     );
   }
 
@@ -140,6 +144,7 @@ class Product {
     bool? isActive,
     DateTime? createdAt,
     DateTime? updatedAt,
+    String? distributor,
   }) {
     return Product(
       id: id ?? this.id,
@@ -162,6 +167,7 @@ class Product {
       isActive: isActive ?? this.isActive,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
+      distributor: distributor ?? this.distributor,
     );
   }
 } 

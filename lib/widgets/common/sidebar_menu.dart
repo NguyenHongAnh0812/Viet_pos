@@ -92,6 +92,11 @@ class _SidebarMenuState extends State<SidebarMenu> {
         ),
       ],
     ),
+    const MenuItem(
+      title: 'Nhà cung cấp',
+      icon: Icons.local_shipping_outlined,
+      route: '/distributors',
+    ),
   ];
 
   String? _selectedRoute;

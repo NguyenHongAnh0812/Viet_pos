@@ -1112,13 +1112,6 @@ class _ProductListScreenState extends State<ProductListScreen> {
     checkExtremeProducts(products);
     print('DEBUG: products.length = \\${products.length}');
     // Cập nhật filter ranges khi có dữ liệu mới
-    if (products.isEmpty) {
-      return Center(
-        child: widget.isLoadingProducts
-            ? const CircularProgressIndicator()
-            : const Text('Không có dữ liệu sản phẩm nào trong hệ thống.', style: TextStyle(color: Colors.black54)),
-      );
-    }
     updateFilterRanges(products);
     final filteredProducts = filterProducts(products);
     print('DEBUG: filteredProducts.length = \\${filteredProducts.length}');
@@ -1181,7 +1174,7 @@ class _ProductListScreenState extends State<ProductListScreen> {
                                         final confirm = await showDesignSystemDialog<bool>(
                                           context: context,
                                           title: 'Xóa sản phẩm',
-                                          content: Text('Bạn có chắc muốn xóa ${selected.length} sản phẩm đã chọn?'),
+                                          content: Text('Bạn có chắc muốn xóa \\${selected.length} sản phẩm đã chọn?'),
                                           actions: [
                                             TextButton(
                                               onPressed: () => Navigator.pop(context, false),
@@ -1338,6 +1331,17 @@ class _ProductListScreenState extends State<ProductListScreen> {
                             final isMobile = MediaQuery.of(context).size.width < 600;
                             final pagedProducts = sortedProducts.take(currentPage * itemsPerPage).toList();
 
+                            if (products.isEmpty) {
+                              return Padding(
+                                padding: const EdgeInsets.symmetric(vertical: 32.0),
+                                child: Center(
+                                  child: Text(
+                                    'Không có dữ liệu sản phẩm nào trong hệ thống.',
+                                    style: TextStyle(fontSize: 16, color: Colors.grey[600], fontWeight: FontWeight.w500),
+                                  ),
+                                ),
+                              );
+                            }
                             return Column(
                               children: [
                                 // Filter and Sort Row

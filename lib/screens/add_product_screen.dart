@@ -41,56 +41,48 @@ class _AddProductScreenState extends State<AddProductScreen> {
 
   String? _selectedCategory;
   bool _isActive = false; // Mặc định là Không hoạt động như mẫu
+  String? _lastCreatedProductId; // Thêm biến để lưu ID sản phẩm vừa tạo
+  bool _isCheckingDuplicate = false; // Thêm biến để kiểm tra trạng thái đang check trùng
 
   final _categoryService = ProductCategoryService();
+
+  List<String> _distributors = [];
+  String? _selectedDistributor;
 
   @override
   void initState() {
     super.initState();
-    if (widget.isEdit && widget.product != null) {
-      final p = widget.product!;
-      _nameController.text = p.name;
-      _commonNameController.text = p.commonName;
-      _barcodeController.text = p.barcode ?? '';
-      _skuController.text = p.sku ?? '';
-      _unitController.text = p.unit;
-      _quantityController.text = p.stock.toString();
-      _importPriceController.text = p.importPrice.toString();
-      _sellPriceController.text = p.salePrice.toString();
-      _tagsController.text = p.tags.join(', ');
-      _descriptionController.text = p.description;
-      _usageController.text = p.usage;
-      _ingredientsController.text = p.ingredients;
-      _notesController.text = p.notes;
-      _selectedCategory = p.category;
-      _isActive = p.isActive;
-      // Calculate profit margin from existing product
-      final calculatedMargin = ((p.salePrice / p.importPrice - 1) * 100).toStringAsFixed(0);
+    _fetchDistributors();
+    final numberFormat = NumberFormat('#,###', 'vi_VN');
+    if (widget.product != null) {
+      _nameController.text = widget.product!.name;
+      _commonNameController.text = widget.product!.commonName;
+      _barcodeController.text = widget.product!.barcode ?? '';
+      _skuController.text = widget.product!.sku ?? '';
+      _unitController.text = widget.product!.unit;
+      _quantityController.text = widget.product!.stock.toString();
+      _importPriceController.text = numberFormat.format(widget.product!.importPrice.round());
+      _sellPriceController.text = numberFormat.format(widget.product!.salePrice.round());
+      _tagsController.text = widget.product!.tags.join(', ');
+      _descriptionController.text = widget.product!.description;
+      _usageController.text = widget.product!.usage;
+      _ingredientsController.text = widget.product!.ingredients;
+      _notesController.text = widget.product!.notes;
+      _selectedCategory = widget.product!.category;
+      _isActive = widget.product!.isActive;
+      _tags = List<String>.from(widget.product!.tags);
+      final calculatedMargin = ((widget.product!.salePrice / (widget.product!.importPrice == 0 ? 1 : widget.product!.importPrice) - 1) * 100).toStringAsFixed(0);
       if (calculatedMargin != _defaultProfitMargin.toString()) {
         _profitMarginController.text = calculatedMargin;
       }
-    } else {
-      // Reset toàn bộ dữ liệu về mặc định khi thêm mới
-      _nameController.clear();
-      _commonNameController.clear();
-      _barcodeController.clear();
-      _skuController.clear();
-      _unitController.clear();
-      _quantityController.clear();
-      _importPriceController.clear();
-      _sellPriceController.clear();
-      _tagsController.clear();
-      _descriptionController.clear();
-      _usageController.clear();
-      _ingredientsController.clear();
-      _notesController.clear();
-      _tagInputController.clear();
-      _profitMarginController.clear();
-      _tags = [];
-      _selectedCategory = null;
-      _isActive = false;
-      _autoCalculatePrice = true;
     }
+  }
+
+  void _fetchDistributors() async {
+    final snapshot = await FirebaseFirestore.instance.collection('distributors').get();
+    setState(() {
+      _distributors = snapshot.docs.map((doc) => doc['name'] as String).toList();
+    });
   }
 
   @override
@@ -147,7 +139,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
                                 child: Padding(
                                   padding: const EdgeInsets.only(top: 4.0),
                                   child: Text(
-                                    'Thêm sản phẩm',
+                                    widget.isEdit ? 'Chỉnh sửa sản phẩm' : 'Thêm sản phẩm mới',
                                     style: MediaQuery.of(context).size.width < 600 ? h1Mobile : h2,
                                   ),
                                 ),
@@ -168,12 +160,29 @@ class _AddProductScreenState extends State<AddProductScreen> {
                                 child: Row(
                                   crossAxisAlignment: CrossAxisAlignment.center,
                                   children: [
-                                    ElevatedButton.icon(
-                                      onPressed: _saveProduct,
-                                      icon: const Icon(Icons.save),
-                                      label: const Text('Lưu'),
-                                      style: primaryButtonStyle,
+                                    Expanded(
+                                      child: ElevatedButton.icon(
+                                        onPressed: _saveProduct,
+                                        icon: _isCheckingDuplicate 
+                                          ? const SizedBox(
+                                              width: 20,
+                                              height: 20,
+                                              child: CircularProgressIndicator(strokeWidth: 2),
+                                            )
+                                          : const Icon(Icons.save),
+                                        label: Text(_isCheckingDuplicate ? 'Đang kiểm tra...' : 'Lưu'),
+                                        style: primaryButtonStyle,
+                                      ),
                                     ),
+                                    if (_lastCreatedProductId != null) // Chỉ hiện nút Tạo mới khi đã có sản phẩm
+                                      Expanded(
+                                        child: ElevatedButton.icon(
+                                          onPressed: _resetForm,
+                                          icon: const Icon(Icons.add),
+                                          label: const Text('Tạo mới'),
+                                          style: secondaryButtonStyle,
+                                        ),
+                                      ),
                                   ],
                                 ),
                               ),
@@ -205,7 +214,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
                         Expanded(
                           child: Padding(
                             padding: const EdgeInsets.only(top: 0),
-                            child: Text('Thêm sản phẩm', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 22)),
+                            child: Text(widget.isEdit ? 'Chỉnh sửa sản phẩm' : 'Thêm sản phẩm mới', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 22)),
                           ),
                         ),
                         IconButton(
@@ -215,11 +224,19 @@ class _AddProductScreenState extends State<AddProductScreen> {
                         ),
                         Padding(
                           padding: const EdgeInsets.symmetric(horizontal: 4.0),
-                          child: ElevatedButton.icon(
-                            onPressed: _saveProduct,
-                            icon: const Icon(Icons.save),
-                            label: const Text('Lưu'),
-                            style: primaryButtonStyle,
+                          child: Expanded(
+                            child: ElevatedButton.icon(
+                              onPressed: _saveProduct,
+                              icon: _isCheckingDuplicate 
+                                ? const SizedBox(
+                                    width: 20,
+                                    height: 20,
+                                    child: CircularProgressIndicator(strokeWidth: 2),
+                                  )
+                                : const Icon(Icons.save),
+                              label: Text(_isCheckingDuplicate ? 'Đang kiểm tra...' : 'Lưu'),
+                              style: primaryButtonStyle,
+                            ),
                           ),
                         ),
                       ],
@@ -298,29 +315,41 @@ class _AddProductScreenState extends State<AddProductScreen> {
     );
   }
 
-  Widget _buildProductInfoSection({required bool isMobile}) {
+  Widget _buildProductInfoSection({bool isMobile = false}) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text('Thông tin sản phẩm', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+        Text('Thông tin sản phẩm', style: h3),
         const SizedBox(height: 16),
         DesignSystemFormField(
-          label: 'Tên thương mại',
+          label: 'Tên thương mại *',
           input: TextFormField(
-             style: const TextStyle(fontSize: 14),
             controller: _commonNameController,
-            decoration: designSystemInputDecoration(label: '', fillColor: mutedBackground),
+            style: const TextStyle(fontSize: 14),
+            decoration: designSystemInputDecoration(
+              label: '',
+              fillColor: mutedBackground,
+              hint: 'Nhập tên thương mại của sản phẩm',
+            ),
+            validator: (value) {
+              if (value == null || value.trim().isEmpty) {
+                return 'Vui lòng nhập tên thương mại';
+              }
+              return null;
+            },
           ),
         ),
         const SizedBox(height: 12),
         DesignSystemFormField(
           label: 'Tên nội bộ',
-          required: true,
           input: TextFormField(
             controller: _nameController,
-             style: const TextStyle(fontSize: 14),
-            decoration: designSystemInputDecoration(label: '', fillColor: mutedBackground),
-            validator: (val) => val == null || val.trim().isEmpty ? 'Vui lòng nhập tên nội bộ' : null,
+            style: const TextStyle(fontSize: 14),
+            decoration: designSystemInputDecoration(
+              label: '',
+              fillColor: mutedBackground,
+              hint: 'Nhập tên nội bộ (không bắt buộc)',
+            ),
           ),
         ),
         const SizedBox(height: 12),
@@ -358,7 +387,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
                 input: TextFormField(
                   controller: _unitController,
                   style: const TextStyle(fontSize: 14),
-                    decoration: designSystemInputDecoration(label: '', fillColor: mutedBackground),
+                  decoration: designSystemInputDecoration(label: '', fillColor: mutedBackground, hint: 'Nhập đơn vị tính'),
                 ),
               ),
             ),
@@ -386,7 +415,50 @@ class _AddProductScreenState extends State<AddProductScreen> {
           ],
         ),
         const SizedBox(height: 12),
-        // Tags input đặc biệt
+        DesignSystemFormField(
+          label: 'Nhà phân phối',
+          input: DropdownButtonFormField<String>(
+            value: _selectedDistributor,
+            items: _distributors.map((d) => DropdownMenuItem(value: d, child: Text(d))).toList(),
+            onChanged: (v) => setState(() => _selectedDistributor = v),
+            decoration: designSystemInputDecoration(label: '', fillColor: mutedBackground),
+            hint: const Text('Chọn nhà phân phối'),
+          ),
+        ),
+        const SizedBox(height: 12),
+        DesignSystemFormField(
+          label: 'Thành phần',
+          input: TextFormField(
+            controller: _ingredientsController,
+            style: const TextStyle(fontSize: 14),
+            decoration: designSystemInputDecoration(label: '', fillColor: mutedBackground),
+            minLines: 2,
+            maxLines: 4,
+          ),
+        ),
+        const SizedBox(height: 12),
+        DesignSystemFormField(
+          label: 'Công dụng',
+          input: TextFormField(
+            controller: _usageController,
+            style: const TextStyle(fontSize: 14),
+            decoration: designSystemInputDecoration(label: '', fillColor: mutedBackground),
+            minLines: 2,
+            maxLines: 4,
+          ),
+        ),
+        const SizedBox(height: 12),
+        DesignSystemFormField(
+          label: 'Mô tả',
+          input: TextFormField(
+            controller: _descriptionController,
+            style: const TextStyle(fontSize: 14),
+            decoration: designSystemInputDecoration(label: '', fillColor: mutedBackground),
+            minLines: 2,
+            maxLines: 4,
+          ),
+        ),
+        const SizedBox(height: 12),
         DesignSystemFormField(
           label: 'Tags',
           input: Column(
@@ -439,39 +511,6 @@ class _AddProductScreenState extends State<AddProductScreen> {
             ],
           ),
         ),
-        const SizedBox(height: 12),
-        DesignSystemFormField(
-          label: 'Mô tả',
-          input: TextFormField(
-            controller: _descriptionController,
-            style: const TextStyle(fontSize: 14),
-            decoration: designSystemInputDecoration(label: '', fillColor: mutedBackground),
-            minLines: 2,
-            maxLines: 4,
-          ),
-        ),
-        const SizedBox(height: 12),
-        DesignSystemFormField(
-          label: 'Thành phần',
-          input: TextFormField(
-            controller: _ingredientsController,
-             style: const TextStyle(fontSize: 14),
-            decoration: designSystemInputDecoration(label: '', fillColor: mutedBackground),
-            minLines: 2,
-            maxLines: 4,
-          ),
-        ),
-        const SizedBox(height: 12),
-        DesignSystemFormField(
-          label: 'Công dụng',
-          input: TextFormField(
-            controller: _usageController,
-             style: const TextStyle(fontSize: 14),
-            decoration: designSystemInputDecoration(label: '', fillColor: mutedBackground),
-            minLines: 2,
-            maxLines: 4,
-          ),
-        ),
       ],
     );
   }
@@ -501,8 +540,38 @@ class _AddProductScreenState extends State<AddProductScreen> {
                 input: TextFormField(
                    style: const TextStyle(fontSize: 14),
                   controller: _importPriceController,
-                  decoration: designSystemInputDecoration(label: '', fillColor: mutedBackground, prefixIcon: Padding(padding: EdgeInsets.only(left: 8, right: 4), child: Text('₫', style: TextStyle(color: textSecondary)))),
+                  decoration: designSystemInputDecoration(
+                    label: '',
+                    fillColor: mutedBackground,
+                    suffixIcon: Padding(
+                      padding: const EdgeInsets.only(top: 8, right: 2),
+                      child: Text('₫', style: TextStyle(color: textSecondary)),
+                    ),
+                  ),
                   keyboardType: TextInputType.number,
+                  inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                  onChanged: (val) {
+                    // Format ngay khi nhập
+                    final numberFormat = NumberFormat('#,###', 'vi_VN');
+                    final value = int.tryParse(val.replaceAll(RegExp(r'[^\d]'), '')) ?? 0;
+                    final formatted = numberFormat.format(value);
+                    if (val != formatted) {
+                      _importPriceController.value = TextEditingValue(
+                        text: formatted,
+                        selection: TextSelection.collapsed(offset: formatted.length),
+                      );
+                    }
+                    _calculateSalePrice();
+                  },
+                  onEditingComplete: () {
+                    final numberFormat = NumberFormat('#,###', 'vi_VN');
+                    final value = int.tryParse(_importPriceController.text.replaceAll(RegExp(r'[^\d]'), '')) ?? 0;
+                    final formatted = numberFormat.format(value);
+                    _importPriceController.value = TextEditingValue(
+                      text: formatted,
+                      selection: TextSelection.collapsed(offset: formatted.length),
+                    );
+                  },
                 ),
               ),
             ),
@@ -548,8 +617,24 @@ class _AddProductScreenState extends State<AddProductScreen> {
                 label: '% Lợi nhuận',
                 input: TextFormField(
                    style: const TextStyle(fontSize: 14),
-                  decoration: designSystemInputDecoration(label: '% Lợi nhuận', fillColor: mutedBackground),
+                  controller: _profitMarginController,
+                  decoration: designSystemInputDecoration(
+                    label: '',
+                    fillColor: mutedBackground,
+                    hint: _autoCalculatePrice ? '20' : '',
+                  ),
                   keyboardType: TextInputType.number,
+                  inputFormatters: [
+                    FilteringTextInputFormatter.digitsOnly,
+                  ],
+                  enabled: _autoCalculatePrice,
+                  onChanged: (val) {
+                    if (val.isNotEmpty) {
+                      _calculateSalePrice();
+                    } else {
+                      _calculateSalePrice();
+                    }
+                  },
                 ),
               ),
             ),
@@ -563,12 +648,31 @@ class _AddProductScreenState extends State<AddProductScreen> {
                   controller: _sellPriceController,
                   decoration: designSystemInputDecoration(label: '', fillColor: mutedBackground, prefixIcon: Padding(padding: EdgeInsets.only(left: 8, right: 4), child: Text('₫', style: TextStyle(color: textSecondary)))),
                   keyboardType: TextInputType.number,
-                  validator: (val) {
-                    if (val == null || val.trim().isEmpty) return 'Vui lòng nhập giá bán';
-                    final n = double.tryParse(val.trim());
-                    if (n == null) return 'Giá bán phải là số';
-                    if (n < 0) return 'Giá bán không được âm';
-                    return null;
+                  inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                  readOnly: _autoCalculatePrice,
+                  onChanged: (val) {
+                    if (!_autoCalculatePrice) {
+                      final numberFormat = NumberFormat('#,###', 'vi_VN');
+                      final value = int.tryParse(val.replaceAll(RegExp(r'[^\\d]'), '')) ?? 0;
+                      final formatted = numberFormat.format(value);
+                      if (val != formatted) {
+                        _sellPriceController.value = TextEditingValue(
+                          text: formatted,
+                          selection: TextSelection.collapsed(offset: formatted.length),
+                        );
+                      }
+                    }
+                  },
+                  onEditingComplete: () {
+                    if (!_autoCalculatePrice) {
+                      final numberFormat = NumberFormat('#,###', 'vi_VN');
+                      final value = int.tryParse(_sellPriceController.text.replaceAll(RegExp(r'[^\\d]'), '')) ?? 0;
+                      final formatted = numberFormat.format(value);
+                      _sellPriceController.value = TextEditingValue(
+                        text: formatted,
+                        selection: TextSelection.collapsed(offset: formatted.length),
+                      );
+                    }
                   },
                 ),
               ),
@@ -606,14 +710,15 @@ class _AddProductScreenState extends State<AddProductScreen> {
 
   void _fillSampleData() {
     setState(() {
+      final numberFormat = NumberFormat('#,###', 'vi_VN');
       _nameController.text = 'Amoxicillin 500mg';
       _commonNameController.text = 'Amoxicillin';
       _barcodeController.text = '8931234567890';
       _skuController.text = 'AMO500';
       _unitController.text = 'Viên';
       _quantityController.text = '100';
-      _importPriceController.text = '25000';
-      _sellPriceController.text = '35000';
+      _importPriceController.text = numberFormat.format(25000);
+      _sellPriceController.text = numberFormat.format(35000);
       _tags = ['kháng sinh', 'phổ rộng'];
       _descriptionController.text = 'Thuốc kháng sinh phổ rộng, điều trị nhiễm khuẩn';
       _usageController.text = 'Uống 1-2 viên/lần, 2-3 lần/ngày';
@@ -624,169 +729,113 @@ class _AddProductScreenState extends State<AddProductScreen> {
     });
   }
 
-  void _saveProduct() async {
-    print('=== Starting save product ===');
-    if (!_formKey.currentState!.validate()) {
-      print('Form validation failed');
-      return;
-    }
+  Future<void> _saveProduct() async {
+    if (!_formKey.currentState!.validate()) return;
 
     try {
-      final now = DateTime.now();
-      // Get and trim all text fields
-      final name = _nameController.text.trim();
+      final productName = _nameController.text.trim();
       final commonName = _commonNameController.text.trim();
-      final category = _selectedCategory ?? '';
-      final unit = _unitController.text.trim();
-      final description = _descriptionController.text.trim();
-      final usage = _usageController.text.trim();
-      final ingredients = _ingredientsController.text.trim();
-      final notes = _notesController.text.trim();
-      final stock = int.tryParse(_quantityController.text.trim());
-      final importPrice = double.tryParse(_importPriceController.text.replaceAll(',', ''));
-      final salePrice = double.tryParse(_sellPriceController.text.replaceAll(',', ''));
-
-      print('=== DEBUG FIELD VALUES ===');
-      print('name: "$name"');
-      print('commonName: "$commonName"');
-      print('category: "$category"');
-      print('unit: "$unit"');
-      print('description: "$description"');
-      print('usage: "$usage"');
-      print('ingredients: "$ingredients"');
-      print('notes: "$notes"');
-      print('stock: $stock');
-      print('importPrice: $importPrice');
-      print('salePrice: $salePrice');
-      print('tags: $_tags');
-      print('isActive: $_isActive');
-      print('createdAt: $now');
-      print('updatedAt: $now');
-
-      // Kiểm tra từng trường và báo lỗi rõ ràng
-      if (name.isEmpty) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Vui lòng nhập Tên nội bộ')));
-        print('ERROR: name is empty');
-        return;
-      }
-      if (commonName.isEmpty) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Vui lòng nhập Tên thương mại')));
-        print('ERROR: commonName is empty');
-        return;
-      }
-      if (unit.isEmpty) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Vui lòng nhập Đơn vị tính')));
-        print('ERROR: unit is empty');
-        return;
-      }
-      if (description.isEmpty) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Vui lòng nhập Mô tả')));
-        print('ERROR: description is empty');
-        return;
-      }
-      if (usage.isEmpty) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Vui lòng nhập Công dụng')));
-        print('ERROR: usage is empty');
-        return;
-      }
-      if (ingredients.isEmpty) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Vui lòng nhập Thành phần')));
-        print('ERROR: ingredients is empty');
-        return;
-      }
-      if (notes.isEmpty) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Vui lòng nhập Ghi chú')));
-        print('ERROR: notes is empty');
-        return;
-      }
-      if (stock == null) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Vui lòng nhập đúng Số lượng tồn kho')));
-        print('ERROR: stock is null');
-        return;
-      }
-      if (importPrice == null) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Vui lòng nhập đúng Giá nhập')));
-        print('ERROR: importPrice is null');
-        return;
-      }
-      if (salePrice == null) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Vui lòng nhập đúng Giá bán')));
-        print('ERROR: salePrice is null');
-        return;
-      }
-      if (_tags == null) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Vui lòng nhập Tags')));
-        print('ERROR: tags is null');
-        return;
+      
+      // Kiểm tra trùng tên nếu đang tạo mới
+      if (_lastCreatedProductId == null) {
+        setState(() => _isCheckingDuplicate = true);
+        final isDuplicate = await _checkDuplicateProduct(commonName);
+        setState(() => _isCheckingDuplicate = false);
+        
+        if (isDuplicate) {
+          // Hiển thị dialog xác nhận
+          final shouldContinue = await showDialog<bool>(
+            context: context,
+            builder: (context) => AlertDialog(
+              title: const Text('Sản phẩm trùng tên'),
+              content: const Text('Đã tồn tại sản phẩm với tên thương mại này. Bạn có muốn tạo sản phẩm mới không?'),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context, false),
+                  child: const Text('Hủy'),
+                ),
+                ElevatedButton(
+                  onPressed: () => Navigator.pop(context, true),
+                  style: primaryButtonStyle,
+                  child: const Text('Tạo mới'),
+                ),
+              ],
+            ),
+          );
+          
+          if (shouldContinue != true) return;
+        }
       }
 
-      print('=== Form Data PASSED ===');
+      final productData = {
+        'name': productName,
+        'commonName': commonName,
+        'barcode': _barcodeController.text.trim(),
+        'sku': _skuController.text.trim(),
+        'unit': _unitController.text.trim(),
+        'stock': int.tryParse(_quantityController.text) ?? 0,
+        'importPrice': double.tryParse(_importPriceController.text) ?? 0.0,
+        'salePrice': double.tryParse(_sellPriceController.text) ?? 0.0,
+        'tags': _tags,
+        'description': _descriptionController.text.trim(),
+        'usage': _usageController.text.trim(),
+        'ingredients': _ingredientsController.text.trim(),
+        'notes': _notesController.text.trim(),
+        'category': _selectedCategory,
+        'isActive': _isActive,
+        'distributor': _selectedDistributor,
+        'updatedAt': FieldValue.serverTimestamp(),
+      };
 
-      print('=== Creating product object ===');
-      final product = Product(
-        id: widget.product?.id ?? '',
-        name: name,
-        commonName: commonName,
-        category: category,
-        barcode: _barcodeController.text.trim(),
-        sku: _skuController.text.trim(),
-        unit: unit,
-        tags: _tags,
-        description: description,
-        usage: usage,
-        ingredients: ingredients,
-        notes: notes,
-        stock: stock,
-        importPrice: importPrice,
-        salePrice: salePrice,
-        isActive: _isActive,
-        createdAt: widget.product?.createdAt ?? now,
-        updatedAt: now,
-      );
-
-      print('=== Product object created ===');
-      print('Product map: ${product.toMap()}');
-
-      print('=== Saving to Firestore ===');
-      final ref = FirebaseFirestore.instance.collection('products');
-      if (widget.isEdit && widget.product != null) {
-        print('Updating existing product: ${widget.product!.id}');
-        await ref.doc(widget.product!.id).update(product.toMap());
-      } else {
-        print('Adding new product');
-        await ref.add(product.toMap());
-      }
-
-      print('=== Save successful ===');
-      if (mounted) {
-        Navigator.of(context).popUntil((route) => route.isFirst || route.settings.name == '/product-list');
-        Future.delayed(const Duration(milliseconds: 300), () {
+      if (_lastCreatedProductId != null) {
+        await FirebaseFirestore.instance.collection('products').doc(_lastCreatedProductId).update(productData);
+        if (mounted) {
           OverlayEntry? entry;
           entry = OverlayEntry(
             builder: (_) => DesignSystemSnackbar(
-              message: 'Đã thêm thành công sản phẩm',
+              message: 'Đã cập nhật sản phẩm thành công',
               icon: Icons.check_circle,
               onDismissed: () => entry?.remove(),
             ),
           );
           Overlay.of(context).insert(entry);
+        }
+      } else {
+        final docRef = await FirebaseFirestore.instance.collection('products').add({
+          ...productData,
+          'createdAt': FieldValue.serverTimestamp(),
         });
+        _lastCreatedProductId = docRef.id;
+        if (mounted) {
+          OverlayEntry? entry;
+          entry = OverlayEntry(
+            builder: (_) => DesignSystemSnackbar(
+              message: 'Đã thêm sản phẩm thành công',
+              icon: Icons.check_circle,
+              onDismissed: () => entry?.remove(),
+            ),
+          );
+          Overlay.of(context).insert(entry);
+        }
       }
-    } catch (e, stack) {
-      print('=== Error saving product ===');
-      print('Error: $e');
-      print('Stack trace: $stack');
+    } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Lỗi khi lưu sản phẩm: $e')),
+        OverlayEntry? entry;
+        entry = OverlayEntry(
+          builder: (_) => DesignSystemSnackbar(
+            message: 'Lỗi: $e',
+            icon: Icons.error,
+            onDismissed: () => entry?.remove(),
+          ),
         );
+        Overlay.of(context).insert(entry);
       }
     }
   }
 
   void _calculateSalePrice() {
     if (!_autoCalculatePrice) return;
-    final importPrice = double.tryParse(_importPriceController.text.replaceAll(',', '')) ?? 0;
+    final importPrice = double.tryParse(_importPriceController.text.replaceAll(RegExp(r'[^\d]'), '')) ?? 0;
     final profitMargin = double.tryParse(_profitMarginController.text) ?? _defaultProfitMargin;
     if (importPrice > 0) {
       final salePrice = importPrice * (1 + profitMargin / 100);
@@ -812,25 +861,35 @@ class _AddProductScreenState extends State<AddProductScreen> {
             Expanded(
               child: DesignSystemFormField(
                 label: 'Giá nhập',
-                required: true,
                 input: TextFormField(
                    style: const TextStyle(fontSize: 14),
                   controller: _importPriceController,
                   decoration: designSystemInputDecoration(
                     label: '',
                     fillColor: mutedBackground,
-                    prefixIcon: Padding(
-                      padding: const EdgeInsets.only(top: 5, left: 8),
+                    suffixIcon: Padding(
+                      padding: const EdgeInsets.only(top: 8, right: 2),
                       child: Text('₫', style: TextStyle(color: textSecondary)),
                     ),
                   ),
                   keyboardType: TextInputType.number,
                   inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                   onChanged: (val) {
+                    // Format ngay khi nhập
+                    final numberFormat = NumberFormat('#,###', 'vi_VN');
+                    final value = int.tryParse(val.replaceAll(RegExp(r'[^\d]'), '')) ?? 0;
+                    final formatted = numberFormat.format(value);
+                    if (val != formatted) {
+                      _importPriceController.value = TextEditingValue(
+                        text: formatted,
+                        selection: TextSelection.collapsed(offset: formatted.length),
+                      );
+                    }
                     _calculateSalePrice();
                   },
                   onEditingComplete: () {
-                    final value = int.tryParse(_importPriceController.text.replaceAll(',', '')) ?? 0;
+                    final numberFormat = NumberFormat('#,###', 'vi_VN');
+                    final value = int.tryParse(_importPriceController.text.replaceAll(RegExp(r'[^\d]'), '')) ?? 0;
                     final formatted = numberFormat.format(value);
                     _importPriceController.value = TextEditingValue(
                       text: formatted,
@@ -844,54 +903,69 @@ class _AddProductScreenState extends State<AddProductScreen> {
             Expanded(
               child: DesignSystemFormField(
                 label: 'Giá bán',
-                required: true,
                 input: TextFormField(
                    style: const TextStyle(fontSize: 14),
                   controller: _sellPriceController,
                   decoration: designSystemInputDecoration(
                     label: '',
                     fillColor: mutedBackground,
-                    prefixIcon: Padding(
-                      padding: const EdgeInsets.only(top: 5, left: 8),
+                     suffixIcon: Padding(
+                      padding: const EdgeInsets.only(top: 8, right: 2),
                       child: Text('₫', style: TextStyle(color: textSecondary)),
                     ),
                   ),
                   keyboardType: TextInputType.number,
                   inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                  readOnly: _autoCalculatePrice,
+                  onChanged: (val) {
+                    if (!_autoCalculatePrice) {
+                      final numberFormat = NumberFormat('#,###', 'vi_VN');
+                      final value = int.tryParse(val.replaceAll(RegExp(r'[^\\d]'), '')) ?? 0;
+                      final formatted = numberFormat.format(value);
+                      if (val != formatted) {
+                        _sellPriceController.value = TextEditingValue(
+                          text: formatted,
+                          selection: TextSelection.collapsed(offset: formatted.length),
+                        );
+                      }
+                    }
+                  },
                   onEditingComplete: () {
-                    final value = int.tryParse(_sellPriceController.text.replaceAll(',', '')) ?? 0;
-                    final formatted = numberFormat.format(value);
-                    _sellPriceController.value = TextEditingValue(
-                      text: formatted,
-                      selection: TextSelection.collapsed(offset: formatted.length),
-                    );
+                    if (!_autoCalculatePrice) {
+                      final numberFormat = NumberFormat('#,###', 'vi_VN');
+                      final value = int.tryParse(_sellPriceController.text.replaceAll(RegExp(r'[^\\d]'), '')) ?? 0;
+                      final formatted = numberFormat.format(value);
+                      _sellPriceController.value = TextEditingValue(
+                        text: formatted,
+                        selection: TextSelection.collapsed(offset: formatted.length),
+                      );
+                    }
                   },
                 ),
               ),
             ),
           ],
         ),
-        const SizedBox(height: 12),
+        const SizedBox(height: 24),
         DesignSystemFormField(
           label: 'Lợi nhuận gộp (%)',
           input: TextFormField(
              style: const TextStyle(fontSize: 14),
             controller: _profitMarginController,
             decoration: designSystemInputDecoration(
-              label: '20',
-              hint: '${_defaultProfitMargin.toStringAsFixed(0)}%', // Show default as hint
+              label: '',
               fillColor: mutedBackground,
-              suffixIcon: Padding(
-                padding: const EdgeInsets.only(right: 8),
-              ),
+              hint: _autoCalculatePrice ? '20' : '',
             ),
             keyboardType: TextInputType.number,
-            inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+            inputFormatters: [
+              FilteringTextInputFormatter.digitsOnly,
+            ],
+            enabled: _autoCalculatePrice,
             onChanged: (val) {
               if (val.isNotEmpty) {
                 _calculateSalePrice();
               } else {
-                // If input is cleared, recalculate with default margin
                 _calculateSalePrice();
               }
             },
@@ -972,5 +1046,42 @@ class _AddProductScreenState extends State<AddProductScreen> {
         ),
       ],
     );
+  }
+
+  Future<bool> _checkDuplicateProduct(String commonName) async {
+    if (commonName.isEmpty) return false;
+    
+    final query = await FirebaseFirestore.instance
+        .collection('products')
+        .where('commonName', isEqualTo: commonName)
+        .get();
+    
+    return query.docs.isNotEmpty;
+  }
+
+  void _resetForm() {
+    setState(() {
+      _nameController.clear();
+      _commonNameController.clear();
+      _barcodeController.clear();
+      _skuController.clear();
+      _unitController.clear();
+      _quantityController.clear();
+      _importPriceController.clear();
+      _sellPriceController.clear();
+      _tagsController.clear();
+      _descriptionController.text = '';
+      _usageController.text = '';
+      _ingredientsController.text = '';
+      _notesController.text = '';
+      _tagInputController.clear();
+      _profitMarginController.clear();
+      _tags = [];
+      _selectedCategory = null;
+      _isActive = false;
+      _autoCalculatePrice = true;
+      _selectedDistributor = null;
+      _lastCreatedProductId = null; // Reset ID sản phẩm vừa tạo
+    });
   }
 }
