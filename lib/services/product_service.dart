@@ -52,11 +52,18 @@ class ProductService {
         .collection(_collection)
         .snapshots()
         .map((snapshot) {
-      print('Firebase returned ${snapshot.docs.length} products');
-      final products = snapshot.docs
-          .map((doc) => Product.fromMap(doc.id, doc.data()))
-          .toList();
-      print('Successfully parsed ${products.length} products');
+      print('Firebase returned \\${snapshot.docs.length} products');
+      final products = <Product>[];
+      for (final doc in snapshot.docs) {
+        try {
+          products.add(Product.fromMap(doc.id, doc.data()));
+        } catch (e) {
+          print('Lỗi parse sản phẩm id: \\${doc.id}');
+          print('Dữ liệu gốc: \\${doc.data()}');
+          print('Lỗi: \\${e}');
+        }
+      }
+      print('Successfully parsed \\${products.length} products');
       return products;
     });
   }

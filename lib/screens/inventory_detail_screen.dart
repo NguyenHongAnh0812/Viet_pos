@@ -64,9 +64,22 @@ class _InventoryDetailScreenState extends State<InventoryDetailScreen> {
   }
 
   List<Map<String, dynamic>> get filteredItems {
-    if (_searchText.trim().isEmpty) return _items;
+    final base = displayItems;
+    if (_searchText.trim().isEmpty) return base;
     final search = _searchText.trim().toLowerCase();
-    return _items.where((item) => (item['productName'] ?? '').toLowerCase().contains(search)).toList();
+    return base.where((item) => (item['productName'] ?? '').toLowerCase().contains(search)).toList();
+  }
+
+  List<Map<String, dynamic>> get displayItems {
+    if (isCompleted || isUpdated) {
+      // Sắp xếp: diff != 0 lên đầu, đã kiểm kê không lệch ở giữa, chưa kiểm kê ở cuối
+      final changed = _items.where((i) => (i['actualStock'] != null && i['actualStock'].toString().isNotEmpty && (i['diff'] ?? 0) != 0)).toList();
+      final checkedNoDiff = _items.where((i) => (i['actualStock'] != null && i['actualStock'].toString().isNotEmpty && (i['diff'] ?? 0) == 0)).toList();
+      final notChecked = _items.where((i) => i['actualStock'] == null || i['actualStock'].toString().isEmpty).toList();
+      return [...changed, ...checkedNoDiff, ...notChecked];
+    } else {
+      return _items;
+    }
   }
 
   Future<void> _saveAsDraft() async {
@@ -91,24 +104,37 @@ class _InventoryDetailScreenState extends State<InventoryDetailScreen> {
   }
 
   Future<void> _confirmCompleteInventory() async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Xác nhận hoàn tất phiên kiểm kê?'),
-        content: const Text('Sau khi hoàn tất, bạn không thể thay đổi số liệu kiểm kê.'),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Hủy')),
-          ElevatedButton(onPressed: () => Navigator.pop(context, true), child: const Text('Xác nhận')),
-        ],
-      ),
-    );
-    if (confirmed == true) {
-      await FirebaseFirestore.instance.collection('inventory_sessions').doc(widget.sessionId).update({'status': 'Đã hoàn tất'});
-      await _fetchData();
+    setState(() { _loading = true; });
+    final notCheckedCount = _items.where((i) => i['actualStock'] == null || i['actualStock'].toString().isEmpty).length;
+    if (notCheckedCount > 0) {
+      final confirmed = await showDialog<bool>(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text('Vẫn còn sản phẩm chưa kiểm kê'),
+          content: Text('Có $notCheckedCount sản phẩm chưa kiểm kê. Bạn vẫn muốn hoàn tất?'),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Hủy')),
+            ElevatedButton(onPressed: () => Navigator.pop(context, true), child: const Text('Vẫn hoàn tất')),
+          ],
+        ),
+      );
+      if (confirmed != true) {
+        setState(() { _loading = false; });
+        return;
+      }
     }
+    await FirebaseFirestore.instance.collection('inventory_sessions').doc(widget.sessionId).update({'status': 'Đã hoàn tất'});
+    await _fetchData();
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Đã hoàn tất kiểm kê!'), backgroundColor: Colors.green),
+      );
+    }
+    setState(() { _loading = false; });
   }
 
   Future<void> _updateStock() async {
+    setState(() { _loading = true; });
     for (final item in _items) {
       final productId = item['productId'];
       final actualStock = item['actualStock'] ?? 0;
@@ -125,6 +151,7 @@ class _InventoryDetailScreenState extends State<InventoryDetailScreen> {
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Đã cập nhật tồn kho thành công!'), backgroundColor: Colors.green));
       setState(() {});
     }
+    setState(() { _loading = false; });
   }
 
   @override
@@ -173,14 +200,14 @@ class _InventoryDetailScreenState extends State<InventoryDetailScreen> {
                           children: [
                             Text(
                               session['name']?.isNotEmpty == true ? session['name'] : 'Kiểm kê kho',
-                              style: h2,
+                              style: bodyLarge.copyWith(fontWeight: FontWeight.w600, color: textPrimary),
                             ),
                             const SizedBox(height: 16),
                             Row(
                               children: [
                                 Text('Ngày kiểm kê', style: bodyLarge.copyWith(color: textSecondary)),
                                 const SizedBox(width: 8),
-                                Text((session['createdAt'] as Timestamp).toDate().toString().split(' ')[0], style: h4),
+                                Text((session['createdAt'] as Timestamp).toDate().toString().split(' ')[0], style: bodyLarge.copyWith(fontWeight: FontWeight.w500, color: textPrimary)),
                               ],
                             ),
                             const SizedBox(height: 12),
@@ -188,7 +215,7 @@ class _InventoryDetailScreenState extends State<InventoryDetailScreen> {
                               children: [
                                 Text('Cập nhật kho', style: bodyLarge.copyWith(color: textSecondary)),
                                 const SizedBox(width: 8),
-                                Text(session['status'] ?? '', style: h4),
+                                Text(session['status'] ?? '', style: bodyLarge.copyWith(fontWeight: FontWeight.w500, color: textPrimary)),
                               ],
                             ),
                             const SizedBox(height: 12),
@@ -196,7 +223,7 @@ class _InventoryDetailScreenState extends State<InventoryDetailScreen> {
                               children: [
                                 Text('Ghi chú', style: bodyLarge.copyWith(color: textSecondary)),
                                 const SizedBox(width: 8),
-                                Text(session['note'] ?? '', style: h4),
+                                Text(session['note'] ?? '', style: bodyLarge.copyWith(fontWeight: FontWeight.w500, color: textPrimary)),
                               ],
                             ),
                           ],
@@ -206,16 +233,36 @@ class _InventoryDetailScreenState extends State<InventoryDetailScreen> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text('Người kiểm kê', style: bodyLarge.copyWith(color: textSecondary)),
-                            Text(_userInfo?['name'] ?? session['createdBy'] ?? '', style: h3),
-                            if (_userInfo?['email'] != null)
+   const SizedBox(height: 16),
+                           Row(
+                              children: [
+                                                Text('Người kiểm kê: ', style: bodyLarge.copyWith(color: textSecondary)),
+                            Text(_userInfo?['name'] ?? session['createdBy'] ?? '', style: bodyLarge.copyWith(fontWeight: FontWeight.w500, color: textPrimary)),
+                              ],
+                            ),
+                              const SizedBox(height: 16),
+                             Row(
+                              children: [
+                                if (_userInfo?['email'] != null)
                               Text(_userInfo?['email'] ?? '', style: bodyLarge.copyWith(color: textSecondary)),
-                            const SizedBox(height: 16),
-                            Text('Số sản phẩm', style: bodyLarge.copyWith(color: textSecondary)),
-                            Text('$totalProducts', style: h3),
-                            const SizedBox(height: 16),
-                            Text('Số sản phẩm lệch', style: bodyLarge.copyWith(color: textSecondary)),
-                            Text('$diffCount', style: h3.copyWith(color: diffCount > 0 ? warningOrange : textSecondary)),
+                              ],
+                            ),
+                              const SizedBox(height: 16),
+                             Row(
+                              children: [
+                                Text('Số sản phẩm: ', style: bodyLarge.copyWith(color: textSecondary)),
+                            Text('$totalProducts', style: bodyLarge.copyWith(fontWeight: FontWeight.w500, color: textPrimary)),
+                              ],
+                            ),
+                              const SizedBox(height: 16),
+                Row(
+                              children: [
+                            Text('Số sản phẩm lệch: ', style: bodyLarge.copyWith(color: textSecondary)),
+                            Text('$diffCount', style: bodyLarge.copyWith(fontWeight: FontWeight.w500, color: diffCount > 0 ? warningOrange : textSecondary)),
+                              ],
+                            ),
+                           
+                  
                           ],
                         ),
                       ),
@@ -321,9 +368,24 @@ class _InventoryDetailScreenState extends State<InventoryDetailScreen> {
                   itemBuilder: (context, i) {
                     final item = filteredItems[i];
                     final id = item['id'] ?? item['productId'];
-                    TextEditingController actualController = _actualControllers[id] ??= TextEditingController(text: item['actualStock'].toString());
+                    TextEditingController actualController = _actualControllers[id] ??= TextEditingController(text: item['actualStock']?.toString() ?? '');
                     TextEditingController noteController = _noteControllers[id] ??= TextEditingController(text: item['note'] ?? '');
-                    return Padding(
+                    int systemStock = item['systemStock'] ?? 0;
+                    int? actualStock = int.tryParse(actualController.text);
+                    final isNotChecked = actualController.text.isEmpty;
+                    final diff = isNotChecked ? null : (actualStock ?? 0) - systemStock;
+                    Color? rowColor;
+                    if (isNotChecked) {
+                      rowColor = Colors.grey[100];
+                    } else if (diff != null && diff > 0) {
+                      rowColor = Colors.green[50];
+                    } else if (diff != null && diff < 0) {
+                      rowColor = Colors.orange[50];
+                    } else {
+                      rowColor = Colors.white;
+                    }
+                    return Container(
+                      color: rowColor,
                       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                       child: Row(
                         children: [
@@ -344,24 +406,32 @@ class _InventoryDetailScreenState extends State<InventoryDetailScreen> {
                                           actualController.text = newValue.toString();
                                           final diff = newValue - (item['systemStock'] ?? 0);
                                           await _itemService.updateItem(item['id'], {'actualStock': newValue, 'diff': diff});
+                                          setState(() {});
                                         },
                                       ),
                                       SizedBox(
                                         width: 60,
-                                        child: TextField(
-                                          controller: actualController,
-                                          keyboardType: TextInputType.number,
-                                          textAlign: TextAlign.center,
-                                          onChanged: (v) async {
-                                            final actual = int.tryParse(v) ?? 0;
-                                            final diff = actual - (item['systemStock'] ?? 0);
-                                            await _itemService.updateItem(item['id'], {'actualStock': actual, 'diff': diff});
+                                        child: Focus(
+                                          onFocusChange: (hasFocus) async {
+                                            if (!hasFocus) {
+                                              final actual = int.tryParse(actualController.text) ?? 0;
+                                              final diff = actual - (item['systemStock'] ?? 0);
+                                              await _itemService.updateItem(item['id'], {'actualStock': actual, 'diff': diff});
+                                            }
                                           },
-                                          enabled: !isCompleted && !isUpdated,
-                                          decoration: InputDecoration(
-                                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(6)),
-                                            isDense: true,
-                                            contentPadding: const EdgeInsets.symmetric(vertical: 8, horizontal: 8),
+                                          child: TextField(
+                                            controller: actualController,
+                                            keyboardType: TextInputType.number,
+                                            textAlign: TextAlign.center,
+                                            onChanged: (v) {
+                                              setState(() {}); // chỉ update UI local, không gọi Firestore
+                                            },
+                                            enabled: !isCompleted && !isUpdated,
+                                            decoration: InputDecoration(
+                                              border: OutlineInputBorder(borderRadius: BorderRadius.circular(6)),
+                                              isDense: true,
+                                              contentPadding: const EdgeInsets.symmetric(vertical: 8, horizontal: 8),
+                                            ),
                                           ),
                                         ),
                                       ),
@@ -374,19 +444,39 @@ class _InventoryDetailScreenState extends State<InventoryDetailScreen> {
                                           actualController.text = newValue.toString();
                                           final diff = newValue - (item['systemStock'] ?? 0);
                                           await _itemService.updateItem(item['id'], {'actualStock': newValue, 'diff': diff});
+                                          setState(() {});
                                         },
                                       ),
                                     ],
                                   )
                                 : Center(
                                     child: Text(
-                                      '${item['actualStock']}',
+                                      item['actualStock'] == null || item['actualStock'].toString().isEmpty
+                                          ? '—'
+                                          : '${item['actualStock']}',
                                       textAlign: TextAlign.center,
                                       style: bodyLarge,
                                     ),
                                   ),
                           ),
-                          Expanded(flex: 2, child: Text('${item['diff']}', textAlign: TextAlign.center, style: bodyLarge.copyWith(color: (item['diff'] ?? 0) != 0 ? warningOrange : textPrimary))),
+                          Expanded(
+                            flex: 2,
+                            child: Center(
+                              child: Builder(
+                                builder: (context) {
+                                  if (isNotChecked) {
+                                    return Text('—', style: bodyLarge.copyWith(color: textSecondary));
+                                  } else if (diff != null && diff > 0) {
+                                    return Text('+${diff}', style: bodyLarge.copyWith(color: Colors.green[700], fontWeight: FontWeight.bold));
+                                  } else if (diff != null && diff < 0) {
+                                    return Text('$diff', style: bodyLarge.copyWith(color: warningOrange, fontWeight: FontWeight.bold));
+                                  } else {
+                                    return Text('0', style: bodyLarge);
+                                  }
+                                },
+                              ),
+                            ),
+                          ),
                           Expanded(
                             flex: 3,
                             child: (!isCompleted && !isUpdated)

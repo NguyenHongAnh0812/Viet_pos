@@ -289,7 +289,7 @@ class _AddProductCategoryScreenState extends State<AddProductCategoryScreen> {
                                               child: Row(
                                                 mainAxisAlignment: MainAxisAlignment.end,
                                                 children: [
-                                                  Text('${p.salePrice.toStringAsFixed(0).replaceAllMapped(RegExp(r"(\d)(?=(\d{3})+(?!\d))"), (m) => "${m[1]}.")}', style: const TextStyle(fontWeight: FontWeight.bold)),
+                                                  Text(p.salePrice.toStringAsFixed(0).replaceAllMapped(RegExp(r"(\d)(?=(\d{3})+(?!\d))"), (m) => "${m[1]}."), style: const TextStyle(fontWeight: FontWeight.bold)),
                                                   const SizedBox(width: 2),
                                                   Text('đ', style: TextStyle(fontSize: 13, color: Colors.grey[600], fontWeight: FontWeight.w500)),
                                                   const SizedBox(width: 18),

@@ -188,7 +188,14 @@ class _MainLayoutState extends State<MainLayout> {
 
   // Điều hướng mở lại danh sách sản phẩm
   void _openProductList() {
+    fetchProducts();
     setState(() {
+      // Reset toàn bộ filter về mặc định
+      selectedCategory = 'Tất cả';
+      priceRange = const RangeValues(0, 1000000);
+      stockRange = const RangeValues(0, 99999);
+      status = 'Tất cả';
+      selectedTags = {};
       _resetFilter();
       _currentPage = MainPage.productList;
       _selectedProduct = null;

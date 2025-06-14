@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:excel/excel.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import '../services/product_service.dart';
 
 class InvoiceImportScreen extends StatefulWidget {
   const InvoiceImportScreen({super.key});
@@ -85,32 +86,34 @@ class _InvoiceImportScreenState extends State<InvoiceImportScreen> {
 
     // Tìm vị trí các cột cần lọc
     final headers = _excelData[0];
-    final dienGiaiIndex = headers.indexWhere((h) => h.toString().contains('Diễn giải'));
+    final dienGiaiIndex = headers.indexWhere((h) => h.toString().contains('Tên thương mại'));
     final donViTinhIndex = headers.indexWhere((h) => h.toString().contains('Đơn vị tính'));
     final soLuongIndex = headers.indexWhere((h) => h.toString().contains('Số lượng'));
+    final toImportIndex = headers.indexWhere((h) => h.toString().contains('To import'));
 
-    if (dienGiaiIndex == -1 || donViTinhIndex == -1 || soLuongIndex == -1) {
+    if (dienGiaiIndex == -1 || donViTinhIndex == -1 || soLuongIndex == -1 || toImportIndex == -1) {
       setState(() {
-        _status = 'Không tìm thấy một hoặc nhiều cột cần thiết';
+        _status = 'Không tìm thấy một hoặc nhiều cột cần thiết (Tên thương mại, Đơn vị tính, Số lượng, To import)';
       });
       return;
     }
 
     // Lọc dữ liệu và loại bỏ tiêu đề
     _filteredData = _excelData.skip(1).where((row) {
-      return row.length > dienGiaiIndex && 
-             row.length > donViTinhIndex && 
-             row.length > soLuongIndex &&
-             row[dienGiaiIndex].toString().isNotEmpty;
+      if (row.length <= dienGiaiIndex || row.length <= donViTinhIndex || row.length <= soLuongIndex || row.length <= toImportIndex) {
+        return false;
+      }
+      final toImport = row[toImportIndex]?.toString().trim().toLowerCase() ?? '';
+      return toImport == 'true' && row[dienGiaiIndex]?.toString().trim().isNotEmpty == true;
     }).map((row) {
       // Loại bỏ text trong dấu ngoặc đơn
-      String dienGiai = row[dienGiaiIndex].toString();
+      String dienGiai = row[dienGiaiIndex]?.toString().trim() ?? '';
       dienGiai = dienGiai.replaceAll(RegExp(r'\([^)]*\)'), '').trim();
       
       return [
         dienGiai,
-        row[donViTinhIndex],
-        row[soLuongIndex],
+        row[donViTinhIndex]?.toString() ?? '',
+        row[soLuongIndex]?.toString() ?? '',
       ];
     }).toList();
 
@@ -142,7 +145,7 @@ class _InvoiceImportScreenState extends State<InvoiceImportScreen> {
 
     // In dữ liệu đã lọc và gộp
     print('\n=== DỮ LIỆU ĐÃ LỌC VÀ GỘP ===');
-    print('Diễn giải | Đơn vị tính | Số lượng');
+    print('Tên thương mại | Đơn vị tính | Số lượng');
     for (var row in _mergedData) {
       print('${row[0]} | ${row[1]} | ${row[2]}');
     }
@@ -198,6 +201,11 @@ class _InvoiceImportScreenState extends State<InvoiceImportScreen> {
       setState(() {
         _status = 'Đã import thành công ${_mergedData.length} sản phẩm';
       });
+
+      // Quay lại trang trước (danh sách sản phẩm)
+      if (mounted) {
+        Navigator.pop(context);
+      }
 
       // In thông tin chi tiết về quá trình import
       print('\n=== THÔNG TIN IMPORT ===');
@@ -293,7 +301,7 @@ class _InvoiceImportScreenState extends State<InvoiceImportScreen> {
                   child: SingleChildScrollView(
                     child: DataTable(
                       columns: const [
-                        DataColumn(label: Text('Diễn giải')),
+                        DataColumn(label: Text('Tên thương mại')),
                         DataColumn(label: Text('Đơn vị tính')),
                         DataColumn(label: Text('Số lượng')),
                       ],
@@ -319,7 +327,7 @@ class _InvoiceImportScreenState extends State<InvoiceImportScreen> {
                   child: SingleChildScrollView(
                     child: DataTable(
                       columns: const [
-                        DataColumn(label: Text('Diễn giải')),
+                        DataColumn(label: Text('Tên thương mại')),
                         DataColumn(label: Text('Đơn vị tính')),
                         DataColumn(label: Text('Số lượng')),
                       ],
