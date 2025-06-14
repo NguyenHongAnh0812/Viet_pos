@@ -15,19 +15,20 @@ import 'package:flutter_svg/flutter_svg.dart';
 import '../services/product_service.dart';
 import '../screens/invoice_import_list_screen.dart';
 import '../screens/invoice_import_screen.dart';
+import '../screens/inventory_detail_screen.dart';
 
 // Định nghĩa enum cho các trang
-enum MainPage { dashboard, productList, productCategory, addProduct, inventory, report, settings, productDetail, lowStockProducts, addProductCategory, inventoryHistory, styleGuide, invoiceImportList, invoiceImport }
+enum MainPage { dashboard, productList, productCategory, addProduct, inventory, report, settings, productDetail, lowStockProducts, addProductCategory, inventoryHistory, styleGuide, invoiceImportList, invoiceImport, inventoryDetail }
 
 class MainLayout extends StatefulWidget {
   final Widget? child; // Không cần truyền child nữa, sẽ render theo _currentPage
   const MainLayout({super.key, this.child});
 
   @override
-  State<MainLayout> createState() => _MainLayoutState();
+  State<MainLayout> createState() => MainLayoutState();
 }
 
-class _MainLayoutState extends State<MainLayout> {
+class MainLayoutState extends State<MainLayout> {
   bool _sidebarOpen = false;
   int _selectedIndex = 0;
   MainPage _currentPage = MainPage.dashboard;
@@ -54,6 +55,8 @@ class _MainLayoutState extends State<MainLayout> {
   // State cho data sản phẩm
   List<Product>? allProducts;
   bool isLoadingProducts = true;
+
+  String? _selectedInventorySessionId;
 
   @override
   void initState() {
@@ -139,17 +142,18 @@ class _MainLayoutState extends State<MainLayout> {
     }
   }
 
-  void _onSidebarTap(MainPage page) {
+  void onSidebarTap(MainPage page) {
     setState(() {
-      // Nếu chuyển sang trang danh sách sản phẩm thì reset filter
       if (page == MainPage.productList) {
         _resetFilter();
       }
       _previousPage = _currentPage;
       _currentPage = page;
-      // Đóng sidebar nếu là mobile
       if (MediaQuery.of(context).size.width < 1024) {
         _sidebarOpen = false;
+      }
+      if (page != MainPage.inventoryDetail) {
+        _selectedInventorySessionId = null;
       }
     });
   }
@@ -214,6 +218,14 @@ class _MainLayoutState extends State<MainLayout> {
     fetchProducts();
   }
 
+  void openInventoryDetail(String sessionId) {
+    setState(() {
+      _selectedInventorySessionId = sessionId;
+      _previousPage = _currentPage;
+      _currentPage = MainPage.inventoryDetail;
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return Stack(
@@ -246,7 +258,7 @@ class _MainLayoutState extends State<MainLayout> {
                         child: _Sidebar(
                           isOpen: true,
                           currentPage: _currentPage,
-                          onItemTap: _onSidebarTap,
+                          onItemTap: onSidebarTap,
                         ),
                       ),
                     ),
@@ -262,7 +274,7 @@ class _MainLayoutState extends State<MainLayout> {
                       child: _Sidebar(
                         isOpen: true,
                         currentPage: _currentPage,
-                        onItemTap: _onSidebarTap,
+                        onItemTap: onSidebarTap,
                       ),
                     ),
                     Expanded(
@@ -319,7 +331,7 @@ class _MainLayoutState extends State<MainLayout> {
                           _NavCenterButton(
                             icon: Icon(Icons.add, size: 24, color: Colors.white,),
                             label: 'Thêm mới',
-                            onTap: () => _onSidebarTap(MainPage.addProduct),
+                            onTap: () => onSidebarTap(MainPage.addProduct),
                           ),
                           _NavItem(
                             icon: SvgPicture.asset(
@@ -395,14 +407,14 @@ class _MainLayoutState extends State<MainLayout> {
     switch (_currentPage) {
       case MainPage.dashboard:
         return DashboardScreen(
-          onViewProductList: () => _onSidebarTap(MainPage.productList),
+          onViewProductList: () => onSidebarTap(MainPage.productList),
           onViewLowStockProducts: _openLowStockProducts,
         );
       case MainPage.productList:
         return ProductListScreen(
           key: ValueKey('product-list-$productListKey'),
           onProductTap: _openProductDetail,
-          onNavigate: _onSidebarTap,
+          onNavigate: onSidebarTap,
           onOpenFilterSidebar: _openFilterSidebar,
           filterCategory: selectedCategory,
           filterPriceRange: priceRange,
@@ -415,7 +427,7 @@ class _MainLayoutState extends State<MainLayout> {
         );
       case MainPage.productCategory:
         return ProductCategoryScreen(
-           onNavigate: _onSidebarTap,
+           onNavigate: onSidebarTap,
         );
       case MainPage.addProduct:
         return AddProductScreen(
@@ -482,6 +494,9 @@ class _MainLayoutState extends State<MainLayout> {
         return const InvoiceImportListScreen();
       case MainPage.invoiceImport:
         return const InvoiceImportScreen();
+      case MainPage.inventoryDetail:
+        if (_selectedInventorySessionId == null) return const SizedBox();
+        return InventoryDetailScreen(sessionId: _selectedInventorySessionId!);
       default:
         return const DashboardScreen();
     }
@@ -493,18 +508,18 @@ class _MainLayoutState extends State<MainLayout> {
       // Logic điều hướng cho BottomNavigationBar
       switch (index) {
         case 0:
-          _onSidebarTap(MainPage.dashboard);
+          onSidebarTap(MainPage.dashboard);
           break;
         case 1:
-          _onSidebarTap(MainPage.inventory);
+          onSidebarTap(MainPage.inventory);
           break;
         case 2:
           // Khi nhấn Sản phẩm trên bottom nav, đi tới ProductList
-          _onSidebarTap(MainPage.productList);
+          onSidebarTap(MainPage.productList);
           break;
         case 3:
           // Khi nhấn Báo cáo trên bottom nav, đi tới Report
-          _onSidebarTap(MainPage.report);
+          onSidebarTap(MainPage.report);
           break;
       }
     });

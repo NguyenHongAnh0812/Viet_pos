@@ -3,6 +3,7 @@ import '../models/inventory_session.dart';
 import '../widgets/common/design_system.dart';
 import '../services/inventory_item_service.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import '../widgets/main_layout.dart';
 
 class InventoryDetailScreen extends StatefulWidget {
   final String sessionId;
@@ -17,6 +18,8 @@ class _InventoryDetailScreenState extends State<InventoryDetailScreen> {
   DocumentSnapshot? _sessionDoc;
   List<Map<String, dynamic>> _items = [];
   bool _loading = true;
+  bool _completeLoading = false;
+  bool _updateStockLoading = false;
   final TextEditingController _searchController = TextEditingController();
   String _searchText = '';
   Map<String, dynamic>? _userInfo;
@@ -104,7 +107,7 @@ class _InventoryDetailScreenState extends State<InventoryDetailScreen> {
   }
 
   Future<void> _confirmCompleteInventory() async {
-    setState(() { _loading = true; });
+    setState(() { _completeLoading = true; });
     final notCheckedCount = _items.where((i) => i['actualStock'] == null || i['actualStock'].toString().isEmpty).length;
     if (notCheckedCount > 0) {
       final confirmed = await showDialog<bool>(
@@ -119,7 +122,7 @@ class _InventoryDetailScreenState extends State<InventoryDetailScreen> {
         ),
       );
       if (confirmed != true) {
-        setState(() { _loading = false; });
+        setState(() { _completeLoading = false; });
         return;
       }
     }
@@ -130,11 +133,11 @@ class _InventoryDetailScreenState extends State<InventoryDetailScreen> {
         const SnackBar(content: Text('Đã hoàn tất kiểm kê!'), backgroundColor: Colors.green),
       );
     }
-    setState(() { _loading = false; });
+    setState(() { _completeLoading = false; });
   }
 
   Future<void> _updateStock() async {
-    setState(() { _loading = true; });
+    setState(() { _updateStockLoading = true; });
     for (final item in _items) {
       final productId = item['productId'];
       final actualStock = item['actualStock'] ?? 0;
@@ -151,7 +154,7 @@ class _InventoryDetailScreenState extends State<InventoryDetailScreen> {
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Đã cập nhật tồn kho thành công!'), backgroundColor: Colors.green));
       setState(() {});
     }
-    setState(() { _loading = false; });
+    setState(() { _updateStockLoading = false; });
   }
 
   @override
@@ -169,7 +172,12 @@ class _InventoryDetailScreenState extends State<InventoryDetailScreen> {
         elevation: 0,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: textPrimary),
-          onPressed: () => Navigator.of(context).pop(),
+          onPressed: () {
+            final mainLayoutState = context.findAncestorStateOfType<MainLayoutState>();
+            if (mainLayoutState != null) {
+              mainLayoutState.onSidebarTap(MainPage.inventory);
+            }
+          },
         ),
         title: const Text('Chi tiết kiểm kê', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 22, color: textPrimary)),
       ),
@@ -324,15 +332,19 @@ class _InventoryDetailScreenState extends State<InventoryDetailScreen> {
                   ),
                   const SizedBox(width: 16),
                   ElevatedButton(
-                    onPressed: _confirmCompleteInventory,
+                    onPressed: _completeLoading ? null : _confirmCompleteInventory,
                     style: primaryButtonStyle,
-                    child: const Text('Hoàn tất kiểm kê'),
+                    child: _completeLoading
+                        ? SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                        : const Text('Hoàn tất kiểm kê'),
                   ),
                 ] else if (isCompleted && !isUpdated) ...[
                   ElevatedButton(
-                    onPressed: _updateStock,
+                    onPressed: _updateStockLoading ? null : _updateStock,
                     style: primaryButtonStyle,
-                    child: const Text('Cập nhật tồn kho'),
+                    child: _updateStockLoading
+                        ? SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                        : const Text('Cập nhật tồn kho'),
                   ),
                 ]
               ],

@@ -9,6 +9,7 @@ import 'inventory_history_screen.dart';
 import '../widgets/common/design_system.dart';
 import 'inventory_create_session_screen.dart';
 import 'inventory_detail_screen.dart';
+import '../widgets/main_layout.dart';
 
 class InventoryScreen extends StatefulWidget {
   final VoidCallback? onBack;
@@ -164,13 +165,12 @@ class _InventoryScreenState extends State<InventoryScreen> with SingleTickerProv
                       final session = filtered[i];
                       return GestureDetector(
                         onTap: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => InventoryDetailScreen(sessionId: session.id),
-                                ),
-                              );
-                            },
+                          // Gọi MainLayout để mở chi tiết kiểm kê trong main content
+                          final mainLayoutState = context.findAncestorStateOfType<MainLayoutState>();
+                          if (mainLayoutState != null) {
+                            mainLayoutState.openInventoryDetail(session.id);
+                          }
+                        },
                         child: Container(
                           decoration: BoxDecoration(
                             color: cardBackground,
