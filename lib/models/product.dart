@@ -75,38 +75,78 @@ class Product {
 
   // Create from Firestore document
   factory Product.fromMap(String id, Map<String, dynamic> map) {
+    print('\nDEBUG: Parsing product from map:');
+    print('ID: $id');
+    print('Raw map: $map');
+    
     DateTime? createdAt;
     DateTime? updatedAt;
     try {
+      print('DEBUG: Parsing createdAt...');
       if (map['createdAt'] is Timestamp) {
         createdAt = (map['createdAt'] as Timestamp).toDate();
+        print('createdAt is Timestamp: $createdAt');
       } else if (map['createdAt'] is DateTime) {
         createdAt = map['createdAt'] as DateTime;
+        print('createdAt is DateTime: $createdAt');
       } else if (map['createdAt'] != null) {
         createdAt = DateTime.tryParse(map['createdAt'].toString());
+        print('createdAt parsed from string: $createdAt');
       }
-    } catch (_) {}
+    } catch (e) {
+      print('ERROR parsing createdAt: $e');
+    }
+    
     try {
+      print('DEBUG: Parsing updatedAt...');
       if (map['updatedAt'] is Timestamp) {
         updatedAt = (map['updatedAt'] as Timestamp).toDate();
+        print('updatedAt is Timestamp: $updatedAt');
       } else if (map['updatedAt'] is DateTime) {
         updatedAt = map['updatedAt'] as DateTime;
+        print('updatedAt is DateTime: $updatedAt');
       } else if (map['updatedAt'] != null) {
         updatedAt = DateTime.tryParse(map['updatedAt'].toString());
+        print('updatedAt parsed from string: $updatedAt');
       }
-    } catch (_) {}
+    } catch (e) {
+      print('ERROR parsing updatedAt: $e');
+    }
+    
     createdAt ??= DateTime.now();
     updatedAt ??= DateTime.now();
+    print('Final dates - createdAt: $createdAt, updatedAt: $updatedAt');
 
-    return Product(
+    // Handle tags conversion
+    List<String> tags = [];
+    if (map['tags'] != null) {
+      if (map['tags'] is List) {
+        tags = List<String>.from(map['tags'].map((tag) => tag.toString()));
+      } else if (map['tags'] is String) {
+        tags = [map['tags'] as String];
+      }
+    }
+
+    // Handle category conversion
+    String category = 'Khác';
+    if (map['category'] != null) {
+      if (map['category'] is String) {
+        category = map['category'] as String;
+      } else if (map['category'] is List) {
+        List<String> categories = List<String>.from(map['category'].map((cat) => cat.toString()));
+        category = categories.isNotEmpty ? categories.first : 'Khác';
+      }
+    }
+
+    final product = Product(
       id: id,
-      name: map['name'] ?? map['commonName'] ?? '', // Cho phép sử dụng commonName nếu name trống
+      name: map['name'] ?? map['commonName'] ?? '',
       commonName: map['commonName'] ?? '',
-      category: map['category'] ?? 'Khác',
+      category: category,
       barcode: map['barcode'],
       sku: map['sku'],
       unit: map['unit'] ?? '',
-      tags: List<String>.from(map['tags'] ?? []),
+      tags: tags,
       description: map['description'] ?? '',
       usage: map['usage'] ?? '',
       ingredients: map['ingredients'] ?? '',
@@ -121,6 +161,15 @@ class Product {
       updatedAt: updatedAt,
       distributor: map['distributor'],
     );
+    
+    print('DEBUG: Successfully created product:');
+    print('- Name: ${product.name}');
+    print('- Category: ${product.category}');
+    print('- Stock: ${product.stock}');
+    print('- Price: ${product.salePrice}');
+    print('=== End Product Parse ===\n');
+    
+    return product;
   }
 
   Product copyWith({

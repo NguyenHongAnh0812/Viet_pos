@@ -54,22 +54,11 @@ class MainLayoutState extends State<MainLayout> {
   // Key để rebuild ProductListScreen
   int productListKey = 0;
 
-  // State cho data sản phẩm
-  List<Product>? allProducts;
-  bool isLoadingProducts = true;
-
   String? _selectedInventorySessionId;
 
   @override
   void initState() {
     super.initState();
-    fetchProducts();
-  }
-
-  void fetchProducts() async {
-    setState(() => isLoadingProducts = true);
-    allProducts = await ProductService().getProducts().first;
-    setState(() => isLoadingProducts = false);
   }
 
   void _toggleSidebar() {
@@ -194,7 +183,6 @@ class MainLayoutState extends State<MainLayout> {
 
   // Điều hướng mở lại danh sách sản phẩm
   void _openProductList() {
-    fetchProducts();
     setState(() {
       // Reset toàn bộ filter về mặc định
       selectedCategory = 'Tất cả';
@@ -217,7 +205,7 @@ class MainLayoutState extends State<MainLayout> {
   }
 
   void reloadProducts() {
-    fetchProducts();
+    // This method is now empty as the product data is fetched in initState
   }
 
   void openInventoryDetail(String sessionId) {
@@ -423,8 +411,7 @@ class MainLayoutState extends State<MainLayout> {
           filterStockRange: stockRange,
           filterStatus: status,
           filterTags: selectedTags,
-          allProducts: allProducts,
-          isLoadingProducts: isLoadingProducts,
+          isLoadingProducts: false,
           onReloadProducts: reloadProducts,
         );
       case MainPage.productCategory:

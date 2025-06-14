@@ -64,7 +64,6 @@ class ProductListScreen extends StatefulWidget {
   final RangeValues? filterStockRange;
   final String? filterStatus;
   final Set<String>? filterTags;
-  final List<Product>? allProducts;
   final bool isLoadingProducts;
   final VoidCallback? onReloadProducts;
   const ProductListScreen({
@@ -77,7 +76,6 @@ class ProductListScreen extends StatefulWidget {
     this.filterStockRange,
     this.filterStatus,
     this.filterTags,
-    this.allProducts,
     this.isLoadingProducts = false,
     this.onReloadProducts,
   });
@@ -601,524 +599,12 @@ class _ProductListScreenState extends State<ProductListScreen> {
   }
 
   @override
-  void initState() {
-    super.initState();
-    // Reset filter về mặc định mỗi lần vào màn hình
-    searchText = '';
-  }
-
-  @override
-  void didUpdateWidget(covariant ProductListScreen oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (widget.filterCategory != oldWidget.filterCategory ||
-        widget.filterPriceRange != oldWidget.filterPriceRange ||
-        widget.filterStockRange != oldWidget.filterStockRange ||
-        widget.filterStatus != oldWidget.filterStatus ||
-        widget.filterTags != oldWidget.filterTags) {
-      setState(() {
-        searchText = '';
-        sortOption = 'name_asc';
-        // reset các biến local khác nếu cần
-      });
-    }
-  }
-
-  Future<void> _showImportDialog() async {
-    setState(() {
-      _importFile = null;
-      _overwrite = false;
-      _csvPreviewRows = null;
-      _csvPreviewHeaders = null;
-    });
-    await showDesignSystemDialog(
-      context: context,
-      title: 'Nhập sản phẩm bằng CSV',
-      maxWidth: MediaQuery.of(context).size.width * 0.6,
-      content: StatefulBuilder(
-        builder: (context, setDialogState) {
-          PlatformFile? localImportFile = _importFile;
-          return Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  ElevatedButton(
-                    onPressed: () async {
-                      final result = await FilePicker.platform.pickFiles(type: FileType.custom, allowedExtensions: ['csv', 'xlsx']);
-                      if (result != null && result.files.isNotEmpty) {
-                        setDialogState(() {
-                          localImportFile = result.files.first;
-                        });
-                        setState(() {
-                          _importFile = result.files.first;
-                        });
-                      }
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.transparent,
-                      foregroundColor: primaryBlue,
-                      elevation: 0,
-                      shadowColor: Colors.transparent,
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                    ),
-                    child: const Text('Choose File', style: TextStyle(color: primaryBlue, fontWeight: FontWeight.bold)),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Text(localImportFile?.name ?? 'No file chosen', style: TextStyle(color: textSecondary)),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 16),
-              if (localImportFile != null) ...[
-                const SizedBox(height: 16),
-                CheckboxListTile(
-                  value: _overwrite,
-                  onChanged: (v) {
-                    setDialogState(() => _overwrite = v ?? false);
-                    setState(() => _overwrite = v ?? false);
-                  },
-                  controlAffinity: ListTileControlAffinity.leading,
-                  contentPadding: EdgeInsets.zero,
-                  title: const Text(
-                    'Ghi đè sản phẩm có Tên nội bộ trùng khớp. Các giá trị hiện tại sẽ được thay thế cho tất cả các cột có trong CSV.',
-                    style: TextStyle(fontSize: 14, fontWeight: FontWeight.w400),
-                  ),
-                ),
-                const SizedBox(height: 16),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.end,
-                  children: [
-                    InkWell(
-                      onTap: () {
-                        html.AnchorElement(href: '/templates/sample_products_import_template.xlsx')
-                          ..setAttribute('download', 'sample_products_import_template.xlsx')
-                          ..click();
-                      },
-                      child: Text('Tải CSV mẫu', style: TextStyle(color: primaryBlue, fontWeight: FontWeight.w500, decoration: TextDecoration.underline)),
-                    ),
-                    const SizedBox(width: 16),
-
-                    TextButton(
-                      onPressed: () => Navigator.pop(context),
-                      style: ghostBorderButtonStyle,
-                      child: const Text('Hủy'),
-                    ),
-                    const SizedBox(width: 8),
-                    ElevatedButton(
-                      onPressed: localImportFile != null
-                          ? () async {
-                              final file = localImportFile!;
-                              List<List<dynamic>> rows = [];
-                              if (file.extension == 'csv') {
-                                final content = String.fromCharCodes(file.bytes!);
-                                rows = const CsvToListConverter(eol: '\n', shouldParseNumbers: false).convert(content);
-                              } else if (file.extension == 'xlsx') {
-                                final excelFile = excel.Excel.decodeBytes(file.bytes!);
-                                final sheet = excelFile.tables[excelFile.tables.keys.first];
-                                if (sheet != null) {
-                                  rows = sheet.rows.map((r) => r.map((c) => c?.value?.toString() ?? '').toList()).toList();
-                                }
-                              }
-                              if (rows.isEmpty) return;
-                              setState(() {
-                                _csvPreviewHeaders = rows.first.map((e) => e.toString()).toList();
-                                _csvPreviewRows = rows.skip(1).map((r) => r.map((e) => e.toString()).toList()).toList();
-                              });
-                              Navigator.pop(context);
-                              _showPreviewDialog();
-                            }
-                          : null,
-                      style: primaryButtonStyle,
-                      child: const Text('Tải lên và xem trước'),
-                    ),    
-                  ],
-                ),
-              ],
-              if (localImportFile == null) ...[
-                const SizedBox(height: 16),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.end,
-                  children: [
-                    InkWell(
-                      onTap: () {
-                        html.AnchorElement(href: '/templates/sample_products_import_template.xlsx')
-                          ..setAttribute('download', 'sample_products_import_template.xlsx')
-                          ..click();
-                      },
-                      child: Text('Tải CSV mẫu', style: TextStyle(color: primaryBlue, fontWeight: FontWeight.w500, decoration: TextDecoration.underline)),
-                    ),
-                    const SizedBox(width: 16),
-
-                    TextButton(
-                      onPressed: () => Navigator.pop(context),
-                      style: ghostBorderButtonStyle,
-                      child: const Text('Hủy'),
-                    ),
-                                        
-                    const SizedBox(width: 8),
-                    ElevatedButton(
-                      onPressed: null,
-                      style: primaryButtonStyle,
-                      child: const Text('Tải lên và xem trước'),
-                    ),
-                  ],
-                ),
-              ],
-            ],
-          );
-        },
-      ),
-      actions: const [], // Remove actions, all actions are in content
-    );
-  }
-
-  Future<void> _showPreviewDialog() async {
-    if (_csvPreviewHeaders == null || _csvPreviewRows == null) return;
-
-    // Lọc và sắp xếp lại các cột cần hiển thị
-    final requiredHeaders = ['Tên nội bộ', 'Tên thương mại', 'Mã vạch', 'SKU', 'Giá nhập', 'Giá bán', 'Tồn kho'];
-    final headerIndices = <int>[];
-    
-    for (var header in requiredHeaders) {
-      final index = _csvPreviewHeaders!.indexWhere((h) => h.toLowerCase() == header.toLowerCase());
-      if (index != -1) {
-        headerIndices.add(index);
-      }
-    }
-
-    // Tạo dữ liệu hiển thị mới
-    final displayHeaders = headerIndices.map((i) => _csvPreviewHeaders![i]).toList();
-    final displayRows = _csvPreviewRows!.map((row) => 
-      headerIndices.map((i) => row[i]).toList()
-    ).toList();
-
-    await showDesignSystemDialog(
-      context: context,
-      title: 'Xem trước dữ liệu nhập',
-      maxWidth: MediaQuery.of(context).size.width * 0.7,
-      content: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          const Text('Xem trước dữ liệu', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20)),
-          const SizedBox(height: 16),
-          SizedBox(
-            height: MediaQuery.of(context).size.height * 0.5,
-            child: SingleChildScrollView(
-              scrollDirection: Axis.vertical,
-              child: Container(
-                decoration: BoxDecoration(
-                  color: cardBackground,
-                  borderRadius: BorderRadius.circular(6),
-                  border: Border.all(color: borderColor),
-                ),
-                child: SingleChildScrollView(
-                  scrollDirection: Axis.horizontal,
-                  child: DataTable(
-                    columns: displayHeaders.map((h) => DataColumn(
-                      label: Container(
-                        constraints: const BoxConstraints(minWidth: 120),
-                        child: Text(h, 
-                          style: const TextStyle(fontWeight: FontWeight.bold, color: textSecondary),
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                    )).toList(),
-                    rows: displayRows.map((row) => DataRow(
-                      cells: row.map((cell) => DataCell(
-                        Container(
-                          constraints: const BoxConstraints(minWidth: 120),
-                          child: Text(cell.toString(), 
-                            style: const TextStyle(fontWeight: FontWeight.w500),
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                      )).toList(),
-                    )).toList(),
-                    headingRowHeight: 48,
-                    dataRowHeight: 48,
-                    horizontalMargin: 16,
-                    columnSpacing: 24,
-                    dividerThickness: 0.5,
-                  ),
-                ),
-              ),
-            ),
-          ),
-        ],
-      ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.pop(context),
-          style: ghostBorderButtonStyle,
-          child: const Text('Hủy'),
-        ),
-        ElevatedButton(
-          onPressed: () async {
-            await _importProductsFromCsv();
-            Navigator.pop(context);
-          },
-          style: primaryButtonStyle,
-          child: const Text('Nhập sản phẩm'),
-        ),
-      ],
-    );
-  }
-
-  Future<void> _importProductsFromCsv() async {
-    if (_csvPreviewHeaders == null || _csvPreviewRows == null) return;
-    final headers = _csvPreviewHeaders!;
-    final rows = _csvPreviewRows!;
-
-    // Map header tiếng Việt sang field tiếng Anh
-    final headerMap = <int, String>{};
-    for (int i = 0; i < headers.length; i++) {
-      final header = headers[i].trim().toLowerCase();
-      switch (header) {
-        case 'tên nội bộ':
-        case 'tên nội bộ':
-          headerMap[i] = 'name';
-          break;
-        case 'tên thương mại':
-          headerMap[i] = 'commonName';
-          break;
-        case 'mã vạch':
-          headerMap[i] = 'barcode';
-          break;
-        case 'sku':
-          headerMap[i] = 'sku';
-          break;
-        case 'giá nhập':
-          headerMap[i] = 'importPrice';
-          break;
-        case 'giá bán':
-          headerMap[i] = 'salePrice';
-          break;
-        case 'tồn kho':
-        case 'số lượng sản phẩm':
-          headerMap[i] = 'stock';
-          break;
-        case 'danh mục':
-        case 'danh mục sản phẩm':
-          headerMap[i] = 'category';
-          break;
-        case 'đơn vị':
-        case 'đơn vị tính':
-          headerMap[i] = 'unit';
-          break;
-        case 'tags':
-          headerMap[i] = 'tags';
-          break;
-        case 'mô tả':
-          headerMap[i] = 'description';
-          break;
-        case 'công dụng':
-          headerMap[i] = 'usage';
-          break;
-        case 'thành phần':
-          headerMap[i] = 'ingredients';
-          break;
-        case 'ghi chú':
-          headerMap[i] = 'notes';
-          break;
-        case 'trạng thái':
-          headerMap[i] = 'isActive';
-          break;
-      }
-    }
-
-    int imported = 0;
-    int updated = 0;
-    int failed = 0;
-    List<String> errorRows = [];
-
-    // Tạo danh sách các thao tác (set/update)
-    List<Future<void>> batchTasks = [];
-    List<WriteBatch> batches = [];
-    WriteBatch currentBatch = FirebaseFirestore.instance.batch();
-    int batchCount = 0;
-    const int maxBatch = 400;
-
-    for (var rowIndex = 0; rowIndex < rows.length; rowIndex++) {
-      final row = rows[rowIndex];
-      try {
-        final data = <String, dynamic>{};
-        for (int i = 0; i < row.length; i++) {
-          if (headerMap.containsKey(i)) {
-            final field = headerMap[i]!;
-            final value = row[i].toString().trim();
-            switch (field) {
-              case 'name':
-              case 'commonName':
-              case 'barcode':
-              case 'sku':
-              case 'category':
-              case 'unit':
-              case 'description':
-              case 'usage':
-              case 'ingredients':
-              case 'notes':
-                data[field] = value;
-                break;
-              case 'importPrice':
-              case 'salePrice':
-                final cleanValue = value.replaceAll(RegExp(r'[^\d.]'), '');
-                data[field] = double.tryParse(cleanValue) ?? 0.0;
-                break;
-              case 'stock':
-                final cleanValue = value.replaceAll(RegExp(r'[^\d]'), '');
-                data[field] = int.tryParse(cleanValue) ?? 0;
-                break;
-              case 'tags':
-                data[field] = value.split(',').map((e) => e.trim()).where((e) => e.isNotEmpty).toList();
-                break;
-              case 'isActive':
-                data[field] = value.toLowerCase() == 'còn bán' || 
-                             value.toLowerCase() == 'true' || 
-                             value == '1' ||
-                             value.toLowerCase() == 'đang bán';
-                break;
-            }
-          }
-        }
-        if (data['name'] == null || data['name'].toString().isEmpty) {
-          failed++;
-          errorRows.add('Dòng ${rowIndex + 2}: Thiếu tên sản phẩm');
-          continue;
-        }
-        data['commonName'] ??= data['name'];
-        data['importPrice'] ??= 0.0;
-        data['salePrice'] ??= 0.0;
-        data['stock'] ??= 0;
-        data['isActive'] ??= true;
-        data['tags'] ??= <String>[];
-        data['description'] ??= '';
-        data['usage'] ??= '';
-        data['ingredients'] ??= '';
-        data['notes'] ??= '';
-        data['createdAt'] = FieldValue.serverTimestamp();
-        data['updatedAt'] = FieldValue.serverTimestamp();
-
-        if (_overwrite) {
-          // Tìm sản phẩm theo tên nội bộ
-          final query = await FirebaseFirestore.instance
-              .collection('products')
-              .where('name', isEqualTo: data['name'])
-              .get();
-          if (query.docs.isNotEmpty) {
-            currentBatch.update(query.docs.first.reference, data);
-            updated++;
-          } else {
-            final docRef = FirebaseFirestore.instance.collection('products').doc();
-            currentBatch.set(docRef, data);
-            imported++;
-          }
-        } else {
-          final docRef = FirebaseFirestore.instance.collection('products').doc();
-          currentBatch.set(docRef, data);
-          imported++;
-        }
-        batchCount++;
-        if (batchCount >= maxBatch) {
-          batches.add(currentBatch);
-          currentBatch = FirebaseFirestore.instance.batch();
-          batchCount = 0;
-        }
-      } catch (e) {
-        failed++;
-        errorRows.add('Dòng ${rowIndex + 2}: $e');
-      }
-    }
-    if (batchCount > 0) {
-      batches.add(currentBatch);
-    }
-    try {
-      for (final batch in batches) {
-        await batch.commit();
-      }
-      if (mounted) {
-        OverlayEntry? entry;
-        entry = OverlayEntry(
-          builder: (_) => DesignSystemSnackbar(
-            message: 'Đã nhập $imported, cập nhật $updated, lỗi $failed sản phẩm!',
-            icon: Icons.check_circle,
-            onDismissed: () => entry?.remove(),
-          ),
-        );
-        Overlay.of(context).insert(entry);
-        setState(() {}); // reload UI
-      }
-    } catch (e) {
-      if (mounted) {
-        OverlayEntry? entry;
-        entry = OverlayEntry(
-          builder: (_) => DesignSystemSnackbar(
-            message: 'Lỗi khi import: $e',
-            icon: Icons.error,
-            onDismissed: () => entry?.remove(),
-          ),
-        );
-        Overlay.of(context).insert(entry);
-      }
-      return;
-    }
-    if (errorRows.isNotEmpty && mounted) {
-      await showDialog(
-        context: context,
-        builder: (context) => AlertDialog(
-          title: const Text('Một số dòng bị lỗi'),
-          content: SizedBox(
-            width: 400,
-            child: SingleChildScrollView(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: errorRows.map((e) => Text(e)).toList(),
-              ),
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('Đóng'),
-            ),
-          ],
-        ),
-      );
-    }
-  }
-
-  void _handleScroll(ScrollNotification scrollInfo, int totalItems) {
-    if (!isLoadingMore && scrollInfo.metrics.pixels >= scrollInfo.metrics.maxScrollExtent - 100) {
-      final maxPage = (totalItems / itemsPerPage).ceil();
-      if (currentPage < maxPage) {
-        setState(() {
-          isLoadingMore = true;
-          currentPage++;
-        });
-        Future.delayed(const Duration(milliseconds: 300), () {
-          if (mounted) setState(() => isLoadingMore = false);
-        });
-      }
-    }
-  }
-
-  @override
   Widget build(BuildContext context) {
-    print('DEBUG: allProducts = \\${widget.allProducts}');
-    print('DEBUG: isLoadingProducts = \\${widget.isLoadingProducts}');
-    final products = widget.allProducts ?? [];
-    checkExtremeProducts(products);
-    print('DEBUG: products.length = \\${products.length}');
-    // Cập nhật filter ranges khi có dữ liệu mới
-    updateFilterRanges(products);
-    final filteredProducts = filterProducts(products);
-    print('DEBUG: filteredProducts.length = \\${filteredProducts.length}');
-    final sortedProducts = sortProducts(filteredProducts);
+    print('\n=== DEBUG: Building ProductListScreen ===');
+    
     final isMobile = MediaQuery.of(context).size.width < 600;
-    final pagedProducts = sortedProducts.take(currentPage * itemsPerPage).toList();
     final numberFormat = NumberFormat('#,###', 'vi_VN');
+    
     return Scaffold(
       backgroundColor: appBackground,
       body: Center(
@@ -1139,14 +625,118 @@ class _ProductListScreenState extends State<ProductListScreen> {
                             style: MediaQuery.of(context).size.width < 600 ? h1Mobile : h2,
                           ),
                           const SizedBox(height: 12),
-                          Align(
-                            alignment: Alignment.centerLeft,
-                            child: ElevatedButton.icon(
-                              onPressed: () => widget.onNavigate?.call(MainPage.addProduct),
-                              icon: const Icon(Icons.add),
-                              label: const Text('Thêm sản phẩm'),
-                              style: primaryButtonStyle,
-                            ),
+                          Row(
+                            children: [
+                              ElevatedButton.icon(
+                                onPressed: () => widget.onNavigate?.call(MainPage.addProduct),
+                                icon: const Icon(Icons.add),
+                                label: const Text('Thêm sản phẩm'),
+                                style: primaryButtonStyle,
+                              ),
+                              const SizedBox(width: 8),
+                              ValueListenableBuilder<Set<String>>(
+                                valueListenable: selectedProductIds,
+                                builder: (context, selected, _) {
+                                  if (selected.isEmpty) return const SizedBox.shrink();
+                                  return Row(
+                                    children: [
+                                      OutlinedButton.icon(
+                                        onPressed: () async {
+                                          final confirmed = await showDialog<bool>(
+                                            context: context,
+                                            builder: (context) => AlertDialog(
+                                              title: const Text('Xác nhận xóa'),
+                                              content: Text('Bạn có chắc chắn muốn xóa ${selected.length} sản phẩm đã chọn?'),
+                                              actions: [
+                                                TextButton(
+                                                  onPressed: () => Navigator.pop(context, false),
+                                                  child: const Text('Hủy'),
+                                                ),
+                                                TextButton(
+                                                  onPressed: () => Navigator.pop(context, true),
+                                                  child: const Text('Xóa', style: TextStyle(color: Colors.red)),
+                                                ),
+                                              ],
+                                            ),
+                                          );
+                                          if (confirmed == true) {
+                                            try {
+                                              final batch = FirebaseFirestore.instance.batch();
+                                              for (final id in selected) {
+                                                final docRef = FirebaseFirestore.instance.collection('products').doc(id);
+                                                batch.delete(docRef);
+                                              }
+                                              await batch.commit();
+                                              selectedProductIds.value = {};
+                                              if (mounted) {
+                                                OverlayEntry? entry;
+                                                entry = OverlayEntry(
+                                                  builder: (_) => DesignSystemSnackbar(
+                                                    message: 'Đã xóa ${selected.length} sản phẩm thành công',
+                                                    icon: Icons.check_circle,
+                                                    onDismissed: () => entry?.remove(),
+                                                  ),
+                                                );
+                                                Overlay.of(context).insert(entry);
+                                              }
+                                            } catch (e) {
+                                              if (mounted) {
+                                                OverlayEntry? entry;
+                                                entry = OverlayEntry(
+                                                  builder: (_) => DesignSystemSnackbar(
+                                                    message: 'Lỗi khi xóa sản phẩm: $e',
+                                                    icon: Icons.error,
+                                                    onDismissed: () => entry?.remove(),
+                                                  ),
+                                                );
+                                                Overlay.of(context).insert(entry);
+                                              }
+                                            }
+                                          }
+                                        },
+                                        icon: const Icon(Icons.delete_outline, color: Colors.red),
+                                        label: Text('Xóa ${selected.length} sản phẩm', style: const TextStyle(color: Colors.red)),
+                                        style: OutlinedButton.styleFrom(
+                                          foregroundColor: Colors.red,
+                                          side: const BorderSide(color: Colors.red),
+                                        ),
+                                      ),
+                                    ],
+                                  );
+                                },
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 8),
+                          Row(
+                            children: [
+                              OutlinedButton.icon(
+                                onPressed: _importProductsFromExcel,
+                                icon: const Icon(Icons.upload_file),
+                                label: const Text('Import'),
+                                style: secondaryButtonStyle,
+                              ),
+                              const SizedBox(width: 8),
+                              StreamBuilder<List<Product>>(
+                                stream: _productService.getProducts(),
+                                builder: (context, snapshot) {
+                                  final products = snapshot.data ?? [];
+                                  return OutlinedButton.icon(
+                                    onPressed: () => _exportProductsToExcel(products),
+                                    icon: const Icon(Icons.download),
+                                    label: const Text('Export'),
+                                    style: secondaryButtonStyle,
+                                  );
+                                },
+                              ),
+                              const SizedBox(width: 8),
+                              ElevatedButton.icon(
+                                onPressed: () => widget.onNavigate?.call(MainPage.addProduct),
+                                icon: const Icon(Icons.add),
+                                label: const Text('Thêm sản phẩm'),
+                                style: primaryButtonStyle,
+                              ),
+                            ],
                           ),
                         ],
                       )
@@ -1155,130 +745,111 @@ class _ProductListScreenState extends State<ProductListScreen> {
                         children: [
                           Text(
                             'Danh sách sản phẩm',
-                            style: MediaQuery.of(context).size.width < 600 ? h1Mobile : h2,
+                            style: h2,
                           ),
                           Row(
                             children: [
-                              // Xóa nhiều sản phẩm
                               ValueListenableBuilder<Set<String>>(
                                 valueListenable: selectedProductIds,
                                 builder: (context, selected, _) {
                                   if (selected.isEmpty) return const SizedBox.shrink();
                                   return Padding(
-                                    padding: const EdgeInsets.only(right: 12),
-                                    child: ElevatedButton.icon(
-                                      icon: const Icon(Icons.delete),
-                                      label: const Text('Xóa nhiều sản phẩm'),
-                                      style: destructiveButtonStyle,
+                                    padding: const EdgeInsets.only(right: 8),
+                                    child: OutlinedButton.icon(
                                       onPressed: () async {
-                                        final confirm = await showDesignSystemDialog<bool>(
+                                        final confirmed = await showDialog<bool>(
                                           context: context,
-                                          title: 'Xóa sản phẩm',
-                                          content: Text('Bạn có chắc muốn xóa \\${selected.length} sản phẩm đã chọn?'),
-                                          actions: [
-                                            TextButton(
-                                              onPressed: () => Navigator.pop(context, false),
-                                              style: ghostBorderButtonStyle,
-                                              child: const Text('Hủy'),
-                                            ),
-                                            ElevatedButton(
-                                              onPressed: () => Navigator.pop(context, true),
-                                              style: destructiveButtonStyle.copyWith(
-                                                shape: MaterialStateProperty.all(RoundedRectangleBorder(borderRadius: BorderRadius.circular(6))),
+                                          builder: (context) => AlertDialog(
+                                            title: const Text('Xác nhận xóa'),
+                                            content: Text('Bạn có chắc chắn muốn xóa ${selected.length} sản phẩm đã chọn?'),
+                                            actions: [
+                                              TextButton(
+                                                onPressed: () => Navigator.pop(context, false),
+                                                child: const Text('Hủy'),
                                               ),
-                                              child: const Text('Xóa'),
-                                            ),
-                                          ],
+                                              TextButton(
+                                                onPressed: () => Navigator.pop(context, true),
+                                                child: const Text('Xóa', style: TextStyle(color: Colors.red)),
+                                              ),
+                                            ],
+                                          ),
                                         );
-                                        if (confirm == true) {
+                                        if (confirmed == true) {
                                           try {
                                             final batch = FirebaseFirestore.instance.batch();
-                                            int count = 0;
                                             for (final id in selected) {
-                                              final ref = FirebaseFirestore.instance.collection('products').doc(id);
-                                              batch.delete(ref);
-                                              count++;
-                                              if (count == 490) {
-                                                await batch.commit();
-                                                count = 0;
-                                              }
+                                              final docRef = FirebaseFirestore.instance.collection('products').doc(id);
+                                              batch.delete(docRef);
                                             }
-                                            if (count > 0) {
-                                              await batch.commit();
-                                            }
+                                            await batch.commit();
                                             selectedProductIds.value = {};
-                                            OverlayEntry? entry;
-                                            entry = OverlayEntry(
-                                              builder: (_) => DesignSystemSnackbar(
-                                                message: 'Đã xóa các sản phẩm đã chọn!',
-                                                icon: Icons.check_circle,
-                                                onDismissed: () => entry?.remove(),
-                                              ),
-                                            );
-                                            Overlay.of(context).insert(entry);
-                                            await Future.delayed(const Duration(milliseconds: 500));
                                             if (mounted) {
-                                              setState(() {}); // Cập nhật lại UI
-                                              // Nếu có callback reload hoặc fetch lại sản phẩm, gọi ở đây:
-                                              if (widget.onReloadProducts != null) {
-                                                widget.onReloadProducts!();
-                                              }
-                                              // Hoặc gọi fetchProducts() nếu có hàm này
+                                              OverlayEntry? entry;
+                                              entry = OverlayEntry(
+                                                builder: (_) => DesignSystemSnackbar(
+                                                  message: 'Đã xóa ${selected.length} sản phẩm thành công',
+                                                  icon: Icons.check_circle,
+                                                  onDismissed: () => entry?.remove(),
+                                                ),
+                                              );
+                                              Overlay.of(context).insert(entry);
                                             }
                                           } catch (e) {
-                                            print('Lỗi khi xóa sản phẩm: $e');
-                                            ScaffoldMessenger.of(context).showSnackBar(
-                                              SnackBar(content: Text('Lỗi khi xóa sản phẩm: $e')),
-                                            );
+                                            if (mounted) {
+                                              OverlayEntry? entry;
+                                              entry = OverlayEntry(
+                                                builder: (_) => DesignSystemSnackbar(
+                                                  message: 'Lỗi khi xóa sản phẩm: $e',
+                                                  icon: Icons.error,
+                                                  onDismissed: () => entry?.remove(),
+                                                ),
+                                              );
+                                              Overlay.of(context).insert(entry);
+                                            }
                                           }
                                         }
                                       },
+                                      icon: const Icon(Icons.delete_outline, color: Colors.red),
+                                      label: Text('Xóa ${selected.length} sản phẩm', style: const TextStyle(color: Colors.red)),
+                                      style: OutlinedButton.styleFrom(
+                                        foregroundColor: Colors.red,
+                                        side: const BorderSide(color: Colors.red),
+                                      ),
                                     ),
                                   );
                                 },
                               ),
-                              // Import
-                              ClipRRect(
-                                borderRadius: BorderRadius.circular(5),
-                                child: ElevatedButton.icon(
-                                  onPressed: _showImportDialog,
-                                  icon: const Icon(Icons.file_upload_outlined),
-                                  label: const Text('Import'),
-                                  style: ghostBorderButtonStyle,
-                                ),
+                              OutlinedButton.icon(
+                                onPressed: _importProductsFromExcel,
+                                icon: const Icon(Icons.upload_file),
+                                label: const Text('Import'),
+                                style: secondaryButtonStyle,
                               ),
-                              const SizedBox(width: 12),
-                              // Export
-                              ClipRRect(
-                                borderRadius: BorderRadius.circular(5),
-                                child: ElevatedButton.icon(
-                                  onPressed: () async {
-                                    final products = await _productService.getProducts().first;
-                                    await _exportProductsToExcel(products);
-                                  },
-                                  icon: const Icon(Icons.download),
-                                  label: const Text('Export'),
-                                  style: ghostBorderButtonStyle,
-                                ),
+                              const SizedBox(width: 8),
+                              StreamBuilder<List<Product>>(
+                                stream: _productService.getProducts(),
+                                builder: (context, snapshot) {
+                                  final products = snapshot.data ?? [];
+                                  return OutlinedButton.icon(
+                                    onPressed: () => _exportProductsToExcel(products),
+                                    icon: const Icon(Icons.download),
+                                    label: const Text('Export'),
+                                    style: secondaryButtonStyle,
+                                  );
+                                },
                               ),
-                              const SizedBox(width: 12),
-                              // Thêm sản phẩm
-                              ClipRRect(
-                                borderRadius: BorderRadius.circular(5),
-                                child: ElevatedButton.icon(
-                                  onPressed: () => widget.onNavigate?.call(MainPage.addProduct),
-                                  icon: const Icon(Icons.add),
-                                  label: const Text('Thêm sản phẩm'),
-                                  style: primaryButtonStyle,
-                                ),
+                              const SizedBox(width: 8),
+                              ElevatedButton.icon(
+                                onPressed: () => widget.onNavigate?.call(MainPage.addProduct),
+                                icon: const Icon(Icons.add),
+                                label: const Text('Thêm sản phẩm'),
+                                style: primaryButtonStyle,
                               ),
                             ],
                           ),
                         ],
                       ),
               ),
-              const SizedBox(height: 20),
-              // Search and Filter Section
               Expanded(
                 child: SingleChildScrollView(
                   child: Column(
@@ -1323,13 +894,38 @@ class _ProductListScreenState extends State<ProductListScreen> {
                       // Product List and Filter/Sort Row together in StreamBuilder
                       Padding(
                         padding: const EdgeInsets.only(left: 16.0, right: 16.0, bottom: 80.0),
-                        child: Builder(
-                          builder: (context) {
+                        child: StreamBuilder<List<Product>>(
+                          stream: _productService.getProducts(),
+                          builder: (context, snapshot) {
+                            if (snapshot.hasError) {
+                              return Center(
+                                child: Text(
+                                  'Có lỗi xảy ra: ${snapshot.error}',
+                                  style: TextStyle(color: Colors.red[600]),
+                                ),
+                              );
+                            }
+
                             if (widget.isLoadingProducts) {
                               return const Center(child: CircularProgressIndicator());
                             }
-                            final isMobile = MediaQuery.of(context).size.width < 600;
+
+                            final products = snapshot.data ?? [];
+                            print('Raw products count: ${products.length}');
+                            
+                            checkExtremeProducts(products);
+                            print('After checking extreme products: ${products.length}');
+                            
+                            updateFilterRanges(products);
+                            final filteredProducts = filterProducts(products);
+                            print('After filtering: ${filteredProducts.length}');
+                            
+                            final sortedProducts = sortProducts(filteredProducts);
+                            print('After sorting: ${sortedProducts.length}');
+                            
                             final pagedProducts = sortedProducts.take(currentPage * itemsPerPage).toList();
+                            print('Final paged products: ${pagedProducts.length}');
+                            print('=== End ProductListScreen Build ===\n');
 
                             if (products.isEmpty) {
                               return Padding(
@@ -1342,6 +938,7 @@ class _ProductListScreenState extends State<ProductListScreen> {
                                 ),
                               );
                             }
+
                             return Column(
                               children: [
                                 // Filter and Sort Row
@@ -1399,41 +996,22 @@ class _ProductListScreenState extends State<ProductListScreen> {
                                           ),
                                           child: Row(
                                             children: [
-                                              SizedBox(
-                                                width: 128,
-                                                height: 32,
-                                                child: Theme(
-                                                  data: Theme.of(context).copyWith(
-                                                    unselectedWidgetColor: Color(0xFF3a6ff8),
-                                                    checkboxTheme: CheckboxThemeData(
-                                                      shape: RoundedRectangleBorder(
-                                                        borderRadius: BorderRadius.circular(4),
-                                                      ),
-                                                      side: const BorderSide(color: Color(0xFF3a6ff8), width: 1),
-                                                      fillColor: MaterialStateProperty.resolveWith<Color?>((states) {
-                                                        if (states.contains(MaterialState.selected)) {
-                                                          return Color(0xFF3a6ff8);
+                                              Expanded(
+                                                flex: 1,
+                                                child: ValueListenableBuilder<Set<String>>(
+                                                  valueListenable: selectedProductIds,
+                                                  builder: (context, selected, _) {
+                                                    return Checkbox(
+                                                      value: selected.length == pagedProducts.length,
+                                                      onChanged: pagedProducts.isEmpty ? null : (checked) {
+                                                        if (checked == true) {
+                                                          selectedProductIds.value = Set<String>.from(pagedProducts.map((p) => p.id));
+                                                        } else {
+                                                          selectedProductIds.value = {};
                                                         }
-                                                        return Colors.white;
-                                                      }),
-                                                      checkColor: MaterialStateProperty.all<Color>(Colors.white),
-                                                    ),
-                                                  ),
-                                                  child: ValueListenableBuilder<Set<String>>(
-                                                    valueListenable: selectedProductIds,
-                                                    builder: (context, selected, _) {
-                                                      return Checkbox(
-                                                        value: selected.length == pagedProducts.length,
-                                                        onChanged: pagedProducts.isEmpty ? null : (checked) {
-                                                          if (checked == true) {
-                                                            selectedProductIds.value = Set<String>.from(pagedProducts.map((p) => p.id));
-                                                          } else {
-                                                            selectedProductIds.value = {};
-                                                          }
-                                                        },
-                                                      );
-                                                    },
-                                                  ),
+                                                      },
+                                                    );
+                                                  },
                                                 ),
                                               ),
                                               Expanded(
@@ -1490,18 +1068,19 @@ class _ProductListScreenState extends State<ProductListScreen> {
                                                 }
                                                 final product = pagedProducts[index];
                                                 final isMobile = MediaQuery.of(context).size.width < 600;
+
                                                 if (isMobile) {
-                                                  // Mobile card style như cũ
+                                                  // Mobile: render dạng card
                                                   return InkWell(
                                                     onTap: () => widget.onProductTap?.call(product),
                                                     child: Container(
-                                                      margin: const EdgeInsets.only(bottom: 8),
-                                                      padding: const EdgeInsets.all(16),
                                                       decoration: BoxDecoration(
                                                         color: Colors.white,
-                                                        border: Border.all(color: borderColor),
-                                                        borderRadius: BorderRadius.circular(8),
+                                                        border: Border(
+                                                          bottom: BorderSide(color: Colors.grey.shade200, width: 1),
+                                                        ),
                                                       ),
+                                                      padding: const EdgeInsets.all(16),
                                                       child: Column(
                                                         crossAxisAlignment: CrossAxisAlignment.start,
                                                         children: [
@@ -1513,23 +1092,15 @@ class _ProductListScreenState extends State<ProductListScreen> {
                                                             ),
                                                           const SizedBox(height: 16),
                                                           Row(
-                                                            crossAxisAlignment: CrossAxisAlignment.end,
+                                                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                                             children: [
-                                                              Expanded(
-                                                                child: Column(
-                                                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                                                  children: [
-                                                                    Text('Mã vạch', style: TextStyle(fontSize: 15, color: Colors.black, fontWeight: FontWeight.w500, fontFamily: 'Inter')),
-                                                                    Text(product.barcode ?? '-', style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, fontFamily: 'Inter')),
-                                                                  ],
-                                                                ),
+                                                              Text(
+                                                                'Mã vạch: ${product.barcode ?? '-'}',
+                                                                style: TextStyle(fontSize: 14, color: Colors.grey[600]),
                                                               ),
-                                                              Column(
-                                                                crossAxisAlignment: CrossAxisAlignment.end,
-                                                                children: [
-                                                                  Text('Số lượng', style: TextStyle(fontSize: 15, color: Colors.black, fontWeight: FontWeight.w500, fontFamily: 'Inter')),
-                                                                  Text('${product.stock}', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, fontFamily: 'Inter')),
-                                                                ],
+                                                              Text(
+                                                                'Số lượng: ${product.stock}',
+                                                                style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
                                                               ),
                                                             ],
                                                           ),
@@ -1551,43 +1122,24 @@ class _ProductListScreenState extends State<ProductListScreen> {
                                                       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
                                                       child: Row(
                                                         children: [
-                                                          SizedBox(
-                                                            width: 128,
-                                                            height: 32,
-                                                            child: Theme(
-                                                              data: Theme.of(context).copyWith(
-                                                                unselectedWidgetColor: Color(0xFF3a6ff8),
-                                                                checkboxTheme: CheckboxThemeData(
-                                                                  shape: RoundedRectangleBorder(
-                                                                    borderRadius: BorderRadius.circular(4),
-                                                                  ),
-                                                                  side: const BorderSide(color: Color(0xFF3a6ff8), width: 1),
-                                                                  fillColor: MaterialStateProperty.resolveWith<Color?>((states) {
-                                                                    if (states.contains(MaterialState.selected)) {
-                                                                      return Color(0xFF3a6ff8);
+                                                          Expanded(
+                                                            flex: 1,
+                                                            child: ValueListenableBuilder<Set<String>>(
+                                                              valueListenable: selectedProductIds,
+                                                              builder: (context, selected, _) {
+                                                                return Checkbox(
+                                                                  value: selected.contains(product.id),
+                                                                  onChanged: (checked) {
+                                                                    final newSet = Set<String>.from(selected);
+                                                                    if (checked == true) {
+                                                                      newSet.add(product.id);
+                                                                    } else {
+                                                                      newSet.remove(product.id);
                                                                     }
-                                                                    return Colors.white;
-                                                                  }),
-                                                                  checkColor: MaterialStateProperty.all<Color>(Colors.white),
-                                                                ),
-                                                              ),
-                                                              child: ValueListenableBuilder<Set<String>>(
-                                                                valueListenable: selectedProductIds,
-                                                                builder: (context, selected, _) {
-                                                                  return Checkbox(
-                                                                    value: selected.contains(product.id),
-                                                                    onChanged: (checked) {
-                                                                      final newSet = Set<String>.from(selected);
-                                                                      if (checked == true) {
-                                                                        newSet.add(product.id);
-                                                                      } else {
-                                                                        newSet.remove(product.id);
-                                                                      }
-                                                                      selectedProductIds.value = newSet;
-                                                                    },
-                                                                  );
-                                                                },
-                                                              ),
+                                                                    selectedProductIds.value = newSet;
+                                                                  },
+                                                                );
+                                                              },
                                                             ),
                                                           ),
                                                           Expanded(
@@ -1647,6 +1199,21 @@ class _ProductListScreenState extends State<ProductListScreen> {
   void dispose() {
     selectedProductIds.dispose();
     super.dispose();
+  }
+
+  void _handleScroll(ScrollNotification scrollInfo, int totalItems) {
+    if (!isLoadingMore && scrollInfo.metrics.pixels >= scrollInfo.metrics.maxScrollExtent - 100) {
+      final maxPage = (totalItems / itemsPerPage).ceil();
+      if (currentPage < maxPage) {
+        setState(() {
+          isLoadingMore = true;
+          currentPage++;
+        });
+        Future.delayed(const Duration(milliseconds: 300), () {
+          if (mounted) setState(() => isLoadingMore = false);
+        });
+      }
+    }
   }
 }
 
