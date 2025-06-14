@@ -326,9 +326,9 @@ class _InventoryDetailScreenState extends State<InventoryDetailScreen> {
                                   borderRadius: BorderRadius.circular(8),
                                   borderSide: const BorderSide(color: primaryBlue, width: 1.5),
                                 ),
-                                contentPadding: const EdgeInsets.symmetric(vertical: 0, horizontal: 16),
                                 filled: true,
-                                fillColor: cardBackground,
+                                isDense: true,
+                                 fillColor: Colors.transparent,
                               ),
                             ),
                           ),
@@ -360,179 +360,192 @@ class _InventoryDetailScreenState extends State<InventoryDetailScreen> {
                       ),
                       const SizedBox(height: 16),
                       // Table header
-                      Container(
-                        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
-                        decoration: BoxDecoration(
-                          color: mutedBackground,
-                          borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
-                        ),
-                        child: Row(
-                          children: const [
-                            Expanded(flex: 3, child: Text('Tên sản phẩm', style: TextStyle(fontWeight: FontWeight.bold))),
-                            Expanded(flex: 2, child: Text('Số lượng hệ thống', textAlign: TextAlign.center, style: TextStyle(fontWeight: FontWeight.bold))),
-                            Expanded(flex: 2, child: Text('Số lượng thực tế', textAlign: TextAlign.center, style: TextStyle(fontWeight: FontWeight.bold))),
-                            Expanded(flex: 2, child: Text('Chênh lệch', textAlign: TextAlign.center, style: TextStyle(fontWeight: FontWeight.bold))),
-                            Expanded(flex: 3, child: Text('Ghi chú', style: TextStyle(fontWeight: FontWeight.bold))),
-                          ],
-                        ),
-                      ),
+              
                       // Product list
                       Container(
                         decoration: BoxDecoration(
-                          color: Colors.white,
+                          color: Colors.transparent,
                           borderRadius: BorderRadius.circular(12),
                           border: Border.all(color: borderColor),
                         ),
-                        child: SizedBox(
-                          height: MediaQuery.of(context).size.height * 0.6,
-                          child: ListView.builder(
-                            shrinkWrap: true,
-                            physics: const ClampingScrollPhysics(),
-                            itemCount: filteredItems.length,
-                            itemBuilder: (context, i) {
-                              final item = filteredItems[i];
-                              final id = item['id'] ?? item['productId'];
-                              TextEditingController actualController = _actualControllers[id] ??= TextEditingController(text: item['actualStock']?.toString() ?? '');
-                              TextEditingController noteController = _noteControllers[id] ??= TextEditingController(text: item['note'] ?? '');
-                              int systemStock = item['systemStock'] ?? 0;
-                              int? actualStock = int.tryParse(actualController.text);
-                              final isNotChecked = actualController.text.isEmpty;
-                              final diff = isNotChecked ? null : (actualStock ?? 0) - systemStock;
-                              Color? rowColor;
-                              if (isNotChecked) {
-                                rowColor = Colors.grey[100];
-                              } else if (diff != null && diff > 0) {
-                                rowColor = Colors.green[50];
-                              } else if (diff != null && diff < 0) {
-                                rowColor = Colors.orange[50];
-                              } else {
-                                rowColor = Colors.white;
-                              }
-                              return Container(
-                                color: rowColor,
-                                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                                child: Row(
-                                  children: [
-                                    Expanded(flex: 3, child: Text(item['productName'] ?? '', style: body.copyWith(color: textPrimary))),
-                                    Expanded(flex: 2, child: Text('${item['systemStock']}', textAlign: TextAlign.center, style: body)),
-                                    Expanded(
-                                      flex: 2,
-                                      child: (!isCompleted && !isUpdated)
-                                          ? Row(
-                                              mainAxisAlignment: MainAxisAlignment.center,
-                                              children: [
-                                                IconButton(
-                                                  icon: const Icon(Icons.remove, size: 18),
-                                                  splashRadius: 18,
-                                                  onPressed: () async {
-                                                    final current = int.tryParse(actualController.text) ?? 0;
-                                                    final newValue = current > 0 ? current - 1 : 0;
-                                                    actualController.text = newValue.toString();
-                                                    final diff = newValue - (item['systemStock'] ?? 0);
-                                                    await _itemService.updateItem(item['id'], {'actualStock': newValue, 'diff': diff});
-                                                    setState(() {});
-                                                  },
-                                                ),
-                                                SizedBox(
-                                                  width: 60,
-                                                  child: Focus(
-                                                    onFocusChange: (hasFocus) async {
-                                                      if (!hasFocus) {
-                                                        final actual = int.tryParse(actualController.text) ?? 0;
-                                                        final diff = actual - (item['systemStock'] ?? 0);
-                                                        await _itemService.updateItem(item['id'], {'actualStock': actual, 'diff': diff});
-                                                      }
-                                                    },
-                                                    child: TextField(
-                                                      controller: actualController,
-                                                      keyboardType: TextInputType.number,
-                                                      textAlign: TextAlign.center,
-                                                      onChanged: (v) {
-                                                        setState(() {}); // chỉ update UI local, không gọi Firestore
-                                                      },
-                                                      enabled: !isCompleted && !isUpdated,
-                                                      decoration: InputDecoration(
-                                                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(6)),
-                                                        isDense: true,
-                                                        contentPadding: const EdgeInsets.symmetric(vertical: 8, horizontal: 8),
-                                                      ),
-                                                    ),
-                                                  ),
-                                                ),
-                                                IconButton(
-                                                  icon: const Icon(Icons.add, size: 18),
-                                                  splashRadius: 18,
-                                                  onPressed: () async {
-                                                    final current = int.tryParse(actualController.text) ?? 0;
-                                                    final newValue = current + 1;
-                                                    actualController.text = newValue.toString();
-                                                    final diff = newValue - (item['systemStock'] ?? 0);
-                                                    await _itemService.updateItem(item['id'], {'actualStock': newValue, 'diff': diff});
-                                                    setState(() {});
-                                                  },
-                                                ),
-                                              ],
-                                            )
-                                          : Center(
-                                              child: Text(
-                                                item['actualStock'] == null || item['actualStock'].toString().isEmpty
-                                                    ? '—'
-                                                    : '${item['actualStock']}',
-                                                textAlign: TextAlign.center,
-                                                style: body,
-                                              ),
-                                            ),
-                                    ),
-                                    Expanded(
-                                      flex: 2,
-                                      child: Center(
-                                        child: Builder(
-                                          builder: (context) {
-                                            if (isNotChecked) {
-                                              return Text('—', style: body.copyWith(color: textSecondary));
-                                            } else if (diff != null && diff > 0) {
-                                              return Text('+${diff}', style: body.copyWith(color: Colors.green[700], fontWeight: FontWeight.bold));
-                                            } else if (diff != null && diff < 0) {
-                                              return Text('$diff', style: body.copyWith(color: warningOrange, fontWeight: FontWeight.bold));
-                                            } else {
-                                              return Text('0', style: body);
-                                            }
-                                          },
-                                        ),
+                        child: Column(
+                          children: [
+                            // Header row
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                              decoration: const BoxDecoration(
+                                color: Colors.transparent,
+                                border: Border(
+                                  bottom: BorderSide(color: borderColor, width: 1),
+                                ),
+                              ),
+                              child: Row(
+                                children: [
+                                  Expanded(flex: 3, child: Text('Tên sản phẩm', style: body.copyWith(fontWeight: FontWeight.bold, color: textSecondary))),
+                                  Expanded(flex: 2, child: Text('Số lượng hệ thống', textAlign: TextAlign.center, style: body.copyWith(fontWeight: FontWeight.bold, color: textSecondary))),
+                                  Expanded(flex: 2, child: Text('Số lượng thực tế', textAlign: TextAlign.center, style: body.copyWith(fontWeight: FontWeight.bold, color: textSecondary))),
+                                  Expanded(flex: 2, child: Text('Chênh lệch', textAlign: TextAlign.center, style: body.copyWith(fontWeight: FontWeight.bold, color: textSecondary))),
+                                  Expanded(flex: 3, child: Text('Ghi chú', style: body.copyWith(fontWeight: FontWeight.bold, color: textSecondary))),
+                                ],
+                              ),
+                            ),
+                            // Product rows
+                            SizedBox(
+                              height: MediaQuery.of(context).size.height * 0.6 - 48, // trừ chiều cao header
+                              child: ListView.builder(
+                                shrinkWrap: true,
+                                physics: const ClampingScrollPhysics(),
+                                itemCount: filteredItems.length,
+                                itemBuilder: (context, i) {
+                                  final item = filteredItems[i];
+                                  final id = item['id'] ?? item['productId'];
+                                  TextEditingController actualController = _actualControllers[id] ??= TextEditingController(text: item['actualStock']?.toString() ?? '');
+                                  TextEditingController noteController = _noteControllers[id] ??= TextEditingController(text: item['note'] ?? '');
+                                  int systemStock = item['systemStock'] ?? 0;
+                                  int? actualStock = int.tryParse(actualController.text);
+                                  final isNotChecked = actualController.text.isEmpty;
+                                  final diff = isNotChecked ? null : (actualStock ?? 0) - systemStock;
+                                  Color? rowColor;
+                                  if (isNotChecked) {
+                                    rowColor = Colors.grey[100];
+                                  } else if (diff != null && diff > 0) {
+                                    rowColor = Colors.green[50];
+                                  } else if (diff != null && diff < 0) {
+                                    rowColor = Colors.orange[50];
+                                  } else {
+                                    rowColor = Colors.white;
+                                  }
+                                  return Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                                    decoration: BoxDecoration(
+                                      color: Colors.transparent,
+                                      border: Border(
+                                        bottom: BorderSide(color: borderColor, width: 1),
                                       ),
                                     ),
-                                    Expanded(
-                                      flex: 3,
-                                      child: (!isCompleted && !isUpdated)
-                                          ? TextField(
-                                              controller: noteController,
-                                              onChanged: (v) async {
-                                                await _itemService.updateItem(item['id'], {'note': v});
+                                    child: Row(
+                                      children: [
+                                        Expanded(flex: 3, child: Text(item['productName'] ?? '', style: body.copyWith(fontWeight: FontWeight.bold,color: textPrimary))),
+                                        Expanded(flex: 2, child: Text('${item['systemStock']}', textAlign: TextAlign.center, style: body)),
+                                        Expanded(
+                                          flex: 2,
+                                          child: (!isCompleted && !isUpdated)
+                                              ? Row(
+                                                  mainAxisAlignment: MainAxisAlignment.center,
+                                                  children: [
+                                                    IconButton(
+                                                      icon: const Icon(Icons.remove, size: 18),
+                                                      splashRadius: 18,
+                                                      onPressed: () async {
+                                                        final current = int.tryParse(actualController.text) ?? 0;
+                                                        final newValue = current > 0 ? current - 1 : 0;
+                                                        actualController.text = newValue.toString();
+                                                        final diff = newValue - (item['systemStock'] ?? 0);
+                                                        await _itemService.updateItem(item['id'], {'actualStock': newValue, 'diff': diff});
+                                                        setState(() {});
+                                                      },
+                                                    ),
+                                                    SizedBox(
+                                                      width: 60,
+                                                      child: Focus(
+                                                        onFocusChange: (hasFocus) async {
+                                                          if (!hasFocus) {
+                                                            final actual = int.tryParse(actualController.text) ?? 0;
+                                                            final diff = actual - (item['systemStock'] ?? 0);
+                                                            await _itemService.updateItem(item['id'], {'actualStock': actual, 'diff': diff});
+                                                          }
+                                                        },
+                                                        child: TextField(
+                                                          controller: actualController,
+                                                          keyboardType: TextInputType.number,
+                                                          textAlign: TextAlign.center,
+                                                          onChanged: (v) {
+                                                            setState(() {}); // chỉ update UI local, không gọi Firestore
+                                                          },
+                                                          enabled: !isCompleted && !isUpdated,
+                                                          decoration: InputDecoration(
+                                                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(6)),
+                                                            isDense: true,
+                                      
+                                                          ),
+                                                        ),
+                                                      ),
+                                                    ),
+                                                    IconButton(
+                                                      icon: const Icon(Icons.add, size: 18),
+                                                      splashRadius: 18,
+                                                      onPressed: () async {
+                                                        final current = int.tryParse(actualController.text) ?? 0;
+                                                        final newValue = current + 1;
+                                                        actualController.text = newValue.toString();
+                                                        final diff = newValue - (item['systemStock'] ?? 0);
+                                                        await _itemService.updateItem(item['id'], {'actualStock': newValue, 'diff': diff});
+                                                        setState(() {});
+                                                      },
+                                                    ),
+                                                  ],
+                                                )
+                                              : Center(
+                                                  child: Text(
+                                                    item['actualStock'] == null || item['actualStock'].toString().isEmpty
+                                                        ? '—'
+                                                        : '${item['actualStock']}',
+                                                    textAlign: TextAlign.center,
+                                                    style: body,
+                                                  ),
+                                                ),
+                                        ),
+                                        Expanded(
+                                          flex: 2,
+                                          child: Center(
+                                            child: Builder(
+                                              builder: (context) {
+                                                if (isNotChecked) {
+                                                  return Text('—', style: body.copyWith(color: textSecondary));
+                                                } else if (diff != null && diff > 0) {
+                                                  return Text('+${diff}', style: body.copyWith(color: Colors.green[700], fontWeight: FontWeight.bold));
+                                                } else if (diff != null && diff < 0) {
+                                                  return Text('$diff', style: body.copyWith(color: warningOrange, fontWeight: FontWeight.bold));
+                                                } else {
+                                                  return Text('0', style: body);
+                                                }
                                               },
-                                              enabled: !isCompleted && !isUpdated,
-                                              style: body,
-                                              decoration: InputDecoration(
-                                                hintText: 'Ghi chú...',
-                                                hintStyle: body.copyWith(color: textSecondary),
-                                                border: OutlineInputBorder(borderRadius: BorderRadius.circular(6)),
-                                                enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(6), borderSide: BorderSide(color: borderColor)),
-                                                focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(6), borderSide: BorderSide(color: primaryBlue, width: 1.5)),
-                                                filled: true,
-                                                fillColor: cardBackground,
-                                                isDense: true,
-                                                contentPadding: const EdgeInsets.symmetric(vertical: 8, horizontal: 8),
-                                              ),
-                                            )
-                                          : Text(
-                                              (item['note'] ?? '').trim().isEmpty ? '—' : item['note'],
-                                              style: body,
                                             ),
+                                          ),
+                                        ),
+                                        Expanded(
+                                          flex: 3,
+                                          child: (!isCompleted && !isUpdated)
+                                              ? TextField(
+                                                  controller: noteController,
+                                                  onChanged: (v) async {
+                                                    await _itemService.updateItem(item['id'], {'note': v});
+                                                  },
+                                                  enabled: !isCompleted && !isUpdated,
+                                                  style: body,
+                                                  decoration: InputDecoration(
+                                                    hintText: 'Ghi chú...',
+                                                    hintStyle: body.copyWith(color: textSecondary),
+                                                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(6)),
+                                                    enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(6), borderSide: BorderSide(color: borderColor)),
+                                                    focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(6), borderSide: BorderSide(color: primaryBlue, width: 1.5)),
+                                                    filled: true,
+                                                    fillColor: Colors.transparent,
+                                                    isDense: true,
+                                                  ),
+                                                )
+                                              : Text(
+                                                  (item['note'] ?? '').trim().isEmpty ? '—' : item['note'],
+                                                  style: body,
+                                                ),
+                                        ),
+                                      ],
                                     ),
-                                  ],
-                                ),
-                              );
-                            },
-                          ),
+                                  );
+                                },
+                              ),
+                            ),
+                          ],
                         ),
                       ),
                       const SizedBox(height: 24),
