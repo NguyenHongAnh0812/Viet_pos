@@ -74,7 +74,11 @@ class _AddProductScreenState extends State<AddProductScreen> {
       final calculatedMargin = ((widget.product!.salePrice / (widget.product!.importPrice == 0 ? 1 : widget.product!.importPrice) - 1) * 100).toStringAsFixed(0);
       if (calculatedMargin != _defaultProfitMargin.toString()) {
         _profitMarginController.text = calculatedMargin;
+      } else {
+        _profitMarginController.text = _defaultProfitMargin.toStringAsFixed(0);
       }
+    } else {
+      _profitMarginController.text = _defaultProfitMargin.toStringAsFixed(0);
     }
   }
 
@@ -641,27 +645,21 @@ class _AddProductScreenState extends State<AddProductScreen> {
             const SizedBox(width: 12),
             Expanded(
               child: DesignSystemFormField(
-                label: '',
-                required: true,
+                label: 'Giá bán',
                 input: TextFormField(
                    style: const TextStyle(fontSize: 14),
                   controller: _sellPriceController,
-                  decoration: designSystemInputDecoration(label: '', fillColor: mutedBackground, prefixIcon: Padding(padding: EdgeInsets.only(left: 8, right: 4), child: Text('₫', style: TextStyle(color: textSecondary)))),
-                  keyboardType: TextInputType.number,
-                  inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                  readOnly: _autoCalculatePrice,
+                  decoration: designSystemInputDecoration(
+                    label: '',
+                    fillColor: mutedBackground,
+                     suffixIcon: Padding(
+                      padding: const EdgeInsets.only(top: 8, right: 2),
+                      child: Text('₫', style: TextStyle(color: textSecondary)),
+                    ),
+                  ),
+                  enabled: !_autoCalculatePrice,
                   onChanged: (val) {
-                    if (!_autoCalculatePrice) {
-                      final numberFormat = NumberFormat('#,###', 'vi_VN');
-                      final value = int.tryParse(val.replaceAll(RegExp(r'[^\\d]'), '')) ?? 0;
-                      final formatted = numberFormat.format(value);
-                      if (val != formatted) {
-                        _sellPriceController.value = TextEditingValue(
-                          text: formatted,
-                          selection: TextSelection.collapsed(offset: formatted.length),
-                        );
-                      }
-                    }
+                    // Không format ở đây, chỉ lưu giá trị để người dùng nhập tự nhiên
                   },
                   onEditingComplete: () {
                     if (!_autoCalculatePrice) {
@@ -726,11 +724,20 @@ class _AddProductScreenState extends State<AddProductScreen> {
       _notesController.text = 'Bảo quản nơi khô ráo, tránh ánh nắng trực tiếp';
       _selectedCategory = _selectedCategory ?? 'Kháng sinh';
       _isActive = true;
+      _profitMarginController.text = _defaultProfitMargin.toStringAsFixed(0);
     });
   }
 
   Future<void> _saveProduct() async {
     if (!_formKey.currentState!.validate()) return;
+
+    // Format lại giá bán trước khi lưu
+    final numberFormat = NumberFormat('#,###', 'vi_VN');
+    if (!_autoCalculatePrice) {
+      final value = int.tryParse(_sellPriceController.text.replaceAll(RegExp(r'[^\\d]'), '')) ?? 0;
+      final formatted = numberFormat.format(value);
+      _sellPriceController.text = formatted;
+    }
 
     try {
       final productName = _nameController.text.trim();
@@ -914,21 +921,9 @@ class _AddProductScreenState extends State<AddProductScreen> {
                       child: Text('₫', style: TextStyle(color: textSecondary)),
                     ),
                   ),
-                  keyboardType: TextInputType.number,
-                  inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                  readOnly: _autoCalculatePrice,
+                  enabled: !_autoCalculatePrice,
                   onChanged: (val) {
-                    if (!_autoCalculatePrice) {
-                      final numberFormat = NumberFormat('#,###', 'vi_VN');
-                      final value = int.tryParse(val.replaceAll(RegExp(r'[^\\d]'), '')) ?? 0;
-                      final formatted = numberFormat.format(value);
-                      if (val != formatted) {
-                        _sellPriceController.value = TextEditingValue(
-                          text: formatted,
-                          selection: TextSelection.collapsed(offset: formatted.length),
-                        );
-                      }
-                    }
+                    // Không format ở đây, chỉ lưu giá trị để người dùng nhập tự nhiên
                   },
                   onEditingComplete: () {
                     if (!_autoCalculatePrice) {
@@ -1082,6 +1077,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
       _autoCalculatePrice = true;
       _selectedDistributor = null;
       _lastCreatedProductId = null; // Reset ID sản phẩm vừa tạo
+      _profitMarginController.text = _defaultProfitMargin.toStringAsFixed(0);
     });
   }
 }
