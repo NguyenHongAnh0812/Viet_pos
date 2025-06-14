@@ -19,6 +19,9 @@ class _InventoryDetailScreenState extends State<InventoryDetailScreen> {
   bool _loading = true;
   final TextEditingController _searchController = TextEditingController();
   String _searchText = '';
+  Map<String, dynamic>? _userInfo;
+  final Map<String, TextEditingController> _actualControllers = {};
+  final Map<String, TextEditingController> _noteControllers = {};
 
   @override
   void initState() {
@@ -28,10 +31,33 @@ class _InventoryDetailScreenState extends State<InventoryDetailScreen> {
 
   Future<void> _fetchData() async {
     final sessionDoc = await FirebaseFirestore.instance.collection('inventory_sessions').doc(widget.sessionId).get();
-    _itemService.getItemsBySession(widget.sessionId).listen((items) {
+    final sessionData = sessionDoc.data() as Map<String, dynamic>;
+    // Lấy user info thật nếu có createdById
+    if (sessionData['createdById'] != null) {
+      final userDoc = await FirebaseFirestore.instance.collection('users').doc(sessionData['createdById']).get();
+      _userInfo = userDoc.data();
+    } else {
+      _userInfo = null;
+    }
+    _itemService.getItemsBySession(widget.sessionId).listen((items) async {
+      // Lấy stock thật từ bảng products cho từng sản phẩm
+      final updatedItems = <Map<String, dynamic>>[];
+      for (final item in items) {
+        final productId = item['productId'];
+        int? realStock;
+        try {
+          final productDoc = await FirebaseFirestore.instance.collection('products').doc(productId).get();
+          realStock = (productDoc.data()?['stock'] as int?) ?? item['systemStock'];
+        } catch (_) {
+          realStock = item['systemStock'];
+        }
+        final newItem = Map<String, dynamic>.from(item);
+        newItem['systemStock'] = realStock;
+        updatedItems.add(newItem);
+      }
       setState(() {
         _sessionDoc = sessionDoc;
-        _items = items;
+        _items = updatedItems;
         _loading = false;
       });
     });
@@ -55,6 +81,52 @@ class _InventoryDetailScreenState extends State<InventoryDetailScreen> {
     }
   }
 
+  bool get isCompleted {
+    final data = _sessionDoc?.data() as Map<String, dynamic>?;
+    return (data?['status'] ?? '') == 'Đã hoàn tất';
+  }
+  bool get isUpdated {
+    final data = _sessionDoc?.data() as Map<String, dynamic>?;
+    return (data?['status'] ?? '') == 'Đã cập nhật kho';
+  }
+
+  Future<void> _confirmCompleteInventory() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Xác nhận hoàn tất phiên kiểm kê?'),
+        content: const Text('Sau khi hoàn tất, bạn không thể thay đổi số liệu kiểm kê.'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Hủy')),
+          ElevatedButton(onPressed: () => Navigator.pop(context, true), child: const Text('Xác nhận')),
+        ],
+      ),
+    );
+    if (confirmed == true) {
+      await FirebaseFirestore.instance.collection('inventory_sessions').doc(widget.sessionId).update({'status': 'Đã hoàn tất'});
+      await _fetchData();
+    }
+  }
+
+  Future<void> _updateStock() async {
+    for (final item in _items) {
+      final productId = item['productId'];
+      final actualStock = item['actualStock'] ?? 0;
+      debugPrint('Cập nhật tồn kho: productId=$productId, actualStock=$actualStock');
+      try {
+        await FirebaseFirestore.instance.collection('products').doc(productId).update({'stock': actualStock});
+        debugPrint('Đã cập nhật thành công cho productId=$productId');
+      } catch (e) {
+        debugPrint('Lỗi khi cập nhật productId=$productId: $e');
+      }
+    }
+    await FirebaseFirestore.instance.collection('inventory_sessions').doc(widget.sessionId).update({'status': 'Đã cập nhật kho'});
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Đã cập nhật tồn kho thành công!'), backgroundColor: Colors.green));
+      setState(() {});
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     if (_loading || _sessionDoc == null) {
@@ -62,6 +134,7 @@ class _InventoryDetailScreenState extends State<InventoryDetailScreen> {
     }
     final session = _sessionDoc!.data() as Map<String, dynamic>;
     final diffCount = _items.where((i) => (i['diff'] ?? 0) != 0).length;
+    final totalProducts = _items.length;
     return Scaffold(
       backgroundColor: appBackground,
       appBar: AppBar(
@@ -81,10 +154,10 @@ class _InventoryDetailScreenState extends State<InventoryDetailScreen> {
             // Heading card
             Container(
               width: double.infinity,
-              padding: const EdgeInsets.all(space20),
-              margin: const EdgeInsets.only(bottom: space20),
+              padding: const EdgeInsets.all(24),
+              margin: const EdgeInsets.only(bottom: 24),
               decoration: BoxDecoration(
-                color: cardBackground,
+                color: Colors.white,
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(color: borderColor),
               ),
@@ -98,71 +171,72 @@ class _InventoryDetailScreenState extends State<InventoryDetailScreen> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text(session['note']?.isNotEmpty == true ? session['note'] : 'Kiểm kê kho', style: h1),
-                            const SizedBox(height: 8),
+                            Text(
+                              session['name']?.isNotEmpty == true ? session['name'] : 'Kiểm kê kho',
+                              style: h2,
+                            ),
+                            const SizedBox(height: 16),
                             Row(
                               children: [
-                                Text('Ngày kiểm kê:', style: bodyLarge.copyWith(color: textSecondary)),
+                                Text('Ngày kiểm kê', style: bodyLarge.copyWith(color: textSecondary)),
                                 const SizedBox(width: 8),
-                                Text((session['createdAt'] as Timestamp).toDate().toString().split(' ')[0], style: bodyLarge.copyWith(color: textPrimary)),
+                                Text((session['createdAt'] as Timestamp).toDate().toString().split(' ')[0], style: h4),
                               ],
                             ),
-                            const SizedBox(height: 4),
+                            const SizedBox(height: 12),
                             Row(
                               children: [
-                                Text('Người kiểm kê:', style: bodyLarge.copyWith(color: textSecondary)),
+                                Text('Cập nhật kho', style: bodyLarge.copyWith(color: textSecondary)),
                                 const SizedBox(width: 8),
-                                Text(session['createdBy'] ?? '', style: bodyLarge.copyWith(fontWeight: FontWeight.bold, color: textPrimary)),
+                                Text(session['status'] ?? '', style: h4),
+                              ],
+                            ),
+                            const SizedBox(height: 12),
+                            Row(
+                              children: [
+                                Text('Ghi chú', style: bodyLarge.copyWith(color: textSecondary)),
+                                const SizedBox(width: 8),
+                                Text(session['note'] ?? '', style: h4),
                               ],
                             ),
                           ],
                         ),
                       ),
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.end,
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                            decoration: BoxDecoration(
-                              color: primaryBlue.withOpacity(0.1),
-                              borderRadius: BorderRadius.circular(6),
-                            ),
-                            child: Text(session['status'] ?? '', style: TextStyle(color: primaryBlue, fontWeight: FontWeight.bold)),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text('Người kiểm kê', style: bodyLarge.copyWith(color: textSecondary)),
+                            Text(_userInfo?['name'] ?? session['createdBy'] ?? '', style: h3),
+                            if (_userInfo?['email'] != null)
+                              Text(_userInfo?['email'] ?? '', style: bodyLarge.copyWith(color: textSecondary)),
+                            const SizedBox(height: 16),
+                            Text('Số sản phẩm', style: bodyLarge.copyWith(color: textSecondary)),
+                            Text('$totalProducts', style: h3),
+                            const SizedBox(height: 16),
+                            Text('Số sản phẩm lệch', style: bodyLarge.copyWith(color: textSecondary)),
+                            Text('$diffCount', style: h3.copyWith(color: diffCount > 0 ? warningOrange : textSecondary)),
+                          ],
+                        ),
+                      ),
+                      Align(
+                        alignment: Alignment.topRight,
+                        child: Container(
+                          margin: const EdgeInsets.only(left: 16),
+                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+                          decoration: BoxDecoration(
+                            border: Border.all(color: primaryBlue),
+                            borderRadius: BorderRadius.circular(24),
+                            color: Colors.white,
                           ),
-                          const SizedBox(height: 8),
-                          Row(
-                            children: [
-                              Text('Số sản phẩm:', style: bodyLarge.copyWith(color: textSecondary)),
-                              const SizedBox(width: 8),
-                              Text('${_items.length}', style: bodyLarge.copyWith(color: textPrimary, fontWeight: FontWeight.bold)),
-                            ],
+                          child: Text(
+                            session['status'] ?? '',
+                            style: TextStyle(color: primaryBlue, fontWeight: FontWeight.bold),
                           ),
-                          const SizedBox(height: 4),
-                          Row(
-                            children: [
-                              Text('Số sản phẩm lệch:', style: bodyLarge.copyWith(color: textSecondary)),
-                              const SizedBox(width: 8),
-                              Text('$diffCount', style: bodyLarge.copyWith(color: warningOrange, fontWeight: FontWeight.bold)),
-                            ],
-                          ),
-                          const SizedBox(height: 4),
-                          Row(
-                            children: [
-                              Text('Cập nhật kho:', style: bodyLarge.copyWith(color: textSecondary)),
-                              const SizedBox(width: 8),
-                              Text('Chưa cập nhật', style: bodyLarge.copyWith(color: textPrimary)),
-                            ],
-                          ),
-                        ],
+                        ),
                       ),
                     ],
                   ),
-                  if ((session['note'] ?? '').isNotEmpty) ...[
-                    const SizedBox(height: 8),
-                    Text('Ghi chú:', style: bodyLarge.copyWith(color: textSecondary)),
-                    const SizedBox(height: 4),
-                    Text(session['note'], style: bodyLarge.copyWith(color: textPrimary)),
-                  ],
                 ],
               ),
             ),
@@ -195,17 +269,25 @@ class _InventoryDetailScreenState extends State<InventoryDetailScreen> {
                   ),
                 ),
                 const SizedBox(width: 16),
-                OutlinedButton(
-                  onPressed: _saveAsDraft,
-                  style: secondaryButtonStyle,
-                  child: const Text('Lưu nháp'),
-                ),
-                const SizedBox(width: 16),
-                ElevatedButton(
-                  onPressed: () {},
-                  style: primaryButtonStyle,
-                  child: const Text('Hoàn tất kiểm kê'),
-                ),
+                if (!isCompleted && !isUpdated) ...[
+                  OutlinedButton(
+                    onPressed: _saveAsDraft,
+                    style: secondaryButtonStyle,
+                    child: const Text('Lưu nháp'),
+                  ),
+                  const SizedBox(width: 16),
+                  ElevatedButton(
+                    onPressed: _confirmCompleteInventory,
+                    style: primaryButtonStyle,
+                    child: const Text('Hoàn tất kiểm kê'),
+                  ),
+                ] else if (isCompleted && !isUpdated) ...[
+                  ElevatedButton(
+                    onPressed: _updateStock,
+                    style: primaryButtonStyle,
+                    child: const Text('Cập nhật tồn kho'),
+                  ),
+                ]
               ],
             ),
             const SizedBox(height: 16),
@@ -238,8 +320,9 @@ class _InventoryDetailScreenState extends State<InventoryDetailScreen> {
                   itemCount: filteredItems.length,
                   itemBuilder: (context, i) {
                     final item = filteredItems[i];
-                    final actualController = TextEditingController(text: item['actualStock'].toString());
-                    final noteController = TextEditingController(text: item['note'] ?? '');
+                    final id = item['id'] ?? item['productId'];
+                    TextEditingController actualController = _actualControllers[id] ??= TextEditingController(text: item['actualStock'].toString());
+                    TextEditingController noteController = _noteControllers[id] ??= TextEditingController(text: item['note'] ?? '');
                     return Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                       child: Row(
@@ -248,69 +331,88 @@ class _InventoryDetailScreenState extends State<InventoryDetailScreen> {
                           Expanded(flex: 2, child: Text('${item['systemStock']}', textAlign: TextAlign.center, style: bodyLarge)),
                           Expanded(
                             flex: 2,
-                            child: Row(
-                              children: [
-                                IconButton(
-                                  icon: const Icon(Icons.remove, size: 18),
-                                  splashRadius: 18,
-                                  onPressed: () async {
-                                    final current = int.tryParse(actualController.text) ?? 0;
-                                    final newValue = current > 0 ? current - 1 : 0;
-                                    actualController.text = newValue.toString();
-                                    final diff = newValue - (item['systemStock'] ?? 0);
-                                    await _itemService.updateItem(item['id'], {'actualStock': newValue, 'diff': diff});
-                                    setState(() {});
-                                  },
-                                ),
-                                SizedBox(
-                                  width: 60,
-                                  child: TextField(
-                                    controller: actualController,
-                                    keyboardType: TextInputType.number,
-                                    textAlign: TextAlign.center,
-                                    onChanged: (v) async {
-                                      final actual = int.tryParse(v) ?? 0;
-                                      final diff = actual - (item['systemStock'] ?? 0);
-                                      await _itemService.updateItem(item['id'], {'actualStock': actual, 'diff': diff});
-                                      setState(() {});
-                                    },
-                                    decoration: InputDecoration(
-                                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(6)),
-                                      isDense: true,
-                                      contentPadding: const EdgeInsets.symmetric(vertical: 8, horizontal: 8),
+                            child: (!isCompleted && !isUpdated)
+                                ? Row(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      IconButton(
+                                        icon: const Icon(Icons.remove, size: 18),
+                                        splashRadius: 18,
+                                        onPressed: () async {
+                                          final current = int.tryParse(actualController.text) ?? 0;
+                                          final newValue = current > 0 ? current - 1 : 0;
+                                          actualController.text = newValue.toString();
+                                          final diff = newValue - (item['systemStock'] ?? 0);
+                                          await _itemService.updateItem(item['id'], {'actualStock': newValue, 'diff': diff});
+                                        },
+                                      ),
+                                      SizedBox(
+                                        width: 60,
+                                        child: TextField(
+                                          controller: actualController,
+                                          keyboardType: TextInputType.number,
+                                          textAlign: TextAlign.center,
+                                          onChanged: (v) async {
+                                            final actual = int.tryParse(v) ?? 0;
+                                            final diff = actual - (item['systemStock'] ?? 0);
+                                            await _itemService.updateItem(item['id'], {'actualStock': actual, 'diff': diff});
+                                          },
+                                          enabled: !isCompleted && !isUpdated,
+                                          decoration: InputDecoration(
+                                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(6)),
+                                            isDense: true,
+                                            contentPadding: const EdgeInsets.symmetric(vertical: 8, horizontal: 8),
+                                          ),
+                                        ),
+                                      ),
+                                      IconButton(
+                                        icon: const Icon(Icons.add, size: 18),
+                                        splashRadius: 18,
+                                        onPressed: () async {
+                                          final current = int.tryParse(actualController.text) ?? 0;
+                                          final newValue = current + 1;
+                                          actualController.text = newValue.toString();
+                                          final diff = newValue - (item['systemStock'] ?? 0);
+                                          await _itemService.updateItem(item['id'], {'actualStock': newValue, 'diff': diff});
+                                        },
+                                      ),
+                                    ],
+                                  )
+                                : Center(
+                                    child: Text(
+                                      '${item['actualStock']}',
+                                      textAlign: TextAlign.center,
+                                      style: bodyLarge,
                                     ),
                                   ),
-                                ),
-                                IconButton(
-                                  icon: const Icon(Icons.add, size: 18),
-                                  splashRadius: 18,
-                                  onPressed: () async {
-                                    final current = int.tryParse(actualController.text) ?? 0;
-                                    final newValue = current + 1;
-                                    actualController.text = newValue.toString();
-                                    final diff = newValue - (item['systemStock'] ?? 0);
-                                    await _itemService.updateItem(item['id'], {'actualStock': newValue, 'diff': diff});
-                                    setState(() {});
-                                  },
-                                ),
-                              ],
-                            ),
                           ),
                           Expanded(flex: 2, child: Text('${item['diff']}', textAlign: TextAlign.center, style: bodyLarge.copyWith(color: (item['diff'] ?? 0) != 0 ? warningOrange : textPrimary))),
                           Expanded(
                             flex: 3,
-                            child: TextField(
-                              controller: noteController,
-                              onChanged: (v) async {
-                                await _itemService.updateItem(item['id'], {'note': v});
-                              },
-                              decoration: InputDecoration(
-                                hintText: 'Ghi chú...',
-                                border: OutlineInputBorder(borderRadius: BorderRadius.circular(6)),
-                                isDense: true,
-                                contentPadding: const EdgeInsets.symmetric(vertical: 8, horizontal: 8),
-                              ),
-                            ),
+                            child: (!isCompleted && !isUpdated)
+                                ? TextField(
+                                    controller: noteController,
+                                    onChanged: (v) async {
+                                      await _itemService.updateItem(item['id'], {'note': v});
+                                    },
+                                    enabled: !isCompleted && !isUpdated,
+                                    style: bodyLarge,
+                                    decoration: InputDecoration(
+                                      hintText: 'Ghi chú...',
+                                      hintStyle: bodyLarge.copyWith(color: textSecondary),
+                                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(6)),
+                                      enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(6), borderSide: BorderSide(color: borderColor)),
+                                      focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(6), borderSide: BorderSide(color: primaryBlue, width: 1.5)),
+                                      filled: true,
+                                      fillColor: cardBackground,
+                                      isDense: true,
+                                      contentPadding: const EdgeInsets.symmetric(vertical: 8, horizontal: 8),
+                                    ),
+                                  )
+                                : Text(
+                                    (item['note'] ?? '').trim().isEmpty ? '—' : item['note'],
+                                    style: bodyLarge,
+                                  ),
                           ),
                         ],
                       ),

@@ -78,8 +78,8 @@ class _InventoryScreenState extends State<InventoryScreen> with SingleTickerProv
             ),
             const SizedBox(height: space24),
             Row(
-              children: [
-                Expanded(
+                children: [
+                  Expanded(
                   child: TextField(
                     controller: _searchController,
                     onChanged: (_) => setState(() {}),
@@ -139,15 +139,15 @@ class _InventoryScreenState extends State<InventoryScreen> with SingleTickerProv
                       filled: true,
                       fillColor: cardBackground,
                     ),
-                  ),
-                ),
-              ],
+              ),
+            ),
+          ],
             ),
             const SizedBox(height: space24),
-            Expanded(
+                    Expanded(
               child: StreamBuilder<List<InventorySession>>(
                 stream: _inventoryService.getAllSessions(),
-                builder: (context, snapshot) {
+                            builder: (context, snapshot) {
                   final sessions = snapshot.data ?? [];
                   final filtered = sessions.where((session) {
                     final matchesStatus = _selectedStatus == 'Tất cả trạng thái' || session.status == _selectedStatus;
@@ -168,9 +168,9 @@ class _InventoryScreenState extends State<InventoryScreen> with SingleTickerProv
                             context,
                             MaterialPageRoute(
                               builder: (context) => InventoryDetailScreen(sessionId: session.id),
-                            ),
-                          );
-                        },
+                                ),
+                              );
+                            },
                         child: Container(
                           decoration: BoxDecoration(
                             color: cardBackground,
@@ -181,10 +181,10 @@ class _InventoryScreenState extends State<InventoryScreen> with SingleTickerProv
                           child: Row(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
                                     Row(
                                       children: [
                                         Text(session.note.isNotEmpty ? session.note : 'Phiên kiểm kê', style: h3.copyWith(color: textPrimary)),
@@ -198,22 +198,22 @@ class _InventoryScreenState extends State<InventoryScreen> with SingleTickerProv
                                                   : session.status == 'Đang kiểm kê'
                                                       ? BadgeVariant.defaultVariant
                                                       : BadgeVariant.outline,
-                                        ),
-                                      ],
-                                    ),
+                          ),
+                        ],
+                      ),
                                     const SizedBox(height: space4),
                                     Text('Ngày: ${session.createdAt.day}/${session.createdAt.month}/${session.createdAt.year}', style: bodyLarge.copyWith(color: textSecondary)),
                                     const SizedBox(height: space8),
                                     Row(
-                                      children: [
+                    children: [
                                         Icon(Icons.person, size: 16, color: textSecondary),
                                         const SizedBox(width: space4),
                                         Text(session.createdBy, style: bodyLarge.copyWith(color: textSecondary)),
                                       ],
                                     ),
-                                  ],
-                                ),
-                              ),
+              ],
+            ),
+          ),
                               Column(
                                 crossAxisAlignment: CrossAxisAlignment.end,
                                 children: [
@@ -244,21 +244,21 @@ class _InventoryScreenState extends State<InventoryScreen> with SingleTickerProv
                                           ? const Icon(Icons.check_circle, color: successGreen, size: 20)
                                           : Text('—', style: h3.copyWith(color: textSecondary)),
                                     ],
-                                  ),
-                                ],
-                              ),
-                            ],
-                          ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
                         ),
                       );
                     },
                   );
-                },
-              ),
-            ),
-          ],
-        ),
-      ),
+                                                },
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
     );
   }
 
@@ -277,10 +277,10 @@ class _InventoryScreenState extends State<InventoryScreen> with SingleTickerProv
             'Chưa có sản phẩm nào để kiểm kê',
             style: Theme.of(context).textTheme.titleMedium?.copyWith(
                   color: Colors.grey,
-                ),
-          ),
-        ],
-      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
     );
   }
 
@@ -299,10 +299,10 @@ class _InventoryScreenState extends State<InventoryScreen> with SingleTickerProv
             'Chưa có sản phẩm nào được quét',
             style: Theme.of(context).textTheme.titleMedium?.copyWith(
                   color: Colors.grey,
-                ),
-          ),
-        ],
-      ),
+              ),
+            ),
+          ],
+        ),
     );
   }
 

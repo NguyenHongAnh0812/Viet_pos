@@ -7,6 +7,7 @@ import 'inventory_detail_screen.dart';
 import '../models/inventory_session.dart';
 import '../services/inventory_item_service.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 class InventoryCreateSessionScreen extends StatefulWidget {
   const InventoryCreateSessionScreen({Key? key}) : super(key: key);
@@ -295,9 +296,17 @@ class _InventoryCreateSessionScreenState extends State<InventoryCreateSessionScr
                       selectedProducts = products.where((p) => _selectedProducts.contains(p.id)).toList();
                     }
                     final now = DateTime.now();
+                    final user = FirebaseAuth.instance.currentUser;
+                    String? userName;
+                    if (user != null) {
+                      final userDoc = await FirebaseFirestore.instance.collection('users').doc(user.uid).get();
+                      userName = userDoc.data()?['name'] ?? user.email;
+                    }
                     final sessionData = {
+                      'name': _nameController.text.trim(),
                       'createdAt': now,
-                      'createdBy': 'Nguyễn Văn An', // TODO: lấy user thực tế
+                      'createdBy': userName ?? 'Không rõ',
+                      'createdById': user?.uid,
                       'note': _noteController.text,
                       'status': 'Đang kiểm kê',
                     };

@@ -1501,11 +1501,11 @@ class _ProductListScreenState extends State<ProductListScreen> {
                                                       child: Column(
                                                         crossAxisAlignment: CrossAxisAlignment.start,
                                                         children: [
-                                                          Text(product.name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, fontFamily: 'Inter')),
-                                                          if (product.commonName.isNotEmpty)
+                                                          Text(product.commonName, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, fontFamily: 'Inter')),
+                                                          if (product.name.isNotEmpty)
                                                             Padding(
                                                               padding: const EdgeInsets.only(top: 2),
-                                                              child: Text(product.commonName, style: TextStyle(fontSize: 14, color: Colors.grey[600], fontWeight: FontWeight.w400, fontFamily: 'Inter')),
+                                                              child: Text(product.name, style: TextStyle(fontSize: 14, color: Colors.grey[600], fontWeight: FontWeight.w400, fontFamily: 'Inter')),
                                                             ),
                                                           const SizedBox(height: 16),
                                                           Row(
@@ -1591,9 +1591,9 @@ class _ProductListScreenState extends State<ProductListScreen> {
                                                             child: Column(
                                                               crossAxisAlignment: CrossAxisAlignment.start,
                                                               children: [
-                                                                Text(product.name, style: bodyLarge.copyWith(fontWeight: FontWeight.w700)),
-                                                                if (product.commonName.isNotEmpty)
-                                                                  Text(product.commonName, style: body.copyWith(color: Colors.grey[600])),
+                                                                Text(product.commonName, style: bodyLarge.copyWith(fontWeight: FontWeight.w700)),
+                                                                if (product.name.isNotEmpty)
+                                                                  Text(product.name, style: body.copyWith(color: Colors.grey[600])),
                                                               ],
                                                             ),
                                                           ),
