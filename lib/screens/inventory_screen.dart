@@ -8,6 +8,7 @@ import '../models/product.dart';
 import 'inventory_history_screen.dart';
 import '../widgets/common/design_system.dart';
 import 'inventory_create_session_screen.dart';
+import 'inventory_detail_screen.dart';
 
 class InventoryScreen extends StatefulWidget {
   final VoidCallback? onBack;
@@ -48,64 +49,6 @@ class _InventoryScreenState extends State<InventoryScreen> with SingleTickerProv
   Map<String, TextEditingController> _qtyControllers = {};
   // Thêm biến để theo dõi trạng thái đã lưu
   Map<String, bool> _savedProducts = {};
-
-  final List<Map<String, dynamic>> demoSessions = [
-    {
-      'name': 'Kiểm kê tháng 12/2024',
-      'desc': 'Kiểm kê cuối năm',
-      'date': '1/12/2024',
-      'status': 'Đã cập nhật kho',
-      'statusColor': successGreen,
-      'badge': BadgeVariant.secondary,
-      'productCount': 150,
-      'mismatchCount': 12,
-      'updated': true,
-    },
-    {
-      'name': 'Kiểm kê thuốc kháng sinh',
-      'desc': 'Kiểm kê danh mục kháng sinh',
-      'date': '15/11/2024',
-      'status': 'Đã hoàn tất',
-      'statusColor': warningOrange,
-      'badge': BadgeVariant.warning,
-      'productCount': 45,
-      'mismatchCount': 3,
-      'updated': false,
-    },
-    {
-      'name': 'Kiểm kê vaccine',
-      'desc': 'Kiểm kê vaccine thú y',
-      'date': '20/11/2024',
-      'status': 'Đang kiểm kê',
-      'statusColor': primaryBlue,
-      'badge': BadgeVariant.defaultVariant,
-      'productCount': 28,
-      'mismatchCount': 0,
-      'updated': false,
-    },
-    {
-      'name': 'Kiểm kê kho mới',
-      'desc': 'Phiên kiểm kê mới tạo',
-      'date': '5/12/2024',
-      'status': 'Nháp',
-      'statusColor': textSecondary,
-      'badge': BadgeVariant.outline,
-      'productCount': 0,
-      'mismatchCount': 0,
-      'updated': false,
-    },
-  ];
-
-  List<Map<String, dynamic>> get filteredSessions {
-    final search = _searchController.text.trim().toLowerCase();
-    return demoSessions.where((session) {
-      final matchesStatus = _selectedStatus == 'Tất cả trạng thái' || session['status'] == _selectedStatus;
-      final matchesSearch = search.isEmpty ||
-        session['name'].toString().toLowerCase().contains(search) ||
-        session['desc'].toString().toLowerCase().contains(search);
-      return matchesStatus && matchesSearch;
-    }).toList();
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -202,83 +145,113 @@ class _InventoryScreenState extends State<InventoryScreen> with SingleTickerProv
             ),
             const SizedBox(height: space24),
             Expanded(
-              child: ListView.separated(
-                itemCount: filteredSessions.length,
-                separatorBuilder: (_, __) => const SizedBox(height: space16),
-                itemBuilder: (context, i) {
-                  final session = filteredSessions[i];
-                  return Container(
-                    decoration: BoxDecoration(
-                      color: cardBackground,
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: borderColor),
-                    ),
-                    padding: const EdgeInsets.all(space20),
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Expanded(
-                          child: Column(
+              child: StreamBuilder<List<InventorySession>>(
+                stream: _inventoryService.getAllSessions(),
+                builder: (context, snapshot) {
+                  final sessions = snapshot.data ?? [];
+                  final filtered = sessions.where((session) {
+                    final matchesStatus = _selectedStatus == 'Tất cả trạng thái' || session.status == _selectedStatus;
+                    final search = _searchController.text.trim().toLowerCase();
+                    final matchesSearch = search.isEmpty ||
+                      session.note.toLowerCase().contains(search) ||
+                      session.createdBy.toLowerCase().contains(search);
+                    return matchesStatus && matchesSearch;
+                  }).toList();
+                  return ListView.separated(
+                    itemCount: filtered.length,
+                    separatorBuilder: (_, __) => const SizedBox(height: space16),
+                    itemBuilder: (context, i) {
+                      final session = filtered[i];
+                      return GestureDetector(
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => InventoryDetailScreen(sessionId: session.id),
+                            ),
+                          );
+                        },
+                        child: Container(
+                          decoration: BoxDecoration(
+                            color: cardBackground,
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(color: borderColor),
+                          ),
+                          padding: const EdgeInsets.all(space20),
+                          child: Row(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Row(
-                                children: [
-                                  Text(session['name'], style: h3.copyWith(color: textPrimary)),
-                                  const SizedBox(width: space8),
-                                  DesignSystemBadge(
-                                    text: session['status'],
-                                    variant: session['badge'],
-                                  ),
-                                ],
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Row(
+                                      children: [
+                                        Text(session.note.isNotEmpty ? session.note : 'Phiên kiểm kê', style: h3.copyWith(color: textPrimary)),
+                                        const SizedBox(width: space8),
+                                        DesignSystemBadge(
+                                          text: session.status,
+                                          variant: session.status == 'Đã cập nhật kho'
+                                              ? BadgeVariant.secondary
+                                              : session.status == 'Đã hoàn tất'
+                                                  ? BadgeVariant.warning
+                                                  : session.status == 'Đang kiểm kê'
+                                                      ? BadgeVariant.defaultVariant
+                                                      : BadgeVariant.outline,
+                                        ),
+                                      ],
+                                    ),
+                                    const SizedBox(height: space4),
+                                    Text('Ngày: ${session.createdAt.day}/${session.createdAt.month}/${session.createdAt.year}', style: bodyLarge.copyWith(color: textSecondary)),
+                                    const SizedBox(height: space8),
+                                    Row(
+                                      children: [
+                                        Icon(Icons.person, size: 16, color: textSecondary),
+                                        const SizedBox(width: space4),
+                                        Text(session.createdBy, style: bodyLarge.copyWith(color: textSecondary)),
+                                      ],
+                                    ),
+                                  ],
+                                ),
                               ),
-                              const SizedBox(height: space4),
-                              Text(session['desc'], style: bodyLarge.copyWith(color: textSecondary)),
-                              const SizedBox(height: space8),
-                              Row(
+                              Column(
+                                crossAxisAlignment: CrossAxisAlignment.end,
                                 children: [
-                                  Icon(Icons.calendar_today, size: 16, color: textSecondary),
-                                  const SizedBox(width: space4),
-                                  Text(session['date'], style: bodyLarge.copyWith(color: textSecondary)),
+                                  Row(
+                                    children: [
+                                      Text('Số sản phẩm: ', style: bodyLarge.copyWith(color: textSecondary)),
+                                      Text('${session.products.length}', style: bodyLarge.copyWith(color: textPrimary, fontWeight: FontWeight.bold)),
+                                    ],
+                                  ),
+                                  const SizedBox(height: space4),
+                                  Row(
+                                    children: [
+                                      Text('Lệch: ', style: bodyLarge.copyWith(color: textSecondary)),
+                                      Text(
+                                        '${session.products.where((p) => p.diff != 0).length}',
+                                        style: bodyLarge.copyWith(
+                                          color: session.products.where((p) => p.diff != 0).isNotEmpty ? warningOrange : textPrimary,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  const SizedBox(height: space4),
+                                  Row(
+                                    children: [
+                                      Text('Cập nhật kho: ', style: bodyLarge.copyWith(color: textSecondary)),
+                                      session.status == 'Đã cập nhật kho'
+                                          ? const Icon(Icons.check_circle, color: successGreen, size: 20)
+                                          : Text('—', style: h3.copyWith(color: textSecondary)),
+                                    ],
+                                  ),
                                 ],
                               ),
                             ],
                           ),
                         ),
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.end,
-                          children: [
-                            Row(
-                              children: [
-                                Text('Số sản phẩm: ', style: bodyLarge.copyWith(color: textSecondary)),
-                                Text('${session['productCount']}', style: bodyLarge.copyWith(color: textPrimary, fontWeight: FontWeight.bold)),
-                              ],
-                            ),
-                            const SizedBox(height: space4),
-                            Row(
-                              children: [
-                                Text('Lệch: ', style: bodyLarge.copyWith(color: textSecondary)),
-                                Text(
-                                  '${session['mismatchCount']}',
-                                  style: bodyLarge.copyWith(
-                                    color: (session['mismatchCount'] ?? 0) > 0 ? warningOrange : textPrimary,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: space4),
-                            Row(
-                              children: [
-                                Text('Cập nhật kho: ', style: bodyLarge.copyWith(color: textSecondary)),
-                                session['updated']
-                                  ? const Icon(Icons.check_circle, color: successGreen, size: 20)
-                                  : Text('—', style: h3.copyWith(color: textSecondary)),
-                              ],
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
+                      );
+                    },
                   );
                 },
               ),

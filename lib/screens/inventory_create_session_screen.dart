@@ -4,6 +4,9 @@ import '../services/product_service.dart';
 import '../models/product.dart';
 import '../services/inventory_service.dart';
 import 'inventory_detail_screen.dart';
+import '../models/inventory_session.dart';
+import '../services/inventory_item_service.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class InventoryCreateSessionScreen extends StatefulWidget {
   const InventoryCreateSessionScreen({Key? key}) : super(key: key);
@@ -22,6 +25,7 @@ class _InventoryCreateSessionScreenState extends State<InventoryCreateSessionScr
   final _productService = ProductService();
   final Set<String> _selectedProducts = {};
   final _inventoryService = InventoryService();
+  final _itemService = InventoryItemService();
   bool _saving = false;
 
   int getTotalSelected(List<Product> products) {
@@ -280,7 +284,7 @@ class _InventoryCreateSessionScreenState extends State<InventoryCreateSessionScr
                 ElevatedButton(
                   onPressed: _saving ? null : () async {
                     setState(() => _saving = true);
-                    // Lấy danh sách sản phẩm thực tế
+                    // Tạo phiên kiểm kê
                     final products = await _productService.getProducts().first;
                     List<Product> selectedProducts;
                     if (_selectMode == 0) {
@@ -291,27 +295,32 @@ class _InventoryCreateSessionScreenState extends State<InventoryCreateSessionScr
                       selectedProducts = products.where((p) => _selectedProducts.contains(p.id)).toList();
                     }
                     final now = DateTime.now();
-                    final session = InventorySession(
-                      id: '',
-                      createdAt: now,
-                      createdBy: 'Nguyễn Văn An', // TODO: lấy user thực tế
-                      note: _noteController.text,
-                      status: 'Đang kiểm kê',
-                      products: selectedProducts.map((p) => InventoryProduct(
-                        productId: p.id,
-                        name: p.name,
-                        systemQty: p.stock,
-                        actualQty: p.stock,
-                        diff: 0,
-                      )).toList(),
-                    );
-                    await _inventoryService.addSession(session);
+                    final sessionData = {
+                      'createdAt': now,
+                      'createdBy': 'Nguyễn Văn An', // TODO: lấy user thực tế
+                      'note': _noteController.text,
+                      'status': 'Đang kiểm kê',
+                    };
+                    final sessionRef = await FirebaseFirestore.instance.collection('inventory_sessions').add(sessionData);
+                    final sessionId = sessionRef.id;
+                    // Tạo các inventory_items
+                    for (final p in selectedProducts) {
+                      await _itemService.addItem({
+                        'sessionId': sessionId,
+                        'productId': p.id,
+                        'productName': p.commonName,
+                        'systemStock': p.stock,
+                        'actualStock': p.stock,
+                        'diff': 0,
+                        'note': '',
+                      });
+                    }
                     setState(() => _saving = false);
                     if (!mounted) return;
                     Navigator.pushReplacement(
                       context,
                       MaterialPageRoute(
-                        builder: (context) => InventoryDetailScreen(session: session),
+                        builder: (context) => InventoryDetailScreen(sessionId: sessionId),
                       ),
                     );
                   },
