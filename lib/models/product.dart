@@ -14,6 +14,8 @@ class Product {
   final String ingredients;   // Thành phần
   final String notes;         // Ghi chú
   final int stock;           // Số lượng
+  final int actualStock;     // Số lượng thực tế
+  final int invoiceStock;    // Số lượng trong hóa đơn
   final double importPrice;   // Giá nhập
   final double salePrice;     // Giá bán
   final bool isActive;        // Trạng thái
@@ -34,6 +36,8 @@ class Product {
     this.ingredients = '',
     this.notes = '',
     this.stock = 0,
+    this.actualStock = 0,
+    this.invoiceStock = 0,
     this.importPrice = 0,
     this.salePrice = 0,
     this.isActive = true,
@@ -56,6 +60,8 @@ class Product {
       'ingredients': ingredients,
       'notes': notes,
       'stock': stock,
+      'actualStock': actualStock,
+      'invoiceStock': invoiceStock,
       'importPrice': importPrice,
       'salePrice': salePrice,
       'isActive': isActive,
@@ -103,6 +109,8 @@ class Product {
       ingredients: map['ingredients'] ?? '',
       notes: map['notes'] ?? '',
       stock: map['stock'] ?? 0,
+      actualStock: map['actualStock'] ?? 0,
+      invoiceStock: map['invoiceStock'] ?? 0,
       importPrice: (map['importPrice'] ?? 0).toDouble(),
       salePrice: (map['salePrice'] ?? 0).toDouble(),
       isActive: map['isActive'] ?? true,
@@ -125,6 +133,8 @@ class Product {
     String? ingredients,
     String? notes,
     int? stock,
+    int? actualStock,
+    int? invoiceStock,
     double? importPrice,
     double? salePrice,
     bool? isActive,
@@ -145,6 +155,8 @@ class Product {
       ingredients: ingredients ?? this.ingredients,
       notes: notes ?? this.notes,
       stock: stock ?? this.stock,
+      actualStock: actualStock ?? this.actualStock,
+      invoiceStock: invoiceStock ?? this.invoiceStock,
       importPrice: importPrice ?? this.importPrice,
       salePrice: salePrice ?? this.salePrice,
       isActive: isActive ?? this.isActive,

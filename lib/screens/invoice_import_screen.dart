@@ -167,7 +167,7 @@ class _InvoiceImportScreenState extends State<InvoiceImportScreen> {
         final productData = {
           'commonName': row[0].toString(),
           'unit': row[1].toString(),
-          'stock': double.tryParse(row[2].toString().replaceAll(',', '')) ?? 0,
+          'invoiceStock': double.tryParse(row[2].toString().replaceAll(',', '')) ?? 0,
           'createdAt': FieldValue.serverTimestamp(),
           'updatedAt': FieldValue.serverTimestamp(),
           // Các trường khác để trống
