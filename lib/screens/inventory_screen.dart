@@ -10,6 +10,7 @@ import '../widgets/common/design_system.dart';
 import 'inventory_create_session_screen.dart';
 import 'inventory_detail_screen.dart';
 import '../widgets/main_layout.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class InventoryScreen extends StatefulWidget {
   final VoidCallback? onBack;
@@ -223,18 +224,44 @@ class _InventoryScreenState extends State<InventoryScreen> with SingleTickerProv
                                 // Số sản phẩm
                                 Expanded(
                                   flex: 2,
-                                  child: Text('${filtered[i].products.length}', textAlign: TextAlign.center, style: body.copyWith(color: textPrimary)),
+                                  child: FutureBuilder<QuerySnapshot>(
+                                    future: FirebaseFirestore.instance
+                                        .collection('inventory_items')
+                                        .where('sessionId', isEqualTo: filtered[i].id)
+                                        .get(),
+                                    builder: (context, snapshot) {
+                                      if (!snapshot.hasData) {
+                                        return Text('...', textAlign: TextAlign.center, style: body.copyWith(color: textPrimary));
+                                      }
+                                      final items = snapshot.data!.docs;
+                                      final diffCount = items.where((doc) => (doc['diff'] ?? 0) != 0).length;
+                                      return Text('${items.length}', textAlign: TextAlign.center, style: body.copyWith(color: textPrimary));
+                                    },
+                                  ),
                                 ),
                                 // Số sản phẩm lệch
                                   Expanded(
                                   flex: 2,
-                                  child: Text(
-                                    '${filtered[i].products.where((p) => p.diff != 0).length}',
-                                    textAlign: TextAlign.center,
-                                    style: body.copyWith(
-                                      color: filtered[i].products.where((p) => p.diff != 0).isNotEmpty ? warningOrange : textPrimary,
-                                      fontWeight: FontWeight.bold,
-                                    ),
+                                  child: FutureBuilder<QuerySnapshot>(
+                                    future: FirebaseFirestore.instance
+                                        .collection('inventory_items')
+                                        .where('sessionId', isEqualTo: filtered[i].id)
+                                        .get(),
+                                    builder: (context, snapshot) {
+                                      if (!snapshot.hasData) {
+                                        return Text('...', textAlign: TextAlign.center, style: body.copyWith(color: textPrimary));
+                                      }
+                                      final items = snapshot.data!.docs;
+                                      final diffCount = items.where((doc) => (doc['diff'] ?? 0) != 0).length;
+                                      return Text(
+                                        '$diffCount',
+                                        textAlign: TextAlign.center,
+                                        style: body.copyWith(
+                                          color: diffCount > 0 ? warningOrange : textPrimary,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      );
+                                    },
                                   ),
                                 ),
                                 // Đã cập nhật kho

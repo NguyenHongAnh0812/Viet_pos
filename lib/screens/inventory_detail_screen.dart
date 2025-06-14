@@ -4,6 +4,7 @@ import '../widgets/common/design_system.dart';
 import '../services/inventory_item_service.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../widgets/main_layout.dart';
+import 'package:flutter/services.dart';
 
 class InventoryDetailScreen extends StatefulWidget {
   final String sessionId;
@@ -86,6 +87,18 @@ class _InventoryDetailScreenState extends State<InventoryDetailScreen> {
     }
   }
 
+  Future<void> _syncSessionProducts() async {
+    final itemsSnapshot = await FirebaseFirestore.instance
+        .collection('inventory_items')
+        .where('sessionId', isEqualTo: widget.sessionId)
+        .get();
+    final products = itemsSnapshot.docs.map((doc) => doc.data()).toList();
+    await FirebaseFirestore.instance
+        .collection('inventory_sessions')
+        .doc(widget.sessionId)
+        .update({'products': products});
+  }
+
   Future<void> _saveAsDraft() async {
     for (final item in _items) {
       final id = (item['id'] ?? item['productId'] ?? '').toString();
@@ -116,6 +129,7 @@ class _InventoryDetailScreenState extends State<InventoryDetailScreen> {
         .collection('inventory_sessions')
         .doc(widget.sessionId)
         .update({'status': 'đang kiểm kê'});
+    await _syncSessionProducts();
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -156,6 +170,7 @@ class _InventoryDetailScreenState extends State<InventoryDetailScreen> {
       }
     }
     await FirebaseFirestore.instance.collection('inventory_sessions').doc(widget.sessionId).update({'status': 'Đã hoàn tất'});
+    await _syncSessionProducts();
     await _fetchData();
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -169,21 +184,29 @@ class _InventoryDetailScreenState extends State<InventoryDetailScreen> {
     setState(() { _updateStockLoading = true; });
     for (final item in _items) {
       final productId = item['productId'];
-      final actualStock = item['actualStock'] ?? 0;
-      debugPrint('Cập nhật tồn kho: productId=$productId, actualStock=$actualStock');
+      final actualStock = int.tryParse(_actualControllers[item['id']]?.text ?? '') ?? item['actualStock'] ?? 0;
       try {
         await FirebaseFirestore.instance.collection('products').doc(productId).update({'stock': actualStock});
-        debugPrint('Đã cập nhật thành công cho productId=$productId');
       } catch (e) {
         debugPrint('Lỗi khi cập nhật productId=$productId: $e');
       }
     }
     await FirebaseFirestore.instance.collection('inventory_sessions').doc(widget.sessionId).update({'status': 'Đã cập nhật kho'});
+    await _syncSessionProducts();
+    await _fetchData();
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Đã cập nhật tồn kho thành công!'), backgroundColor: Colors.green));
       setState(() {});
     }
     setState(() { _updateStockLoading = false; });
+  }
+
+  String get displayStatus {
+    final status = (_sessionDoc?.data() as Map<String, dynamic>?)?['status'] ?? '';
+    if (status == 'in_progress' || status == 'đang kiểm kê') return 'Đang kiểm kê';
+    if (status == 'Đã hoàn tất') return 'Đã hoàn tất';
+    if (status == 'Đã cập nhật kho') return 'Đã cập nhật kho';
+    return status;
   }
 
   @override
@@ -259,7 +282,7 @@ class _InventoryDetailScreenState extends State<InventoryDetailScreen> {
                                 Expanded(
                                   child: Text(
                                     session['name']?.isNotEmpty == true ? session['name'] : 'Kiểm kê kho',
-                                    style: body.copyWith(fontWeight: FontWeight.bold, color: textPrimary),
+                                    style: h2.copyWith(fontWeight: FontWeight.bold, color: textPrimary),
                                   ),
                                 ),
                                 Container(
@@ -270,7 +293,7 @@ class _InventoryDetailScreenState extends State<InventoryDetailScreen> {
                                     color: Colors.white,
                                   ),
                                   child: Text(
-                                    session['status'] ?? '',
+                                    displayStatus,
                                     style: body.copyWith(color: primaryBlue, fontWeight: FontWeight.bold),
                                   ),
                                 ),
@@ -289,11 +312,11 @@ class _InventoryDetailScreenState extends State<InventoryDetailScreen> {
                                     children: [
                                       Text('Ngày kiểm kê', style: body.copyWith(color: textSecondary)),
                                       const SizedBox(height: 4),
-                                      Text((session['createdAt'] as Timestamp).toDate().toString().split(' ')[0], style: body.copyWith(fontWeight: FontWeight.w500, color: textPrimary)),
+                                      Text((session['createdAt'] as Timestamp).toDate().toString().split(' ')[0], style: body.copyWith(fontWeight: FontWeight.bold, color: textPrimary)),
                                       const SizedBox(height: 16),
-                                      Text('Cập nhật kho', style: body.copyWith(color: textSecondary)),
+                                      Text('Cập nhật kho', style: body.copyWith(fontWeight: FontWeight.w500, color: textPrimary)),
                                       const SizedBox(height: 4),
-                                      Text(session['status'] ?? '', style: body.copyWith(fontWeight: FontWeight.w500, color: textPrimary)),
+                                      Text(displayStatus, style: body.copyWith(fontWeight: FontWeight.w500, color: textPrimary)),
                                       const SizedBox(height: 16),
                                       Text('Ghi chú', style: body.copyWith(color: textSecondary)),
                                       const SizedBox(height: 4),
@@ -309,7 +332,7 @@ class _InventoryDetailScreenState extends State<InventoryDetailScreen> {
                                     children: [
                                       Text('Người kiểm kê', style: body.copyWith(color: textSecondary)),
                                       const SizedBox(height: 4),
-                                      Text(_userInfo?['name'] ?? session['createdBy'] ?? '', style: body.copyWith(fontWeight: FontWeight.w500, color: textPrimary)),
+                                      Text(_userInfo?['name'] ?? session['createdBy'] ?? '', style: body.copyWith(fontWeight: FontWeight.bold, color: textPrimary)),
                                       if (_userInfo?['email'] != null)
                                         Text(_userInfo?['email'] ?? '', style: body.copyWith(color: textSecondary)),
                                     ],
@@ -335,7 +358,7 @@ class _InventoryDetailScreenState extends State<InventoryDetailScreen> {
                                     children: [
                                       Text('Số sản phẩm lệch', style: body.copyWith(color: textSecondary)),
                                       const SizedBox(height: 4),
-                                      Text('$diffCount', style: body.copyWith(fontWeight: FontWeight.w500, color: diffCount > 0 ? warningOrange : textSecondary)),
+                                      Text('$diffCount', style: body.copyWith(fontWeight: FontWeight.bold, color: diffCount > 0 ? warningOrange : textSecondary)),
                                     ],
                                   ),
                                 ),
@@ -374,10 +397,32 @@ class _InventoryDetailScreenState extends State<InventoryDetailScreen> {
                           ),
                           const SizedBox(width: 16),
                           if (!isCompleted && !isUpdated) ...[
-                 
                             const SizedBox(width: 16),
                             ElevatedButton(
-                              onPressed: _completeLoading ? null : _confirmCompleteInventory,
+                              onPressed: _completeLoading
+                                  ? null
+                                  : () async {
+                                      final confirmed = await showDialog<bool>(
+                                        context: context,
+                                        builder: (context) => AlertDialog(
+                                          title: const Text('Xác nhận hoàn tất phiên kiểm kê?'),
+                                          content: const Text('Sau khi hoàn tất, bạn không thể thay đổi số liệu kiểm kê.'),
+                                          actions: [
+                                            TextButton(
+                                              onPressed: () => Navigator.pop(context, false),
+                                              child: const Text('Hủy'),
+                                            ),
+                                            ElevatedButton(
+                                              onPressed: () => Navigator.pop(context, true),
+                                              child: const Text('Xác nhận'),
+                                            ),
+                                          ],
+                                        ),
+                                      );
+                                      if (confirmed == true) {
+                                        _confirmCompleteInventory();
+                                      }
+                                    },
                               style: primaryButtonStyle,
                               child: _completeLoading
                                   ? SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
@@ -462,46 +507,40 @@ class _InventoryDetailScreenState extends State<InventoryDetailScreen> {
                                         Expanded(
                                           flex: 2,
                                           child: (!isCompleted && !isUpdated)
-                                              ? Row(
-                                                  mainAxisAlignment: MainAxisAlignment.center,
-                                                  children: [
-                                
-                                                    SizedBox(
-                                                      width: 90,
-                                                      child: Focus(
-                                                        onFocusChange: (hasFocus) async {
-                                                          if (!hasFocus) {
-                                                            final actual = int.tryParse(actualController.text) ?? 0;
-                                                            final diff = actual - (item['systemStock'] ?? 0);
-                                                            await _itemService.updateItem(item['id'], {'actualStock': actual, 'diff': diff});
-                                                          }
-                                                        },
-                                                        child: TextField(
-                                                          controller: actualController,
-                                                          keyboardType: TextInputType.number,
-                                                          textAlign: TextAlign.center,
-                                                          onChanged: (v) {
-                                                            setState(() {}); // cập nhật lại diff realtime
-                                                          },
-                                                          enabled: !isCompleted && !isUpdated,
-                                                          decoration: InputDecoration(
-                                                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(6)),
-                                                            isDense: true,
-                                                          ),
-                                                        ),
+                                              ? SizedBox(
+                                                  width: 90,
+                                                  child: Focus(
+                                                    onFocusChange: (hasFocus) async {
+                                                      if (!hasFocus) {
+                                                        final actual = int.tryParse(actualController.text) ?? 0;
+                                                        final diff = actual - (item['systemStock'] ?? 0);
+                                                        await _itemService.updateItem(item['id'], {'actualStock': actual, 'diff': diff});
+                                                      }
+                                                    },
+                                                    child: TextField(
+                                                      controller: actualController,
+                                                      keyboardType: TextInputType.number,
+                                                      textAlign: TextAlign.center,
+                                                      inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                                                      onChanged: (v) {
+                                                        setState(() {});
+                                                      },
+                                                      enabled: !isCompleted && !isUpdated,
+                                                      decoration: InputDecoration(
+                                                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(6)),
+                                                        isDense: true,
                                                       ),
                                                     ),
-                                        
-                                                  ],
+                                                  ),
                                                 )
                                               : Center(
-                                                  child: actualController.text.isEmpty
-                                                      ? Text('—', style: body.copyWith(color: textSecondary))
-                                                      : diff != null && diff > 0
-                                                          ? Text('+$diff', style: body.copyWith(color: Colors.green[700], fontWeight: FontWeight.bold))
-                                                          : diff != null && diff < 0
-                                                              ? Text('$diff', style: body.copyWith(color: warningOrange, fontWeight: FontWeight.bold))
-                                                              : Text('0', style: body),
+                                                  child: Text(
+                                                    (item['actualStock']?.toString() ?? '').isEmpty
+                                                      ? '—'
+                                                      : item['actualStock'].toString(),
+                                                    textAlign: TextAlign.center,
+                                                    style: body,
+                                                  ),
                                                 ),
                                         ),
                                         Expanded(
