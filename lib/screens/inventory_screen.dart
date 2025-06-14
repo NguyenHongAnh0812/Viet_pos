@@ -7,6 +7,7 @@ import '../services/product_service.dart';
 import '../models/product.dart';
 import 'inventory_history_screen.dart';
 import '../widgets/common/design_system.dart';
+import 'inventory_create_session_screen.dart';
 
 class InventoryScreen extends StatefulWidget {
   final VoidCallback? onBack;
@@ -34,7 +35,7 @@ class _InventoryScreenState extends State<InventoryScreen> with SingleTickerProv
   bool _showHistory = false;
   bool _showFilter = false;
   String? _selectedCategory;
-  String? _selectedStatus;
+  String _selectedStatus = 'Tất cả trạng thái';
   final List<String> _categoryOptions = ['Tất cả danh mục', 'Kháng sinh', 'Vitamin', 'Khác']; // TODO: lấy từ service thực tế
   final List<String> _statusOptions = ['Tất cả trạng thái', 'Chưa kiểm kê', 'Đã kiểm kê', 'Lệch số lượng'];
   final _inventoryService = InventoryService();
@@ -48,70 +49,240 @@ class _InventoryScreenState extends State<InventoryScreen> with SingleTickerProv
   // Thêm biến để theo dõi trạng thái đã lưu
   Map<String, bool> _savedProducts = {};
 
+  final List<Map<String, dynamic>> demoSessions = [
+    {
+      'name': 'Kiểm kê tháng 12/2024',
+      'desc': 'Kiểm kê cuối năm',
+      'date': '1/12/2024',
+      'status': 'Đã cập nhật kho',
+      'statusColor': successGreen,
+      'badge': BadgeVariant.secondary,
+      'productCount': 150,
+      'mismatchCount': 12,
+      'updated': true,
+    },
+    {
+      'name': 'Kiểm kê thuốc kháng sinh',
+      'desc': 'Kiểm kê danh mục kháng sinh',
+      'date': '15/11/2024',
+      'status': 'Đã hoàn tất',
+      'statusColor': warningOrange,
+      'badge': BadgeVariant.warning,
+      'productCount': 45,
+      'mismatchCount': 3,
+      'updated': false,
+    },
+    {
+      'name': 'Kiểm kê vaccine',
+      'desc': 'Kiểm kê vaccine thú y',
+      'date': '20/11/2024',
+      'status': 'Đang kiểm kê',
+      'statusColor': primaryBlue,
+      'badge': BadgeVariant.defaultVariant,
+      'productCount': 28,
+      'mismatchCount': 0,
+      'updated': false,
+    },
+    {
+      'name': 'Kiểm kê kho mới',
+      'desc': 'Phiên kiểm kê mới tạo',
+      'date': '5/12/2024',
+      'status': 'Nháp',
+      'statusColor': textSecondary,
+      'badge': BadgeVariant.outline,
+      'productCount': 0,
+      'mismatchCount': 0,
+      'updated': false,
+    },
+  ];
+
+  List<Map<String, dynamic>> get filteredSessions {
+    final search = _searchController.text.trim().toLowerCase();
+    return demoSessions.where((session) {
+      final matchesStatus = _selectedStatus == 'Tất cả trạng thái' || session['status'] == _selectedStatus;
+      final matchesSearch = search.isEmpty ||
+        session['name'].toString().toLowerCase().contains(search) ||
+        session['desc'].toString().toLowerCase().contains(search);
+      return matchesStatus && matchesSearch;
+    }).toList();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: appBackground,
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+      body: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 24),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
               children: [
-                IconButton(
-                  icon: const Icon(Icons.arrow_back),
-                  onPressed: widget.onBack,
-                ),
-                const SizedBox(width: 4),
-                const Text('Kiểm kê kho', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 28)),
+                Text('Kiểm kê kho', style: h1),
                 const Spacer(),
+                ElevatedButton.icon(
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => const InventoryCreateSessionScreen()),
+                    );
+                  },
+                  icon: const Icon(Icons.add),
+                  label: const Text('Tạo phiên kiểm kê'),
+                  style: primaryButtonStyle,
+                ),
               ],
             ),
-            const SizedBox(height: 16),
-            Container(
-              margin: const EdgeInsets.only(top: 8, bottom: 8),
-              decoration: BoxDecoration(
-                color: Colors.grey[200],
-                borderRadius: BorderRadius.circular(6),
-              ),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: GestureDetector(
-                      onTap: () => setState(() => _tabIndex = 0),
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(vertical: 6),
-                        margin: const EdgeInsets.all(4),
-                        decoration: BoxDecoration(
-                          color: _tabIndex == 0 ? Colors.white : Colors.transparent,
-                          borderRadius: BorderRadius.circular(6),
-                        ),
-                        alignment: Alignment.center,
-                        child: Text('Kiểm kê thủ công', style: TextStyle(fontWeight: FontWeight.bold, color: _tabIndex == 0 ? Colors.blue : Colors.black54)),
+            const SizedBox(height: space24),
+            Row(
+              children: [
+                Expanded(
+                  child: TextField(
+                    controller: _searchController,
+                    onChanged: (_) => setState(() {}),
+                    style: bodyLarge.copyWith(color: textPrimary),
+                    decoration: InputDecoration(
+                      hintText: 'Tìm kiếm phiên kiểm kê...',
+                      hintStyle: bodyLarge.copyWith(color: textSecondary),
+                      prefixIcon: const Icon(Icons.search, color: textSecondary),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8),
+                        borderSide: const BorderSide(color: borderColor),
                       ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8),
+                        borderSide: const BorderSide(color: borderColor),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8),
+                        borderSide: const BorderSide(color: primaryBlue, width: 1.5),
+                      ),
+                      contentPadding: const EdgeInsets.symmetric(vertical: 0, horizontal: 16),
+                      filled: true,
+                      fillColor: cardBackground,
                     ),
                   ),
-                  Expanded(
-                    child: GestureDetector(
-                      onTap: () => setState(() => _tabIndex = 1),
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(vertical: 6),
-                        decoration: BoxDecoration(
-                          color: _tabIndex == 1 ? Colors.white : Colors.transparent,
-                          borderRadius: BorderRadius.circular(6),
-                        ),
-                        alignment: Alignment.center,
-                        child: Text('Quét mã vạch', style: TextStyle(fontWeight: FontWeight.bold, color: _tabIndex == 1 ? Colors.blue : Colors.black54)),
+                ),
+                const SizedBox(width: space16),
+                SizedBox(
+                  width: 200,
+                  child: DropdownButtonFormField<String>(
+                    value: _selectedStatus,
+                    items: const [
+                      DropdownMenuItem(value: 'Tất cả trạng thái', child: Text('Tất cả trạng thái')),
+                      DropdownMenuItem(value: 'Nháp', child: Text('Nháp')),
+                      DropdownMenuItem(value: 'Đang kiểm kê', child: Text('Đang kiểm kê')),
+                      DropdownMenuItem(value: 'Đã hoàn tất', child: Text('Đã hoàn tất')),
+                      DropdownMenuItem(value: 'Đã cập nhật kho', child: Text('Đã cập nhật kho')),
+                    ],
+                    onChanged: (v) {
+                      if (v != null) setState(() => _selectedStatus = v);
+                    },
+                    style: bodyLarge.copyWith(color: textPrimary),
+                    decoration: InputDecoration(
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8),
+                        borderSide: const BorderSide(color: borderColor),
                       ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8),
+                        borderSide: const BorderSide(color: borderColor),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8),
+                        borderSide: const BorderSide(color: primaryBlue, width: 1.5),
+                      ),
+                      contentPadding: const EdgeInsets.symmetric(vertical: 0, horizontal: 12),
+                      filled: true,
+                      fillColor: cardBackground,
                     ),
                   ),
-                ],
+                ),
+              ],
+            ),
+            const SizedBox(height: space24),
+            Expanded(
+              child: ListView.separated(
+                itemCount: filteredSessions.length,
+                separatorBuilder: (_, __) => const SizedBox(height: space16),
+                itemBuilder: (context, i) {
+                  final session = filteredSessions[i];
+                  return Container(
+                    decoration: BoxDecoration(
+                      color: cardBackground,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: borderColor),
+                    ),
+                    padding: const EdgeInsets.all(space20),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                children: [
+                                  Text(session['name'], style: h3.copyWith(color: textPrimary)),
+                                  const SizedBox(width: space8),
+                                  DesignSystemBadge(
+                                    text: session['status'],
+                                    variant: session['badge'],
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: space4),
+                              Text(session['desc'], style: bodyLarge.copyWith(color: textSecondary)),
+                              const SizedBox(height: space8),
+                              Row(
+                                children: [
+                                  Icon(Icons.calendar_today, size: 16, color: textSecondary),
+                                  const SizedBox(width: space4),
+                                  Text(session['date'], style: bodyLarge.copyWith(color: textSecondary)),
+                                ],
+                              ),
+                            ],
+                          ),
+                        ),
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.end,
+                          children: [
+                            Row(
+                              children: [
+                                Text('Số sản phẩm: ', style: bodyLarge.copyWith(color: textSecondary)),
+                                Text('${session['productCount']}', style: bodyLarge.copyWith(color: textPrimary, fontWeight: FontWeight.bold)),
+                              ],
+                            ),
+                            const SizedBox(height: space4),
+                            Row(
+                              children: [
+                                Text('Lệch: ', style: bodyLarge.copyWith(color: textSecondary)),
+                                Text(
+                                  '${session['mismatchCount']}',
+                                  style: bodyLarge.copyWith(
+                                    color: (session['mismatchCount'] ?? 0) > 0 ? warningOrange : textPrimary,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: space4),
+                            Row(
+                              children: [
+                                Text('Cập nhật kho: ', style: bodyLarge.copyWith(color: textSecondary)),
+                                session['updated']
+                                  ? const Icon(Icons.check_circle, color: successGreen, size: 20)
+                                  : Text('—', style: h3.copyWith(color: textSecondary)),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  );
+                },
               ),
             ),
-            const SizedBox(height: 16),
-            if (_tabIndex == 0) _buildManualTab(),
-            if (_tabIndex == 1) _buildBarcodeTab(),
           ],
         ),
       ),
@@ -119,619 +290,46 @@ class _InventoryScreenState extends State<InventoryScreen> with SingleTickerProv
   }
 
   Widget _buildManualTab() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            Expanded(
-              child: Stack(
-                children: [
-                  TextField(
-                    controller: _searchController,
-                    decoration: InputDecoration(
-                      hintText: 'Tìm theo tên sản phẩm, barcode...',
-                      prefixIcon: const Icon(Icons.search, size: 18),
-                      isDense: true,
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(6),
-                        borderSide: BorderSide(color: Colors.grey.shade300),
-                      ),
-                      enabledBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(6),
-                        borderSide: BorderSide(color: Colors.grey.shade300),
-                      ),
-                      focusedBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(6),
-                        borderSide: BorderSide(color: Colors.grey.shade400, width: 1.5),
-                      ),
-                      contentPadding: const EdgeInsets.symmetric(vertical: 2, horizontal: 8),
-                    ),
-                    style: const TextStyle(fontSize: 14),
-                    onChanged: (_) => setState(() {}),
-                  ),
-                  Positioned(
-                    right: 8,
-                    top: 0,
-                    bottom: 0,
-                    child: Center(
-                      child: IconButton(
-                        icon: const Icon(Icons.filter_alt_outlined),
-                        tooltip: 'Lọc',
-                        onPressed: () => setState(() => _showFilter = !_showFilter),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-        if (_showFilter)
-          Container(
-            margin: const EdgeInsets.only(top: 12, bottom: 12),
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: Colors.grey[100],
-              border: Border.all(color: Colors.grey.shade200),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    // Danh mục sản phẩm
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Text('Danh mục sản phẩm', style: TextStyle(fontWeight: FontWeight.bold)),
-                          const SizedBox(height: 6),
-                          StreamBuilder<List<ProductCategory>>(
-                            stream: _categoryService.getCategories(),
-                            builder: (context, snapshot) {
-                              final cats = snapshot.data ?? [];
-                              final options = ['Tất cả danh mục', ...cats.map((c) => c.name)];
-                              return DropdownButtonFormField<String>(
-                                value: _selectedCategory ?? options[0],
-                                items: options.map((c) => DropdownMenuItem(value: c, child: Text(c))).toList(),
-                                onChanged: (v) => setState(() => _selectedCategory = v),
-                                decoration: InputDecoration(
-                                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(4), borderSide: BorderSide(color: Colors.grey.shade300)),
-                                  isDense: true,
-                                  contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                                  filled: true,
-                                  fillColor: Colors.white,
-                                ),
-                              );
-                            },
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(width: 16),
-                    // Trạng thái kiểm kê
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Text('Trạng thái kiểm kê', style: TextStyle(fontWeight: FontWeight.bold)),
-                          const SizedBox(height: 6),
-                          DropdownButtonFormField<String>(
-                            value: _selectedStatus ?? _statusOptions[0],
-                            items: _statusOptions.map((s) => DropdownMenuItem(value: s, child: Text(s))).toList(),
-                            onChanged: (v) => setState(() => _selectedStatus = v),
-                            decoration: InputDecoration(
-                              border: OutlineInputBorder(borderRadius: BorderRadius.circular(4), borderSide: BorderSide(color: Colors.grey.shade300)),
-                              isDense: true,
-                              contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                              filled: true,
-                              fillColor: Colors.white,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 12),
-                Container(
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      OutlinedButton(
-                        onPressed: () {
-                          setState(() {
-                            _selectedCategory = _categoryOptions[0];
-                            _selectedStatus = _statusOptions[0];
-                          });
-                        },
-                        child: const Text('Xóa bộ lọc'),
-                        style: OutlinedButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
-                          textStyle: const TextStyle(fontSize: 13, color: Colors.black54), 
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
-                          side: BorderSide(color: Colors.grey.shade300), 
-                        ),
-                      ),
-                      ElevatedButton(
-                        onPressed: () => setState(() => _showFilter = false),
-                        child: const Text('Áp dụng'),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.blue,
-                          foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
-                          textStyle: const TextStyle(fontWeight: FontWeight.bold),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
-                          elevation: 0,
-                        ),
-                      ),
-                    ],
-                  ),
-                )
-              ],
-            ),
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          const Icon(
+            Icons.inventory_2_outlined,
+            size: 64,
+            color: Colors.grey,
           ),
-        const SizedBox(height: 16),
-        StreamBuilder<List<Product>>(
-          stream: _productService.getProducts(),
-          builder: (context, snapshot) {
-            final products = snapshot.data ?? [];
-            // Lọc theo từ khóa tìm kiếm
-            final searchText = _searchController.text.trim().toLowerCase();
-            final filteredProducts = searchText.isEmpty
-              ? products
-              : products.where((p) {
-                  return p.name.toLowerCase().contains(searchText)
-                    || (p.commonName != null && p.commonName.toLowerCase().contains(searchText))
-                    || (p.sku != null && p.sku!.toLowerCase().contains(searchText))
-                    || (p.barcode != null && p.barcode!.toLowerCase().contains(searchText));
-                }).toList();
-            if (filteredProducts.isEmpty) {
-              return const Padding(
-                padding: EdgeInsets.all(24),
-                child: Text('Không có sản phẩm nào trong hệ thống.', style: TextStyle(color: Colors.black54)),
-              );
-            }
-            final isMobile = MediaQuery.of(context).size.width < 600;
-            if (isMobile) {
-              // MOBILE LAYOUT
-              return Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  ...filteredProducts.map((p) => Container(
-                    margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 0),
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(10),
-                      border: Border.all(color: Colors.grey.shade200),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        // Tiêu đề 1 dòng
-                        Text(p.name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-                        if (p.commonName != null && p.commonName.isNotEmpty)
-                          Padding(
-                            padding: const EdgeInsets.only(top: 2, bottom: 2),
-                            child: Text(p.commonName, style: const TextStyle(fontSize: 13, color: Colors.black54), semanticsLabel: 'Tên thương mại'),
-                          ),
-                        // Hiển thị lần cuối cập nhật
-                        Text(
-                          p.updatedAt != null
-                            ? 'Lần cuối cập nhật: ${p.updatedAt.toString().substring(0, 16).replaceAll('T', ' ')}'
-                            : 'Chưa cập nhật',
-                          style: TextStyle(fontSize: 12, color: Colors.grey[500]),
-                        ),
-                        Padding(
-                            padding: const EdgeInsets.only(top: 2, bottom: 3)
-                        ),
-                        Row(
-                          children: [
-                            // Khu vực 1: Hệ thống
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  const Text('Hệ thống', style: TextStyle(fontSize: 13, color: Colors.black54)),
-                                  Text('${p.stock}', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-                                ],
-                              ),
-                            ),
-                            // Khu vực 2: Bộ đếm
-                            Expanded(
-                              flex: 2,
-                              child: Center(
-                                child: Container(
-                                  width: 140,
-                                  decoration: BoxDecoration(
-                                    color: Colors.white,
-                                    border: Border.all(color: Colors.grey.shade300),
-                                    borderRadius: BorderRadius.circular(6),
-                                  ),
-                                  child: Row(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      Container(
-                                        decoration: BoxDecoration(
-                                          color: Colors.white,
-                                          borderRadius: const BorderRadius.only(
-                                            topLeft: Radius.circular(6),
-                                            bottomLeft: Radius.circular(6),
-                                          )
-                                        ),
-                                        child: IconButton(
-                                          icon: const Icon(Icons.remove, size: 16, color: Colors.black),
-                                          splashColor: Colors.transparent,
-                                          highlightColor: Colors.transparent,
-                                          padding: const EdgeInsets.all(0),
-                                          constraints: const BoxConstraints(minWidth: 42, minHeight: 32),
-                                          onPressed: () {
-                                            int currentQty = int.tryParse(_actualQtyMap[p.id] ?? '${p.stock}') ?? p.stock;
-                                            if (currentQty > 0) {
-                                              currentQty--;
-                                              setState(() {
-                                                _actualQtyMap[p.id] = '$currentQty';
-                                                _savedProducts[p.id] = false;
-                                              });
-                                              syncQtyController(p.id, '$currentQty');
-                                            }
-                                          },
-                                        ),
-                                      ),
-                                      Container(
-                                        width: 52,
-                                        height: 36,
-                                        alignment: Alignment.center,
-                                        color: Colors.grey[100],
-                                        child: TextFormField(
-                                          controller: _qtyControllers[p.id]!,
-                                          keyboardType: TextInputType.number,
-                                          textAlign: TextAlign.center,
-                                          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
-                                          decoration: const InputDecoration(
-                                            border: InputBorder.none,
-                                            isDense: true,
-                                            contentPadding: EdgeInsets.zero,
-                                          ),
-                                          onChanged: (v) {
-                                            _actualQtyMap[p.id] = v;
-                                            _savedProducts[p.id] = false;
-                                          },
-                                        ),
-                                      ),
-                                      Container(
-                                        decoration: BoxDecoration(
-                                          color: Colors.white,
-                                          borderRadius: const BorderRadius.only(
-                                            topRight: Radius.circular(6),
-                                            bottomRight: Radius.circular(6),
-                                          )
-                                        ),
-                                        child: IconButton(
-                                          icon: const Icon(Icons.add, size: 16, color: Colors.black),
-                                          splashColor: Colors.transparent,
-                                          highlightColor: Colors.transparent,
-                                          padding: const EdgeInsets.all(0),
-                                          constraints: const BoxConstraints(minWidth: 42, minHeight: 32),
-                                          onPressed: () {
-                                            int currentQty = int.tryParse(_actualQtyMap[p.id] ?? '${p.stock}') ?? p.stock;
-                                            currentQty++;
-                                            setState(() {
-                                              _actualQtyMap[p.id] = '$currentQty';
-                                              _savedProducts[p.id] = false;
-                                            });
-                                            syncQtyController(p.id, '$currentQty');
-                                          },
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ),
-                            ),
-                            // Khu vực 3: Nút Lưu
-                            Expanded(
-                              child: Padding(
-                                padding: const EdgeInsets.only(left: 8),
-                                child: _savedProducts[p.id] == true
-                                  ? ElevatedButton(
-                                      onPressed: null,
-                                      style: ElevatedButton.styleFrom(
-                                        backgroundColor: Colors.green,
-                                        foregroundColor: Colors.white,
-                                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
-                                        textStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
-                                        elevation: 0,
-                                      ),
-                                      child: const Text('Đã lưu'),
-                                    )
-                                  : ElevatedButton(
-                                      onPressed: _actualQtyMap[p.id] != null && int.tryParse(_actualQtyMap[p.id]!) != p.stock
-                                        ? () {
-                                            final actualQty = int.tryParse(_actualQtyMap[p.id] ?? '${p.stock}') ?? p.stock;
-                                            if (actualQty != p.stock) {
-                                              _saveProductQuantity(p.id, actualQty);
-                                            }
-                                          }
-                                        : null,
-                                      style: ElevatedButton.styleFrom(
-                                        backgroundColor: Colors.blue,
-                                        foregroundColor: Colors.white,
-                                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
-                                        textStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
-                                        elevation: 0,
-                                        disabledBackgroundColor: Colors.blue.withOpacity(0.3),
-                                        disabledForegroundColor: Colors.white.withOpacity(0.7),
-                                      ),
-                                      child: const Text('Lưu'),
-                                    ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-                  )),
-                ],
-              );
-            }
-            // DESKTOP LAYOUT (giữ nguyên)
-            return Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  '${filteredProducts.length} sản phẩm cần kiểm kê',
-                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+          const SizedBox(height: 16),
+          Text(
+            'Chưa có sản phẩm nào để kiểm kê',
+            style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                  color: Colors.grey,
                 ),
-                const SizedBox(height: 13),
-                Container(
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(12),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.03),
-                        blurRadius: 8,
-                        offset: Offset(0, 2),
-                      ),
-                    ],
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-                        child: Row(
-                          children: [
-                            Expanded(flex: 3, child: Text('Tên sản phẩm', style: TextStyle(fontWeight: FontWeight.bold, color: textThird))),
-                            Expanded(flex: 1, child: Text('Hệ thống', style: TextStyle(fontWeight: FontWeight.bold, color: textThird), textAlign: TextAlign.center)),
-                            Expanded(flex: 2, child: Text('Thực tế', style: TextStyle(fontWeight: FontWeight.bold, color: textThird), textAlign: TextAlign.center)),
-                            Expanded(flex: 1, child: Text('Thao tác', style: TextStyle(fontWeight: FontWeight.bold, color: textThird), textAlign: TextAlign.center)),
-                          ],
-                        ),
-                      ),
-                      const Divider(height: 1),
-                      ...filteredProducts.asMap().entries.map((entry) {
-                        final idx = entry.key;
-                        final p = entry.value;
-                        final key = (p.id != null && p.id.toString().isNotEmpty) ? p.id : 'idx_$idx';
-                        // Đồng bộ controller trước khi render input
-                        syncQtyController(key, _actualQtyMap[key] ?? '${p.stock}');
-                        return Column(
-                          children: [
-                            Padding(
-                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 15),
-                              child: Row(
-                                children: [
-                                  Expanded(
-                                    flex: 3,
-                                    child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
-                                      children: [
-                                        Row(
-                                          children: [
-                                            Text(p.name, style: const TextStyle(fontWeight: FontWeight.bold)),
-                                            if ((_actualQtyMap[key]?.isNotEmpty ?? false))
-                                              const Padding(
-                                                padding: EdgeInsets.only(left: 6),
-                                                child: Icon(Icons.check_circle, color: Colors.green, size: 18),
-                                              ),
-                                          ],
-                                        ),
-                                        Text(p.commonName, style: const TextStyle(fontSize: 13, color: Colors.black54), semanticsLabel: 'Tên thương mại'),
-                                        Text(
-                                          p.updatedAt != null
-                                            ? 'Lần cuối cập nhật: ${p.updatedAt.toString().substring(0, 16).replaceAll('T', ' ')}'
-                                            : 'Chưa cập nhật',
-                                          style: TextStyle(fontSize: 12, color: Colors.grey[500]),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                  Expanded(
-                                    flex: 1,
-                                    child: Text('${p.stock}', textAlign: TextAlign.center, style: const TextStyle(fontWeight: FontWeight.w500)),
-                                  ),
-                                  Expanded(
-                                    flex: 2,
-                                    child: Center(
-                                      child: Container(
-                                        width: 100,
-                                        decoration: BoxDecoration(
-                                          color: Colors.white,
-                                          border: Border.all(color: Colors.grey.shade300),
-                                          borderRadius: BorderRadius.circular(6),
-                                        ),
-                                        child: Row(
-                                          mainAxisSize: MainAxisSize.min,
-                                          children: [
-                                            Container(
-                                              decoration: BoxDecoration(
-                                                color: Colors.white,
-                                                borderRadius: const BorderRadius.only(
-                                                  topLeft: Radius.circular(6),
-                                                  bottomLeft: Radius.circular(6),
-                                                )
-                                              ),
-                                              child: IconButton(
-                                                icon: const Icon(Icons.remove, size: 14, color: Colors.black),
-                                                splashColor: Colors.transparent,
-                                                highlightColor: Colors.transparent,
-                                                padding: const EdgeInsets.all(0),
-                                                constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
-                                                onPressed: () {
-                                                  int currentQty = int.tryParse(_actualQtyMap[key] ?? '${p.stock}') ?? p.stock;
-                                                  if (currentQty > 0) {
-                                                    currentQty--;
-                                                    setState(() {
-                                                      _actualQtyMap[key] = '$currentQty';
-                                                      _savedProducts[key] = false;
-                                                    });
-                                                    syncQtyController(key, '$currentQty');
-                                                  }
-                                                },
-                                              ),
-                                            ),
-                                            Container(
-                                              width: 32,
-                                              height: 36,
-                                              alignment: Alignment.center,
-                                              color: Colors.grey[100],
-                                              child: TextFormField(
-                                                controller: _qtyControllers[key]!,
-                                                keyboardType: TextInputType.number,
-                                                textAlign: TextAlign.center,
-                                                style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
-                                                decoration: const InputDecoration(
-                                                  border: InputBorder.none,
-                                                  isDense: true,
-                                                  contentPadding: EdgeInsets.zero,
-                                                ),
-                                                onChanged: (v) {
-                                                  _actualQtyMap[key] = v;
-                                                  _savedProducts[key] = false;
-                                                },
-                                              ),
-                                            ),
-                                            Container(
-                                              decoration: BoxDecoration(
-                                                color: Colors.white,
-                                                borderRadius: const BorderRadius.only(
-                                                  topRight: Radius.circular(6),
-                                                  bottomRight: Radius.circular(6),
-                                                )
-                                              ),
-                                              child: IconButton(
-                                                icon: const Icon(Icons.add, size: 16, color: Colors.black),
-                                                splashColor: Colors.transparent,
-                                                highlightColor: Colors.transparent,
-                                                padding: const EdgeInsets.all(0),
-                                                constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
-                                                onPressed: () {
-                                                  int currentQty = int.tryParse(_actualQtyMap[key] ?? '${p.stock}') ?? p.stock;
-                                                  currentQty++;
-                                                  setState(() {
-                                                    _actualQtyMap[key] = '$currentQty';
-                                                    _savedProducts[key] = false;
-                                                  });
-                                                  syncQtyController(key, '$currentQty');
-                                                },
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                  Expanded(
-                                    flex: 1,
-                                    child: Center(
-                                      child: _savedProducts[key] == true
-                                        ? ElevatedButton(
-                                            onPressed: null,
-                                            style: ElevatedButton.styleFrom(
-                                              backgroundColor: Colors.green,
-                                              foregroundColor: Colors.white,
-                                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
-                                              textStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
-                                              elevation: 0,
-                                            ),
-                                            child: const Text('Đã lưu'),
-                                          )
-                                        : ElevatedButton(
-                                            onPressed: _actualQtyMap[key] != null && int.tryParse(_actualQtyMap[key]!) != p.stock
-                                              ? () {
-                                                  final actualQty = int.tryParse(_actualQtyMap[key] ?? '${p.stock}') ?? p.stock;
-                                                  if (actualQty != p.stock) {
-                                                    _saveProductQuantity(key, actualQty);
-                                                  }
-                                                }
-                                              : null,
-                                            style: ElevatedButton.styleFrom(
-                                              backgroundColor: Colors.blue,
-                                              foregroundColor: Colors.white,
-                                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
-                                              textStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
-                                              elevation: 0,
-                                              disabledBackgroundColor: Colors.blue.withOpacity(0.3),
-                                              disabledForegroundColor: Colors.white.withOpacity(0.7),
-                                            ),
-                                            child: const Text('Lưu'),
-                                          ),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                            const Divider(height: 1),
-                          ],
-                        );
-                      }),
-                    ],
-                  ),
-                ),
-              ],
-            );
-          },
-        ),
-        const SizedBox(height: 20),
-        Row(
-          children: [
-            // ElevatedButton.icon(
-            //   icon: const Icon(Icons.history),
-            //   label: const Text('Lịch sử kiểm kê'),
-            //   style: ElevatedButton.styleFrom(
-            //     backgroundColor: Colors.grey[200],
-            //     foregroundColor: Colors.black87,
-            //     padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
-            //     textStyle: const TextStyle(fontWeight: FontWeight.bold),
-            //     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
-            //   ),
-            //   onPressed: widget.onViewHistory,
-            // ),
-            const Spacer(),
-            ElevatedButton.icon(
-              onPressed: _saving ? null : _saveInventorySession,
-              icon: _saving ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white)) : const Icon(Icons.save),
-              label: const Text('Lưu phiên kiểm kê'),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.blue,
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-                textStyle: const TextStyle(fontWeight: FontWeight.bold),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
-              ),
-            ),
-          ],
-        ),
-        if (_showHistory) ...[
-          const SizedBox(height: 24),
-          _buildHistoryPanel(),
+          ),
         ],
-      ],
+      ),
+    );
+  }
+
+  Widget _buildBarcodeTab() {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          const Icon(
+            Icons.qr_code_scanner_outlined,
+            size: 64,
+            color: Colors.grey,
+          ),
+          const SizedBox(height: 16),
+          Text(
+            'Chưa có sản phẩm nào được quét',
+            style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                  color: Colors.grey,
+                ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -785,118 +383,6 @@ class _InventoryScreenState extends State<InventoryScreen> with SingleTickerProv
           ),
         ],
       ),
-    );
-  }
-
-  Widget _buildBarcodeTab() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            Expanded(
-              child: TextField(
-                controller: _barcodeController,
-                decoration: InputDecoration(
-                  hintText: 'Nhập mã vạch...',
-                  prefixIcon: const Icon(Icons.qr_code_scanner),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(8),
-                    borderSide: BorderSide(color: Colors.grey.shade200),
-                  ),
-                  contentPadding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
-                  filled: true,
-                  fillColor: Colors.white,
-                ),
-                onSubmitted: (_) => _onFindBarcode(),
-              ),
-            ),
-            const SizedBox(width: 8),
-            ElevatedButton(
-              onPressed: _onFindBarcode,
-              child: const Text('Tìm'),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.blue,
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-                textStyle: const TextStyle(fontWeight: FontWeight.bold),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 24),
-        Text('Sản phẩm đã quét (${_scannedProducts.length})', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-        const SizedBox(height: 8),
-        _scannedProducts.isEmpty
-          ? Center(
-              child: Text('Chưa có sản phẩm nào được quét', style: TextStyle(color: Colors.grey[500], fontSize: 16)),
-            )
-          : ListView.separated(
-              shrinkWrap: true,
-              physics: NeverScrollableScrollPhysics(),
-              itemCount: _scannedProducts.length,
-              separatorBuilder: (_, __) => const SizedBox(height: 8),
-              itemBuilder: (context, i) {
-                final p = _scannedProducts[i];
-                return Container(
-                  padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(6),
-                    border: Border.all(color: Colors.grey.shade200),
-                  ),
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(p['name'], style: const TextStyle(fontWeight: FontWeight.bold)),
-                            Text(p['commonName'], style: const TextStyle(fontSize: 13, color: Colors.black54)),
-                          ],
-                        ),
-                      ),
-                      Text('SL: ${p['actualQty']}', style: const TextStyle(fontWeight: FontWeight.bold)),
-                    ],
-                  ),
-                );
-              },
-            ),
-        Row(
-          children: [
-            ElevatedButton.icon(
-              icon: const Icon(Icons.history),
-              label: const Text('Lịch sử kiểm kê'),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.grey[200],
-                foregroundColor: Colors.black87,
-                padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
-                textStyle: const TextStyle(fontWeight: FontWeight.bold),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
-              ),
-              onPressed: widget.onViewHistory,
-            ),
-            const Spacer(),
-            ElevatedButton.icon(
-              onPressed: _saving ? null : _saveInventorySession,
-              icon: _saving ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white)) : const Icon(Icons.save),
-              label: const Text('Lưu phiên kiểm kê'),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.blue,
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-                textStyle: const TextStyle(fontWeight: FontWeight.bold),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
-              ),
-            ),
-          ],
-        ),
-        if (_showHistory) ...[
-          const SizedBox(height: 24),
-          _buildHistoryPanel(),
-        ],
-      ],
     );
   }
 
