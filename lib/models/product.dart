@@ -14,7 +14,6 @@ class Product {
   final String ingredients;   // Thành phần
   final String notes;         // Ghi chú
   final int stock;           // Số lượng
-  final int actualStock;     // Số lượng thực tế
   final int invoiceStock;    // Số lượng trong hóa đơn
   final double importPrice;   // Giá nhập
   final double salePrice;     // Giá bán
@@ -37,7 +36,6 @@ class Product {
     this.ingredients = '',
     this.notes = '',
     this.stock = 0,
-    this.actualStock = 0,
     this.invoiceStock = 0,
     this.importPrice = 0,
     this.salePrice = 0,
@@ -62,7 +60,6 @@ class Product {
       'ingredients': ingredients,
       'notes': notes,
       'stock': stock,
-      'actualStock': actualStock,
       'invoiceStock': invoiceStock,
       'importPrice': importPrice,
       'salePrice': salePrice,
@@ -112,29 +109,38 @@ class Product {
     } catch (e) {
       print('ERROR parsing updatedAt: $e');
     }
-    
-    createdAt ??= DateTime.now();
-    updatedAt ??= DateTime.now();
-    print('Final dates - createdAt: $createdAt, updatedAt: $updatedAt');
 
-    // Handle tags conversion
-    List<String> tags = [];
-    if (map['tags'] != null) {
-      if (map['tags'] is List) {
-        tags = List<String>.from(map['tags'].map((tag) => tag.toString()));
-      } else if (map['tags'] is String) {
-        tags = [map['tags'] as String];
+    if (createdAt == null) {
+      print('WARNING: createdAt is null, using current time');
+      createdAt = DateTime.now();
+    }
+    if (updatedAt == null) {
+      print('WARNING: updatedAt is null, using current time');
+      updatedAt = DateTime.now();
+    }
+
+    print('DEBUG: Parsing category...');
+    String category = 'Khác';
+    if (map['category'] != null) {
+      if (map['category'] is List) {
+        final categories = (map['category'] as List).map((e) => e.toString()).toList();
+        category = categories.isNotEmpty ? categories.first : 'Khác';
+        print('Category is List, using first item: $category');
+      } else {
+        category = map['category'].toString();
+        print('Category is String: $category');
       }
     }
 
-    // Handle category conversion
-    String category = 'Khác';
-    if (map['category'] != null) {
-      if (map['category'] is String) {
-        category = map['category'] as String;
-      } else if (map['category'] is List) {
-        List<String> categories = List<String>.from(map['category'].map((cat) => cat.toString()));
-        category = categories.isNotEmpty ? categories.first : 'Khác';
+    print('DEBUG: Parsing tags...');
+    List<String> tags = [];
+    if (map['tags'] != null) {
+      if (map['tags'] is List) {
+        tags = (map['tags'] as List).map((e) => e.toString()).toList();
+        print('Tags is List: $tags');
+      } else if (map['tags'] is String) {
+        tags = (map['tags'] as String).split(',').map((e) => e.trim()).toList();
+        print('Tags is String, split by comma: $tags');
       }
     }
 
@@ -152,7 +158,6 @@ class Product {
       ingredients: map['ingredients'] ?? '',
       notes: map['notes'] ?? '',
       stock: map['stock'] ?? 0,
-      actualStock: map['actualStock'] ?? 0,
       invoiceStock: map['invoiceStock'] ?? 0,
       importPrice: (map['importPrice'] ?? 0).toDouble(),
       salePrice: (map['salePrice'] ?? 0).toDouble(),
@@ -186,7 +191,6 @@ class Product {
     String? ingredients,
     String? notes,
     int? stock,
-    int? actualStock,
     int? invoiceStock,
     double? importPrice,
     double? salePrice,
@@ -209,7 +213,6 @@ class Product {
       ingredients: ingredients ?? this.ingredients,
       notes: notes ?? this.notes,
       stock: stock ?? this.stock,
-      actualStock: actualStock ?? this.actualStock,
       invoiceStock: invoiceStock ?? this.invoiceStock,
       importPrice: importPrice ?? this.importPrice,
       salePrice: salePrice ?? this.salePrice,
