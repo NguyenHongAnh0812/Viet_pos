@@ -578,7 +578,7 @@ class _ShopifyDropdownDemoState extends State<_ShopifyDropdownDemo> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text('Danh mục', style: labelLarge),
+        Text('Danh mục', style: labelLarge),
         const SizedBox(height: space8),
         SizedBox(
           width: 340,

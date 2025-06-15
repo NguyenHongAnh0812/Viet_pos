@@ -17,6 +17,7 @@ class ProductCategoryService {
     await _firestore.collection(_collection).add({
       'name': category.name,
       'description': category.description,
+      if (category.parentId != null) 'parentId': category.parentId,
     });
   }
 
@@ -49,10 +50,10 @@ class ProductCategoryService {
   Future<void> syncCategoriesFromProducts() async {
     // Lấy tất cả category từ sản phẩm
     final prodDocs = await _firestore.collection('products').get();
-    final productCategories = prodDocs.docs.map((d) => d['category']?.toString().trim()).where((c) => c != null && c!.isNotEmpty).cast<String>().toSet();
+    final productCategories = prodDocs.docs.map((d) => d['category']?.toString().trim()).where((c) => c != null && c.isNotEmpty).cast<String>().toSet();
     // Lấy tất cả danh mục chuẩn
     final catDocs = await _firestore.collection(_collection).get();
-    final existingCategories = catDocs.docs.map((d) => d['name']?.toString().trim().toLowerCase()).where((c) => c != null && c!.isNotEmpty).cast<String>().toSet();
+    final existingCategories = catDocs.docs.map((d) => d['name']?.toString().trim().toLowerCase()).where((c) => c != null && c.isNotEmpty).cast<String>().toSet();
     // Tìm các category còn thiếu
     final missing = productCategories.where((c) => !existingCategories.contains(c.toLowerCase()));
     // Thêm vào collection chuẩn

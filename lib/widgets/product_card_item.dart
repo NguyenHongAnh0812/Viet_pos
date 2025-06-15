@@ -58,7 +58,7 @@ class ProductCardItem extends StatelessWidget {
                               label: Text(tag, style: const TextStyle(fontSize: 13)),
                               backgroundColor: Colors.grey[100],
                               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                            )).toList(),
+                            )),
                       ],
                     ),
                   ],

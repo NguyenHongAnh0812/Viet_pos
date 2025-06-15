@@ -47,16 +47,36 @@ class ProductService {
 
   // Lấy danh sách sản phẩm
   Stream<List<Product>> getProducts() {
-    print('=== Fetching Products from Firebase ===');
+    print('\n=== DEBUG: Fetching Products from Firebase ===');
     return _firestore
         .collection(_collection)
         .snapshots()
         .map((snapshot) {
-      print('Firebase returned ${snapshot.docs.length} products');
-      final products = snapshot.docs
-          .map((doc) => Product.fromMap(doc.id, doc.data()))
-          .toList();
-      print('Successfully parsed ${products.length} products');
+      print('DEBUG: Firebase returned ${snapshot.docs.length} products');
+      final products = <Product>[];
+      for (final doc in snapshot.docs) {
+        try {
+          print('\nDEBUG: Processing product document:');
+          print('Document ID: ${doc.id}');
+          print('Raw data: ${doc.data()}');
+          
+          final product = Product.fromMap(doc.id, doc.data());
+          print('Successfully parsed product:');
+          print('- Name: ${product.name}');
+          print('- Category: ${product.category}');
+          print('- Stock: ${product.stock}');
+          print('- Price: ${product.salePrice}');
+          
+          products.add(product);
+        } catch (e) {
+          print('\nERROR: Failed to parse product:');
+          print('Document ID: ${doc.id}');
+          print('Raw data: ${doc.data()}');
+          print('Error: $e');
+        }
+      }
+      print('\nDEBUG: Total products parsed: ${products.length}');
+      print('=== End Debug ===\n');
       return products;
     });
   }

@@ -23,6 +23,7 @@ class _AddProductCategoryScreenState extends State<AddProductCategoryScreen> {
   bool isSaving = false;
   int _selectedTab = 0; // 0: Gán thủ công, 1: Điều kiện tự động
   bool _showSelectedPanel = true;
+  String? _selectedParentId;
 
   @override
   void dispose() {
@@ -49,7 +50,7 @@ class _AddProductCategoryScreenState extends State<AddProductCategoryScreen> {
     setState(() => isSaving = true);
     try {
       // Tạo danh mục mới
-      final newCat = ProductCategory(id: '', name: name, description: desc);
+      final newCat = ProductCategory(id: '', name: name, description: desc, parentId: _selectedParentId);
       await _categoryService.addCategory(newCat);
       // Gán sản phẩm vào danh mục
       for (final p in selectedProducts) {
@@ -117,6 +118,30 @@ class _AddProductCategoryScreenState extends State<AddProductCategoryScreen> {
                         hint: 'Nhập tên danh mục',
                       ),
                     ),
+                  ),
+                  const SizedBox(height: 16),
+                  DesignSystemFormField(
+                    label: 'Danh mục cha',
+                    input: StreamBuilder<List<ProductCategory>>(
+                      stream: _categoryService.getCategories(),
+                      builder: (context, snapshot) {
+                        final categories = snapshot.data ?? [];
+                        // Không cho chọn chính mình hoặc danh mục con làm cha (ở đây chỉ khi tạo mới, nên chỉ cần loại bỏ tên trùng)
+                        final parentOptions = [null, ...categories];
+                        return ShopifyDropdown<String?>(
+                          items: parentOptions.map((c) => c?.id).toList(),
+                          value: _selectedParentId,
+                          getLabel: (id) {
+                            if (id == null) return 'Không có (Danh mục gốc)';
+                            final cat = categories.firstWhere((c) => c.id == id, orElse: () => ProductCategory(id: '', name: '', description: ''));
+                            return cat.name.isNotEmpty ? cat.name : '(Không xác định)';
+                          },
+                          onChanged: (val) => setState(() => _selectedParentId = val),
+                          hint: 'Chọn danh mục cha',
+                        );
+                      },
+                    ),
+                    helperText: 'Chọn danh mục cha nếu có (mặc định là danh mục gốc)',
                   ),
                   const SizedBox(height: 16),
                   DesignSystemFormField(
@@ -289,7 +314,7 @@ class _AddProductCategoryScreenState extends State<AddProductCategoryScreen> {
                                               child: Row(
                                                 mainAxisAlignment: MainAxisAlignment.end,
                                                 children: [
-                                                  Text('${p.salePrice.toStringAsFixed(0).replaceAllMapped(RegExp(r"(\d)(?=(\d{3})+(?!\d))"), (m) => "${m[1]}.")}', style: const TextStyle(fontWeight: FontWeight.bold)),
+                                                  Text(p.salePrice.toStringAsFixed(0).replaceAllMapped(RegExp(r"(\d)(?=(\d{3})+(?!\d))"), (m) => "${m[1]}."), style: const TextStyle(fontWeight: FontWeight.bold)),
                                                   const SizedBox(width: 2),
                                                   Text('đ', style: TextStyle(fontSize: 13, color: Colors.grey[600], fontWeight: FontWeight.w500)),
                                                   const SizedBox(width: 18),

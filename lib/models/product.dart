@@ -14,47 +14,36 @@ class Product {
   final String ingredients;   // Thành phần
   final String notes;         // Ghi chú
   final int stock;           // Số lượng
+  final int invoiceStock;    // Số lượng trong hóa đơn
   final double importPrice;   // Giá nhập
   final double salePrice;     // Giá bán
   final bool isActive;        // Trạng thái
   final DateTime createdAt;   // Ngày tạo
   final DateTime updatedAt;   // Ngày cập nhật
+  final String? distributor; // Tên nhà phân phối (optional)
 
   Product({
     required this.id,
-    required this.name,
-    required this.commonName,
-    required this.category,
+    this.name = '',
+    this.commonName = '',
+    this.category = 'Khác',
     this.barcode,
     this.sku,
-    required this.unit,
-    required this.tags,
-    required this.description,
-    required this.usage,
-    required this.ingredients,
-    required this.notes,
-    required this.stock,
-    required this.importPrice,
-    required this.salePrice,
-    required this.isActive,
+    this.unit = '',
+    this.tags = const [],
+    this.description = '',
+    this.usage = '',
+    this.ingredients = '',
+    this.notes = '',
+    this.stock = 0,
+    this.invoiceStock = 0,
+    this.importPrice = 0,
+    this.salePrice = 0,
+    this.isActive = true,
     required this.createdAt,
     required this.updatedAt,
-  }) : assert(id != null),
-      // assert(name.isNotEmpty, 'name is empty'),
-     //  assert(commonName.isNotEmpty, 'commonName is empty'),
-      //  assert(category.isNotEmpty, 'category is empty'),
-      // assert(unit.isNotEmpty, 'unit is empty'),
-       //assert(tags != null, 'tags is null'),
-      //  assert(description.isNotEmpty, 'description is empty'),
-      //  assert(usage.isNotEmpty, 'usage is empty'),
-      //  assert(ingredients.isNotEmpty, 'ingredients is empty'),
-      //  assert(notes.isNotEmpty, 'notes is empty'),
-       assert(stock != null, 'stock is null');
-       //assert(importPrice != null, 'importPrice is null'),
-       //assert(salePrice != null, 'salePrice is null'),
-       //assert(isActive != null, 'isActive is null'),
-       //assert(createdAt != null, 'createdAt is null'),
-       //assert(updatedAt != null, 'updatedAt is null');
+    this.distributor,
+  });
 
   // Convert to Map for Firestore
   Map<String, dynamic> toMap() {
@@ -71,36 +60,121 @@ class Product {
       'ingredients': ingredients,
       'notes': notes,
       'stock': stock,
+      'invoiceStock': invoiceStock,
       'importPrice': importPrice,
       'salePrice': salePrice,
       'isActive': isActive,
       'createdAt': createdAt,
       'updatedAt': updatedAt,
+      'distributor': distributor,
     };
   }
 
   // Create from Firestore document
   factory Product.fromMap(String id, Map<String, dynamic> map) {
-    return Product(
+    print('\nDEBUG: Parsing product from map:');
+    print('ID: $id');
+    print('Raw map: $map');
+    
+    DateTime? createdAt;
+    DateTime? updatedAt;
+    try {
+      print('DEBUG: Parsing createdAt...');
+      if (map['createdAt'] is Timestamp) {
+        createdAt = (map['createdAt'] as Timestamp).toDate();
+        print('createdAt is Timestamp: $createdAt');
+      } else if (map['createdAt'] is DateTime) {
+        createdAt = map['createdAt'] as DateTime;
+        print('createdAt is DateTime: $createdAt');
+      } else if (map['createdAt'] != null) {
+        createdAt = DateTime.tryParse(map['createdAt'].toString());
+        print('createdAt parsed from string: $createdAt');
+      }
+    } catch (e) {
+      print('ERROR parsing createdAt: $e');
+    }
+    
+    try {
+      print('DEBUG: Parsing updatedAt...');
+      if (map['updatedAt'] is Timestamp) {
+        updatedAt = (map['updatedAt'] as Timestamp).toDate();
+        print('updatedAt is Timestamp: $updatedAt');
+      } else if (map['updatedAt'] is DateTime) {
+        updatedAt = map['updatedAt'] as DateTime;
+        print('updatedAt is DateTime: $updatedAt');
+      } else if (map['updatedAt'] != null) {
+        updatedAt = DateTime.tryParse(map['updatedAt'].toString());
+        print('updatedAt parsed from string: $updatedAt');
+      }
+    } catch (e) {
+      print('ERROR parsing updatedAt: $e');
+    }
+
+    if (createdAt == null) {
+      print('WARNING: createdAt is null, using current time');
+      createdAt = DateTime.now();
+    }
+    if (updatedAt == null) {
+      print('WARNING: updatedAt is null, using current time');
+      updatedAt = DateTime.now();
+    }
+
+    print('DEBUG: Parsing category...');
+    String category = 'Khác';
+    if (map['category'] != null) {
+      if (map['category'] is List) {
+        final categories = (map['category'] as List).map((e) => e.toString()).toList();
+        category = categories.isNotEmpty ? categories.first : 'Khác';
+        print('Category is List, using first item: $category');
+      } else {
+        category = map['category'].toString();
+        print('Category is String: $category');
+      }
+    }
+
+    print('DEBUG: Parsing tags...');
+    List<String> tags = [];
+    if (map['tags'] != null) {
+      if (map['tags'] is List) {
+        tags = (map['tags'] as List).map((e) => e.toString()).toList();
+        print('Tags is List: $tags');
+      } else if (map['tags'] is String) {
+        tags = (map['tags'] as String).split(',').map((e) => e.trim()).toList();
+        print('Tags is String, split by comma: $tags');
+      }
+    }
+
+    final product = Product(
       id: id,
-      name: map['name'] ?? '',
+      name: map['name'] ?? map['commonName'] ?? '',
       commonName: map['commonName'] ?? '',
-      category: map['category'] ?? '',
+      category: category,
       barcode: map['barcode'],
       sku: map['sku'],
       unit: map['unit'] ?? '',
-      tags: List<String>.from(map['tags'] ?? []),
+      tags: tags,
       description: map['description'] ?? '',
       usage: map['usage'] ?? '',
       ingredients: map['ingredients'] ?? '',
       notes: map['notes'] ?? '',
       stock: map['stock'] ?? 0,
+      invoiceStock: map['invoiceStock'] ?? 0,
       importPrice: (map['importPrice'] ?? 0).toDouble(),
       salePrice: (map['salePrice'] ?? 0).toDouble(),
       isActive: map['isActive'] ?? true,
-      createdAt: (map['createdAt'] as Timestamp).toDate(),
-      updatedAt: (map['updatedAt'] as Timestamp).toDate(),
+      createdAt: createdAt,
+      updatedAt: updatedAt,
+      distributor: map['distributor'],
     );
+    
+    print('DEBUG: Successfully created product:');
+    print('- Name: ${product.name}');
+    print('- Category: ${product.category}');
+    print('- Stock: ${product.stock}');
+    print('- Price: ${product.salePrice}');
+    print('=== End Product Parse ===\n');
+    
+    return product;
   }
 
   Product copyWith({
@@ -117,11 +191,13 @@ class Product {
     String? ingredients,
     String? notes,
     int? stock,
+    int? invoiceStock,
     double? importPrice,
     double? salePrice,
     bool? isActive,
     DateTime? createdAt,
     DateTime? updatedAt,
+    String? distributor,
   }) {
     return Product(
       id: id ?? this.id,
@@ -137,11 +213,13 @@ class Product {
       ingredients: ingredients ?? this.ingredients,
       notes: notes ?? this.notes,
       stock: stock ?? this.stock,
+      invoiceStock: invoiceStock ?? this.invoiceStock,
       importPrice: importPrice ?? this.importPrice,
       salePrice: salePrice ?? this.salePrice,
       isActive: isActive ?? this.isActive,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
+      distributor: distributor ?? this.distributor,
     );
   }
 } 

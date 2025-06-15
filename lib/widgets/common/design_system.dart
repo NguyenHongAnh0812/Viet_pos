@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 /// VET-POS Flutter Style Guide
 /// Based on the VET-POS web design system with consistent naming conventions
@@ -10,12 +11,13 @@ const Color warningOrange = Color(0xFFFFB547); // --warning
 const Color destructiveRed = Color(0xFFFF5A5F); // --destructive
 const Color borderColor = Color(0xFFE5E7EB); // --border
 
-const Color appBackground = Color(0xFFF7F9FC); // --background
+const Color appBackground = Color(0xFFF7F9FC); // --background (changed to white)
 const Color cardBackground = Color(0xFFFFFFFF); // --card
 const Color textPrimary = Color(0xFF1E1E1E); // --foreground
 const Color textSecondary = Color(0xFF71717A); // --muted-foreground
 const Color textMuted = Color(0xFF71717A); // --muted-foreground
-const Color textThird = Color(0xFF94A3B8); // --text-third
+const Color textThird = Color(0xFF4B5563); // --text-third
+const Color textActive = Color(0xFF374145); // --foreground
 const Color mutedBackground = Color(0xFFF1F3F6); // --muted
 const Color accentBackground = Color(0xFFF1F3F6); // --accent
 const Color accentForeground = Color(0xFF18181B); // --accent-foreground
@@ -26,6 +28,7 @@ const Color sidebarForeground = Color(0xFF1E1E1E);
 const Color sidebarPrimary = Color(0xFF3A6FF8);
 const Color sidebarAccent = Color(0xFFF1F3F6);
 const Color sidebarBorder = Color(0xFFE4E4E7);
+const Color sidebarHoverBackground = Color(0xFFF3F4F6); // sidebar hover background
 
 // Status colors
 const Color successGreen = Color(0xFF67C687);
@@ -97,42 +100,56 @@ const double headerHeight = 64.0;
 const double bottomNavHeight = 80.0;
 
 // ===================== RESPONSIVE TYPOGRAPHY =====================
-const TextStyle h1Mobile = TextStyle(fontSize: 20, fontWeight: FontWeight.bold, fontFamily: fontFamily, color: textPrimary);
-const TextStyle h2Mobile = TextStyle(fontSize: 16, fontWeight: FontWeight.bold, fontFamily: fontFamily, color: textPrimary);
-const TextStyle h3Mobile = TextStyle(fontSize: 14, fontWeight: FontWeight.w600, fontFamily: fontFamily, color: textPrimary);
-const TextStyle bodyMobile = TextStyle(fontSize: 14, fontWeight: FontWeight.normal, fontFamily: fontFamily, color: textPrimary);
-const TextStyle smallMobile = TextStyle(fontSize: 12, fontWeight: FontWeight.normal, fontFamily: fontFamily, color: textPrimary);
-const TextStyle captionMobile = TextStyle(fontSize: 11, fontWeight: FontWeight.normal, fontFamily: fontFamily, color: textPrimary);
-const double spaceMobile = 8.0;
-
 TextStyle responsiveTextStyle(BuildContext context, TextStyle desktop, TextStyle mobile) {
   return MediaQuery.of(context).size.width < 1024 ? mobile : desktop;
 }
 
 // ===================== TYPOGRAPHY =====================
-const String fontFamily = 'Inter';
+TextStyle getInterTextStyle({
+  required double fontSize,
+  required FontWeight fontWeight,
+  Color color = textPrimary,
+  double? height,
+  double? letterSpacing,
+}) {
+  return GoogleFonts.inter(
+    fontSize: fontSize,
+    fontWeight: fontWeight,
+    color: color,
+    height: height,
+    letterSpacing: letterSpacing,
+  );
+}
 
 // Heading Styles
-const TextStyle h1 = TextStyle(fontSize: 32, fontWeight: FontWeight.w700, fontFamily: fontFamily, color: textPrimary, height: 1.2);
-const TextStyle h2 = TextStyle(fontSize: 24, fontWeight: FontWeight.w600, fontFamily: fontFamily, color: textPrimary, height: 1.3);
-const TextStyle h3 = TextStyle(fontSize: 20, fontWeight: FontWeight.w600, fontFamily: fontFamily, color: textPrimary, height: 1.4);
-const TextStyle h4 = TextStyle(fontSize: 18, fontWeight: FontWeight.w600, fontFamily: fontFamily, color: textPrimary, height: 1.4);
+TextStyle get h1 => getInterTextStyle(fontSize: 24, fontWeight: FontWeight.w700, height: 1.2, letterSpacing: 0.0);
+TextStyle get h2 => getInterTextStyle(fontSize: 24, fontWeight: FontWeight.w700, height: 1.2, letterSpacing: 0.0);
+TextStyle get h3 => getInterTextStyle(fontSize: 20, fontWeight: FontWeight.w600, height: 1.4, letterSpacing: 0.0);
+TextStyle get h4 => getInterTextStyle(fontSize: 18, fontWeight: FontWeight.w600, height: 1.4, letterSpacing: 0.0);
 
 // Body Text Styles
-const TextStyle bodyLarge = TextStyle(fontSize: 16, fontWeight: FontWeight.w400, fontFamily: fontFamily, color: textPrimary, height: 1.5);
-const TextStyle body = TextStyle(fontSize: 14, fontWeight: FontWeight.w400, fontFamily: fontFamily, color: textPrimary, height: 1.5);
-const TextStyle bodySmall = TextStyle(fontSize: 12, fontWeight: FontWeight.w400, fontFamily: fontFamily, color: textPrimary, height: 1.4);
+TextStyle get bodyLarge => getInterTextStyle(fontSize: 14, fontWeight: FontWeight.w400, height: 1.5, letterSpacing: 0.0);
+TextStyle get body => getInterTextStyle(fontSize: 14, fontWeight: FontWeight.w400, height: 1.5, letterSpacing: 0.0);
+TextStyle get bodySmall => getInterTextStyle(fontSize: 12, fontWeight: FontWeight.w400, height: 1.4, letterSpacing: 0.0);
 
 // Label Styles
-const TextStyle labelLarge = TextStyle(fontSize: 14, fontWeight: FontWeight.w500, fontFamily: fontFamily, color: textPrimary, height: 1.4);
-const TextStyle labelMedium = TextStyle(fontSize: 12, fontWeight: FontWeight.w500, fontFamily: fontFamily, color: textPrimary, height: 1.4);
-const TextStyle labelSmall = TextStyle(fontSize: 11, fontWeight: FontWeight.w500, fontFamily: fontFamily, color: textPrimary, height: 1.3);
+TextStyle get labelLarge => getInterTextStyle(fontSize: 14, fontWeight: FontWeight.w500, height: 1.4, letterSpacing: 0.0);
+TextStyle get labelMedium => getInterTextStyle(fontSize: 12, fontWeight: FontWeight.w500, height: 1.4, letterSpacing: 0.0);
+TextStyle get labelSmall => getInterTextStyle(fontSize: 11, fontWeight: FontWeight.w500, height: 1.3, letterSpacing: 0.0);
 
 // Utility Styles
-const TextStyle heading = TextStyle(fontSize: 16, fontWeight: FontWeight.normal, fontFamily: fontFamily, color: textPrimary);
-const TextStyle caption = TextStyle(fontSize: 12, fontWeight: FontWeight.normal, fontFamily: fontFamily, color: textMuted);
-const TextStyle small = TextStyle(fontSize: 14, fontWeight: FontWeight.normal, fontFamily: fontFamily, color: textPrimary);
-const TextStyle mutedText = TextStyle(fontSize: 14, fontWeight: FontWeight.w400, fontFamily: fontFamily, color: textMuted, height: 1.5);
+TextStyle get heading => getInterTextStyle(fontSize: 16, fontWeight: FontWeight.w400, letterSpacing: 0.0);
+TextStyle get caption => getInterTextStyle(fontSize: 12, fontWeight: FontWeight.w400, color: textMuted, letterSpacing: 0.0);
+TextStyle get small => getInterTextStyle(fontSize: 14, fontWeight: FontWeight.w400, letterSpacing: 0.0);
+TextStyle get mutedText => getInterTextStyle(fontSize: 14, fontWeight: FontWeight.w400, color: textMuted, height: 1.5, letterSpacing: 0.0);
+
+// Mobile Styles
+TextStyle get h1Mobile => getInterTextStyle(fontSize: 20, fontWeight: FontWeight.w700, letterSpacing: 0.0);
+TextStyle get h2Mobile => getInterTextStyle(fontSize: 16, fontWeight: FontWeight.w700, letterSpacing: 0.0);
+TextStyle get h3Mobile => getInterTextStyle(fontSize: 14, fontWeight: FontWeight.w600, letterSpacing: 0.0);
+TextStyle get bodyMobile => getInterTextStyle(fontSize: 14, fontWeight: FontWeight.w400, letterSpacing: 0.0);
+TextStyle get smallMobile => getInterTextStyle(fontSize: 12, fontWeight: FontWeight.w400, letterSpacing: 0.0);
+TextStyle get captionMobile => getInterTextStyle(fontSize: 11, fontWeight: FontWeight.w400, letterSpacing: 0.0);
 
 // ===================== BUTTON STYLES =====================
 const double buttonBorderRadius = 6.0;
@@ -679,7 +696,6 @@ class DesignSystemBadge extends StatelessWidget {
           color: fg,
           fontSize: fontSize ?? 13,
           fontWeight: FontWeight.bold,
-          fontFamily: fontFamily,
         ),
       ),
     );
@@ -1132,53 +1148,22 @@ bool isMobile(double screenWidth) => screenWidth < 600;
 bool isTablet(double screenWidth) => screenWidth >= 600 && screenWidth < 900;
 bool isDesktop(double screenWidth) => screenWidth >= 900;
 
-// ===================== THEME DATA =====================
-ThemeData get vetPosThemeData => ThemeData(
-  fontFamily: fontFamily,
+// ===================== THEME =====================
+ThemeData get lightTheme => ThemeData(
+  useMaterial3: true,
   colorScheme: ColorScheme.light(
     primary: primaryBlue,
     secondary: secondaryGreen,
-    surface: cardBackground,
-    background: appBackground,
     error: destructiveRed,
+    background: appBackground,
+    surface: cardBackground,
     onPrimary: Colors.white,
     onSecondary: Colors.white,
-    onSurface: textPrimary,
-    onBackground: textPrimary,
     onError: Colors.white,
+    onBackground: textPrimary,
+    onSurface: textPrimary,
   ),
-  scaffoldBackgroundColor: appBackground,
-  appBarTheme: AppBarTheme(
-    backgroundColor: cardBackground,
-    foregroundColor: textPrimary,
-    elevation: 1,
-    shadowColor: borderColor,
-    titleTextStyle: h4,
-    toolbarHeight: headerHeight,
-  ),
-  elevatedButtonTheme: ElevatedButtonThemeData(style: primaryButtonStyle),
-  outlinedButtonTheme: OutlinedButtonThemeData(style: secondaryButtonStyle),
-  inputDecorationTheme: InputDecorationTheme(
-    filled: true,
-    fillColor: cardBackground,
-    border: designSystemInputDecoration().border,
-    enabledBorder: designSystemInputDecoration().enabledBorder,
-    focusedBorder: designSystemInputDecoration().focusedBorder,
-    errorBorder: designSystemInputDecoration().errorBorder,
-    contentPadding: designSystemInputDecoration().contentPadding,
-    hintStyle: designSystemInputDecoration().hintStyle,
-  ),
-  cardTheme: CardTheme(
-    color: cardBackground,
-    elevation: 1,
-    shape: RoundedRectangleBorder(
-      borderRadius: BorderRadius.circular(borderRadiusMedium),
-      side: const BorderSide(color: borderColor),
-    ),
-    margin: EdgeInsets.zero,
-  ),
-  dividerColor: borderColor,
-  textTheme: const TextTheme(
+  textTheme: TextTheme(
     displayLarge: h1,
     displayMedium: h2,
     displaySmall: h3,
@@ -1189,6 +1174,37 @@ ThemeData get vetPosThemeData => ThemeData(
     labelLarge: labelLarge,
     labelMedium: labelMedium,
     labelSmall: labelSmall,
+  ),
+  scaffoldBackgroundColor: appBackground,
+  cardTheme: CardThemeData(
+    color: cardBackground,
+    elevation: 0,
+    shape: RoundedRectangleBorder(
+      borderRadius: BorderRadius.circular(borderRadiusMedium),
+      side: const BorderSide(color: borderColor),
+    ),
+    margin: EdgeInsets.zero,
+  ),
+  dividerColor: borderColor,
+  appBarTheme: AppBarTheme(
+    backgroundColor: appBackground,
+    foregroundColor: textPrimary,
+    elevation: 0,
+    shadowColor: borderColor,
+    titleTextStyle: h4,
+    toolbarHeight: headerHeight,
+  ),
+  elevatedButtonTheme: ElevatedButtonThemeData(style: primaryButtonStyle),
+  outlinedButtonTheme: OutlinedButtonThemeData(style: secondaryButtonStyle),
+  inputDecorationTheme: InputDecorationTheme(
+    filled: true,
+    fillColor: appBackground,
+    border: designSystemInputDecoration().border,
+    enabledBorder: designSystemInputDecoration().enabledBorder,
+    focusedBorder: designSystemInputDecoration().focusedBorder,
+    errorBorder: designSystemInputDecoration().errorBorder,
+    contentPadding: designSystemInputDecoration().contentPadding,
+    hintStyle: designSystemInputDecoration().hintStyle,
   ),
 );
 
@@ -1334,7 +1350,7 @@ DesignSystemRadioGroup<String>(
 
 // Example 14: Using the complete theme
 MaterialApp(
-  theme: vetPosThemeData,
+  theme: lightTheme,
   home: YourHomeWidget(),
 )
 
@@ -1727,4 +1743,245 @@ class _ShopifyDropdownItemState<T> extends State<_ShopifyDropdownItem<T>> {
       ),
     );
   }
+}
+
+class FilterSidebarContent extends StatefulWidget {
+  final VoidCallback? onClose;
+  final List<String> categories;
+  final List<String> tags;
+  final String selectedCategory;
+  final RangeValues priceRange;
+  final RangeValues stockRange;
+  final String status;
+  final Set<String> selectedTags;
+  final void Function({required String category, required RangeValues price, required RangeValues stock, required String statusValue, required Set<String> tagsValue}) onApply;
+  final VoidCallback onReset;
+  const FilterSidebarContent({
+    Key? key,
+    this.onClose,
+    required this.categories,
+    required this.tags,
+    required this.selectedCategory,
+    required this.priceRange,
+    required this.stockRange,
+    required this.status,
+    required this.selectedTags,
+    required this.onApply,
+    required this.onReset,
+  }) : super(key: key);
+
+  @override
+  State<FilterSidebarContent> createState() => _FilterSidebarContentState();
+}
+
+class _FilterSidebarContentState extends State<FilterSidebarContent> {
+  late String selectedCategory;
+  late RangeValues priceRange;
+  late RangeValues stockRange;
+  late String status;
+  late Set<String> selectedTags;
+
+  @override
+  void initState() {
+    super.initState();
+    selectedCategory = widget.selectedCategory;
+    priceRange = widget.priceRange;
+    stockRange = widget.stockRange;
+    status = widget.status;
+    selectedTags = Set<String>.from(widget.selectedTags);
+  }
+
+  void _reset() {
+    setState(() {
+      selectedCategory = 'Tất cả';
+      priceRange = const RangeValues(3000, 375000);
+      stockRange = const RangeValues(50, 500);
+      status = 'Tất cả';
+      selectedTags.clear();
+    });
+    widget.onReset();
+  }
+
+  void _apply() {
+    widget.onApply(
+      category: selectedCategory,
+      price: priceRange,
+      stock: stockRange,
+      statusValue: status,
+      tagsValue: selectedTags,
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text('Bộ lọc sản phẩm', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20)),
+              IconButton(
+                icon: const Icon(Icons.close),
+                onPressed: widget.onClose,
+              ),
+            ],
+          ),
+        ),
+        Expanded(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const SizedBox(height: 6),
+                Text('Danh mục sản phẩm', style: labelLarge),
+                const SizedBox(height: 8),
+                ShopifyDropdown<String>(
+                  items: widget.categories,
+                  value: selectedCategory,
+                  getLabel: (c) => c,
+                  onChanged: (val) => setState(() => selectedCategory = val ?? 'Tất cả'),
+                  hint: 'Chọn danh mục',
+                ),
+                const SizedBox(height: 24),
+                Text('Khoảng giá', style: labelLarge),
+                const SizedBox(height: 8),
+                designSystemRangeSlider(
+                  context: context,
+                  values: priceRange,
+                  min: widget.priceRange.start,
+                  max: widget.priceRange.end,
+                  divisions: 100,
+                  onChanged: (v) => setState(() => priceRange = v),
+                ),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text('${priceRange.start.toStringAsFixed(0)}₫', style: caption),
+                    Text('${priceRange.end.toStringAsFixed(0)}₫', style: caption),
+                  ],
+                ),
+                const SizedBox(height: 24),
+                Text('Tồn kho', style: labelLarge),
+                const SizedBox(height: 8),
+                designSystemRangeSlider(
+                  context: context,
+                  values: stockRange,
+                  min: widget.stockRange.start,
+                  max: widget.stockRange.end,
+                  divisions: 50,
+                  onChanged: (v) => setState(() => stockRange = v),
+                ),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text('${stockRange.start.toInt()}', style: caption),
+                    Text('${stockRange.end.toInt()}', style: caption),
+                  ],
+                ),
+                const SizedBox(height: 24),
+                Text('Trạng thái sản phẩm', style: labelLarge),
+                const SizedBox(height: 8),
+                DesignSystemRadioGroup<String>(
+                  options: const ['Tất cả', 'Còn bán', 'Ngừng bán'],
+                  value: status,
+                  getLabel: (s) => s,
+                  onChanged: (v) => setState(() => status = v ?? 'Tất cả'),
+                  direction: Axis.vertical,
+                ),
+                const SizedBox(height: 24),
+                Text('Tags', style: labelLarge),
+                const SizedBox(height: 8),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: widget.tags.map((tag) {
+                    final isSelected = selectedTags.contains(tag);
+                    return GestureDetector(
+                      onTap: () => setState(() {
+                        if (isSelected) {
+                          selectedTags.remove(tag);
+                        } else {
+                          selectedTags.add(tag);
+                        }
+                      }),
+                      child: DesignSystemBadge(
+                        text: tag,
+                        variant: isSelected ? BadgeVariant.secondary : BadgeVariant.outline,
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                        fontSize: 13,
+                        borderRadius: 16,
+                      ),
+                    );
+                  }).toList(),
+                ),
+                const SizedBox(height: 32),
+                Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton(
+                        onPressed: _reset,
+                        child: const Text('Xóa bộ lọc'),
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: ElevatedButton(
+                        onPressed: _apply,
+                        style: primaryButtonStyle,
+                        child: const Text('Áp dụng'),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+// ===================== RANGE SLIDER =====================
+Widget designSystemRangeSlider({
+  required BuildContext context,
+  required RangeValues values,
+  required double min,
+  required double max,
+  required ValueChanged<RangeValues> onChanged,
+  int? divisions,
+  String? label,
+  Color? activeColor,
+  Color? inactiveColor,
+  double trackHeight = 4,
+  double thumbRadius = 10,
+  double overlayRadius = 18,
+}) {
+  return SliderTheme(
+    data: SliderTheme.of(context).copyWith(
+      activeTrackColor: activeColor ?? primaryBlue,
+      inactiveTrackColor: inactiveColor ?? borderColor,
+      trackHeight: trackHeight,
+      rangeThumbShape: RoundRangeSliderThumbShape(enabledThumbRadius: thumbRadius),
+      overlayShape: RoundSliderOverlayShape(overlayRadius: overlayRadius),
+      thumbColor: activeColor ?? primaryBlue,
+      overlayColor: (activeColor ?? primaryBlue).withOpacity(0.12),
+      valueIndicatorColor: activeColor ?? primaryBlue,
+      tickMarkShape: const RoundSliderTickMarkShape(),
+      activeTickMarkColor: borderColor,
+      inactiveTickMarkColor: borderColor.withOpacity(0.5),
+    ),
+    child: RangeSlider(
+      values: values,
+      min: min,
+      max: max,
+      divisions: divisions,
+      labels: label != null ? RangeLabels(label, label) : null,
+      onChanged: onChanged,
+    ),
+  );
 }

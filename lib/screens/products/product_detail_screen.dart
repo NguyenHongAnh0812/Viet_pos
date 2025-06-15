@@ -41,6 +41,9 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
   String? _selectedCategory;
   bool _isActive = false;
   final _categoryService = ProductCategoryService();
+  List<String> _selectedCategories = [];
+  List<String> _distributors = [];
+  String? _selectedDistributor;
 
   @override
   void initState() {
@@ -52,8 +55,12 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
     _skuController.text = p.sku ?? '';
     _unitController.text = p.unit;
     _quantityController.text = p.stock.toString();
-    _importPriceController.text = p.importPrice.toString();
-    _sellPriceController.text = p.salePrice.toString();
+    
+    // Format giá nhập và giá bán
+    final numberFormat = NumberFormat('#,###', 'vi_VN');
+    _importPriceController.text = numberFormat.format(p.importPrice.round());
+    _sellPriceController.text = numberFormat.format(p.salePrice.round());
+    
     _tagsController.text = p.tags.join(', ');
     _descriptionController.text = p.description;
     _usageController.text = p.usage;
@@ -62,10 +69,34 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
     _selectedCategory = p.category;
     _isActive = p.isActive;
     _tags = List<String>.from(p.tags);
+    if (p.category is List) {
+      _selectedCategories = (p.category as List).map((e) => e.toString()).toList();
+    } else if (p.category is String && p.category.isNotEmpty) {
+      if (p.category.contains(',')) {
+        _selectedCategories = p.category.split(',').map((e) => e.trim()).toList();
+      } else {
+        _selectedCategories = [p.category];
+      }
+    } else {
+      _selectedCategories = [];
+    }
+    _selectedDistributor = p.distributor;
+    _fetchDistributors();
+    
+    // Tính % lợi nhuận
     final calculatedMargin = ((p.salePrice / (p.importPrice == 0 ? 1 : p.importPrice) - 1) * 100).toStringAsFixed(0);
     if (calculatedMargin != _defaultProfitMargin.toString()) {
       _profitMarginController.text = calculatedMargin;
+    } else {
+      _profitMarginController.text = _defaultProfitMargin.toStringAsFixed(0);
     }
+  }
+
+  void _fetchDistributors() async {
+    final snapshot = await FirebaseFirestore.instance.collection('distributors').get();
+    setState(() {
+      _distributors = snapshot.docs.map((doc) => doc['name'] as String).toList();
+    });
   }
 
   @override
@@ -125,39 +156,82 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
     }
   }
 
-  void _saveProduct() async {
+  Future<void> _saveProduct() async {
     if (!_formKey.currentState!.validate()) return;
-    final updatedProduct = Product(
-      id: widget.product.id,
-      name: _nameController.text.trim(),
-      commonName: _commonNameController.text.trim(),
-      category: _selectedCategory ?? '',
-      barcode: _barcodeController.text.trim(),
-      sku: _skuController.text.trim(),
-      unit: _unitController.text.trim(),
-      tags: _tags,
-      description: _descriptionController.text.trim(),
-      usage: _usageController.text.trim(),
-      ingredients: _ingredientsController.text.trim(),
-      notes: _notesController.text.trim(),
-      stock: int.tryParse(_quantityController.text.trim()) ?? 0,
-      importPrice: double.tryParse(_importPriceController.text.trim()) ?? 0.0,
-      salePrice: double.tryParse(_sellPriceController.text.trim()) ?? 0.0,
-      isActive: _isActive,
-      createdAt: widget.product.createdAt,
-      updatedAt: DateTime.now(),
-    );
-    await FirebaseFirestore.instance.collection('products').doc(updatedProduct.id).set(updatedProduct.toMap());
-    if (mounted) {
-      OverlayEntry? entry;
-      entry = OverlayEntry(
-        builder: (_) => DesignSystemSnackbar(
-          message: 'Đã lưu sản phẩm!',
-          icon: Icons.check_circle,
-          onDismissed: () => entry?.remove(),
-        ),
-      );
-      Overlay.of(context).insert(entry);
+
+    try {
+      // Xử lý giá nhập và giá bán
+      final importPriceStr = _importPriceController.text.replaceAll(RegExp(r'[^\d]'), '');
+      final salePriceStr = _sellPriceController.text.replaceAll(RegExp(r'[^\d]'), '');
+      
+      print('Debug - Before saving:');
+      print('Import price string: ${_importPriceController.text}');
+      print('Import price cleaned: $importPriceStr');
+      print('Sale price string: ${_sellPriceController.text}');
+      print('Sale price cleaned: $salePriceStr');
+      
+      final importPrice = double.tryParse(importPriceStr) ?? 0.0;
+      final salePrice = double.tryParse(salePriceStr) ?? 0.0;
+      
+      print('Debug - Parsed values:');
+      print('Import price: $importPrice');
+      print('Sale price: $salePrice');
+      
+      final productData = {
+        'name': _nameController.text.trim(),
+        'commonName': _commonNameController.text.trim(),
+        'barcode': _barcodeController.text.trim(),
+        'sku': _skuController.text.trim(),
+        'unit': _unitController.text.trim(),
+        'stock': int.tryParse(_quantityController.text) ?? 0,
+        'importPrice': importPrice,
+        'salePrice': salePrice,
+        'tags': _tags,
+        'description': _descriptionController.text.trim(),
+        'usage': _usageController.text.trim(),
+        'ingredients': _ingredientsController.text.trim(),
+        'notes': _notesController.text.trim(),
+        'category': _selectedCategories,
+        'isActive': _isActive,
+        'distributor': _selectedDistributor,
+        'updatedAt': FieldValue.serverTimestamp(),
+      };
+
+      print('Debug - Final data to save:');
+      print('Import price in data: ${productData['importPrice']}');
+      print('Sale price in data: ${productData['salePrice']}');
+
+      await FirebaseFirestore.instance.collection('products').doc(widget.product.id).update(productData);
+      
+      // Format lại giá sau khi lưu
+      final numberFormat = NumberFormat('#,###', 'vi_VN');
+      _importPriceController.text = numberFormat.format(importPrice.round());
+      _sellPriceController.text = numberFormat.format(salePrice.round());
+      
+      if (mounted) {
+        OverlayEntry? entry;
+        entry = OverlayEntry(
+          builder: (_) => DesignSystemSnackbar(
+            message: 'Đã cập nhật sản phẩm thành công',
+            icon: Icons.check_circle,
+            onDismissed: () => entry?.remove(),
+          ),
+        );
+        Overlay.of(context).insert(entry);
+      }
+    } catch (e) {
+      print('Debug - Error saving product: $e');
+      if (mounted) {
+        OverlayEntry? entry;
+        entry = OverlayEntry(
+          builder: (_) => DesignSystemSnackbar(
+            message: 'Lỗi: $e',
+            icon: Icons.error,
+            onDismissed: () => entry?.remove(),
+          ),
+        );
+        Overlay.of(context).insert(entry);
+      }
     }
   }
 
@@ -168,22 +242,34 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
         const Text('Thông tin sản phẩm', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
         const SizedBox(height: 16),
         DesignSystemFormField(
-          label: 'Tên thương mại',
+          label: 'Tên thương mại *',
           input: TextFormField(
-             style: const TextStyle(fontSize: 14),
             controller: _commonNameController,
-            decoration: designSystemInputDecoration(label: 'Tên thương mại', fillColor: mutedBackground),
+            style: const TextStyle(fontSize: 14),
+            decoration: designSystemInputDecoration(
+              label: '',
+              fillColor: mutedBackground,
+              hint: 'Nhập tên thương mại của sản phẩm',
+            ),
+            validator: (value) {
+              if (value == null || value.trim().isEmpty) {
+                return 'Vui lòng nhập tên thương mại';
+              }
+              return null;
+            },
           ),
         ),
         const SizedBox(height: 12),
         DesignSystemFormField(
           label: 'Tên nội bộ',
-          required: true,
           input: TextFormField(
-             style: const TextStyle(fontSize: 14),
             controller: _nameController,
-            decoration: designSystemInputDecoration(label: 'Tên nội bộ', fillColor: mutedBackground),
-            validator: (val) => val == null || val.trim().isEmpty ? 'Vui lòng nhập tên nội bộ' : null,
+            style: const TextStyle(fontSize: 14),
+            decoration: designSystemInputDecoration(
+              label: '',
+              fillColor: mutedBackground,
+              hint: 'Nhập tên nội bộ (không bắt buộc)',
+            ),
           ),
         ),
         const SizedBox(height: 12),
@@ -193,8 +279,8 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
               child: DesignSystemFormField(
                 label: 'Barcode',
                 input: TextFormField(
-                   style: const TextStyle(fontSize: 14),
                   controller: _barcodeController,
+                  style: const TextStyle(fontSize: 14),
                   decoration: designSystemInputDecoration(label: '', fillColor: mutedBackground),
                 ),
               ),
@@ -204,8 +290,8 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
               child: DesignSystemFormField(
                 label: 'SKU',
                 input: TextFormField(
-                   style: const TextStyle(fontSize: 14),
                   controller: _skuController,
+                  style: const TextStyle(fontSize: 14),
                   decoration: designSystemInputDecoration(label: '', fillColor: mutedBackground),
                 ),
               ),
@@ -219,9 +305,9 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
               child: DesignSystemFormField(
                 label: 'Đơn vị tính',
                 input: TextFormField(
-                   style: const TextStyle(fontSize: 14),
                   controller: _unitController,
-                  decoration: designSystemInputDecoration(label: '', fillColor: mutedBackground),
+                  style: const TextStyle(fontSize: 14),
+                  decoration: designSystemInputDecoration(label: '', fillColor: mutedBackground, hint: 'Nhập đơn vị tính'),
                 ),
               ),
             ),
@@ -234,13 +320,10 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                   stream: _categoryService.getCategories(),
                   builder: (context, snapshot) {
                     final categories = snapshot.data ?? [];
-                    return ShopifyDropdown<String>(
+                    return ShopifyMultiSelectDropdown(
                       items: categories.map((cat) => cat.name).toList(),
-                      value: _selectedCategory,
-                      getLabel: (v) => v ?? '',
-                      onChanged: (v) => setState(() => _selectedCategory = v),
-                      hint: 'Chọn danh mục',
-                      backgroundColor: mutedBackground,
+                      selectedValues: _selectedCategories,
+                      onChanged: (selected) => setState(() => _selectedCategories = selected),
                     );
                   },
                 ),
@@ -249,7 +332,50 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
           ],
         ),
         const SizedBox(height: 12),
-        // Tags input đặc biệt
+        DesignSystemFormField(
+          label: 'Nhà phân phối',
+          input: DropdownButtonFormField<String>(
+            value: _selectedDistributor,
+            items: _distributors.map((d) => DropdownMenuItem(value: d, child: Text(d))).toList(),
+            onChanged: (v) => setState(() => _selectedDistributor = v),
+            decoration: designSystemInputDecoration(label: '', fillColor: mutedBackground),
+            hint: const Text('Chọn nhà phân phối'),
+          ),
+        ),
+        const SizedBox(height: 12),
+        DesignSystemFormField(
+          label: 'Thành phần',
+          input: TextFormField(
+            controller: _ingredientsController,
+            style: const TextStyle(fontSize: 14),
+            decoration: designSystemInputDecoration(label: '', fillColor: mutedBackground),
+            minLines: 2,
+            maxLines: 4,
+          ),
+        ),
+        const SizedBox(height: 12),
+        DesignSystemFormField(
+          label: 'Công dụng',
+          input: TextFormField(
+            controller: _usageController,
+            style: const TextStyle(fontSize: 14),
+            decoration: designSystemInputDecoration(label: '', fillColor: mutedBackground),
+            minLines: 2,
+            maxLines: 4,
+          ),
+        ),
+        const SizedBox(height: 12),
+        DesignSystemFormField(
+          label: 'Mô tả',
+          input: TextFormField(
+            controller: _descriptionController,
+            style: const TextStyle(fontSize: 14),
+            decoration: designSystemInputDecoration(label: '', fillColor: mutedBackground),
+            minLines: 2,
+            maxLines: 4,
+          ),
+        ),
+        const SizedBox(height: 12),
         DesignSystemFormField(
           label: 'Tags',
           input: Column(
@@ -287,71 +413,33 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                     child: TextField(
                       controller: _tagInputController,
                       decoration: designSystemInputDecoration(hint: '', fillColor: mutedBackground),
-                      onSubmitted: (val) {
-                        if (val.trim().isNotEmpty && !_tags.contains(val.trim())) {
-                          setState(() => _tags.add(val.trim()));
-                          _tagInputController.clear();
-                        }
-                      },
+                      onSubmitted: (val) => _addTag(),
                     ),
                   ),
-                  IconButton(
-                    icon: const Icon(Icons.add),
-                    onPressed: () {
-                      final val = _tagInputController.text.trim();
-                      if (val.isNotEmpty && !_tags.contains(val)) {
-                        setState(() => _tags.add(val));
-                        _tagInputController.clear();
-                      }
-                    },
+                  const SizedBox(width: 8),
+                  ElevatedButton.icon(
+                    style: ghostBorderButtonStyle,
+                    onPressed: _addTag,
+                    icon: const Icon(Icons.add, size: 16),
+                    label: const Text('Thêm'),
                   ),
                 ],
               ),
             ],
           ),
         ),
-        const SizedBox(height: 12),
-        DesignSystemFormField(
-          label: 'Mô tả',
-          input: TextFormField(
-             style: const TextStyle(fontSize: 14),
-            controller: _descriptionController,
-            decoration: designSystemInputDecoration(label: '', fillColor: mutedBackground),
-            maxLines: 2,
-          ),
-        ),
-        const SizedBox(height: 12),
-        DesignSystemFormField(
-          label: 'Công dụng',
-          input: TextFormField(
-             style: const TextStyle(fontSize: 14),
-            controller: _usageController,
-            decoration: designSystemInputDecoration(label: '', fillColor: mutedBackground),
-            maxLines: 2,
-          ),
-        ),
-        const SizedBox(height: 12),
-        DesignSystemFormField(
-          label: 'Thành phần',
-          input: TextFormField(
-             style: const TextStyle(fontSize: 14),
-            controller: _ingredientsController,
-            decoration: designSystemInputDecoration(label: '', fillColor: mutedBackground),
-            maxLines: 2,
-          ),
-        ),
-        const SizedBox(height: 12),
-        DesignSystemFormField(
-          label: 'Ghi chú',
-          input: TextFormField(
-             style: const TextStyle(fontSize: 14),
-            controller: _notesController,
-            decoration: designSystemInputDecoration(label: '', fillColor: mutedBackground),
-            maxLines: 2,
-          ),
-        ),
       ],
     );
+  }
+
+  void _addTag() {
+    final tag = _tagInputController.text.trim();
+    if (tag.isNotEmpty && !_tags.contains(tag)) {
+      setState(() {
+        _tags.add(tag);
+        _tagInputController.clear();
+      });
+    }
   }
 
   Widget _buildPriceSection() {
@@ -367,11 +455,50 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                 child: DesignSystemFormField(
                   label: 'Giá nhập',
                   input: TextFormField(
-                     style: const TextStyle(fontSize: 14),
+                    style: const TextStyle(fontSize: 14),
                     controller: _importPriceController,
-                    decoration: designSystemInputDecoration(label: 'Giá nhập', fillColor: mutedBackground, prefixIcon: Padding(padding: EdgeInsets.only(left: 8, right: 4), child: Text('₫', style: TextStyle(color: textSecondary)))),
+                    decoration: designSystemInputDecoration(
+                      label: '',
+                      fillColor: mutedBackground,
+                      suffixIcon: Padding(
+                        padding: const EdgeInsets.only(top: 8, right: 2),
+                        child: Text('₫', style: TextStyle(color: textSecondary)),
+                      ),
+                    ),
                     keyboardType: TextInputType.number,
-                    onChanged: (val) { if (_autoCalculatePrice) _autoCalcSellPrice(); },
+                    inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                    onChanged: (val) {
+                      print('Debug - Raw input value: $val');
+                      
+                      // Xóa tất cả dấu phẩy và chấm, chỉ giữ lại số
+                      final cleanValue = val.replaceAll(RegExp(r'[^\d]'), '');
+                      print('Debug - Cleaned value: $cleanValue');
+                      
+                      final numberFormat = NumberFormat('#,###', 'vi_VN');
+                      final value = int.tryParse(cleanValue) ?? 0;
+                      print('Debug - Parsed value: $value');
+                      
+                      final formatted = numberFormat.format(value);
+                      print('Debug - Formatted value: $formatted');
+                      
+                      if (val != formatted) {
+                        _importPriceController.value = TextEditingValue(
+                          text: formatted,
+                          selection: TextSelection.collapsed(offset: formatted.length),
+                        );
+                      }
+                      _calculateSalePrice();
+                    },
+                    onEditingComplete: () {
+                      final cleanValue = _importPriceController.text.replaceAll(RegExp(r'[^\d]'), '');
+                      final numberFormat = NumberFormat('#,###', 'vi_VN');
+                      final value = int.tryParse(cleanValue) ?? 0;
+                      final formatted = numberFormat.format(value);
+                      _importPriceController.value = TextEditingValue(
+                        text: formatted,
+                        selection: TextSelection.collapsed(offset: formatted.length),
+                      );
+                    },
                   ),
                 ),
               ),
@@ -380,11 +507,51 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                 child: DesignSystemFormField(
                   label: 'Giá bán',
                   input: TextFormField(
-                     style: const TextStyle(fontSize: 14),
+                    style: const TextStyle(fontSize: 14),
                     controller: _sellPriceController,
-                    decoration: designSystemInputDecoration(label: 'Giá bán', fillColor: mutedBackground, prefixIcon: Padding(padding: EdgeInsets.only(left: 8, right: 4), child: Text('₫', style: TextStyle(color: textSecondary)))),
-                    keyboardType: TextInputType.number,
+                    decoration: designSystemInputDecoration(
+                      label: '',
+                      fillColor: mutedBackground,
+                      suffixIcon: Padding(
+                        padding: const EdgeInsets.only(top: 8, right: 2),
+                        child: Text('₫', style: TextStyle(color: textSecondary)),
+                      ),
+                    ),
                     enabled: !_autoCalculatePrice,
+                    onChanged: (val) {
+                      if (!_autoCalculatePrice) {
+                        print('Debug - Raw sale price input: $val');
+                        
+                        final cleanValue = val.replaceAll(RegExp(r'[^\d]'), '');
+                        print('Debug - Cleaned sale price: $cleanValue');
+                        
+                        final numberFormat = NumberFormat('#,###', 'vi_VN');
+                        final value = int.tryParse(cleanValue) ?? 0;
+                        print('Debug - Parsed sale price: $value');
+                        
+                        final formatted = numberFormat.format(value);
+                        print('Debug - Formatted sale price: $formatted');
+                        
+                        if (val != formatted) {
+                          _sellPriceController.value = TextEditingValue(
+                            text: formatted,
+                            selection: TextSelection.collapsed(offset: formatted.length),
+                          );
+                        }
+                      }
+                    },
+                    onEditingComplete: () {
+                      if (!_autoCalculatePrice) {
+                        final cleanValue = _sellPriceController.text.replaceAll(RegExp(r'[^\d]'), '');
+                        final numberFormat = NumberFormat('#,###', 'vi_VN');
+                        final value = int.tryParse(cleanValue) ?? 0;
+                        final formatted = numberFormat.format(value);
+                        _sellPriceController.value = TextEditingValue(
+                          text: formatted,
+                          selection: TextSelection.collapsed(offset: formatted.length),
+                        );
+                      }
+                    },
                   ),
                 ),
               ),
@@ -394,12 +561,25 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
           DesignSystemFormField(
             label: 'Lợi nhuận gộp (%)',
             input: TextFormField(
-               style: const TextStyle(fontSize: 14),
+              style: const TextStyle(fontSize: 14),
               controller: _profitMarginController,
-              decoration: designSystemInputDecoration(label: 'Lợi nhuận gộp (%)', fillColor: mutedBackground),
+              decoration: designSystemInputDecoration(
+                label: '',
+                fillColor: mutedBackground,
+                hint: _autoCalculatePrice ? '20' : '',
+              ),
               keyboardType: TextInputType.number,
-              onChanged: (val) { if (_autoCalculatePrice) _autoCalcSellPrice(); },
+              inputFormatters: [
+                FilteringTextInputFormatter.digitsOnly,
+              ],
               enabled: _autoCalculatePrice,
+              onChanged: (val) {
+                if (val.isNotEmpty) {
+                  _calculateSalePrice();
+                } else {
+                  _calculateSalePrice();
+                }
+              },
             ),
           ),
           const SizedBox(height: 20),
@@ -409,7 +589,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                 value: _autoCalculatePrice,
                 onChanged: (v) => setState(() {
                   _autoCalculatePrice = v;
-                  if (v) _autoCalcSellPrice();
+                  if (v) _calculateSalePrice();
                 }),
               ),
               const SizedBox(width: 8),
@@ -424,6 +604,35 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
         ],
       ),
     );
+  }
+
+  void _calculateSalePrice() {
+    if (!_autoCalculatePrice) return;
+    
+    // Xóa tất cả dấu phẩy và chấm, chỉ giữ lại số
+    final importPriceStr = _importPriceController.text.replaceAll(RegExp(r'[^\d]'), '');
+    print('Debug - Import price string after cleaning: $importPriceStr');
+    
+    final importPrice = double.tryParse(importPriceStr) ?? 0;
+    print('Debug - Import price parsed: $importPrice');
+    
+    final profitMargin = double.tryParse(_profitMarginController.text) ?? _defaultProfitMargin;
+    print('Debug - Profit margin: $profitMargin');
+    
+    if (importPrice > 0) {
+      final salePrice = importPrice * (1 + profitMargin / 100);
+      print('Debug - Calculated sale price: $salePrice');
+      
+      final formattedPrice = NumberFormat('#,###', 'vi_VN').format(salePrice.round());
+      print('Debug - Formatted sale price: $formattedPrice');
+      
+      _sellPriceController.value = TextEditingValue(
+        text: formattedPrice,
+        selection: TextSelection.collapsed(offset: formattedPrice.length),
+      );
+    } else {
+      _sellPriceController.text = '';
+    }
   }
 
   Widget _buildStockSection() {
@@ -477,13 +686,6 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
         ],
       ),
     );
-  }
-
-  void _autoCalcSellPrice() {
-    final importPrice = double.tryParse(_importPriceController.text.trim()) ?? 0.0;
-    final margin = double.tryParse(_profitMarginController.text.trim()) ?? _defaultProfitMargin;
-    final sellPrice = importPrice * (1 + margin / 100);
-    _sellPriceController.text = sellPrice.toStringAsFixed(0);
   }
 
   @override
@@ -602,6 +804,166 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                   const SizedBox(height: 16),
                 ],
               ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class ShopifyMultiSelectDropdown extends StatefulWidget {
+  final List<String> items;
+  final List<String> selectedValues;
+  final String hint;
+  final ValueChanged<List<String>> onChanged;
+
+  const ShopifyMultiSelectDropdown({
+    super.key,
+    required this.items,
+    required this.selectedValues,
+    required this.onChanged,
+    this.hint = 'Chọn danh mục',
+  });
+
+  @override
+  State<ShopifyMultiSelectDropdown> createState() => _ShopifyMultiSelectDropdownState();
+}
+
+class _ShopifyMultiSelectDropdownState extends State<ShopifyMultiSelectDropdown> {
+  final LayerLink _layerLink = LayerLink();
+  OverlayEntry? _overlayEntry;
+  bool _isOpen = false;
+
+  void _removeOverlay() {
+    _overlayEntry?.remove();
+    _overlayEntry = null;
+    setState(() => _isOpen = false);
+  }
+
+  void _showOverlay() {
+    final RenderBox renderBox = context.findRenderObject() as RenderBox;
+    final Size size = renderBox.size;
+    List<String> tempSelected = List.from(widget.selectedValues);
+
+    _overlayEntry = OverlayEntry(
+      builder: (context) => Stack(
+        children: [
+          Positioned.fill(
+            child: GestureDetector(
+              onTap: _removeOverlay,
+              behavior: HitTestBehavior.translucent,
+              child: const SizedBox.expand(),
+            ),
+          ),
+          Positioned(
+            width: size.width,
+            child: CompositedTransformFollower(
+              link: _layerLink,
+              showWhenUnlinked: false,
+              offset: Offset(0, size.height + 4),
+              child: Material(
+                color: Colors.transparent,
+                child: StatefulBuilder(
+                  builder: (context, setStateOverlay) => Container(
+                    constraints: BoxConstraints(
+                      maxHeight: 260,
+                      minWidth: size.width,
+                    ),
+                    decoration: BoxDecoration(
+                      color: cardBackground,
+                      border: Border.all(color: borderColor),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        ...widget.items.map((item) => CheckboxListTile(
+                          value: tempSelected.contains(item),
+                          title: Text(item),
+                          controlAffinity: ListTileControlAffinity.leading,
+                          contentPadding: EdgeInsets.zero,
+                          onChanged: (checked) {
+                            setStateOverlay(() {
+                              if (checked == true) {
+                                tempSelected.add(item);
+                              } else {
+                                tempSelected.remove(item);
+                              }
+                            });
+                          },
+                        )),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.end,
+                          children: [
+                            TextButton(
+                              onPressed: _removeOverlay,
+                              child: const Text('Hủy'),
+                            ),
+                            ElevatedButton(
+                              onPressed: () {
+                                widget.onChanged(tempSelected);
+                                _removeOverlay();
+                              },
+                              child: const Text('Xác nhận'),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+    Overlay.of(context).insert(_overlayEntry!);
+    setState(() => _isOpen = true);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    String label;
+    if (widget.selectedValues.isEmpty) {
+      label = widget.hint;
+    } else if (widget.selectedValues.length == 1) {
+      label = '1 danh mục đã chọn';
+    } else {
+      label = '${widget.selectedValues.length} danh mục đã chọn';
+    }
+
+    return SizedBox(
+      height: 40,
+      child: CompositedTransformTarget(
+        link: _layerLink,
+        child: GestureDetector(
+          onTap: _isOpen ? _removeOverlay : _showOverlay,
+          child: Container(
+            decoration: BoxDecoration(
+              color: cardBackground,
+              border: Border.all(color: borderColor),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Expanded(
+                  child: Text(
+                    label,
+                    style: body.copyWith(
+                      color: widget.selectedValues.isEmpty ? textMuted : textPrimary,
+                    ),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+                Icon(
+                  _isOpen ? Icons.keyboard_arrow_up : Icons.keyboard_arrow_down,
+                  color: textSecondary,
+                ),
+              ],
             ),
           ),
         ),
