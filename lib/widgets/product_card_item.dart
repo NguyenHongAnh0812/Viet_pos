@@ -38,11 +38,44 @@ class ProductCardItem extends StatelessWidget {
                         padding: const EdgeInsets.only(top: 2),
                         child: Text(product.commonName, style: const TextStyle(color: Colors.black87), semanticsLabel: 'Tên thương mại'),
                       ),
-                    if ((product.barcode ?? '').isNotEmpty)
-                      Padding(
-                        padding: const EdgeInsets.only(top: 2),
-                        child: Text('Mã vạch: ${product.barcode}', style: const TextStyle(fontSize: 13, color: Colors.black54)),
+                    // Ô nội dung chi tiết
+                    Container(
+                      margin: const EdgeInsets.only(top: 8, bottom: 8),
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: Colors.grey[50],
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: Colors.grey.shade200),
                       ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          if ((product.barcode ?? '').isNotEmpty)
+                            Text('Mã vạch: ${product.barcode}', style: const TextStyle(fontSize: 13, color: Colors.black54)),
+                          if ((product.sku ?? '').isNotEmpty)
+                            Text('SKU: ${product.sku}', style: const TextStyle(fontSize: 13, color: Colors.black54)),
+                          if (product.unit.isNotEmpty)
+                            Text('Đơn vị: ${product.unit}', style: const TextStyle(fontSize: 13, color: Colors.black54)),
+                          if (product.description.isNotEmpty)
+                            Text('Mô tả: ${product.description}', style: const TextStyle(fontSize: 13, color: Colors.black54)),
+                          if (product.usage.isNotEmpty)
+                            Text('Công dụng: ${product.usage}', style: const TextStyle(fontSize: 13, color: Colors.black54)),
+                          if (product.ingredients.isNotEmpty)
+                            Text('Thành phần: ${product.ingredients}', style: const TextStyle(fontSize: 13, color: Colors.black54)),
+                          if (product.notes.isNotEmpty)
+                            Text('Ghi chú: ${product.notes}', style: const TextStyle(fontSize: 13, color: Colors.black54)),
+                          if ((product.distributor ?? '').isNotEmpty)
+                            Text('Nhà phân phối: ${product.distributor}', style: const TextStyle(fontSize: 13, color: Colors.black54)),
+                          Text('Giá nhập: ${NumberFormat.currency(locale: 'vi_VN', symbol: '₫').format(product.importPrice)}', style: const TextStyle(fontSize: 13, color: Colors.black54)),
+                          Text('Giá bán: ${NumberFormat.currency(locale: 'vi_VN', symbol: '₫').format(product.salePrice)}', style: const TextStyle(fontSize: 13, color: Colors.blue, fontWeight: FontWeight.bold)),
+                          Text('Trạng thái: ${product.isActive ? 'Còn bán' : 'Ngừng bán'}', style: TextStyle(fontSize: 13, color: product.isActive ? Colors.green : Colors.red, fontWeight: FontWeight.w600)),
+                          if (product.taxRate != null)
+                            Text('Thuế suất: ${(product.taxRate! * 100).toStringAsFixed(0)}%', style: const TextStyle(fontSize: 13, color: Colors.black54)),
+                          Text('Ngày tạo: ${product.createdAt != null ? DateFormat('dd/MM/yyyy HH:mm').format(product.createdAt) : '-'}', style: const TextStyle(fontSize: 12, color: Colors.grey)),
+                          Text('Ngày cập nhật: ${product.updatedAt != null ? DateFormat('dd/MM/yyyy HH:mm').format(product.updatedAt) : '-'}', style: const TextStyle(fontSize: 12, color: Colors.grey)),
+                        ],
+                      ),
+                    ),
                     const SizedBox(height: 8),
                     Wrap(
                       spacing: 8,

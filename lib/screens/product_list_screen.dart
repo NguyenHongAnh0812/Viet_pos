@@ -14,6 +14,8 @@ import 'dart:html' as html;
 import '../widgets/product_card_item.dart';
 import '../widgets/product_list_card.dart';
 import '../widgets/common/design_system.dart';
+import 'package:intl/intl.dart';
+import 'dart:ui' as ui;
 
 // Custom thumb shape with blue border
 class BlueBorderThumbShape extends RoundSliderThumbShape {
@@ -32,7 +34,7 @@ class BlueBorderThumbShape extends RoundSliderThumbShape {
     required TextPainter? labelPainter,
     required RenderBox parentBox,
     required SliderThemeData sliderTheme,
-    required TextDirection textDirection,
+    required ui.TextDirection textDirection,
     required double value,
     required double textScaleFactor,
     required Size sizeWithOverflow,
@@ -115,7 +117,7 @@ class _ProductListScreenState extends State<ProductListScreen> {
   List<String>? _csvPreviewHeaders;
 
   // Infinite scroll state
-  final int itemsPerPage = 10;
+  final int itemsPerPage = 30;
   int currentPage = 1;
   bool isLoadingMore = false;
 
@@ -932,7 +934,7 @@ class _ProductListScreenState extends State<ProductListScreen> {
                                 padding: const EdgeInsets.symmetric(vertical: 32.0),
                                 child: Center(
                                   child: Text(
-                                    'Không có dữ liệu sản phẩm nào trong hệ thống.',
+                                    'Đang kiểm tra dữ liệu sản phẩm!',
                                     style: TextStyle(fontSize: 16, color: Colors.grey[600], fontWeight: FontWeight.w500),
                                   ),
                                 ),
@@ -1150,6 +1152,46 @@ class _ProductListScreenState extends State<ProductListScreen> {
                                                                 Text(product.commonName, style: bodyLarge.copyWith(fontWeight: FontWeight.w700)),
                                                                 if (product.name.isNotEmpty)
                                                                   Text(product.name, style: body.copyWith(color: Colors.grey[600])),
+                                                                // Ô nội dung chi tiết
+                                                                Container(
+                                                                  margin: const EdgeInsets.only(top: 8, bottom: 8),
+                                                                  padding: const EdgeInsets.all(12),
+                                                                  decoration: BoxDecoration(
+                                                                    color: Colors.grey[50],
+                                                                    borderRadius: BorderRadius.circular(8),
+                                                                    border: Border.all(color: Colors.grey.shade200),
+                                                                  ),
+                                                                  child: Column(
+                                                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                                                    children: [
+                                                                      if ((product.barcode ?? '').isNotEmpty)
+                                                                        Text('Mã vạch: ${product.barcode}', style: const TextStyle(fontSize: 13, color: Colors.black54)),
+                                                                      if ((product.sku ?? '').isNotEmpty)
+                                                                        Text('SKU: ${product.sku}', style: const TextStyle(fontSize: 13, color: Colors.black54)),
+                                                                      if (product.unit.isNotEmpty)
+                                                                        Text('Đơn vị: ${product.unit}', style: const TextStyle(fontSize: 13, color: Colors.black54)),
+                                                                      Text('Tồn kho hệ thống: ${product.stock}', style: const TextStyle(fontSize: 13, color: Colors.black87, fontWeight: FontWeight.w600)),
+                                                                      Text('Tồn kho hóa đơn: ${product.invoiceStock}', style: const TextStyle(fontSize: 13, color: Colors.black54, fontWeight: FontWeight.w600)),
+                                                                      if (product.description.isNotEmpty)
+                                                                        Text('Mô tả: ${product.description}', style: const TextStyle(fontSize: 13, color: Colors.black54)),
+                                                                      if (product.usage.isNotEmpty)
+                                                                        Text('Công dụng: ${product.usage}', style: const TextStyle(fontSize: 13, color: Colors.black54)),
+                                                                      if (product.ingredients.isNotEmpty)
+                                                                        Text('Thành phần: ${product.ingredients}', style: const TextStyle(fontSize: 13, color: Colors.black54)),
+                                                                      if (product.notes.isNotEmpty)
+                                                                        Text('Ghi chú: ${product.notes}', style: const TextStyle(fontSize: 13, color: Colors.black54)),
+                                                                      if ((product.distributor ?? '').isNotEmpty)
+                                                                        Text('Nhà phân phối: ${product.distributor}', style: const TextStyle(fontSize: 13, color: Colors.black54)),
+                                                                      Text('Giá nhập: ${NumberFormat.currency(locale: 'vi_VN', symbol: '₫').format(product.importPrice)}', style: const TextStyle(fontSize: 13, color: Colors.black54)),
+                                                                      Text('Giá bán: ${NumberFormat.currency(locale: 'vi_VN', symbol: '₫').format(product.salePrice)}', style: const TextStyle(fontSize: 13, color: Colors.blue, fontWeight: FontWeight.bold)),
+                                                                      Text('Trạng thái: ${product.isActive ? 'Còn bán' : 'Ngừng bán'}', style: TextStyle(fontSize: 13, color: product.isActive ? Colors.green : Colors.red, fontWeight: FontWeight.w600)),
+                                                                      if (product.taxRate != null)
+                                                                        Text('Thuế suất: ${(product.taxRate! * 100).toStringAsFixed(0)}%', style: const TextStyle(fontSize: 13, color: Colors.black54)),
+                                                                      Text('Ngày tạo: ${DateFormat('dd/MM/yyyy HH:mm').format(product.createdAt)}', style: const TextStyle(fontSize: 12, color: Colors.grey)),
+                                                                      Text('Ngày cập nhật: ${DateFormat('dd/MM/yyyy HH:mm').format(product.updatedAt)}', style: const TextStyle(fontSize: 12, color: Colors.grey)),
+                                                                    ],
+                                                                  ),
+                                                                ),
                                                               ],
                                                             ),
                                                           ),
@@ -1232,7 +1274,7 @@ class _CustomBlueThumbShape extends RoundSliderThumbShape {
     required TextPainter? labelPainter,
     required RenderBox parentBox,
     required SliderThemeData sliderTheme,
-    required TextDirection textDirection,
+    required ui.TextDirection textDirection,
     required double value,
     required double textScaleFactor,
     required Size sizeWithOverflow,
