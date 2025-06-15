@@ -21,6 +21,7 @@ class Product {
   final DateTime createdAt;   // Ngày tạo
   final DateTime updatedAt;   // Ngày cập nhật
   final String? distributor; // Tên nhà phân phối (optional)
+  final double? taxRate; // Thuế suất (optional)
 
   Product({
     required this.id,
@@ -43,6 +44,7 @@ class Product {
     required this.createdAt,
     required this.updatedAt,
     this.distributor,
+    this.taxRate,
   });
 
   // Convert to Map for Firestore
@@ -67,6 +69,7 @@ class Product {
       'createdAt': createdAt,
       'updatedAt': updatedAt,
       'distributor': distributor,
+      'taxRate': taxRate,
     };
   }
 
@@ -165,6 +168,7 @@ class Product {
       createdAt: createdAt,
       updatedAt: updatedAt,
       distributor: map['distributor'],
+      taxRate: map['taxRate'],
     );
     
     print('DEBUG: Successfully created product:');
@@ -198,6 +202,7 @@ class Product {
     DateTime? createdAt,
     DateTime? updatedAt,
     String? distributor,
+    double? taxRate,
   }) {
     return Product(
       id: id ?? this.id,
@@ -220,6 +225,7 @@ class Product {
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
       distributor: distributor ?? this.distributor,
+      taxRate: taxRate ?? this.taxRate,
     );
   }
 } 
