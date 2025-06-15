@@ -778,13 +778,13 @@ class _SidebarState extends State<_Sidebar> {
             isOpen: widget.isOpen,
             onTap: () => widget.onItemTap(MainPage.inventory),
           ),
-          _SidebarItem(
-            icon: SvgPicture.asset('assets/icons/report.svg', width: 16, height: 16),
-            label: 'Báo cáo',
-            selected: widget.currentPage == MainPage.report,
-            isOpen: widget.isOpen,
-            onTap: () => widget.onItemTap(MainPage.report),
-          ),
+          // _SidebarItem(
+          //   icon: SvgPicture.asset('assets/icons/report.svg', width: 16, height: 16),
+          //   label: 'Báo cáo',
+          //   selected: widget.currentPage == MainPage.report,
+          //   isOpen: widget.isOpen,
+          //   onTap: () => widget.onItemTap(MainPage.report),
+          // ),
           // _SidebarItem(
           //   icon: SvgPicture.asset('assets/icons/setting.svg', width: 16, height: 16),
           //   label: 'Cài đặt chung',
@@ -800,13 +800,13 @@ class _SidebarState extends State<_Sidebar> {
             isOpen: widget.isOpen,
             onTap: () => widget.onItemTap(MainPage.invoiceImportList),
           ),
-                    _SidebarItem(
-            icon: Icon(Icons.palette, size: 16),
-            label: 'Style Guide',
-            selected: widget.currentPage == MainPage.styleGuide,
-            isOpen: widget.isOpen,
-            onTap: () => widget.onItemTap(MainPage.styleGuide),
-          ),
+          //           _SidebarItem(
+          //   icon: Icon(Icons.palette, size: 16),
+          //   label: 'Style Guide',
+          //   selected: widget.currentPage == MainPage.styleGuide,
+          //   isOpen: widget.isOpen,
+          //   onTap: () => widget.onItemTap(MainPage.styleGuide),
+          // ),
                     _SidebarItem(
             icon: Icon(Icons.settings_outlined, size: 16),
             label: 'Cài đặt',
