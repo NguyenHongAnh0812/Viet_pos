@@ -66,7 +66,7 @@ class ProductCardItem extends StatelessWidget {
                             Text('Ghi chú: ${product.notes}', style: const TextStyle(fontSize: 13, color: Colors.black54)),
                           if ((product.distributor ?? '').isNotEmpty)
                             Text('Nhà phân phối: ${product.distributor}', style: const TextStyle(fontSize: 13, color: Colors.black54)),
-                          Text('Giá nhập: ${NumberFormat.currency(locale: 'vi_VN', symbol: '₫').format(product.importPrice)}', style: const TextStyle(fontSize: 13, color: Colors.black54)),
+                          Text('Giá nhập: ${NumberFormat.currency(locale: 'vi_VN', symbol: '₫').format(product.costPrice)}', style: const TextStyle(fontSize: 13, color: Colors.black54)),
                           Text('Giá bán: ${NumberFormat.currency(locale: 'vi_VN', symbol: '₫').format(product.salePrice)}', style: const TextStyle(fontSize: 13, color: Colors.blue, fontWeight: FontWeight.bold)),
                           Text('Trạng thái: ${product.isActive ? 'Còn bán' : 'Ngừng bán'}', style: TextStyle(fontSize: 13, color: product.isActive ? Colors.green : Colors.red, fontWeight: FontWeight.w600)),
                           if (product.taxRate != null)

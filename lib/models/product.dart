@@ -15,7 +15,7 @@ class Product {
   final String notes;         // Ghi chú
   final int stock;           // Số lượng
   final int invoiceStock;    // Số lượng trong hóa đơn
-  final double importPrice;   // Giá nhập
+  final double costPrice;   // Đơn giá nhập
   final double salePrice;     // Giá bán
   final bool isActive;        // Trạng thái
   final DateTime createdAt;   // Ngày tạo
@@ -38,7 +38,7 @@ class Product {
     this.notes = '',
     this.stock = 0,
     this.invoiceStock = 0,
-    this.importPrice = 0,
+    this.costPrice = 0,
     this.salePrice = 0,
     this.isActive = true,
     required this.createdAt,
@@ -63,7 +63,7 @@ class Product {
       'notes': notes,
       'stock': stock,
       'invoiceStock': invoiceStock,
-      'importPrice': importPrice,
+      'cost_price': costPrice,
       'salePrice': salePrice,
       'isActive': isActive,
       'createdAt': createdAt,
@@ -162,7 +162,7 @@ class Product {
       notes: map['notes'] ?? '',
       stock: map['stock'] ?? 0,
       invoiceStock: map['invoiceStock'] ?? 0,
-      importPrice: (map['importPrice'] ?? 0).toDouble(),
+      costPrice: (map['cost_price'] ?? 0).toDouble(),
       salePrice: (map['salePrice'] ?? 0).toDouble(),
       isActive: map['isActive'] ?? true,
       createdAt: createdAt,
@@ -196,7 +196,7 @@ class Product {
     String? notes,
     int? stock,
     int? invoiceStock,
-    double? importPrice,
+    double? costPrice,
     double? salePrice,
     bool? isActive,
     DateTime? createdAt,
@@ -219,7 +219,7 @@ class Product {
       notes: notes ?? this.notes,
       stock: stock ?? this.stock,
       invoiceStock: invoiceStock ?? this.invoiceStock,
-      importPrice: importPrice ?? this.importPrice,
+      costPrice: costPrice ?? this.costPrice,
       salePrice: salePrice ?? this.salePrice,
       isActive: isActive ?? this.isActive,
       createdAt: createdAt ?? this.createdAt,

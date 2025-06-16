@@ -26,7 +26,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
   final _skuController = TextEditingController();
   final _unitController = TextEditingController();
   final _quantityController = TextEditingController();
-  final _importPriceController = TextEditingController();
+  final _costPriceController = TextEditingController();
   final _sellPriceController = TextEditingController();
   final _tagsController = TextEditingController();
   final _descriptionController = TextEditingController();
@@ -58,7 +58,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
     
     // Format giá nhập và giá bán
     final numberFormat = NumberFormat('#,###', 'vi_VN');
-    _importPriceController.text = numberFormat.format(p.importPrice.round());
+    _costPriceController.text = numberFormat.format(p.costPrice.round());
     _sellPriceController.text = numberFormat.format(p.salePrice.round());
     
     _tagsController.text = p.tags.join(', ');
@@ -84,7 +84,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
     _fetchDistributors();
     
     // Tính % lợi nhuận
-    final calculatedMargin = ((p.salePrice / (p.importPrice == 0 ? 1 : p.importPrice) - 1) * 100).toStringAsFixed(0);
+    final calculatedMargin = ((p.salePrice / (p.costPrice == 0 ? 1 : p.costPrice) - 1) * 100).toStringAsFixed(0);
     if (calculatedMargin != _defaultProfitMargin.toString()) {
       _profitMarginController.text = calculatedMargin;
     } else {
@@ -107,7 +107,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
     _skuController.dispose();
     _unitController.dispose();
     _quantityController.dispose();
-    _importPriceController.dispose();
+    _costPriceController.dispose();
     _sellPriceController.dispose();
     _tagsController.dispose();
     _descriptionController.dispose();
@@ -161,20 +161,20 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
 
     try {
       // Xử lý giá nhập và giá bán
-      final importPriceStr = _importPriceController.text.replaceAll(RegExp(r'[^\d]'), '');
-      final salePriceStr = _sellPriceController.text.replaceAll(RegExp(r'[^\d]'), '');
+      final costPriceStr = _costPriceController.text.replaceAll(RegExp(r'[^0-9]'), '');
+      final salePriceStr = _sellPriceController.text.replaceAll(RegExp(r'[^0-9]'), '');
       
       print('Debug - Before saving:');
-      print('Import price string: ${_importPriceController.text}');
-      print('Import price cleaned: $importPriceStr');
+      print('Cost price string: ${_costPriceController.text}');
+      print('Cost price cleaned: $costPriceStr');
       print('Sale price string: ${_sellPriceController.text}');
       print('Sale price cleaned: $salePriceStr');
       
-      final importPrice = double.tryParse(importPriceStr) ?? 0.0;
+      final costPrice = double.tryParse(costPriceStr) ?? 0.0;
       final salePrice = double.tryParse(salePriceStr) ?? 0.0;
       
       print('Debug - Parsed values:');
-      print('Import price: $importPrice');
+      print('Cost price: $costPrice');
       print('Sale price: $salePrice');
       
       final productData = {
@@ -184,7 +184,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
         'sku': _skuController.text.trim(),
         'unit': _unitController.text.trim(),
         'stock': int.tryParse(_quantityController.text) ?? 0,
-        'importPrice': importPrice,
+        'cost_price': costPrice,
         'salePrice': salePrice,
         'tags': _tags,
         'description': _descriptionController.text.trim(),
@@ -198,14 +198,14 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
       };
 
       print('Debug - Final data to save:');
-      print('Import price in data: ${productData['importPrice']}');
+      print('Cost price in data: ${productData['cost_price']}');
       print('Sale price in data: ${productData['salePrice']}');
 
       await FirebaseFirestore.instance.collection('products').doc(widget.product.id).update(productData);
       
       // Format lại giá sau khi lưu
       final numberFormat = NumberFormat('#,###', 'vi_VN');
-      _importPriceController.text = numberFormat.format(importPrice.round());
+      _costPriceController.text = numberFormat.format(costPrice.round());
       _sellPriceController.text = numberFormat.format(salePrice.round());
       
       if (mounted) {
@@ -453,10 +453,10 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
             children: [
               Expanded(
                 child: DesignSystemFormField(
-                  label: 'Giá nhập',
+                  label: 'Đơn giá nhập',
                   input: TextFormField(
                     style: const TextStyle(fontSize: 14),
-                    controller: _importPriceController,
+                    controller: _costPriceController,
                     decoration: designSystemInputDecoration(
                       label: '',
                       fillColor: mutedBackground,
@@ -471,7 +471,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                       print('Debug - Raw input value: $val');
                       
                       // Xóa tất cả dấu phẩy và chấm, chỉ giữ lại số
-                      final cleanValue = val.replaceAll(RegExp(r'[^\d]'), '');
+                      final cleanValue = val.replaceAll(RegExp(r'[^0-9]'), '');
                       print('Debug - Cleaned value: $cleanValue');
                       
                       final numberFormat = NumberFormat('#,###', 'vi_VN');
@@ -482,7 +482,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                       print('Debug - Formatted value: $formatted');
                       
                       if (val != formatted) {
-                        _importPriceController.value = TextEditingValue(
+                        _costPriceController.value = TextEditingValue(
                           text: formatted,
                           selection: TextSelection.collapsed(offset: formatted.length),
                         );
@@ -490,11 +490,11 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                       _calculateSalePrice();
                     },
                     onEditingComplete: () {
-                      final cleanValue = _importPriceController.text.replaceAll(RegExp(r'[^\d]'), '');
+                      final cleanValue = _costPriceController.text.replaceAll(RegExp(r'[^0-9]'), '');
                       final numberFormat = NumberFormat('#,###', 'vi_VN');
                       final value = int.tryParse(cleanValue) ?? 0;
                       final formatted = numberFormat.format(value);
-                      _importPriceController.value = TextEditingValue(
+                      _costPriceController.value = TextEditingValue(
                         text: formatted,
                         selection: TextSelection.collapsed(offset: formatted.length),
                       );
@@ -522,7 +522,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                       if (!_autoCalculatePrice) {
                         print('Debug - Raw sale price input: $val');
                         
-                        final cleanValue = val.replaceAll(RegExp(r'[^\d]'), '');
+                        final cleanValue = val.replaceAll(RegExp(r'[^0-9]'), '');
                         print('Debug - Cleaned sale price: $cleanValue');
                         
                         final numberFormat = NumberFormat('#,###', 'vi_VN');
@@ -542,7 +542,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                     },
                     onEditingComplete: () {
                       if (!_autoCalculatePrice) {
-                        final cleanValue = _sellPriceController.text.replaceAll(RegExp(r'[^\d]'), '');
+                        final cleanValue = _sellPriceController.text.replaceAll(RegExp(r'[^0-9]'), '');
                         final numberFormat = NumberFormat('#,###', 'vi_VN');
                         final value = int.tryParse(cleanValue) ?? 0;
                         final formatted = numberFormat.format(value);
@@ -610,17 +610,17 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
     if (!_autoCalculatePrice) return;
     
     // Xóa tất cả dấu phẩy và chấm, chỉ giữ lại số
-    final importPriceStr = _importPriceController.text.replaceAll(RegExp(r'[^\d]'), '');
-    print('Debug - Import price string after cleaning: $importPriceStr');
+    final costPriceStr = _costPriceController.text.replaceAll(RegExp(r'[^0-9]'), '');
+    print('Debug - Cost price string after cleaning: $costPriceStr');
     
-    final importPrice = double.tryParse(importPriceStr) ?? 0;
-    print('Debug - Import price parsed: $importPrice');
+    final costPrice = double.tryParse(costPriceStr) ?? 0.0;
+    print('Debug - Cost price parsed: $costPrice');
     
     final profitMargin = double.tryParse(_profitMarginController.text) ?? _defaultProfitMargin;
     print('Debug - Profit margin: $profitMargin');
     
-    if (importPrice > 0) {
-      final salePrice = importPrice * (1 + profitMargin / 100);
+    if (costPrice > 0) {
+      final salePrice = costPrice * (1 + profitMargin / 100);
       print('Debug - Calculated sale price: $salePrice');
       
       final formattedPrice = NumberFormat('#,###', 'vi_VN').format(salePrice.round());

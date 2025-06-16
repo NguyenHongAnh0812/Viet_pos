@@ -302,7 +302,7 @@ class _ProductListScreenState extends State<ProductListScreen> {
           'thành phần': 'ingredients',
           'ghi chú': 'notes',
           'số lượng sản phẩm': 'stock',
-          'giá nhập': 'importPrice',
+          'giá nhập': 'cost_price',
           'giá bán': 'salePrice',
           'trạng thái': 'isActive'
         };
@@ -340,7 +340,7 @@ class _ProductListScreenState extends State<ProductListScreen> {
                 case 'stock':
                   product[field] = int.tryParse(value) ?? 0;
                   break;
-                case 'importPrice':
+                case 'cost_price':
                 case 'salePrice':
                   product[field] = double.tryParse(value) ?? 0.0;
                   break;
@@ -358,7 +358,7 @@ class _ProductListScreenState extends State<ProductListScreen> {
 
           // Thêm các trường mặc định nếu chưa có
           product['commonName'] ??= product['name'];
-          product['importPrice'] ??= 0.0;
+          product['cost_price'] ??= 0.0;
           product['salePrice'] ??= 0.0;
           product['isActive'] ??= true;
           product['createdAt'] = FieldValue.serverTimestamp();
@@ -403,7 +403,7 @@ class _ProductListScreenState extends State<ProductListScreen> {
           'thành phần': 'ingredients',
           'ghi chú': 'notes',
           'số lượng sản phẩm': 'stock',
-          'giá nhập': 'importPrice',
+          'giá nhập': 'cost_price',
           'giá bán': 'salePrice',
           'trạng thái': 'isActive'
         };
@@ -422,7 +422,7 @@ class _ProductListScreenState extends State<ProductListScreen> {
               case 'stock':
                 product[field] = int.tryParse(value?.toString() ?? '') ?? 0;
                 break;
-              case 'importPrice':
+              case 'cost_price':
               case 'salePrice':
                 product[field] = double.tryParse(value?.toString() ?? '') ?? 0.0;
                 break;
@@ -438,7 +438,7 @@ class _ProductListScreenState extends State<ProductListScreen> {
           }
           // Thêm các trường mặc định nếu chưa có
           product['commonName'] ??= product['name'];
-          product['importPrice'] ??= 0.0;
+          product['cost_price'] ??= 0.0;
           product['salePrice'] ??= 0.0;
           product['isActive'] ??= true;
           product['createdAt'] = FieldValue.serverTimestamp();
@@ -536,7 +536,7 @@ class _ProductListScreenState extends State<ProductListScreen> {
         excel.TextCellValue(p.ingredients),
         excel.TextCellValue(p.notes),
         excel.IntCellValue(p.stock),
-        excel.DoubleCellValue(p.importPrice),
+        excel.DoubleCellValue(p.costPrice),
         excel.DoubleCellValue(p.salePrice),
         excel.TextCellValue(p.isActive ? 'Còn bán' : 'Ngừng bán'),
         excel.TextCellValue(p.createdAt.toString()),
@@ -1182,7 +1182,7 @@ class _ProductListScreenState extends State<ProductListScreen> {
                                                                         Text('Ghi chú: ${product.notes}', style: const TextStyle(fontSize: 13, color: Colors.black54)),
                                                                       if ((product.distributor ?? '').isNotEmpty)
                                                                         Text('Nhà phân phối: ${product.distributor}', style: const TextStyle(fontSize: 13, color: Colors.black54)),
-                                                                      Text('Giá nhập: ${NumberFormat.currency(locale: 'vi_VN', symbol: '₫').format(product.importPrice)}', style: const TextStyle(fontSize: 13, color: Colors.black54)),
+                                                                      Text('Giá nhập: ${NumberFormat.currency(locale: 'vi_VN', symbol: '₫').format(product.costPrice)}', style: const TextStyle(fontSize: 13, color: Colors.black54)),
                                                                       Text('Giá bán: ${NumberFormat.currency(locale: 'vi_VN', symbol: '₫').format(product.salePrice)}', style: const TextStyle(fontSize: 13, color: Colors.blue, fontWeight: FontWeight.bold)),
                                                                       Text('Trạng thái: ${product.isActive ? 'Còn bán' : 'Ngừng bán'}', style: TextStyle(fontSize: 13, color: product.isActive ? Colors.green : Colors.red, fontWeight: FontWeight.w600)),
                                                                       if (product.taxRate != null)

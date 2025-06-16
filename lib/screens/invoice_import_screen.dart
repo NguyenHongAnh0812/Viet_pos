@@ -312,15 +312,13 @@ class _InvoiceImportScreenState extends State<InvoiceImportScreen> {
         final totalQuantity = (row[2] as double);
         final totalAmount = mergedTotalAmount[name] ?? 0;
         final count = productAppearCount[name] ?? 1;
-        double avgUnitPrice;
+        double avgCostPrice;
         if (count == 1) {
-          // Lấy đơn giá gốc (tổng tiền / tổng số lượng, nhưng số lượng là của dòng duy nhất)
-          avgUnitPrice = totalQuantity > 0 ? (totalAmount / totalQuantity) : 0;
+          avgCostPrice = totalQuantity > 0 ? (totalAmount / totalQuantity) : 0;
         } else {
-          // Trung bình gia quyền
-          avgUnitPrice = totalQuantity > 0 ? (totalAmount / totalQuantity) : 0;
+          avgCostPrice = totalQuantity > 0 ? (totalAmount / totalQuantity) : 0;
         }
-        return [row[0], row[1], row[2], avgUnitPrice];
+        return [row[0], row[1], row[2], avgCostPrice];
       }).toList();
 
       setState(() {
@@ -486,7 +484,7 @@ class _InvoiceImportScreenState extends State<InvoiceImportScreen> {
           final name = row[0].toString();
           final unit = row[1].toString();
           final quantity = double.tryParse(row[2].toString()) ?? 0;
-          final unitPrice = double.tryParse(row[3].toString()) ?? 0;
+          final costPrice = double.tryParse(row[3].toString()) ?? 0;
 
           try {
             if (allProducts.containsKey(name)) {
@@ -510,11 +508,10 @@ class _InvoiceImportScreenState extends State<InvoiceImportScreen> {
                 'usage': '',
                 'ingredients': '',
                 'notes': '',
-                'importPrice': 0,
                 'salePrice': 0,
                 'isActive': true,
                 'tags': [],
-                'unitPrice': unitPrice,
+                'cost_price': costPrice,
               };
               final docRef = FirebaseFirestore.instance.collection('products').doc();
               batch.set(docRef, productData);
@@ -621,7 +618,7 @@ class _InvoiceImportScreenState extends State<InvoiceImportScreen> {
                             DataColumn(label: SizedBox(width: colWidth, child: Align(alignment: Alignment.centerLeft, child: Text('Tên sản phẩm')))),
                             DataColumn(label: SizedBox(width: colWidth, child: Align(alignment: Alignment.centerLeft, child: Text('Đơn vị tính')))),
                             DataColumn(label: SizedBox(width: colWidth, child: Align(alignment: Alignment.centerLeft, child: Text('Số lượng')))),
-                            DataColumn(label: SizedBox(width: colWidth, child: Align(alignment: Alignment.centerLeft, child: Text('Đơn giá')))),
+                            DataColumn(label: SizedBox(width: colWidth, child: Align(alignment: Alignment.centerLeft, child: Text('Đơn giá nhập')))),
                             DataColumn(label: SizedBox(width: colWidth, child: Align(alignment: Alignment.centerLeft, child: Text('Trạng thái')))),
                           ],
                           rows: _mergedData.map((row) {
