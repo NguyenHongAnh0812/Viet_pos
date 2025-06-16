@@ -7,6 +7,7 @@ import '../services/product_category_service.dart';
 import '../widgets/common/design_system.dart';
 import 'package:intl/intl.dart';
 import 'package:flutter/services.dart';
+import 'package:editable/editable.dart';
 
 class ShopifyMultiSelectDropdown extends StatefulWidget {
   final List<String> items;
@@ -191,7 +192,6 @@ class _AddProductScreenState extends State<AddProductScreen> {
   final _tagsController = TextEditingController();
   final _descriptionController = TextEditingController();
   final _usageController = TextEditingController();
-  final _ingredientsController = TextEditingController();
   final _notesController = TextEditingController();
   List<String> _tags = [];
   final _tagInputController = TextEditingController();
@@ -208,6 +208,11 @@ class _AddProductScreenState extends State<AddProductScreen> {
 
   List<String> _distributors = [];
   String? _selectedDistributor;
+
+  // Thay thế controller cũ bằng bảng động
+  List<Map<String, dynamic>> _ingredientsRows = [
+    {"ingredient": ""}
+  ];
 
   @override
   void initState() {
@@ -226,7 +231,6 @@ class _AddProductScreenState extends State<AddProductScreen> {
       _tagsController.text = widget.product!.tags.join(', ');
       _descriptionController.text = widget.product!.description;
       _usageController.text = widget.product!.usage;
-      _ingredientsController.text = widget.product!.ingredients;
       _notesController.text = widget.product!.notes;
       final cat = widget.product!.category;
       if (cat is List) {
@@ -271,7 +275,6 @@ class _AddProductScreenState extends State<AddProductScreen> {
     _tagsController.dispose();
     _descriptionController.dispose();
     _usageController.dispose();
-    _ingredientsController.dispose();
     _notesController.dispose();
     _tagInputController.dispose();
     _profitMarginController.dispose();
@@ -598,12 +601,23 @@ class _AddProductScreenState extends State<AddProductScreen> {
         const SizedBox(height: 12),
         DesignSystemFormField(
           label: 'Thành phần',
-          input: TextFormField(
-            controller: _ingredientsController,
-            style: const TextStyle(fontSize: 14),
-            decoration: designSystemInputDecoration(label: '', fillColor: mutedBackground),
-            minLines: 2,
-            maxLines: 4,
+          input: Editable(
+            columns: [
+              {"title": 'Thành phần', 'widthFactor': 0.8, 'key': 'ingredient'},
+            ],
+            rows: _ingredientsRows,
+            onRowSaved: (value) {
+              setState(() {
+                _ingredientsRows = value;
+              });
+            },
+            onSubmitted: (value) {
+              // Không gán _ingredientsRows ở đây, chỉ log nếu cần
+              // print('Row submitted: $value');
+            },
+            tdStyle: const TextStyle(fontSize: 14),
+            showCreateButton: true,
+            showSaveIcon: true,
           ),
         ),
         const SizedBox(height: 12),
@@ -916,7 +930,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
       _tags = ['kháng sinh', 'phổ rộng'];
       _descriptionController.text = 'Thuốc kháng sinh phổ rộng, điều trị nhiễm khuẩn';
       _usageController.text = 'Uống 1-2 viên/lần, 2-3 lần/ngày';
-      _ingredientsController.text = 'Amoxicillin trihydrate 500mg';
+      _ingredientsRows = [{"ingredient": "Amoxicillin trihydrate 500mg"}];
       _notesController.text = 'Bảo quản nơi khô ráo, tránh ánh nắng trực tiếp';
       _selectedCategories == null;
       _isActive = true;
@@ -1008,6 +1022,12 @@ class _AddProductScreenState extends State<AddProductScreen> {
       print('Import price: $importPrice');
       print('Sale price: $salePrice');
 
+      // Lấy danh sách thành phần từ bảng
+      final List<String> ingredients = _ingredientsRows
+          .map((row) => row['ingredient']?.toString() ?? '')
+          .where((val) => val.isNotEmpty)
+          .toList();
+
       final productData = {
         'name': productName,
         'commonName': commonName,
@@ -1020,7 +1040,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
         'tags': _tags,
         'description': _descriptionController.text.trim(),
         'usage': _usageController.text.trim(),
-        'ingredients': _ingredientsController.text.trim(),
+        'ingredients': ingredients,
         'notes': _notesController.text.trim(),
         'category': _selectedCategories,
         'isActive': _isActive,
@@ -1148,7 +1168,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
                   decoration: designSystemInputDecoration(
                     label: '',
                     fillColor: mutedBackground,
-                    suffixIcon: Padding(
+                     suffixIcon: Padding(
                       padding: const EdgeInsets.only(top: 8, right: 2),
                       child: Text('₫', style: TextStyle(color: textSecondary)),
                     ),
@@ -1319,7 +1339,6 @@ class _AddProductScreenState extends State<AddProductScreen> {
       _tagsController.clear();
       _descriptionController.text = '';
       _usageController.text = '';
-      _ingredientsController.text = '';
       _notesController.text = '';
       _tagInputController.clear();
       _profitMarginController.clear();
@@ -1330,6 +1349,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
       _selectedDistributor = null;
       _lastCreatedProductId = null; // Reset ID sản phẩm vừa tạo
       _profitMarginController.text = _defaultProfitMargin.toStringAsFixed(0);
+      _ingredientsRows = [{"ingredient": ""}];
     });
   }
 }

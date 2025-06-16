@@ -41,40 +41,38 @@ class DefaultFirebaseOptions {
   }
 
   static const FirebaseOptions web = FirebaseOptions(
-    apiKey: 'AIzaSyBuM2Mv3YlLRVUXjzFgeHuK1JBuAglbzm0',
-    appId: '1:15395032481:web:7a56ea1d115f6843014fe0',
-    messagingSenderId: '15395032481',
-    projectId: 'mau-hien-production',
-    authDomain: 'mau-hien-production.firebaseapp.com',
-    storageBucket: 'mau-hien-production.firebasestorage.app',
-    measurementId: 'G-HTTTHZC0EE',
+    apiKey: 'AIzaSyA1gxPqELZZYiC86M3Bqz506X7TRYjeJSQ',
+    appId: '1:588886544003:web:29ce1c87f0b5e2f3c2d5b6',
+    messagingSenderId: '588886544003',
+    projectId: 'viet-pos-db',
+    authDomain: 'viet-pos-db.firebaseapp.com',
+    storageBucket: 'viet-pos-db.firebasestorage.app',
+    measurementId: 'G-GPRTJH7TGS',
   );
 
   static const FirebaseOptions android = FirebaseOptions(
-    apiKey: 'AIzaSyBuM2Mv3YlLRVUXjzFgeHuK1JBuAglbzm0',
-    appId: '1:15395032481:web:7a56ea1d115f6843014fe0',
-    messagingSenderId: '15395032481',
-    projectId: 'mau-hien-production',
-    storageBucket: 'mau-hien-production.firebasestorage.app',
+    apiKey: 'AIzaSyBx6kGOk-_mWaWvURcQVwc0EX68rf620FA',
+    appId: '1:588886544003:android:1aa178490a76156cc2d5b6',
+    messagingSenderId: '588886544003',
+    projectId: 'viet-pos-db',
+    storageBucket: 'viet-pos-db.firebasestorage.app',
   );
 
   static const FirebaseOptions ios = FirebaseOptions(
-    apiKey: 'AIzaSyBuM2Mv3YlLRVUXjzFgeHuK1JBuAglbzm0',
-    appId: '1:15395032481:web:7a56ea1d115f6843014fe0',
-    messagingSenderId: '15395032481',
-    projectId: 'mau-hien-production',
-    storageBucket: 'mau-hien-production.firebasestorage.app',
-    iosClientId: 'YOUR-IOS-CLIENT-ID',
+    apiKey: 'AIzaSyBjxUrsSeuIzmkL4UogGK6Z0TG269IeQSA',
+    appId: '1:588886544003:ios:c503457f261824d3c2d5b6',
+    messagingSenderId: '588886544003',
+    projectId: 'viet-pos-db',
+    storageBucket: 'viet-pos-db.firebasestorage.app',
     iosBundleId: 'com.example.vietPosFlutter',
   );
 
   static const FirebaseOptions macos = FirebaseOptions(
-    apiKey: 'AIzaSyBuM2Mv3YlLRVUXjzFgeHuK1JBuAglbzm0',
-    appId: '1:15395032481:web:7a56ea1d115f6843014fe0',
-    messagingSenderId: '15395032481',
-    projectId: 'mau-hien-production',
-    storageBucket: 'mau-hien-production.firebasestorage.app',
-    iosClientId: 'YOUR-MACOS-CLIENT-ID',
+    apiKey: 'AIzaSyBjxUrsSeuIzmkL4UogGK6Z0TG269IeQSA',
+    appId: '1:588886544003:ios:c503457f261824d3c2d5b6',
+    messagingSenderId: '588886544003',
+    projectId: 'viet-pos-db',
+    storageBucket: 'viet-pos-db.firebasestorage.app',
     iosBundleId: 'com.example.vietPosFlutter',
   );
 
