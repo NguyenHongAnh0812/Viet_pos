@@ -193,14 +193,14 @@ class _ProductCategoryScreenState extends State<ProductCategoryScreen> {
                             categories.sort((a, b) => b.name.compareTo(a.name));
                           } else if (sortOption == 'product_count_desc') {
                             categories.sort((a, b) {
-                              final countA = products.where((p) => p.category == a.name).length;
-                              final countB = products.where((p) => p.category == b.name).length;
+                              final countA = products.where((p) => p.categoryId == a.name).length;
+                              final countB = products.where((p) => p.categoryId == b.name).length;
                               return countB.compareTo(countA);
                             });
                           } else if (sortOption == 'product_count_asc') {
                             categories.sort((a, b) {
-                              final countA = products.where((p) => p.category == a.name).length;
-                              final countB = products.where((p) => p.category == b.name).length;
+                              final countA = products.where((p) => p.categoryId == a.name).length;
+                              final countB = products.where((p) => p.categoryId == b.name).length;
                               return countA.compareTo(countB);
                             });
                           }
@@ -214,7 +214,7 @@ class _ProductCategoryScreenState extends State<ProductCategoryScreen> {
                                     ...categories.asMap().entries.map((entry) {
                                       final idx = entry.key;
                                       final cat = entry.value;
-                                      final count = products.where((p) => p.category == cat.name).length;
+                                      final count = products.where((p) => p.categoryId == cat.name).length;
                                       return _CategoryCardItem(
                                         name: cat.name,
                                         count: count,
@@ -263,7 +263,7 @@ class _ProductCategoryScreenState extends State<ProductCategoryScreen> {
                                       ...categories.asMap().entries.map((entry) {
                                         final idx = entry.key;
                                         final cat = entry.value;
-                                        final count = products.where((p) => p.category == cat.name).length;
+                                        final count = products.where((p) => p.categoryId == cat.name).length;
                                         return _CategoryTableRow(
                                           name: cat.name,
                                           count: count,

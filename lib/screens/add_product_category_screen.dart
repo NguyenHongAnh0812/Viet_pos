@@ -231,7 +231,7 @@ class _AddProductCategoryScreenState extends State<AddProductCategoryScreen> {
                       StreamBuilder<List<Product>>(
                         stream: _productService.getProducts(),
                         builder: (context, snapshot) {
-                          final products = (snapshot.data ?? []).where((p) => p.name.toLowerCase().contains(searchText.toLowerCase())).toList();
+                          final products = (snapshot.data ?? []).where((p) => p.internalName.toLowerCase().contains(searchText.toLowerCase())).toList();
                           if (products.isEmpty) {
                             return const Padding(
                               padding: EdgeInsets.symmetric(vertical: 12),
@@ -304,8 +304,8 @@ class _AddProductCategoryScreenState extends State<AddProductCategoryScreen> {
                                               child: Column(
                                                 crossAxisAlignment: CrossAxisAlignment.start,
                                                 children: [
-                                                  Text(p.name, style: const TextStyle(fontWeight: FontWeight.bold)),
-                                                  Text(p.commonName, style: const TextStyle(fontSize: 13, color: Colors.black54)),
+                                                  Text(p.internalName, style: const TextStyle(fontWeight: FontWeight.bold)),
+                                                  Text(p.tradeName, style: const TextStyle(fontSize: 13, color: Colors.black54)),
                                                 ],
                                               ),
                                             ),
@@ -331,7 +331,7 @@ class _AddProductCategoryScreenState extends State<AddProductCategoryScreen> {
                                                   border: Border.all(color: borderColor),
                                                   borderRadius: BorderRadius.circular(borderRadiusMedium),
                                                 ),
-                                                child: Text('${p.stock}', style: const TextStyle(fontWeight: FontWeight.bold)),
+                                                child: Text('${p.stockQuantity}', style: const TextStyle(fontWeight: FontWeight.bold)),
                                               ),
                                             ),
                                           ],
@@ -417,8 +417,8 @@ class _AddProductCategoryScreenState extends State<AddProductCategoryScreen> {
                                               child: Column(
                                                 crossAxisAlignment: CrossAxisAlignment.start,
                                                 children: [
-                                                  Text(p.name, style: const TextStyle(fontWeight: FontWeight.bold)),
-                                                  Text(p.commonName, style: const TextStyle(fontSize: 13, color: Colors.black54)),
+                                                  Text(p.internalName, style: const TextStyle(fontWeight: FontWeight.bold)),
+                                                  Text(p.tradeName, style: const TextStyle(fontSize: 13, color: Colors.black54)),
                                                   const SizedBox(height: 6),
                                                   Row(
                                                     children: [
@@ -431,7 +431,7 @@ class _AddProductCategoryScreenState extends State<AddProductCategoryScreen> {
                                                           border: Border.all(color: borderColor),
                                                           borderRadius: BorderRadius.circular(borderRadiusSmall),
                                                         ),
-                                                        child: Text('SL: ${p.stock}', style: const TextStyle(fontWeight: FontWeight.w600)),
+                                                        child: Text('SL: ${p.stockQuantity}', style: const TextStyle(fontWeight: FontWeight.w600)),
                                                       ),
                                                     ],
                                                   ),

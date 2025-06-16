@@ -32,12 +32,12 @@ class ProductListCard extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      product.name,
+                      product.internalName,
                       style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 20),
                     ),
                     const SizedBox(height: 2),
                     Text(
-                      product.commonName,
+                      product.tradeName,
                       style: TextStyle(color: Colors.grey[700], fontSize: 15, fontWeight: FontWeight.w500), semanticsLabel: 'Tên thương mại',
                     ),
                     const SizedBox(height: 2),
@@ -83,10 +83,10 @@ class ProductListCard extends StatelessWidget {
                       children: [
                         const Text('Số lượng: ', style: TextStyle(fontWeight: FontWeight.w500, fontSize: 16)),
                         Text(
-                          '${product.stock}',
+                          '${product.stockQuantity}',
                           style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 17),
                         ),
-                        if ((product.stock ?? 0) < 60)
+                        if ((product.stockQuantity ?? 0) < 60)
                           Container(
                             margin: const EdgeInsets.only(left: 8),
                             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),

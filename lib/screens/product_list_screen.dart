@@ -155,7 +155,7 @@ class _ProductListScreenState extends State<ProductListScreen> {
   ];
 
   List<String> getCategoriesFromProducts(List<Product> products) {
-    final set = products.map((p) => p.category).where((c) => c != null && c.isNotEmpty).toSet();
+    final set = products.map((p) => p.categoryId).where((c) => c != null && c.isNotEmpty).toSet();
     final list = set.toList()..sort();
     return ['Tất cả', ...list];
   }
@@ -175,7 +175,7 @@ class _ProductListScreenState extends State<ProductListScreen> {
     
     final filtered = products.where((p) {
       // Category filter
-      if (selectedCategory != 'Tất cả' && p.category != selectedCategory) {
+      if (selectedCategory != 'Tất cả' && p.categoryId != selectedCategory) {
         return false;
       }
       
@@ -186,18 +186,11 @@ class _ProductListScreenState extends State<ProductListScreen> {
       
       // Stock filter - Only apply if stock range is not default
       if (stockRange.start > 0 || stockRange.end < 99999) {
-        if (p.stock < stockRange.start || p.stock > stockRange.end) {
+        if (p.stockQuantity < stockRange.start || p.stockQuantity > stockRange.end) {
           return false;
         }
       }
-      
-      // Status filter
-      if (status == 'Còn bán' && !p.isActive) {
-        return false;
-      }
-      if (status == 'Ngừng bán' && p.isActive) {
-        return false;
-      }
+    
       
       // Tags filter - Only apply if tags are selected
       if (selectedTags.isNotEmpty) {
@@ -210,8 +203,8 @@ class _ProductListScreenState extends State<ProductListScreen> {
       if (searchText.isNotEmpty) {
         final searchLower = searchText.toLowerCase();
         // Tìm theo tên nội bộ, tên thương mại và mã vạch
-        if (!p.name.toLowerCase().contains(searchLower) && 
-            !p.commonName.toLowerCase().contains(searchLower) &&
+        if (!p.internalName.toLowerCase().contains(searchLower) && 
+            !p.tradeName.toLowerCase().contains(searchLower) &&
             !(p.barcode != null && p.barcode!.toLowerCase().contains(searchLower))) {
           return false;
         }
@@ -232,10 +225,10 @@ class _ProductListScreenState extends State<ProductListScreen> {
   List<Product> sortProducts(List<Product> products) {
     switch (sortOption) {
       case 'name_asc':
-        products.sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
+        products.sort((a, b) => a.internalName.toLowerCase().compareTo(b.internalName.toLowerCase()));
         break;
       case 'name_desc':
-        products.sort((a, b) => b.name.toLowerCase().compareTo(a.name.toLowerCase()));
+        products.sort((a, b) => b.internalName.toLowerCase().compareTo(a.internalName.toLowerCase()));
         break;
       case 'price_asc':
         products.sort((a, b) => a.salePrice.compareTo(b.salePrice));
@@ -244,10 +237,10 @@ class _ProductListScreenState extends State<ProductListScreen> {
         products.sort((a, b) => b.salePrice.compareTo(a.salePrice));
         break;
       case 'stock_asc':
-        products.sort((a, b) => a.stock.compareTo(b.stock));
+        products.sort((a, b) => a.stockQuantity.compareTo(b.stockQuantity));
         break;
       case 'stock_desc':
-        products.sort((a, b) => b.stock.compareTo(a.stock));
+        products.sort((a, b) => b.stockQuantity.compareTo(a.stockQuantity));
         break;
     }
     return products;
@@ -290,9 +283,9 @@ class _ProductListScreenState extends State<ProductListScreen> {
 
         // Mapping header tiếng Việt sang tên trường tiếng Anh
         final headerMapping = {
-          'tên nội bộ': 'name',
-          'tên thương mại': 'commonName',
-          'danh mục sản phẩm': 'category',
+          'tên nội bộ': 'internalName',
+          'tên thương mại': 'tradeName',
+          'danh mục sản phẩm': 'categoryId',
           'mã vạch': 'barcode',
           'sku': 'sku',
           'đơn vị tính': 'unit',
@@ -301,10 +294,10 @@ class _ProductListScreenState extends State<ProductListScreen> {
           'công dụng': 'usage',
           'thành phần': 'ingredients',
           'ghi chú': 'notes',
-          'số lượng sản phẩm': 'stock',
-          'giá nhập': 'cost_price',
+          'số lượng sản phẩm': 'stockQuantity',
+          'giá nhập': 'costPrice',
           'giá bán': 'salePrice',
-          'trạng thái': 'isActive'
+          'trạng thái': 'status'
         };
 
         // Chuyển đổi header sang tiếng Anh
@@ -312,7 +305,7 @@ class _ProductListScreenState extends State<ProductListScreen> {
         print('Processed headers: \\${processedHeaders}');
 
         // Kiểm tra các trường bắt buộc
-        final requiredFields = ['name', 'category', 'unit', 'stock'];
+        final requiredFields = ['internalName', 'categoryId', 'unit', 'stockQuantity'];
         final missingFields = requiredFields.where((field) => !processedHeaders.contains(field)).toList();
         if (missingFields.isNotEmpty) {
           print('Thiếu các trường bắt buộc: \\${missingFields.join(", ")}');
@@ -337,14 +330,14 @@ class _ProductListScreenState extends State<ProductListScreen> {
 
             if (field != null) {
               switch (field) {
-                case 'stock':
+                case 'stockQuantity':
                   product[field] = int.tryParse(value) ?? 0;
                   break;
-                case 'cost_price':
+                case 'costPrice':
                 case 'salePrice':
                   product[field] = double.tryParse(value) ?? 0.0;
                   break;
-                case 'isActive':
+                case 'status':
                   product[field] = value.toLowerCase() == 'còn bán';
                   break;
                 case 'tags':
@@ -357,10 +350,10 @@ class _ProductListScreenState extends State<ProductListScreen> {
           }
 
           // Thêm các trường mặc định nếu chưa có
-          product['commonName'] ??= product['name'];
-          product['cost_price'] ??= 0.0;
+          product['tradeName'] ??= product['internalName'];
+          product['costPrice'] ??= 0.0;
           product['salePrice'] ??= 0.0;
-          product['isActive'] ??= true;
+          product['status'] ??= true;
           product['createdAt'] = FieldValue.serverTimestamp();
           product['updatedAt'] = FieldValue.serverTimestamp();
 
@@ -391,9 +384,9 @@ class _ProductListScreenState extends State<ProductListScreen> {
         print('Excel headers (gốc): $headers');
         // Mapping header tiếng Việt sang tên trường tiếng Anh
         final headerMapping = {
-          'tên nội bộ': 'name',
-          'tên thương mại': 'commonName',
-          'danh mục sản phẩm': 'category',
+          'tên nội bộ': 'internalName',
+          'tên thương mại': 'tradeName',
+          'danh mục sản phẩm': 'categoryId',
           'mã vạch': 'barcode',
           'sku': 'sku',
           'đơn vị tính': 'unit',
@@ -402,10 +395,10 @@ class _ProductListScreenState extends State<ProductListScreen> {
           'công dụng': 'usage',
           'thành phần': 'ingredients',
           'ghi chú': 'notes',
-          'số lượng sản phẩm': 'stock',
-          'giá nhập': 'cost_price',
+          'số lượng sản phẩm': 'stockQuantity',
+          'giá nhập': 'costPrice',
           'giá bán': 'salePrice',
-          'trạng thái': 'isActive'
+          'trạng thái': 'status'
         };
         final processedHeaders = headers.map((h) => headerMapping[h] ?? h).toList();
         print('Processed Excel headers (mapping): $processedHeaders');
@@ -419,14 +412,14 @@ class _ProductListScreenState extends State<ProductListScreen> {
             final value = cell?.value;
             print('Row $i, Col $j: header="${headers[j]}", mapped="$field", value="$value"');
             switch (field) {
-              case 'stock':
+              case 'stockQuantity':
                 product[field] = int.tryParse(value?.toString() ?? '') ?? 0;
                 break;
-              case 'cost_price':
+              case 'costPrice':
               case 'salePrice':
                 product[field] = double.tryParse(value?.toString() ?? '') ?? 0.0;
                 break;
-              case 'isActive':
+              case 'status':
                 product[field] = (value?.toString().toLowerCase() ?? '') == 'còn bán';
                 break;
               case 'tags':
@@ -437,15 +430,15 @@ class _ProductListScreenState extends State<ProductListScreen> {
             }
           }
           // Thêm các trường mặc định nếu chưa có
-          product['commonName'] ??= product['name'];
-          product['cost_price'] ??= 0.0;
+          product['tradeName'] ??= product['internalName'];
+          product['costPrice'] ??= 0.0;
           product['salePrice'] ??= 0.0;
-          product['isActive'] ??= true;
+          product['status'] ??= true;
           product['createdAt'] = FieldValue.serverTimestamp();
           product['updatedAt'] = FieldValue.serverTimestamp();
           // Kiểm tra dữ liệu bắt buộc
           bool valid = true;
-          for (final field in ['name', 'category', 'unit', 'stock']) {
+          for (final field in ['internalName', 'categoryId', 'unit', 'stockQuantity']) {
             if (product[field] == null || product[field].toString().isEmpty) {
               print('Bỏ qua dòng $i: Thiếu trường bắt buộc $field');
               valid = false;
@@ -524,9 +517,9 @@ class _ProductListScreenState extends State<ProductListScreen> {
     sheet.appendRow(headers.map((h) => excel.TextCellValue(h)).toList());
     for (final p in products) {
       sheet.appendRow([
-        excel.TextCellValue(p.name),
-        excel.TextCellValue(p.commonName),
-        excel.TextCellValue(p.category),
+        excel.TextCellValue(p.internalName),
+        excel.TextCellValue(p.tradeName),
+        excel.TextCellValue(p.categoryId),
         excel.TextCellValue(p.barcode ?? ''),
         excel.TextCellValue(p.sku ?? ''),
         excel.TextCellValue(p.unit),
@@ -535,10 +528,10 @@ class _ProductListScreenState extends State<ProductListScreen> {
         excel.TextCellValue(p.usage),
         excel.TextCellValue(p.ingredients),
         excel.TextCellValue(p.notes),
-        excel.IntCellValue(p.stock),
+        excel.IntCellValue(p.stockQuantity),
         excel.DoubleCellValue(p.costPrice),
         excel.DoubleCellValue(p.salePrice),
-        excel.TextCellValue(p.isActive ? 'Còn bán' : 'Ngừng bán'),
+        
         excel.TextCellValue(p.createdAt.toString()),
         excel.TextCellValue(p.updatedAt.toString()),
       ]);
@@ -566,8 +559,8 @@ class _ProductListScreenState extends State<ProductListScreen> {
 
   void updateFilterRanges(List<Product> products) {
     if (products.isNotEmpty) {
-      int newMinStock = products.map((p) => p.stock).reduce((a, b) => a < b ? a : b);
-      int newMaxStock = products.map((p) => p.stock).reduce((a, b) => a > b ? a : b);
+      int newMinStock = products.map((p) => p.stockQuantity).reduce((a, b) => a < b ? a : b);
+      int newMaxStock = products.map((p) => p.stockQuantity).reduce((a, b) => a > b ? a : b);
       double newMinPrice = products.map((p) => p.salePrice).reduce((a, b) => a < b ? a : b);
       double newMaxPrice = products.map((p) => p.salePrice).reduce((a, b) => a > b ? a : b);
 
@@ -588,15 +581,15 @@ class _ProductListScreenState extends State<ProductListScreen> {
   }
 
   void checkExtremeProducts(List<Product> products) {
-    final stock99999 = products.where((p) => p.stock == 99999).toList();
+    final stock99999 = products.where((p) => p.stockQuantity == 99999).toList();
     final price1000000 = products.where((p) => p.salePrice == 1000000).toList();
     print('--- Sản phẩm có tồn kho = 99999 ---');
     for (final p in stock99999) {
-      print('ID: \\${p.id}, Tên: \\${p.name}, Tồn kho: \\${p.stock}');
+      print('ID: \\${p.id}, Tên: \\${p.internalName}, Tồn kho: \\${p.stockQuantity}');
     }
     print('--- Sản phẩm có giá bán = 1,000,000 ---');
     for (final p in price1000000) {
-      print('ID: \\${p.id}, Tên: \\${p.name}, Giá bán: \\${p.salePrice}');
+      print('ID: \\${p.id}, Tên: \\${p.internalName}, Giá bán: \\${p.salePrice}');
     }
   }
 
@@ -1086,11 +1079,11 @@ class _ProductListScreenState extends State<ProductListScreen> {
                                                       child: Column(
                                                         crossAxisAlignment: CrossAxisAlignment.start,
                                                         children: [
-                                                          Text(product.commonName, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, fontFamily: 'Inter')),
-                                                          if (product.name.isNotEmpty)
+                                                          Text(product.tradeName, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, fontFamily: 'Inter')),
+                                                          if (product.internalName.isNotEmpty)
                                                             Padding(
                                                               padding: const EdgeInsets.only(top: 2),
-                                                              child: Text(product.name, style: TextStyle(fontSize: 14, color: Colors.grey[600], fontWeight: FontWeight.w400, fontFamily: 'Inter')),
+                                                              child: Text(product.internalName, style: TextStyle(fontSize: 14, color: Colors.grey[600], fontWeight: FontWeight.w400, fontFamily: 'Inter')),
                                                             ),
                                                           const SizedBox(height: 16),
                                                           Row(
@@ -1101,7 +1094,7 @@ class _ProductListScreenState extends State<ProductListScreen> {
                                                                 style: TextStyle(fontSize: 14, color: Colors.grey[600]),
                                                               ),
                                                               Text(
-                                                                'Số lượng: ${product.stock}',
+                                                                'Số lượng: ${product.stockQuantity}',
                                                                 style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
                                                               ),
                                                             ],
@@ -1149,9 +1142,9 @@ class _ProductListScreenState extends State<ProductListScreen> {
                                                             child: Column(
                                                               crossAxisAlignment: CrossAxisAlignment.start,
                                                               children: [
-                                                                Text(product.commonName, style: bodyLarge.copyWith(fontWeight: FontWeight.w700)),
-                                                                if (product.name.isNotEmpty)
-                                                                  Text(product.name, style: body.copyWith(color: Colors.grey[600])),
+                                                                Text(product.tradeName, style: bodyLarge.copyWith(fontWeight: FontWeight.w700)),
+                                                                if (product.internalName.isNotEmpty)
+                                                                  Text(product.internalName, style: body.copyWith(color: Colors.grey[600])),
                                                                 // Ô nội dung chi tiết
                                                                 Container(
                                                                   margin: const EdgeInsets.only(top: 8, bottom: 8),
@@ -1170,8 +1163,8 @@ class _ProductListScreenState extends State<ProductListScreen> {
                                                                         Text('SKU: ${product.sku}', style: const TextStyle(fontSize: 13, color: Colors.black54)),
                                                                       if (product.unit.isNotEmpty)
                                                                         Text('Đơn vị: ${product.unit}', style: const TextStyle(fontSize: 13, color: Colors.black54)),
-                                                                      Text('Tồn kho hệ thống: ${product.stock}', style: const TextStyle(fontSize: 13, color: Colors.black87, fontWeight: FontWeight.w600)),
-                                                                      Text('Tồn kho hóa đơn: ${product.invoiceStock}', style: const TextStyle(fontSize: 13, color: Colors.black54, fontWeight: FontWeight.w600)),
+                                                                      Text('Tồn kho hệ thống: ${product.stockQuantity}', style: const TextStyle(fontSize: 13, color: Colors.black87, fontWeight: FontWeight.w600)),
+                                                                      Text('Tồn kho hóa đơn: ${product.stockInvoice}', style: const TextStyle(fontSize: 13, color: Colors.black54, fontWeight: FontWeight.w600)),
                                                                       if (product.description.isNotEmpty)
                                                                         Text('Mô tả: ${product.description}', style: const TextStyle(fontSize: 13, color: Colors.black54)),
                                                                       if (product.usage.isNotEmpty)
@@ -1180,15 +1173,9 @@ class _ProductListScreenState extends State<ProductListScreen> {
                                                                         Text('Thành phần: ${product.ingredients}', style: const TextStyle(fontSize: 13, color: Colors.black54)),
                                                                       if (product.notes.isNotEmpty)
                                                                         Text('Ghi chú: ${product.notes}', style: const TextStyle(fontSize: 13, color: Colors.black54)),
-                                                                      if ((product.distributor ?? '').isNotEmpty)
-                                                                        Text('Nhà phân phối: ${product.distributor}', style: const TextStyle(fontSize: 13, color: Colors.black54)),
                                                                       Text('Giá nhập: ${NumberFormat.currency(locale: 'vi_VN', symbol: '₫').format(product.costPrice)}', style: const TextStyle(fontSize: 13, color: Colors.black54)),
                                                                       Text('Giá bán: ${NumberFormat.currency(locale: 'vi_VN', symbol: '₫').format(product.salePrice)}', style: const TextStyle(fontSize: 13, color: Colors.blue, fontWeight: FontWeight.bold)),
-                                                                      Text('Trạng thái: ${product.isActive ? 'Còn bán' : 'Ngừng bán'}', style: TextStyle(fontSize: 13, color: product.isActive ? Colors.green : Colors.red, fontWeight: FontWeight.w600)),
-                                                                      if (product.taxRate != null)
-                                                                        Text('Thuế suất: ${(product.taxRate! * 100).toStringAsFixed(0)}%', style: const TextStyle(fontSize: 13, color: Colors.black54)),
-                                                                      Text('Ngày tạo: ${DateFormat('dd/MM/yyyy HH:mm').format(product.createdAt)}', style: const TextStyle(fontSize: 12, color: Colors.grey)),
-                                                                      Text('Ngày cập nhật: ${DateFormat('dd/MM/yyyy HH:mm').format(product.updatedAt)}', style: const TextStyle(fontSize: 12, color: Colors.grey)),
+                                                                      //Text('Trạng thái: ${product.status ? 'Còn bán' : 'Ngừng bán'}', style: TextStyle(fontSize: 13, color: product.status ? Colors.green : Colors.red, fontWeight: FontWeight.w600)),
                                                                     ],
                                                                   ),
                                                                 ),
@@ -1206,7 +1193,7 @@ class _ProductListScreenState extends State<ProductListScreen> {
                                                             flex: 2,
                                                             child: Align(
                                                               alignment: Alignment.center,
-                                                              child: Text('${product.stock}', style: bodyLarge.copyWith(fontWeight: FontWeight.w600)),
+                                                              child: Text('${product.stockQuantity}', style: bodyLarge.copyWith(fontWeight: FontWeight.w600)),
                                                             ),
                                                           ),
                                                         ],

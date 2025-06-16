@@ -214,7 +214,7 @@ class _InventoryScreenState extends State<InventoryScreen> with SingleTickerProv
                                   flex: 2,
                                   child: Center(
                                     child: DesignSystemBadge(
-                                      text: filtered[i].status,
+                                      text: filtered[i].status == 'active' ? 'Còn bán' : 'Ngừng bán',
                                       variant: filtered[i].status == 'Đã cập nhật kho'
                                           ? BadgeVariant.secondary
                                           : filtered[i].status == 'Đã hoàn tất'
@@ -426,14 +426,13 @@ class _InventoryScreenState extends State<InventoryScreen> with SingleTickerProv
       final actualQty = int.tryParse(actualStr ?? '') ?? 0;
       sessionProducts.add(InventoryProduct(
         productId: p.id,
-        name: p.name,
-        systemQty: p.stock,
+        name: p.internalName,
+        systemQty: p.stockQuantity,
         actualQty: actualQty,
-        diff: actualQty - p.stock,
+        diff: actualQty - p.stockQuantity,
       ));
-      // Nếu _syncStock là true, cập nhật số lượng thực tế vào Firestore
       if (_syncStock && actualStr != null && actualStr.isNotEmpty) {
-        await _productService.updateProduct(p.id, p.copyWith(stock: actualQty));
+        await _productService.updateProduct(p.id, p.copyWith(stockQuantity: actualQty));
       }
     }
     final session = InventorySession(
@@ -534,7 +533,7 @@ class _InventoryScreenState extends State<InventoryScreen> with SingleTickerProv
       
       // Tạo bản sao của sản phẩm với số lượng mới và cập nhật updatedAt
       final updatedProduct = product.copyWith(
-        stock: newQuantity,
+        stockQuantity: newQuantity,
         updatedAt: DateTime.now(),
       );
       

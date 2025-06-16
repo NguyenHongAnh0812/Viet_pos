@@ -31,7 +31,7 @@ class ProductService {
 
       final nameQuery = await _firestore
           .collection(_collection)
-          .where('name', isEqualTo: product.name)
+          .where('internalName', isEqualTo: product.internalName)
           .get();
       if (nameQuery.docs.isNotEmpty) {
         throw 'Tên danh pháp đã tồn tại';
@@ -62,9 +62,9 @@ class ProductService {
           
           final product = Product.fromMap(doc.id, doc.data());
           print('Successfully parsed product:');
-          print('- Name: ${product.name}');
-          print('- Category: ${product.category}');
-          print('- Stock: ${product.stock}');
+          print('- Name: ${product.internalName}');
+          print('- Category: ${product.categoryId}');
+          print('- Stock: ${product.stockQuantity}');
           print('- Price: ${product.salePrice}');
           
           products.add(product);
@@ -116,6 +116,6 @@ class ProductService {
   }
 
   Future<void> updateProductCategory(String productId, String categoryName) async {
-    await _firestore.collection(_collection).doc(productId).update({'category': categoryName});
+    await _firestore.collection(_collection).doc(productId).update({'categoryId': categoryName});
   }
 } 

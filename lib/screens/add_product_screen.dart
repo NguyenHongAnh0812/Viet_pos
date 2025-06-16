@@ -220,19 +220,19 @@ class _AddProductScreenState extends State<AddProductScreen> {
     _fetchDistributors();
     final numberFormat = NumberFormat('#,###', 'vi_VN');
     if (widget.product != null) {
-      _nameController.text = widget.product!.name;
-      _commonNameController.text = widget.product!.commonName;
+      _nameController.text = widget.product!.internalName;
+      _commonNameController.text = widget.product!.tradeName;
       _barcodeController.text = widget.product!.barcode ?? '';
       _skuController.text = widget.product!.sku ?? '';
       _unitController.text = widget.product!.unit;
-      _quantityController.text = widget.product!.stock.toString();
+      _quantityController.text = widget.product!.stockQuantity.toString();
       _costPriceController.text = numberFormat.format(widget.product!.costPrice.round());
       _sellPriceController.text = numberFormat.format(widget.product!.salePrice.round());
       _tagsController.text = widget.product!.tags.join(', ');
       _descriptionController.text = widget.product!.description;
       _usageController.text = widget.product!.usage;
       _notesController.text = widget.product!.notes;
-      final cat = widget.product!.category;
+      final cat = widget.product!.categoryId;
       if (cat is List) {
         _selectedCategories = (cat as List).map((e) => e.toString()).toList();
       } else if (cat is Iterable && cat is! String) {
@@ -242,7 +242,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
       } else {
         _selectedCategories = [];
       }
-      _isActive = widget.product!.isActive;
+      _isActive = widget.product!.status == 'active';
       _tags = List<String>.from(widget.product!.tags);
       final calculatedMargin = ((widget.product!.salePrice / (widget.product!.costPrice == 0 ? 1 : widget.product!.costPrice) - 1) * 100).toStringAsFixed(0);
       if (calculatedMargin != _defaultProfitMargin.toString()) {
@@ -1030,12 +1030,12 @@ class _AddProductScreenState extends State<AddProductScreen> {
 
       final productData = {
         'name': productName,
-        'commonName': commonName,
+        'tradeName': commonName,
         'barcode': _barcodeController.text.trim(),
         'sku': _skuController.text.trim(),
         'unit': _unitController.text.trim(),
-        'stock': int.tryParse(_quantityController.text) ?? 0,
-        'cost_price': costPrice,
+        'stockQuantity': int.tryParse(_quantityController.text) ?? 0,
+        'costPrice': costPrice,
         'salePrice': salePrice,
         'tags': _tags,
         'description': _descriptionController.text.trim(),
@@ -1043,13 +1043,12 @@ class _AddProductScreenState extends State<AddProductScreen> {
         'ingredients': ingredients,
         'notes': _notesController.text.trim(),
         'category': _selectedCategories,
-        'isActive': _isActive,
-        'distributor': _selectedDistributor,
+        'status': _isActive,
         'updatedAt': FieldValue.serverTimestamp(),
       };
 
       print('Debug - Final data to save:');
-      print('Cost price in data: ${productData['cost_price']}');
+      print('Cost price in data: ${productData['costPrice']}');
       print('Sale price in data: ${productData['salePrice']}');
 
       if (_lastCreatedProductId != null) {
@@ -1320,7 +1319,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
     
     final query = await FirebaseFirestore.instance
         .collection('products')
-        .where('commonName', isEqualTo: commonName)
+        .where('tradeName', isEqualTo: commonName)
         .get();
     
     return query.docs.isNotEmpty;

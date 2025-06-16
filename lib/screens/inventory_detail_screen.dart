@@ -186,7 +186,7 @@ class _InventoryDetailScreenState extends State<InventoryDetailScreen> {
       final productId = item['productId'];
       final actualStock = int.tryParse(_actualControllers[item['id']]?.text ?? '') ?? item['actualStock'] ?? 0;
       try {
-        await FirebaseFirestore.instance.collection('products').doc(productId).update({'stock': actualStock});
+        await FirebaseFirestore.instance.collection('products').doc(productId).update({'stockQuantity': actualStock});
       } catch (e) {
         debugPrint('Lỗi khi cập nhật productId=$productId: $e');
       }

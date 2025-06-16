@@ -403,7 +403,7 @@ class _InvoiceImportScreenState extends State<InvoiceImportScreen> {
       final batch = await productsRef.get();
       
       for (var doc in batch.docs) {
-        allProducts[doc['commonName'] as String] = doc;
+        allProducts[doc['internal_name'] as String] = doc;
       }
       
       setState(() {
@@ -488,30 +488,36 @@ class _InvoiceImportScreenState extends State<InvoiceImportScreen> {
 
           try {
             if (allProducts.containsKey(name)) {
+              // Cập nhật sản phẩm hiện có
               final doc = allProducts[name]!;
-              final currentStock = (doc['stock'] ?? 0).toDouble();
+              final currentStock = (doc['stock_invoice'] ?? 0).toDouble();
               batch.update(doc.reference, {
-                'stock': currentStock + quantity,
-                'updatedAt': FieldValue.serverTimestamp(),
+                'stock_invoice': currentStock + quantity,
+                'cost_price': costPrice,
+                'updated_at': FieldValue.serverTimestamp(),
               });
               updatedCount++;
             } else {
+              // Tạo sản phẩm mới
               final productData = {
-                'name': name,
-                'commonName': name,
+                'internal_name': name,
                 'unit': unit,
-                'stock': quantity,
-                'createdAt': FieldValue.serverTimestamp(),
-                'updatedAt': FieldValue.serverTimestamp(),
-                'category': 'Khác',
+                'stock_invoice': quantity,
+                'cost_price': costPrice,
+                'category_id': null, // Cho phép null
+                'status': 'active',
                 'description': '',
                 'usage': '',
                 'ingredients': '',
                 'notes': '',
-                'salePrice': 0,
-                'isActive': true,
+                'sale_price': 0,
+                'gross_profit': 0,
+                'auto_price': false,
                 'tags': [],
-                'cost_price': costPrice,
+                'barcode': null,
+                'sku': null,
+                'created_at': FieldValue.serverTimestamp(),
+                'updated_at': FieldValue.serverTimestamp(),
               };
               final docRef = FirebaseFirestore.instance.collection('products').doc();
               batch.set(docRef, productData);

@@ -42,19 +42,17 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
   bool _isActive = false;
   final _categoryService = ProductCategoryService();
   List<String> _selectedCategories = [];
-  List<String> _distributors = [];
-  String? _selectedDistributor;
 
   @override
   void initState() {
     super.initState();
     final p = widget.product;
-    _nameController.text = p.name;
-    _commonNameController.text = p.commonName;
+    _nameController.text = p.internalName;
+    _commonNameController.text = p.tradeName;
     _barcodeController.text = p.barcode ?? '';
     _skuController.text = p.sku ?? '';
     _unitController.text = p.unit;
-    _quantityController.text = p.stock.toString();
+    _quantityController.text = p.stockQuantity.toString();
     
     // Format giá nhập và giá bán
     final numberFormat = NumberFormat('#,###', 'vi_VN');
@@ -66,22 +64,20 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
     _usageController.text = p.usage;
     _ingredientsController.text = p.ingredients;
     _notesController.text = p.notes;
-    _selectedCategory = p.category;
-    _isActive = p.isActive;
+    _selectedCategory = p.categoryId;
+    _isActive = p.status == 'active';
     _tags = List<String>.from(p.tags);
-    if (p.category is List) {
-      _selectedCategories = (p.category as List).map((e) => e.toString()).toList();
-    } else if (p.category is String && p.category.isNotEmpty) {
-      if (p.category.contains(',')) {
-        _selectedCategories = p.category.split(',').map((e) => e.trim()).toList();
+    if (p.categoryId is List) {
+      _selectedCategories = (p.categoryId as List).map((e) => e.toString()).toList();
+    } else if (p.categoryId is String && p.categoryId.isNotEmpty) {
+      if (p.categoryId.contains(',')) {
+        _selectedCategories = p.categoryId.split(',').map((e) => e.trim()).toList();
       } else {
-        _selectedCategories = [p.category];
+        _selectedCategories = [p.categoryId];
       }
     } else {
       _selectedCategories = [];
     }
-    _selectedDistributor = p.distributor;
-    _fetchDistributors();
     
     // Tính % lợi nhuận
     final calculatedMargin = ((p.salePrice / (p.costPrice == 0 ? 1 : p.costPrice) - 1) * 100).toStringAsFixed(0);
@@ -90,13 +86,6 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
     } else {
       _profitMarginController.text = _defaultProfitMargin.toStringAsFixed(0);
     }
-  }
-
-  void _fetchDistributors() async {
-    final snapshot = await FirebaseFirestore.instance.collection('distributors').get();
-    setState(() {
-      _distributors = snapshot.docs.map((doc) => doc['name'] as String).toList();
-    });
   }
 
   @override
@@ -178,27 +167,26 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
       print('Sale price: $salePrice');
       
       final productData = {
-        'name': _nameController.text.trim(),
-        'commonName': _commonNameController.text.trim(),
+        'internalName': _nameController.text.trim(),
+        'tradeName': _commonNameController.text.trim(),
         'barcode': _barcodeController.text.trim(),
         'sku': _skuController.text.trim(),
         'unit': _unitController.text.trim(),
-        'stock': int.tryParse(_quantityController.text) ?? 0,
-        'cost_price': costPrice,
+        'stockQuantity': int.tryParse(_quantityController.text) ?? 0,
+        'costPrice': costPrice,
         'salePrice': salePrice,
         'tags': _tags,
         'description': _descriptionController.text.trim(),
         'usage': _usageController.text.trim(),
         'ingredients': _ingredientsController.text.trim(),
         'notes': _notesController.text.trim(),
-        'category': _selectedCategories,
-        'isActive': _isActive,
-        'distributor': _selectedDistributor,
+        'categoryId': _selectedCategories,
+        'status': _isActive ? 'active' : 'inactive',
         'updatedAt': FieldValue.serverTimestamp(),
       };
 
       print('Debug - Final data to save:');
-      print('Cost price in data: ${productData['cost_price']}');
+      print('Cost price in data: ${productData['costPrice']}');
       print('Sale price in data: ${productData['salePrice']}');
 
       await FirebaseFirestore.instance.collection('products').doc(widget.product.id).update(productData);
@@ -330,17 +318,6 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
               ),
             ),
           ],
-        ),
-        const SizedBox(height: 12),
-        DesignSystemFormField(
-          label: 'Nhà phân phối',
-          input: DropdownButtonFormField<String>(
-            value: _selectedDistributor,
-            items: _distributors.map((d) => DropdownMenuItem(value: d, child: Text(d))).toList(),
-            onChanged: (v) => setState(() => _selectedDistributor = v),
-            decoration: designSystemInputDecoration(label: '', fillColor: mutedBackground),
-            hint: const Text('Chọn nhà phân phối'),
-          ),
         ),
         const SizedBox(height: 12),
         DesignSystemFormField(
@@ -661,14 +638,14 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                   groupValue: _isActive,
                   onChanged: (v) => setState(() => _isActive = v ?? true),
                 ),
-                const Text('Đang kinh doanh'),
+                const Text('Còn bán'),
                 const SizedBox(width: 16),
                 Radio<bool>(
                   value: false,
                   groupValue: _isActive,
                   onChanged: (v) => setState(() => _isActive = v ?? false),
                 ),
-                const Text('Ngừng kinh doanh'),
+                const Text('Ngừng bán'),
               ],
             ),
           ),

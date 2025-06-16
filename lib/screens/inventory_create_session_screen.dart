@@ -32,7 +32,7 @@ class _InventoryCreateSessionScreenState extends State<InventoryCreateSessionScr
 
   int getTotalSelected(List<Product> products) {
     if (_selectMode == 0) return products.length;
-    if (_selectMode == 1) return products.where((p) => p.category == _selectedCategory).length;
+    if (_selectMode == 1) return products.where((p) => p.categoryId == _selectedCategory).length;
     return _selectedProducts.length;
   }
 
@@ -201,7 +201,7 @@ class _InventoryCreateSessionScreenState extends State<InventoryCreateSessionScr
                 stream: _productService.getProducts(),
                 builder: (context, snapshot) {
                   final products = snapshot.data ?? [];
-                  final categories = products.map((p) => p.category).toSet().toList();
+                  final categories = products.map((p) => p.categoryId).toSet().toList();
                   return Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -283,9 +283,9 @@ class _InventoryCreateSessionScreenState extends State<InventoryCreateSessionScr
                                             mainAxisSize: MainAxisSize.min,
                                             crossAxisAlignment: CrossAxisAlignment.start,
                                             children: [
-                                              Text(p.name, style: bodyLarge.copyWith(color: textPrimary)),
-                                              if (p.commonName.isNotEmpty)
-                                                Text(p.commonName, style: bodyLarge.copyWith(color: textSecondary)),
+                                              Text(p.internalName, style: bodyLarge.copyWith(color: textPrimary)),
+                                              if (p.tradeName.isNotEmpty)
+                                                Text(p.tradeName, style: bodyLarge.copyWith(color: textSecondary)),
                                             ],
                                           ),
                                         ),
@@ -331,7 +331,7 @@ class _InventoryCreateSessionScreenState extends State<InventoryCreateSessionScr
                     if (_selectMode == 0) {
                       selectedProducts = products;
                     } else if (_selectMode == 1) {
-                      selectedProducts = products.where((p) => p.category == _selectedCategory).toList();
+                      selectedProducts = products.where((p) => p.categoryId == _selectedCategory).toList();
                     } else {
                       selectedProducts = products.where((p) => _selectedProducts.contains(p.id)).toList();
                     }
@@ -357,9 +357,9 @@ class _InventoryCreateSessionScreenState extends State<InventoryCreateSessionScr
                       await _itemService.addItem({
                         'sessionId': sessionId,
                         'productId': p.id,
-                        'productName': p.commonName,
-                        'systemStock': p.stock,
-                        'actualStock': p.stock,
+                        'productName': p.tradeName,
+                        'systemStock': p.stockQuantity,
+                        'actualStock': p.stockQuantity,
                         'diff': 0,
                         'note': '',
                       });
