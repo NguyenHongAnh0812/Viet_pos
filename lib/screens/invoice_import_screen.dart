@@ -4,6 +4,7 @@ import 'package:excel/excel.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../services/product_service.dart';
 import 'dart:io';
+import 'dart:async';
 
 class ImportProgress {
   final int totalItems;
@@ -34,9 +35,10 @@ class InvoiceImportScreen extends StatefulWidget {
 
 class _InvoiceImportScreenState extends State<InvoiceImportScreen> {
   String _status = 'Chưa chọn file nào';
-  List<List<dynamic>> _excelData = [];
-  List<List<dynamic>> _filteredData = [];
-  List<List<dynamic>> _mergedData = [];
+  List<Map<String, dynamic>> _excelData = [];
+  List<Map<String, dynamic>> _filteredData = [];
+  List<Map<String, dynamic>> _mergedData = [];
+  List<Map<String, dynamic>> _companyData = [];
   bool _showFilteredData = false;
   bool _showMergedData = false;
   bool _isImporting = false;
@@ -60,6 +62,14 @@ class _InvoiceImportScreenState extends State<InvoiceImportScreen> {
 
   bool _isLoading = false;
   bool _isLoadingFile = false;
+
+  int _importedCount = 0;
+  int _totalCount = 0;
+  int _currentBatch = 0;
+  int _totalBatches = 0;
+  Timer? _progressTimer;
+  final _progressController = StreamController<double>.broadcast();
+  Stream<double> get progressStream => _progressController.stream;
 
   // Hàm validate dữ liệu
   List<String> validateRow(List<dynamic> row, int rowIndex) {
@@ -191,6 +201,7 @@ class _InvoiceImportScreenState extends State<InvoiceImportScreen> {
         _excelData = [];
         _filteredData = [];
         _mergedData = [];
+        _companyData = [];
       });
 
       FilePickerResult? result = await FilePicker.platform.pickFiles(
@@ -208,185 +219,150 @@ class _InvoiceImportScreenState extends State<InvoiceImportScreen> {
         throw Exception('Không tìm thấy sheet trong file Excel');
       }
 
-      print('Tổng số dòng trong file: ${sheet.rows.length}');
-
       // Lấy header và tìm vị trí các cột cần thiết
       final headers = sheet.rows.first.map((cell) => cell?.value?.toString().trim().toLowerCase() ?? '').toList();
-      print('Headers: $headers');
 
+      // Lưu dữ liệu gốc từ Excel vào _excelData
+      final List<Map<String, dynamic>> rawData = [];
+      for (var i = 1; i < sheet.rows.length; i++) {
+        final row = sheet.rows[i];
+        final Map<String, dynamic> rowData = {};
+        for (var j = 0; j < headers.length; j++) {
+          if (j < row.length) {
+            rowData[headers[j]] = row[j]?.value?.toString() ?? '';
+          }
+        }
+        rawData.add(rowData);
+      }
+
+      // Tìm vị trí các cột
       final productIndex = headers.indexWhere((h) => h.contains('product'));
       final unitIndex = headers.indexWhere((h) => h.contains('đơn vị tính'));
       final quantityIndex = headers.indexWhere((h) => h.contains('số lượng'));
       final toImportIndex = headers.indexWhere((h) => h.contains('to import'));
       final unitPriceIndex = headers.indexWhere((h) => h.contains('đơn giá'));
-      print('Đơn giá: $unitPriceIndex');
+      final companyNameIndex = headers.indexWhere((h) => h.contains('tên người bán'));
+      final companyAddressIndex = headers.indexWhere((h) => h.contains('địa chỉ bên bán'));
+      final companyTaxCodeIndex = headers.indexWhere((h) => h.contains('mã số thuế'));
+      final invoiceNumberIndex = headers.indexWhere((h) => h.contains('số hóa đơn'));
 
-      print('Vị trí các cột:');
-      print('Product: $productIndex');
-      print('Đơn vị tính: $unitIndex');
-      print('Số lượng: $quantityIndex');
-      print('To import: $toImportIndex');
-
+      // Kiểm tra các cột bắt buộc
       if (productIndex == -1 || unitIndex == -1 || quantityIndex == -1 || toImportIndex == -1) {
         throw Exception('Không tìm thấy một hoặc nhiều cột cần thiết (Product, Đơn vị tính, Số lượng, To import)');
       }
 
-      // Đọc dữ liệu và lọc theo To import = true
-      final Map<String, List<dynamic>> mergedProducts = {};
-      final Map<String, double> mergedTotalAmount = {};
-      int rowCount = 0;
-      int skippedRows = 0;
-      int invalidToImport = 0;
-      int emptyNameOrUnit = 0;
-      int invalidQuantity = 0;
+      // Kiểm tra các cột thông tin công ty
+      if (companyNameIndex == -1 || companyAddressIndex == -1 || companyTaxCodeIndex == -1) {
+        throw Exception('Không tìm thấy một hoặc nhiều cột cần thiết (Tên người bán, Địa chỉ bên bán, Mã số thuế)');
+      }
 
-      // Đếm số lần xuất hiện của mỗi sản phẩm
-      final Map<String, int> productAppearCount = {};
-      for (var row in sheet.rows.skip(1)) {
-        if (row.length <= toImportIndex) {
-          print('Dòng [1m${rowCount + 1}[0m: Không đủ cột (${row.length} < $toImportIndex)');
-          skippedRows++;
-          continue;
-        }
+      // Bước 2,3: Xử lý dữ liệu cho bảng products
+      final Map<String, Map<String, dynamic>> mergedProducts = {};
+      for (var row in rawData) {
+        if (row['to import']?.toLowerCase() == 'true') {
+          final productName = row[headers[productIndex]]?.toString().trim() ?? '';
+          if (productName.isEmpty) continue;
 
-        final toImport = row[toImportIndex]?.value?.toString().trim().toLowerCase() ?? '';
-        if (toImport != 'true') {
-          invalidToImport++;
-          continue;
-        }
+          final unit = row[headers[unitIndex]]?.toString().trim() ?? '';
+          final quantity = double.tryParse(row[headers[quantityIndex]]?.toString().replaceAll(',', '') ?? '0') ?? 0;
+          final unitPrice = double.tryParse(row[headers[unitPriceIndex]]?.toString().replaceAll(',', '') ?? '0') ?? 0;
 
-        final name = row[productIndex]?.value?.toString().trim() ?? '';
-        // Bỏ qua nếu tên sản phẩm rỗng hoặc bằng '0'
-        if (name.isEmpty || name == '0') {
-          print('Dòng [1m${rowCount + 1}[0m: Tên sản phẩm trống hoặc bằng 0 (name="$name")');
-          emptyNameOrUnit++;
-          continue;
-        }
-        final unit = row[unitIndex]?.value?.toString().trim() ?? '';
-        final quantityStr = row[quantityIndex]?.value?.toString().replaceAll(',', '') ?? '';
-        final quantity = double.tryParse(quantityStr) ?? 0;
-
-        if (name.isEmpty) {
-          print('Dòng ${rowCount + 1}: Tên sản phẩm trống');
-          emptyNameOrUnit++;
-          continue;
-        }
-
-        // Loại bỏ text trong dấu ngoặc đơn
-        final cleanName = name.replaceAll(RegExp(r'\([^)]*\)'), '').trim();
-
-        // Nếu đơn vị tính trống thì để '', số lượng không hợp lệ thì để 0
-        final unitPriceStr = unitPriceIndex != -1 && row.length > unitPriceIndex ? row[unitPriceIndex]?.value?.toString().replaceAll(',', '') ?? '' : '';
-        final unitPrice = double.tryParse(unitPriceStr) ?? 0;
-
-        if (!mergedProducts.containsKey(cleanName)) {
-          mergedProducts[cleanName] = [cleanName, unit, quantity];
-          mergedTotalAmount[cleanName] = unitPrice * quantity;
-        } else {
-          mergedProducts[cleanName]![2] = (mergedProducts[cleanName]![2] as double) + quantity;
-          mergedTotalAmount[cleanName] = (mergedTotalAmount[cleanName] ?? 0) + unitPrice * quantity;
-        }
-        rowCount++;
-
-        if (cleanName.isNotEmpty && cleanName != '0') {
-          productAppearCount[cleanName] = (productAppearCount[cleanName] ?? 0) + 1;
+          if (mergedProducts.containsKey(productName)) {
+            final existing = mergedProducts[productName]!;
+            final existingQuantity = double.tryParse(existing['số lượng']?.toString() ?? '0') ?? 0;
+            final existingPrice = double.tryParse(existing['đơn giá']?.toString() ?? '0') ?? 0;
+            
+            mergedProducts[productName] = {
+              ...existing,
+              'số lượng': (existingQuantity + quantity).toString(),
+              'đơn giá': ((existingPrice + unitPrice) / 2).toString(),
+            };
+          } else {
+            mergedProducts[productName] = {
+              'product': productName,
+              'đơn vị tính': unit,
+              'số lượng': quantity.toString(),
+              'đơn giá': unitPrice.toString(),
+            };
+          }
         }
       }
 
-      print('\nThống kê đọc file:');
-      print('Tổng số dòng: [1m${sheet.rows.length}[0m');
-      print('Số dòng bỏ qua (không đủ cột): $skippedRows');
-      print('Số dòng không có To import = true: $invalidToImport');
-      print('Số dòng tên/đơn vị tính trống: $emptyNameOrUnit');
-      print('Số dòng số lượng không hợp lệ: $invalidQuantity');
-      print('Số dòng hợp lệ: $rowCount');
-      print('Số sản phẩm sau khi gộp: ${mergedProducts.length}');
+      // Bước 4: Xử lý dữ liệu cho bảng company
+      final Map<String, Map<String, dynamic>> uniqueCompanies = {};
+      for (var row in rawData) {
+        if (row['to import']?.toLowerCase() == 'true') {
+          final companyName = row[headers[companyNameIndex]]?.toString().trim() ?? '';
+          final companyAddress = row[headers[companyAddressIndex]]?.toString().trim() ?? '';
+          final companyTaxCode = row[headers[companyTaxCodeIndex]]?.toString().trim() ?? '';
 
-      if (mergedProducts.isEmpty) {
-        throw Exception('Không tìm thấy dữ liệu hợp lệ trong file Excel');
+          if (companyName.isNotEmpty) {
+            final key = '$companyName-$companyTaxCode';
+            if (!uniqueCompanies.containsKey(key)) {
+              uniqueCompanies[key] = {
+                'name': companyName,
+                'address': companyAddress,
+                'tax_code': companyTaxCode,
+              };
+            }
+          }
+        }
       }
 
-      // Khi tạo _mergedData, nếu sản phẩm chỉ có 1 dòng thì đơn giá giữ nguyên, nếu nhiều dòng thì tính trung bình gia quyền
-      _mergedData = mergedProducts.values.map((row) {
-        final name = row[0].toString();
-        final totalQuantity = (row[2] as double);
-        final totalAmount = mergedTotalAmount[name] ?? 0;
-        final count = productAppearCount[name] ?? 1;
-        double avgCostPrice;
-        if (count == 1) {
-          avgCostPrice = totalQuantity > 0 ? (totalAmount / totalQuantity) : 0;
-        } else {
-          avgCostPrice = totalQuantity > 0 ? (totalAmount / totalQuantity) : 0;
+      // Bước 5: Xử lý dữ liệu cho order và order_item
+      final List<Map<String, dynamic>> orderData = [];
+      for (var row in rawData) {
+        if (row['to import']?.toLowerCase() == 'true') {
+          final invoiceNumber = row[headers[invoiceNumberIndex]]?.toString().trim() ?? '';
+          if (invoiceNumber.isNotEmpty) {
+            orderData.add(row); // Sử dụng dữ liệu gốc từ Excel
+          }
         }
-        return [row[0], row[1], row[2], avgCostPrice];
-      }).toList();
+      }
 
       setState(() {
-        _mergedData = _mergedData;
-        _status = 'Đã lọc và gộp ${_mergedData.length} sản phẩm từ $rowCount dòng hợp lệ (Tổng: ${sheet.rows.length} dòng)';
+        _excelData = rawData; // Lưu dữ liệu gốc từ Excel
+        _mergedData = mergedProducts.values.toList(); // Lưu dữ liệu đã gộp sản phẩm
+        _companyData = uniqueCompanies.values.toList(); // Lưu dữ liệu công ty đã lọc
+        _status = 'Đã đọc ${rawData.length} dòng dữ liệu từ file Excel';
         _isLoading = false;
         _isLoadingFile = false;
       });
-
     } catch (e) {
-      print('Lỗi khi đọc file: $e');
       setState(() {
         _status = 'Lỗi khi đọc file: $e';
-        _isLoading = false;
-        _isLoadingFile = false;
-      });
-    } finally {
-      setState(() {
         _isLoading = false;
         _isLoadingFile = false;
       });
     }
   }
 
-  Future<void> filterData() async {
-    if (_excelData.isEmpty) {
-      setState(() => _status = 'Không có dữ liệu để lọc');
-      return;
+  void filterData() {
+    final Map<String, Map<String, dynamic>> mergedProducts = {};
+    
+    for (var row in _excelData) {
+      final productName = row['product']?.toString() ?? '';
+      if (mergedProducts.containsKey(productName)) {
+        final existing = mergedProducts[productName]!;
+        final currentQuantity = double.tryParse(row['số lượng']?.toString() ?? '0') ?? 0;
+        final existingQuantity = double.tryParse(existing['số lượng']?.toString() ?? '0') ?? 0;
+        final currentPrice = double.tryParse(row['đơn giá']?.toString() ?? '0') ?? 0;
+        final existingPrice = double.tryParse(existing['đơn giá']?.toString() ?? '0') ?? 0;
+        
+        mergedProducts[productName] = {
+          ...existing,
+          'số lượng': (currentQuantity + existingQuantity).toString(),
+          'đơn giá': ((currentPrice + existingPrice) / 2).toString(),
+        };
+      } else {
+        mergedProducts[productName] = row;
+      }
     }
 
     setState(() {
-      _status = 'Đang lọc dữ liệu...';
-      _mergedData = [];
-    });
-
-    try {
-      // Tạo map để gộp các sản phẩm trùng tên
-      final Map<String, List<dynamic>> mergedProducts = {};
-
-      // Lọc và gộp dữ liệu
-      for (var row in _excelData) {
-        if (row.length < 3) continue;
-
-        final name = row[0].toString().trim();
-        final unit = row[1].toString().trim();
-        final quantity = double.tryParse(row[2].toString().replaceAll(',', '')) ?? 0;
-
-        if (name.isEmpty || unit.isEmpty) continue;
-
-        if (!mergedProducts.containsKey(name)) {
-          mergedProducts[name] = [name, unit, quantity];
-        } else {
-          // Cộng dồn số lượng cho sản phẩm trùng tên
-          mergedProducts[name]![2] = (mergedProducts[name]![2] as double) + quantity;
-        }
-      }
-
-      // Chuyển map thành list
       _mergedData = mergedProducts.values.toList();
-
-      setState(() {
-        _status = 'Đã lọc và gộp ${_mergedData.length} sản phẩm';
-      });
-    } catch (e) {
-      setState(() {
-        _status = 'Lỗi khi lọc dữ liệu: $e';
-      });
-    }
+      _status = 'Đã gộp ${_mergedData.length} sản phẩm trùng tên';
+    });
   }
 
   // Hàm load sản phẩm theo batch
@@ -481,10 +457,10 @@ class _InvoiceImportScreenState extends State<InvoiceImportScreen> {
 
         for (int i = batchStart; i < batchEnd; i++) {
           final row = _mergedData[i];
-          final name = row[0].toString();
-          final unit = row[1].toString();
-          final quantity = double.tryParse(row[2].toString()) ?? 0;
-          final costPrice = double.tryParse(row[3].toString()) ?? 0;
+          final name = row['product']?.toString() ?? '';
+          final unit = row['đơn vị tính']?.toString() ?? '';
+          final quantity = double.tryParse(row['số lượng']?.toString() ?? '0') ?? 0;
+          final costPrice = double.tryParse(row['đơn giá']?.toString() ?? '0') ?? 0;
 
           try {
             if (allProducts.containsKey(name)) {
@@ -551,10 +527,130 @@ class _InvoiceImportScreenState extends State<InvoiceImportScreen> {
         _isImporting = false;
         _status = 'Import hoàn tất. Đã cập nhật $updatedCount sản phẩm, thêm mới $newCount sản phẩm, $errorCount lỗi.';
       });
+
+      // Thêm nút tạo dữ liệu công ty
+      ElevatedButton.icon(
+        style: ElevatedButton.styleFrom(
+          backgroundColor: const Color(0xFF2563eb), // Màu xanh dương
+          foregroundColor: Colors.white, // Màu chữ và icon
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(10),
+          ),
+          textStyle: const TextStyle(fontWeight: FontWeight.w500, fontSize: 16),
+        ),
+        icon: const Icon(Icons.business),
+        label: const Text('Import dữ liệu công ty'),
+        onPressed: () async {
+          await _createCompaniesAndGetMap(_companyData);
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Tạo dữ liệu công ty hoàn tất!')),
+          );
+        },
+      );
     } catch (e) {
       setState(() {
         _isImporting = false;
         _status = 'Lỗi khi import: $e';
+      });
+    }
+  }
+
+  // Thêm hàm _createCompaniesAndGetMap
+  Future<void> _createCompaniesAndGetMap(List<Map<String, dynamic>> companies) async {
+    for (var company in companies) {
+      final name = company['name']?.trim().toLowerCase() ?? '';
+      final taxCode = company['tax_code']?.trim().toLowerCase() ?? '';
+      final address = company['address'] ?? '';
+      if (name.isEmpty || taxCode.isEmpty) continue;
+      final query = await FirebaseFirestore.instance.collection('companies')
+        .where('name', isEqualTo: name)
+        .where('tax_code', isEqualTo: taxCode)
+        .limit(1).get();
+      DocumentReference docRef;
+      if (query.docs.isEmpty) {
+        docRef = await FirebaseFirestore.instance.collection('companies').add({
+          'name': name,
+          'tax_code': taxCode,
+          'address': address,
+          'created_at': FieldValue.serverTimestamp(),
+          'updated_at': FieldValue.serverTimestamp(),
+        });
+      } else {
+        docRef = query.docs.first.reference;
+        await docRef.update({
+          'address': address,
+          'updated_at': FieldValue.serverTimestamp(),
+        });
+      }
+    }
+  }
+
+  // Thêm hàm filterCompanyData để lọc các công ty trùng nhau
+  List<Map<String, dynamic>> filterCompanyData(List<Map<String, dynamic>> companies) {
+    final Map<String, Map<String, dynamic>> uniqueCompanies = {};
+    for (var company in companies) {
+      final taxCode = company['tax_code'] ?? '';
+      final name = company['name'] ?? '';
+      final key = '$taxCode-$name';
+      if (!uniqueCompanies.containsKey(key)) {
+        uniqueCompanies[key] = company;
+      }
+    }
+    return uniqueCompanies.values.toList();
+  }
+
+  // Thêm hàm readInvoicesFromExcel để đọc danh sách hóa đơn từ file Excel
+  Future<void> readInvoicesFromExcel() async {
+    try {
+      final result = await FilePicker.platform.pickFiles(
+        type: FileType.custom,
+        allowedExtensions: ['xlsx'],
+      );
+
+      if (result != null) {
+        final file = result.files.first;
+        final bytes = file.bytes;
+        if (bytes != null) {
+          final excel = Excel.decodeBytes(bytes);
+          final sheet = excel.tables.keys.first;
+          final rows = excel.tables[sheet]!.rows;
+
+          final List<Map<String, dynamic>> invoices = [];
+          final headers = rows[0].map((cell) => cell?.value.toString().toLowerCase() ?? '').toList();
+
+          for (var i = 1; i < rows.length; i++) {
+            final row = rows[i];
+            final invoice = {
+              'ký hiệu': row[0]?.value.toString() ?? '',
+              'số hóa đơn': row[1]?.value.toString() ?? '',
+              'ngày tạo hóa đơn': row[2]?.value.toString() ?? '',
+              'tên người bán': row[3]?.value.toString() ?? '',
+              'địa chỉ bên bán': row[4]?.value.toString() ?? '',
+              'mã số thuế': row[5]?.value.toString() ?? '',
+              'product': row[6]?.value.toString() ?? '',
+              'đơn vị tính': row[7]?.value.toString() ?? '',
+              'số lượng': row[8]?.value.toString() ?? '',
+              'đơn giá': row[9]?.value.toString() ?? '',
+              'tiền chiết khấu': row[10]?.value.toString() ?? '',
+              'tax-able': row[11]?.value.toString() ?? '',
+              'tax rate': row[12]?.value.toString() ?? '',
+              'thuế GTGT': row[13]?.value.toString() ?? '',
+              'tổng giảm trừ khác': row[14]?.value.toString() ?? '',
+              'tổng tiền thanh toán': row[15]?.value.toString() ?? '',
+            };
+            invoices.add(invoice);
+          }
+
+          setState(() {
+            _mergedData = invoices;
+            _status = 'Đã đọc ${invoices.length} hóa đơn từ file Excel';
+          });
+        }
+      }
+    } catch (e) {
+      setState(() {
+        _status = 'Lỗi khi đọc file: $e';
       });
     }
   }
@@ -565,7 +661,7 @@ class _InvoiceImportScreenState extends State<InvoiceImportScreen> {
     final Set<String> mergedNames = {};
     final Map<String, int> nameCount = {};
     for (var row in _mergedData) {
-      final name = row[0].toString();
+      final name = row['product']?.toString() ?? '';
       nameCount[name] = (nameCount[name] ?? 0) + 1;
     }
     nameCount.forEach((name, count) {
@@ -574,79 +670,285 @@ class _InvoiceImportScreenState extends State<InvoiceImportScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Import data'),
+        title: const Text('Import Hóa Đơn'),
+        backgroundColor: Colors.purple,
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            // Bước 1: Chọn file
-            Card(
-              color: Colors.blue[50],
-              margin: const EdgeInsets.symmetric(vertical: 8),
-              child: ListTile(
-                leading: const Icon(Icons.upload_file, color: Colors.blue, size: 32),
-                title: const Text('Bước 1: Chọn file Excel', style: TextStyle(fontWeight: FontWeight.bold)),
-                subtitle: const Text('Chọn file Excel (.xlsx) chứa danh sách sản phẩm cần import.'),
-                trailing: ElevatedButton.icon(
-                  icon: const Icon(Icons.file_open),
-                  label: const Text('Chọn file'),
-                  onPressed: _isLoadingFile ? null : readExcelFile,
-                ),
-              ),
-            ),
-            // Bước 2: Xem trước dữ liệu
-            if (_mergedData.isNotEmpty && !_isImporting) ...[
+      body: SingleChildScrollView(
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              // Bước 1: Chọn file
               Card(
-                color: Colors.green[50],
+                color: Colors.blue[50],
                 margin: const EdgeInsets.symmetric(vertical: 8),
                 child: ListTile(
-                  leading: const Icon(Icons.preview, color: Colors.green, size: 32),
-                  title: const Text('Bước 2: Xem trước dữ liệu', style: TextStyle(fontWeight: FontWeight.bold)),
-                  subtitle: Text('Tổng số sản phẩm: ${_mergedData.length}'),
+                  leading: const Icon(Icons.upload_file, color: Colors.blue, size: 32),
+                  title: const Text('Bước 1: Chọn file Excel', style: TextStyle(fontWeight: FontWeight.bold)),
+                  subtitle: const Text('Chọn file Excel (.xlsx) chứa danh sách sản phẩm cần import.'),
+                  trailing: ElevatedButton.icon(
+                    icon: const Icon(Icons.file_open),
+                    label: const Text('Chọn file'),
+                    onPressed: _isLoadingFile ? null : readExcelFile,
+                  ),
+                ),
+              ),
+              // Bước 2: Xem trước dữ liệu
+              if (_mergedData.isNotEmpty && !_isImporting) ...[
+                Card(
+                  color: Colors.green[50],
+                  margin: const EdgeInsets.symmetric(vertical: 8),
+                  child: ListTile(
+                    leading: const Icon(Icons.preview, color: Colors.green, size: 32),
+                    title: const Text('Bước 2: Xem trước dữ liệu', style: TextStyle(fontWeight: FontWeight.bold)),
+                    subtitle: Text('Tổng số sản phẩm: ${_mergedData.length}'),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Card(
+                  child: SizedBox(
+                    height: 200,
+                    child: LayoutBuilder(
+                      builder: (context, constraints) {
+                        final tableWidth = constraints.maxWidth;
+                        final colCount = 5;
+                        final colWidth = tableWidth / colCount;
+                        return SingleChildScrollView(
+                          scrollDirection: Axis.vertical,
+                          child: DataTable(
+                            columnSpacing: 0,
+                            columns: [
+                              DataColumn(label: SizedBox(width: colWidth, child: Align(alignment: Alignment.centerLeft, child: Text('Tên sản phẩm')))),
+                              DataColumn(label: SizedBox(width: colWidth, child: Align(alignment: Alignment.centerLeft, child: Text('Đơn vị tính')))),
+                              DataColumn(label: SizedBox(width: colWidth, child: Align(alignment: Alignment.centerLeft, child: Text('Số lượng')))),
+                              DataColumn(label: SizedBox(width: colWidth, child: Align(alignment: Alignment.centerLeft, child: Text('Đơn giá nhập')))),
+                              DataColumn(label: SizedBox(width: colWidth, child: Align(alignment: Alignment.centerLeft, child: Text('Trạng thái')))),
+                            ],
+                            rows: _mergedData.map((row) {
+                              final isMerged = mergedNames.contains(row['product']?.toString() ?? '');
+                              return DataRow(
+                                color: isMerged ? MaterialStateProperty.all(Colors.yellow[100]) : null,
+                                cells: [
+                                  DataCell(SizedBox(width: colWidth, child: Align(alignment: Alignment.centerLeft, child: Text(row['product']?.toString() ?? '')))),
+                                  DataCell(SizedBox(width: colWidth, child: Align(alignment: Alignment.centerLeft, child: Text(row['đơn vị tính']?.toString() ?? '')))),
+                                  DataCell(SizedBox(width: colWidth, child: Align(alignment: Alignment.centerLeft, child: Text(row['số lượng']?.toString() ?? '')))),
+                                  DataCell(SizedBox(width: colWidth, child: Align(alignment: Alignment.centerLeft, child: Text(row['đơn giá']?.toString() ?? '0')))),
+                                  DataCell(SizedBox(width: colWidth, child: Align(alignment: Alignment.centerLeft, child: Row(
+                                    children: [
+                                      if (isMerged) ...[
+                                        const Icon(Icons.warning, color: Colors.orange, size: 18),
+                                        const SizedBox(width: 4),
+                                        const Text('Đã ghép', style: TextStyle(color: Colors.orange)),
+                                      ] else ...[
+                                        const Text('Mới', style: TextStyle(color: Colors.green)),
+                                      ]
+                                    ],
+                                  )))),
+                                ],
+                              );
+                            }).toList(),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                ),
+              ],
+              // Bước 3: Import vào DB
+              if (_mergedData.isNotEmpty) ...[
+                Card(
+                  color: Colors.orange[50],
+                  margin: const EdgeInsets.symmetric(vertical: 8),
+                  child: ListTile(
+                    leading: const Icon(Icons.cloud_upload, color: Colors.orange, size: 32),
+                    title: const Text('Bước 3: Import vào hệ thống', style: TextStyle(fontWeight: FontWeight.bold)),
+                    subtitle: const Text('Nhấn nút "Import vào DB" để bắt đầu import dữ liệu.'),
+                    trailing: ElevatedButton.icon(
+                      icon: const Icon(Icons.cloud_upload),
+                      label: const Text('Import vào DB'),
+                      onPressed: _isImporting ? null : importToFirebase,
+                    ),
+                  ),
+                ),
+              ],
+              // Hiển thị tiến trình import nếu đang import
+              if (_isImporting) ...[
+                const SizedBox(height: 16),
+                LinearProgressIndicator(value: _progress),
+                const SizedBox(height: 8),
+                Text('Đang import: ${(_progress * 100).toStringAsFixed(1)}%', style: TextStyle(color: Colors.orange)),
+              ],
+              Text(_status),
+              if (_isImporting || _isLoading)
+                LinearProgressIndicator(value: _progress),
+              const SizedBox(height: 16),
+              Row(
+                children: [
+                  if (_excelData.isNotEmpty)
+                    ElevatedButton.icon(
+                      onPressed: filterData,
+                      icon: const Icon(Icons.filter_list),
+                      label: const Text('Tạo sản phẩm từ bộ lọc'),
+                    ),
+                  const SizedBox(width: 16),
+                  if (_importErrors.isNotEmpty) ...[
+                    const SizedBox(height: 16),
+                    const Text(
+                      'Danh sách lỗi:',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.red,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Expanded(
+                      child: ListView.builder(
+                        itemCount: _importErrors.length,
+                        itemBuilder: (context, index) {
+                          return ListTile(
+                            leading: const Icon(Icons.error, color: Colors.red),
+                            title: Text(_importErrors[index]),
+                          );
+                        },
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+              if (_isLoadingFile) ...[
+                const SizedBox(height: 32),
+                Center(child: Text('Đang xử lý file Excel, vui lòng chờ...', style: TextStyle(fontSize: 16, color: Colors.blue))),
+              ],
+              // Bước 4: Hiển thị dữ liệu công ty
+              if (_companyData.isNotEmpty) ...[
+                Card(
+                  color: Colors.purple[50],
+                  margin: const EdgeInsets.symmetric(vertical: 8),
+                  child: ListTile(
+                    leading: const Icon(Icons.business, color: Colors.purple, size: 32),
+                    title: const Text('Bước 4: Dữ liệu công ty', style: TextStyle(fontWeight: FontWeight.bold)),
+                    subtitle: Text('Tổng số công ty: ${_companyData.length}'),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Card(
+                  child: SizedBox(
+                    height: 200,
+                    child: LayoutBuilder(
+                      builder: (context, constraints) {
+                        final tableWidth = constraints.maxWidth;
+                        final colCount = 3;
+                        final colWidth = tableWidth / colCount;
+                        return SingleChildScrollView(
+                          scrollDirection: Axis.vertical,
+                          child: DataTable(
+                            columnSpacing: 0,
+                            columns: [
+                              DataColumn(label: SizedBox(width: colWidth, child: Align(alignment: Alignment.centerLeft, child: Text('Tên người bán')))),
+                              DataColumn(label: SizedBox(width: colWidth, child: Align(alignment: Alignment.centerLeft, child: Text('Địa chỉ bên bán')))),
+                              DataColumn(label: SizedBox(width: colWidth, child: Align(alignment: Alignment.centerLeft, child: Text('Mã số thuế')))),
+                            ],
+                            rows: _companyData.map((company) {
+                              return DataRow(
+                                cells: [
+                                  DataCell(SizedBox(width: colWidth, child: Align(alignment: Alignment.centerLeft, child: Text(company['name'] ?? '')))),
+                                  DataCell(SizedBox(width: colWidth, child: Align(alignment: Alignment.centerLeft, child: Text(company['address'] ?? '')))),
+                                  DataCell(SizedBox(width: colWidth, child: Align(alignment: Alignment.centerLeft, child: Text(company['tax_code'] ?? '')))),
+                                ],
+                              );
+                            }).toList(),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                ElevatedButton.icon(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF2563eb), // Màu xanh dương
+                    foregroundColor: Colors.white, // Màu chữ và icon
+                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    textStyle: const TextStyle(fontWeight: FontWeight.w500, fontSize: 16),
+                  ),
+                  icon: const Icon(Icons.business),
+                  label: const Text('Import dữ liệu công ty'),
+                  onPressed: () async {
+                    await _createCompaniesAndGetMap(_companyData);
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Tạo dữ liệu công ty hoàn tất!')),
+                    );
+                  },
+                ),
+              ],
+              // Bước 5: Hiển thị danh sách các hóa đơn
+              Card(
+                color: Colors.purple[50],
+                margin: const EdgeInsets.symmetric(vertical: 8),
+                child: ListTile(
+                  leading: const Icon(Icons.receipt, color: Colors.purple, size: 32),
+                  title: const Text('Bước 5: Danh sách hóa đơn', style: TextStyle(fontWeight: FontWeight.bold)),
+                  subtitle: Text('Tổng số hóa đơn: ${_mergedData.length}'),
                 ),
               ),
               const SizedBox(height: 16),
               Card(
                 child: SizedBox(
-                  height: 200,
+                  height: 300,
                   child: LayoutBuilder(
                     builder: (context, constraints) {
                       final tableWidth = constraints.maxWidth;
-                      final colCount = 5;
+                      final colCount = 15;
                       final colWidth = tableWidth / colCount;
                       return SingleChildScrollView(
                         scrollDirection: Axis.vertical,
                         child: DataTable(
                           columnSpacing: 0,
+                          horizontalMargin: 0,
                           columns: [
-                            DataColumn(label: SizedBox(width: colWidth, child: Align(alignment: Alignment.centerLeft, child: Text('Tên sản phẩm')))),
+                            DataColumn(label: SizedBox(width: colWidth, child: Align(alignment: Alignment.centerLeft, child: Text('Số HĐ')))),
+                            DataColumn(label: SizedBox(width: colWidth, child: Align(alignment: Alignment.centerLeft, child: Text('Ngày HĐ')))),
+                            DataColumn(label: SizedBox(width: colWidth, child: Align(alignment: Alignment.centerLeft, child: Text('Ký hiệu')))),
+                            DataColumn(label: SizedBox(width: colWidth, child: Align(alignment: Alignment.centerLeft, child: Text('Mẫu số')))),
+                            DataColumn(label: SizedBox(width: colWidth, child: Align(alignment: Alignment.centerLeft, child: Text('Tên người bán')))),
+                            DataColumn(label: SizedBox(width: colWidth, child: Align(alignment: Alignment.centerLeft, child: Text('Mã số thuế')))),
+                            DataColumn(label: SizedBox(width: colWidth, child: Align(alignment: Alignment.centerLeft, child: Text('Địa chỉ')))),
+                            DataColumn(label: SizedBox(width: colWidth, child: Align(alignment: Alignment.centerLeft, child: Text('Sản phẩm')))),
                             DataColumn(label: SizedBox(width: colWidth, child: Align(alignment: Alignment.centerLeft, child: Text('Đơn vị tính')))),
                             DataColumn(label: SizedBox(width: colWidth, child: Align(alignment: Alignment.centerLeft, child: Text('Số lượng')))),
-                            DataColumn(label: SizedBox(width: colWidth, child: Align(alignment: Alignment.centerLeft, child: Text('Đơn giá nhập')))),
-                            DataColumn(label: SizedBox(width: colWidth, child: Align(alignment: Alignment.centerLeft, child: Text('Trạng thái')))),
+                            DataColumn(label: SizedBox(width: colWidth, child: Align(alignment: Alignment.centerLeft, child: Text('Đơn giá')))),
+                            DataColumn(label: SizedBox(width: colWidth, child: Align(alignment: Alignment.centerLeft, child: Text('Tiền chiết khấu')))),
+                            DataColumn(label: SizedBox(width: colWidth, child: Align(alignment: Alignment.centerLeft, child: Text('Tax-able')))),
+                            DataColumn(label: SizedBox(width: colWidth, child: Align(alignment: Alignment.centerLeft, child: Text('Tax rate')))),
+                            DataColumn(label: SizedBox(width: colWidth, child: Align(alignment: Alignment.centerLeft, child: Text('Thuế GTGT')))),
+                            DataColumn(label: SizedBox(width: colWidth, child: Align(alignment: Alignment.centerLeft, child: Text('Tổng giảm trừ khác')))),
+                            DataColumn(label: SizedBox(width: colWidth, child: Align(alignment: Alignment.centerLeft, child: Text('Tổng tiền thanh toán')))),
                           ],
-                          rows: _mergedData.map((row) {
-                            final isMerged = mergedNames.contains(row[0].toString());
+                          rows: _excelData.map((row) {
                             return DataRow(
-                              color: isMerged ? MaterialStateProperty.all(Colors.yellow[100]) : null,
                               cells: [
-                                DataCell(SizedBox(width: colWidth, child: Align(alignment: Alignment.centerLeft, child: Text(row[0].toString())))),
-                                DataCell(SizedBox(width: colWidth, child: Align(alignment: Alignment.centerLeft, child: Text(row[1].toString())))),
-                                DataCell(SizedBox(width: colWidth, child: Align(alignment: Alignment.centerLeft, child: Text(row[2].toString())))),
-                                DataCell(SizedBox(width: colWidth, child: Align(alignment: Alignment.centerLeft, child: Text(row.length > 3 ? row[3].toStringAsFixed(0) : '0')))),
-                                DataCell(SizedBox(width: colWidth, child: Align(alignment: Alignment.centerLeft, child: Row(
-                                  children: [
-                                    if (isMerged) ...[
-                                      const Icon(Icons.warning, color: Colors.orange, size: 18),
-                                      const SizedBox(width: 4),
-                                      const Text('Đã ghép', style: TextStyle(color: Colors.orange)),
-                                    ] else ...[
-                                      const Text('Mới', style: TextStyle(color: Colors.green)),
-                                    ]
-                                  ],
-                                )))),
+                                DataCell(SizedBox(width: colWidth, child: Align(alignment: Alignment.centerLeft, child: Text(row['số hóa đơn']?.toString() ?? '')))),
+                                DataCell(SizedBox(width: colWidth, child: Align(alignment: Alignment.centerLeft, child: Text(row['ngày hóa đơn']?.toString() ?? '')))),
+                                DataCell(SizedBox(width: colWidth, child: Align(alignment: Alignment.centerLeft, child: Text(row['ký hiệu']?.toString() ?? '')))),
+                                DataCell(SizedBox(width: colWidth, child: Align(alignment: Alignment.centerLeft, child: Text(row['mẫu số']?.toString() ?? '')))),
+                                DataCell(SizedBox(width: colWidth, child: Align(alignment: Alignment.centerLeft, child: Text(row['tên người bán']?.toString() ?? '')))),
+                                DataCell(SizedBox(width: colWidth, child: Align(alignment: Alignment.centerLeft, child: Text(row['mã số thuế']?.toString() ?? '')))),
+                                DataCell(SizedBox(width: colWidth, child: Align(alignment: Alignment.centerLeft, child: Text(row['địa chỉ bên bán']?.toString() ?? '')))),
+                                DataCell(SizedBox(width: colWidth, child: Align(alignment: Alignment.centerLeft, child: Text(row['product']?.toString() ?? '')))),
+                                DataCell(SizedBox(width: colWidth, child: Align(alignment: Alignment.centerLeft, child: Text(row['đơn vị tính']?.toString() ?? '')))),
+                                DataCell(SizedBox(width: colWidth, child: Align(alignment: Alignment.centerLeft, child: Text(row['số lượng']?.toString() ?? '')))),
+                                DataCell(SizedBox(width: colWidth, child: Align(alignment: Alignment.centerLeft, child: Text(row['đơn giá']?.toString() ?? '')))),
+                                DataCell(SizedBox(width: colWidth, child: Align(alignment: Alignment.centerLeft, child: Text(row['tiền chiết khấu']?.toString() ?? '')))),
+                                DataCell(SizedBox(width: colWidth, child: Align(alignment: Alignment.centerLeft, child: Text(row['tax-able']?.toString() ?? '')))),
+                                DataCell(SizedBox(width: colWidth, child: Align(alignment: Alignment.centerLeft, child: Text(row['tax rate']?.toString() ?? '')))),
+                                DataCell(SizedBox(width: colWidth, child: Align(alignment: Alignment.centerLeft, child: Text(row['thuế GTGT']?.toString() ?? '')))),
+                                DataCell(SizedBox(width: colWidth, child: Align(alignment: Alignment.centerLeft, child: Text(row['tổng giảm trừ khác']?.toString() ?? '')))),
+                                DataCell(SizedBox(width: colWidth, child: Align(alignment: Alignment.centerLeft, child: Text(row['tổng tiền thanh toán']?.toString() ?? '')))),
                               ],
                             );
                           }).toList(),
@@ -656,74 +958,155 @@ class _InvoiceImportScreenState extends State<InvoiceImportScreen> {
                   ),
                 ),
               ),
-            ],
-            // Bước 3: Import vào DB
-            if (_mergedData.isNotEmpty) ...[
-              Card(
-                color: Colors.orange[50],
-                margin: const EdgeInsets.symmetric(vertical: 8),
-                child: ListTile(
-                  leading: const Icon(Icons.cloud_upload, color: Colors.orange, size: 32),
-                  title: const Text('Bước 3: Import vào hệ thống', style: TextStyle(fontWeight: FontWeight.bold)),
-                  subtitle: const Text('Nhấn nút "Import vào DB" để bắt đầu import dữ liệu.'),
-                  trailing: ElevatedButton.icon(
-                    icon: const Icon(Icons.cloud_upload),
-                    label: const Text('Import vào DB'),
-                    onPressed: _isImporting ? null : importToFirebase,
+              ElevatedButton.icon(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF2563eb),
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10),
                   ),
+                  textStyle: const TextStyle(fontWeight: FontWeight.w500, fontSize: 16),
                 ),
+                icon: const Icon(Icons.cloud_upload),
+                label: const Text('Import đơn hàng vào hệ thống'),
+                onPressed: () async {
+                  print('Import button pressed');
+                  print('Excel data length: [32m${_excelData.length}[0m');
+                  int orderCount = 0;
+                  int itemCount = 0;
+                  List<String> errorLogs = [];
+                  Map<String, DocumentReference> orderRefs = {};
+                  Map<String, String> companyTaxToId = {};
+                  Map<String, String> productNameToId = {};
+
+                  // 1. Lấy map company tax_code -> company_id
+                  final companySnapshot = await FirebaseFirestore.instance.collection('companies').get();
+                  print('Company snapshot: ${companySnapshot.docs.length}');
+                  for (var doc in companySnapshot.docs) {
+                    final taxCode = doc['tax_code']?.toString().trim() ?? '';
+                    if (taxCode.isNotEmpty) {
+                      companyTaxToId[taxCode] = doc.id;
+                    }
+                  }
+                  print('companyTaxToId: $companyTaxToId');
+                  // 2. Lấy map product name -> product_id
+                  final productSnapshot = await FirebaseFirestore.instance.collection('products').get();
+                  print('Product snapshot: ${productSnapshot.docs.length}');
+                  for (var doc in productSnapshot.docs) {
+                    String name = '';
+                    if (doc.data().containsKey('trade_name')) {
+                      name = doc['trade_name']?.toString() ?? '';
+                    } else if (doc.data().containsKey('internal_name')) {
+                      name = doc['internal_name']?.toString() ?? '';
+                    }
+                    if (name.isNotEmpty) {
+                      productNameToId[name] = doc.id;
+                    }
+                  }
+                  print('productNameToId: $productNameToId');
+
+                  for (final row in _excelData) {
+                    final invoiceNumber = row['số hóa đơn']?.toString() ?? '';
+                    if (invoiceNumber.isEmpty) continue;
+                    final taxCode = row['mã số thuế']?.toString() ?? '';
+                    final companyId = companyTaxToId[taxCode];
+                    if (companyId == null) {
+                      print('Không tìm thấy công ty với mã số thuế: $taxCode (HĐ: $invoiceNumber)');
+                      errorLogs.add('Không tìm thấy công ty với mã số thuế: $taxCode (HĐ: $invoiceNumber)');
+                      continue;
+                    }
+                    // 3. Tìm hoặc tạo order
+                    if (!orderRefs.containsKey(invoiceNumber)) {
+                      final orderQuery = await FirebaseFirestore.instance
+                          .collection('order')
+                          .where('invoice_number', isEqualTo: invoiceNumber)
+                          .limit(1)
+                          .get();
+                      DocumentReference orderRef;
+                      if (orderQuery.docs.isEmpty) {
+                        print('Tạo mới order cho HĐ: $invoiceNumber');
+                        orderRef = await FirebaseFirestore.instance.collection('order').add({
+                          'invoice_number': invoiceNumber,
+                          'created_date': row['ngày hóa đơn'] ?? '',
+                          'company_id': companyId,
+                          'sub_total': double.tryParse(row['sub_total']?.toString() ?? '0') ?? 0,
+                          'total_discounts': double.tryParse(row['tổng giảm trừ khác']?.toString() ?? '0') ?? 0,
+                          'tax': double.tryParse(row['thuế GTGT']?.toString() ?? '0') ?? 0,
+                          'total': double.tryParse(row['tổng tiền thanh toán']?.toString() ?? '0') ?? 0,
+                          'item_count': 0, // sẽ cập nhật sau
+                          'order_items_list': [], // sẽ cập nhật sau
+                          // ... các trường khác nếu cần
+                        });
+                        orderCount++;
+                      } else {
+                        print('Order đã tồn tại cho HĐ: $invoiceNumber');
+                        orderRef = orderQuery.docs.first.reference;
+                      }
+                      orderRefs[invoiceNumber] = orderRef;
+                    }
+                    final orderRef = orderRefs[invoiceNumber]!;
+
+                    // 4. Lấy product_id
+                    final productName = row['product']?.toString() ?? '';
+                    final productId = productNameToId[productName];
+                    if (productId == null) {
+                      print('Không tìm thấy sản phẩm: $productName (HĐ: $invoiceNumber)');
+                      errorLogs.add('Không tìm thấy sản phẩm: $productName (HĐ: $invoiceNumber)');
+                      continue;
+                    }
+                    // 5. Tạo order_item
+                    final quantity = double.tryParse(row['số lượng']?.toString() ?? '0') ?? 0;
+                    final price = double.tryParse(row['đơn giá']?.toString() ?? '0') ?? 0;
+                    final discount = double.tryParse(row['tiền chiết khấu']?.toString() ?? '0') ?? 0;
+                    final taxRate = double.tryParse(row['tax rate']?.toString() ?? '0') ?? 0;
+                    final taxable = (row['tax-able']?.toString().toLowerCase() == 'true' || row['tax-able']?.toString() == '1');
+                    final subTotal = quantity * price;
+                    final total = subTotal - discount + (taxable ? subTotal * taxRate / 100 : 0);
+                    print('Tạo order_item: product=$productName, product_id=$productId, quantity=$quantity, price=$price, total=$total');
+                    await orderRef.collection('order_items').add({
+                      'product_id': productId,
+                      'quantity': quantity,
+                      'price': price,
+                      'sub_total': subTotal,
+                      'discount_amount': discount,
+                      'tax_rate': taxRate,
+                      'taxable': taxable,
+                      'total': total,
+                    });
+                    itemCount++;
+                  }
+                  // 6. Hiển thị log
+                  print('Import xong: $orderCount đơn hàng, $itemCount sản phẩm. Lỗi: ${errorLogs.length}');
+                  showDialog(
+                    context: context,
+                    builder: (_) => AlertDialog(
+                      title: const Text('Kết quả import'),
+                      content: SingleChildScrollView(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text('Đã import $orderCount đơn hàng, $itemCount sản phẩm.'),
+                            if (errorLogs.isNotEmpty) ...[
+                              const SizedBox(height: 12),
+                              const Text('Lỗi:', style: TextStyle(fontWeight: FontWeight.bold)),
+                              ...errorLogs.map((e) => Text(e, style: const TextStyle(color: Colors.red))),
+                            ]
+                          ],
+                        ),
+                      ),
+                      actions: [
+                        TextButton(
+                          onPressed: () => Navigator.pop(context),
+                          child: const Text('Đóng'),
+                        ),
+                      ],
+                    ),
+                  );
+                },
               ),
             ],
-            // Hiển thị tiến trình import nếu đang import
-            if (_isImporting) ...[
-              const SizedBox(height: 16),
-              LinearProgressIndicator(value: _progress),
-              const SizedBox(height: 8),
-              Text('Đang import: ${(_progress * 100).toStringAsFixed(1)}%', style: TextStyle(color: Colors.orange)),
-            ],
-            Text(_status),
-            if (_isImporting || _isLoading)
-              LinearProgressIndicator(value: _progress),
-            const SizedBox(height: 16),
-            Row(
-              children: [
-                if (_excelData.isNotEmpty)
-                  ElevatedButton.icon(
-                    onPressed: filterData,
-                    icon: const Icon(Icons.filter_list),
-                    label: const Text('Tạo sản phẩm từ bộ lọc'),
-                  ),
-                const SizedBox(width: 16),
-                if (_importErrors.isNotEmpty) ...[
-                  const SizedBox(height: 16),
-                  const Text(
-                    'Danh sách lỗi:',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.red,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Expanded(
-                    child: ListView.builder(
-                      itemCount: _importErrors.length,
-                      itemBuilder: (context, index) {
-                        return ListTile(
-                          leading: const Icon(Icons.error, color: Colors.red),
-                          title: Text(_importErrors[index]),
-                        );
-                      },
-                    ),
-                  ),
-                ],
-              ],
-            ),
-            if (_isLoadingFile) ...[
-              const SizedBox(height: 32),
-              Center(child: Text('Đang xử lý file Excel, vui lòng chờ...', style: TextStyle(fontSize: 16, color: Colors.blue))),
-            ],
-          ],
+          ),
         ),
       ),
     );
