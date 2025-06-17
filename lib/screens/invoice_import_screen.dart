@@ -275,7 +275,7 @@ class _InvoiceImportScreenState extends State<InvoiceImportScreen> {
             mergedProducts[productName] = {
               ...existing,
               'số lượng': (existingQuantity + quantity).toString(),
-              'đơn giá': ((existingPrice + unitPrice) / 2).toString(),
+              'đơn giá': ((existingPrice * existingQuantity + unitPrice * quantity) / (existingQuantity + quantity)).toString(),
             };
           } else {
             mergedProducts[productName] = {
@@ -673,6 +673,23 @@ class _InvoiceImportScreenState extends State<InvoiceImportScreen> {
     }
   }
 
+  // Thêm hàm helper để chuyển đổi date string sang Timestamp
+  Timestamp _parseDateString(String dateStr) {
+    try {
+      final parts = dateStr.split('/');
+      if (parts.length == 3) {
+        final day = int.parse(parts[0]);
+        final month = int.parse(parts[1]);
+        final year = int.parse(parts[2]);
+        final date = DateTime(year, month, day);
+        return Timestamp.fromDate(date);
+      }
+    } catch (e) {
+      print('Lỗi parse date: $dateStr - $e');
+    }
+    return Timestamp.now(); // Fallback to current time if parsing fails
+  }
+
   @override
   Widget build(BuildContext context) {
     // Tạo danh sách tên sản phẩm bị ghép
@@ -689,7 +706,7 @@ class _InvoiceImportScreenState extends State<InvoiceImportScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Import Hóa Đơn'),
-        backgroundColor: Colors.purple,
+        backgroundColor: Colors.white,
       ),
       body: SingleChildScrollView(
         child: Padding(
@@ -712,79 +729,18 @@ class _InvoiceImportScreenState extends State<InvoiceImportScreen> {
                   ),
                 ),
               ),
-              // Bước 2: Xem trước dữ liệu
-              if (_mergedData.isNotEmpty && !_isImporting) ...[
-                Card(
-                  color: Colors.green[50],
-                  margin: const EdgeInsets.symmetric(vertical: 8),
-                  child: ListTile(
-                    leading: const Icon(Icons.preview, color: Colors.green, size: 32),
-                    title: const Text('Bước 2: Xem trước dữ liệu', style: TextStyle(fontWeight: FontWeight.bold)),
-                    subtitle: Text('Tổng số sản phẩm: ${_mergedData.length}'),
-                  ),
-                ),
-                const SizedBox(height: 16),
-                Card(
-                  child: SizedBox(
-                    height: 200,
-                    child: LayoutBuilder(
-                      builder: (context, constraints) {
-                        final tableWidth = constraints.maxWidth;
-                        final colCount = 5;
-                        final colWidth = tableWidth / colCount;
-                        return SingleChildScrollView(
-                          scrollDirection: Axis.vertical,
-                          child: DataTable(
-                            columnSpacing: 0,
-                            columns: [
-                              DataColumn(label: SizedBox(width: colWidth, child: Align(alignment: Alignment.centerLeft, child: Text('Tên sản phẩm')))),
-                              DataColumn(label: SizedBox(width: colWidth, child: Align(alignment: Alignment.centerLeft, child: Text('Đơn vị tính')))),
-                              DataColumn(label: SizedBox(width: colWidth, child: Align(alignment: Alignment.centerLeft, child: Text('Số lượng')))),
-                              DataColumn(label: SizedBox(width: colWidth, child: Align(alignment: Alignment.centerLeft, child: Text('Đơn giá nhập')))),
-                              DataColumn(label: SizedBox(width: colWidth, child: Align(alignment: Alignment.centerLeft, child: Text('Trạng thái')))),
-                            ],
-                            rows: _mergedData.map((row) {
-                              final isMerged = mergedNames.contains(row['product']?.toString() ?? '');
-                              return DataRow(
-                                color: isMerged ? MaterialStateProperty.all(Colors.yellow[100]) : null,
-                                cells: [
-                                  DataCell(SizedBox(width: colWidth, child: Align(alignment: Alignment.centerLeft, child: Text(row['product']?.toString() ?? '')))),
-                                  DataCell(SizedBox(width: colWidth, child: Align(alignment: Alignment.centerLeft, child: Text(row['đơn vị tính']?.toString() ?? '')))),
-                                  DataCell(SizedBox(width: colWidth, child: Align(alignment: Alignment.centerLeft, child: Text(row['số lượng']?.toString() ?? '')))),
-                                  DataCell(SizedBox(width: colWidth, child: Align(alignment: Alignment.centerLeft, child: Text(row['đơn giá']?.toString() ?? '0')))),
-                                  DataCell(SizedBox(width: colWidth, child: Align(alignment: Alignment.centerLeft, child: Row(
-                                    children: [
-                                      if (isMerged) ...[
-                                        const Icon(Icons.warning, color: Colors.orange, size: 18),
-                                        const SizedBox(width: 4),
-                                        const Text('Đã ghép', style: TextStyle(color: Colors.orange)),
-                                      ] else ...[
-                                        const Text('Mới', style: TextStyle(color: Colors.green)),
-                                      ]
-                                    ],
-                                  )))),
-                                ],
-                              );
-                            }).toList(),
-                          ),
-                        );
-                      },
-                    ),
-                  ),
-                ),
-              ],
-              // Bước 3: Import vào DB
+              // Bước 2+3: Preview & Import sản phẩm
               if (_mergedData.isNotEmpty) ...[
                 Card(
-                  color: Colors.orange[50],
+                  color: Colors.blue[50],
                   margin: const EdgeInsets.symmetric(vertical: 8),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
                       ListTile(
-                        leading: const Icon(Icons.cloud_upload, color: Colors.orange, size: 32),
-                        title: const Text('Bước 3: Import vào hệ thống', style: TextStyle(fontWeight: FontWeight.bold)),
-                        subtitle: const Text('Nhấn nút "Import vào DB" để bắt đầu import dữ liệu.'),
+                        leading: const Icon(Icons.inventory_2, color: Colors.blue, size: 32),
+                        title: const Text('Bước 2: Sản phẩm', style: TextStyle(fontWeight: FontWeight.bold)),
+                        subtitle: Text('Tổng số sản phẩm: ${_mergedData.length}'),
                       ),
                       const SizedBox(height: 8),
                       Card(
@@ -817,7 +773,7 @@ class _InvoiceImportScreenState extends State<InvoiceImportScreen> {
                                         DataCell(SizedBox(width: colWidth, child: Align(alignment: Alignment.centerLeft, child: Text(row['số lượng']?.toString() ?? '')))),
                                         DataCell(SizedBox(width: colWidth, child: Align(alignment: Alignment.centerLeft, child: Text(row['đơn giá']?.toString() ?? '0')))),
                                         DataCell(SizedBox(width: colWidth, child: Align(alignment: Alignment.centerLeft, child: Row(
-          children: [
+                                          children: [
                                             if (isMerged) ...[
                                               const Icon(Icons.warning, color: Colors.orange, size: 18),
                                               const SizedBox(width: 4),
@@ -855,345 +811,324 @@ class _InvoiceImportScreenState extends State<InvoiceImportScreen> {
                         ),
                       ),
                       const SizedBox(height: 8),
+                      if (_importErrors.isNotEmpty) ...[
+                        const SizedBox(height: 8),
+                        const Text('Danh sách lỗi:', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.red)),
+                        ..._importErrors.map((e) => Text(e, style: const TextStyle(color: Colors.red))),
+                      ],
                     ],
                   ),
                 ),
               ],
-              // Hiển thị tiến trình import nếu đang import
-              if (_isImporting) ...[
-                const SizedBox(height: 16),
-                LinearProgressIndicator(value: _progress),
-                const SizedBox(height: 8),
-                Text('Đang import: ${(_progress * 100).toStringAsFixed(1)}%', style: TextStyle(color: Colors.orange)),
-              ],
-            Text(_status),
-              if (_isImporting || _isLoading)
-                LinearProgressIndicator(value: _progress),
-            const SizedBox(height: 16),
-            Row(
-              children: [
-                if (_excelData.isNotEmpty)
-                  ElevatedButton.icon(
-                    onPressed: filterData,
-                    icon: const Icon(Icons.filter_list),
-                    label: const Text('Tạo sản phẩm từ bộ lọc'),
-                  ),
-                const SizedBox(width: 16),
-                  if (_importErrors.isNotEmpty) ...[
-              const SizedBox(height: 16),
-                    const Text(
-                      'Danh sách lỗi:',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.red,
-                      ),
-                    ),
-              const SizedBox(height: 8),
-              Expanded(
-                      child: ListView.builder(
-                        itemCount: _importErrors.length,
-                        itemBuilder: (context, index) {
-                          return ListTile(
-                            leading: const Icon(Icons.error, color: Colors.red),
-                            title: Text(_importErrors[index]),
-                          );
-                        },
-                      ),
-                    ),
-                  ],
-                ],
-              ),
-              if (_isLoadingFile) ...[
-                const SizedBox(height: 32),
-                Center(child: Text('Đang xử lý file Excel, vui lòng chờ...', style: TextStyle(fontSize: 16, color: Colors.blue))),
-              ],
-              // Bước 4: Hiển thị dữ liệu công ty
+              // Bước 4: Company
               if (_companyData.isNotEmpty) ...[
                 Card(
                   color: Colors.purple[50],
                   margin: const EdgeInsets.symmetric(vertical: 8),
-                  child: ListTile(
-                    leading: const Icon(Icons.business, color: Colors.purple, size: 32),
-                    title: const Text('Bước 4: Dữ liệu công ty', style: TextStyle(fontWeight: FontWeight.bold)),
-                    subtitle: Text('Tổng số công ty: ${_companyData.length}'),
-                  ),
-                ),
-              const SizedBox(height: 16),
-                Card(
-                  child: SizedBox(
-                    height: 200,
-                    child: LayoutBuilder(
-                      builder: (context, constraints) {
-                        final tableWidth = constraints.maxWidth;
-                        final colCount = 3;
-                        final colWidth = tableWidth / colCount;
-                        return SingleChildScrollView(
-                          scrollDirection: Axis.vertical,
-                    child: DataTable(
-                            columnSpacing: 0,
-                            columns: [
-                              DataColumn(label: SizedBox(width: colWidth, child: Align(alignment: Alignment.centerLeft, child: Text('Tên người bán')))),
-                              DataColumn(label: SizedBox(width: colWidth, child: Align(alignment: Alignment.centerLeft, child: Text('Địa chỉ bên bán')))),
-                              DataColumn(label: SizedBox(width: colWidth, child: Align(alignment: Alignment.centerLeft, child: Text('Mã số thuế')))),
-                      ],
-                            rows: _companyData.map((company) {
-                        return DataRow(
-                                cells: [
-                                  DataCell(SizedBox(width: colWidth, child: Align(alignment: Alignment.centerLeft, child: Text(company['name'] ?? '')))),
-                                  DataCell(SizedBox(width: colWidth, child: Align(alignment: Alignment.centerLeft, child: Text(company['address'] ?? '')))),
-                                  DataCell(SizedBox(width: colWidth, child: Align(alignment: Alignment.centerLeft, child: Text(company['tax_code'] ?? '')))),
-                                ],
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      ListTile(
+                        leading: const Icon(Icons.business, color: Colors.purple, size: 32),
+                        title: const Text('Bước 3: Dữ liệu công ty', style: TextStyle(fontWeight: FontWeight.bold)),
+                        subtitle: Text('Tổng số công ty: ${_companyData.length}'),
+                      ),
+                      const SizedBox(height: 8),
+                      Card(
+                        margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                        child: SizedBox(
+                          height: 200,
+                          child: LayoutBuilder(
+                            builder: (context, constraints) {
+                              final tableWidth = constraints.maxWidth;
+                              final colCount = 3;
+                              final colWidth = tableWidth / colCount;
+                              return SingleChildScrollView(
+                                scrollDirection: Axis.vertical,
+                                child: DataTable(
+                                  columnSpacing: 0,
+                                  columns: [
+                                    DataColumn(label: SizedBox(width: colWidth, child: Align(alignment: Alignment.centerLeft, child: Text('Tên người bán')))),
+                                    DataColumn(label: SizedBox(width: colWidth, child: Align(alignment: Alignment.centerLeft, child: Text('Địa chỉ bên bán')))),
+                                    DataColumn(label: SizedBox(width: colWidth, child: Align(alignment: Alignment.centerLeft, child: Text('Mã số thuế')))),
+                                  ],
+                                  rows: _companyData.map((company) {
+                                    return DataRow(
+                                      cells: [
+                                        DataCell(SizedBox(width: colWidth, child: Align(alignment: Alignment.centerLeft, child: Text(company['name'] ?? '')))),
+                                        DataCell(SizedBox(width: colWidth, child: Align(alignment: Alignment.centerLeft, child: Text(company['address'] ?? '')))),
+                                        DataCell(SizedBox(width: colWidth, child: Align(alignment: Alignment.centerLeft, child: Text(company['tax_code'] ?? '')))),
+                                      ],
+                                    );
+                                  }).toList(),
+                                ),
                               );
-                          }).toList(),
+                            },
                           ),
-                        );
-                      },
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 16),
-                ElevatedButton.icon(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF2563eb), // Màu xanh dương
-                    foregroundColor: Colors.white, // Màu chữ và icon
-                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    textStyle: const TextStyle(fontWeight: FontWeight.w500, fontSize: 16),
-                  ),
-                  icon: const Icon(Icons.business),
-                  label: const Text('Import dữ liệu công ty'),
-                  onPressed: () async {
-                    await _createCompaniesAndGetMap(_companyData);
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Tạo dữ liệu công ty hoàn tất!')),
-                    );
-                  },
-                ),
-              ],
-              // Bước 5: Hiển thị danh sách các hóa đơn
-              Card(
-                color: Colors.purple[50],
-                margin: const EdgeInsets.symmetric(vertical: 8),
-                child: ListTile(
-                  leading: const Icon(Icons.receipt, color: Colors.purple, size: 32),
-                  title: const Text('Bước 5: Danh sách hóa đơn', style: TextStyle(fontWeight: FontWeight.bold)),
-                  subtitle: Text('Tổng số hóa đơn: ${_mergedData.length}'),
-                ),
-              ),
-              const SizedBox(height: 16),
-              Card(
-                child: SizedBox(
-                  height: 300,
-                  child: LayoutBuilder(
-                    builder: (context, constraints) {
-                      final tableWidth = constraints.maxWidth;
-                      final colCount = 15;
-                      final colWidth = tableWidth / colCount;
-                      return SingleChildScrollView(
-                        scrollDirection: Axis.vertical,
-                    child: DataTable(
-                          columnSpacing: 0,
-                          horizontalMargin: 0,
-                          columns: [
-                            DataColumn(label: SizedBox(width: colWidth, child: Align(alignment: Alignment.centerLeft, child: Text('Số HĐ')))),
-                            DataColumn(label: SizedBox(width: colWidth, child: Align(alignment: Alignment.centerLeft, child: Text('Ngày HĐ')))),
-                            DataColumn(label: SizedBox(width: colWidth, child: Align(alignment: Alignment.centerLeft, child: Text('Ký hiệu')))),
-                            DataColumn(label: SizedBox(width: colWidth, child: Align(alignment: Alignment.centerLeft, child: Text('Mẫu số')))),
-                            DataColumn(label: SizedBox(width: colWidth, child: Align(alignment: Alignment.centerLeft, child: Text('Tên người bán')))),
-                            DataColumn(label: SizedBox(width: colWidth, child: Align(alignment: Alignment.centerLeft, child: Text('Mã số thuế')))),
-                            DataColumn(label: SizedBox(width: colWidth, child: Align(alignment: Alignment.centerLeft, child: Text('Địa chỉ')))),
-                            DataColumn(label: SizedBox(width: colWidth, child: Align(alignment: Alignment.centerLeft, child: Text('Sản phẩm')))),
-                            DataColumn(label: SizedBox(width: colWidth, child: Align(alignment: Alignment.centerLeft, child: Text('Đơn vị tính')))),
-                            DataColumn(label: SizedBox(width: colWidth, child: Align(alignment: Alignment.centerLeft, child: Text('Số lượng')))),
-                            DataColumn(label: SizedBox(width: colWidth, child: Align(alignment: Alignment.centerLeft, child: Text('Đơn giá')))),
-                            DataColumn(label: SizedBox(width: colWidth, child: Align(alignment: Alignment.centerLeft, child: Text('Tiền chiết khấu')))),
-                            DataColumn(label: SizedBox(width: colWidth, child: Align(alignment: Alignment.centerLeft, child: Text('Tax-able')))),
-                            DataColumn(label: SizedBox(width: colWidth, child: Align(alignment: Alignment.centerLeft, child: Text('Tax rate')))),
-                            DataColumn(label: SizedBox(width: colWidth, child: Align(alignment: Alignment.centerLeft, child: Text('Thuế GTGT')))),
-                            DataColumn(label: SizedBox(width: colWidth, child: Align(alignment: Alignment.centerLeft, child: Text('Tổng giảm trừ khác')))),
-                            DataColumn(label: SizedBox(width: colWidth, child: Align(alignment: Alignment.centerLeft, child: Text('Tổng tiền thanh toán')))),
-                          ],
-                          rows: _excelData.map((row) {
-                            return DataRow(
-                              cells: [
-                                DataCell(SizedBox(width: colWidth, child: Align(alignment: Alignment.centerLeft, child: Text(row['số hóa đơn']?.toString() ?? '')))),
-                                DataCell(SizedBox(width: colWidth, child: Align(alignment: Alignment.centerLeft, child: Text(row['ngày hóa đơn']?.toString() ?? '')))),
-                                DataCell(SizedBox(width: colWidth, child: Align(alignment: Alignment.centerLeft, child: Text(row['ký hiệu']?.toString() ?? '')))),
-                                DataCell(SizedBox(width: colWidth, child: Align(alignment: Alignment.centerLeft, child: Text(row['mẫu số']?.toString() ?? '')))),
-                                DataCell(SizedBox(width: colWidth, child: Align(alignment: Alignment.centerLeft, child: Text(row['tên người bán']?.toString() ?? '')))),
-                                DataCell(SizedBox(width: colWidth, child: Align(alignment: Alignment.centerLeft, child: Text(row['mã số thuế']?.toString() ?? '')))),
-                                DataCell(SizedBox(width: colWidth, child: Align(alignment: Alignment.centerLeft, child: Text(row['địa chỉ bên bán']?.toString() ?? '')))),
-                                DataCell(SizedBox(width: colWidth, child: Align(alignment: Alignment.centerLeft, child: Text(row['product']?.toString() ?? '')))),
-                                DataCell(SizedBox(width: colWidth, child: Align(alignment: Alignment.centerLeft, child: Text(row['đơn vị tính']?.toString() ?? '')))),
-                                DataCell(SizedBox(width: colWidth, child: Align(alignment: Alignment.centerLeft, child: Text(row['số lượng']?.toString() ?? '')))),
-                                DataCell(SizedBox(width: colWidth, child: Align(alignment: Alignment.centerLeft, child: Text(row['đơn giá']?.toString() ?? '')))),
-                                DataCell(SizedBox(width: colWidth, child: Align(alignment: Alignment.centerLeft, child: Text(row['tiền chiết khấu']?.toString() ?? '')))),
-                                DataCell(SizedBox(width: colWidth, child: Align(alignment: Alignment.centerLeft, child: Text(row['tax-able']?.toString() ?? '')))),
-                                DataCell(SizedBox(width: colWidth, child: Align(alignment: Alignment.centerLeft, child: Text(row['tax rate']?.toString() ?? '')))),
-                                DataCell(SizedBox(width: colWidth, child: Align(alignment: Alignment.centerLeft, child: Text(row['thuế GTGT']?.toString() ?? '')))),
-                                DataCell(SizedBox(width: colWidth, child: Align(alignment: Alignment.centerLeft, child: Text(row['tổng giảm trừ khác']?.toString() ?? '')))),
-                                DataCell(SizedBox(width: colWidth, child: Align(alignment: Alignment.centerLeft, child: Text(row['tổng tiền thanh toán']?.toString() ?? '')))),
-                          ],
-                        );
-                      }).toList(),
-                    ),
-                      );
-                    },
-                  ),
-                ),
-              ),
-              ElevatedButton.icon(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF2563eb),
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  textStyle: const TextStyle(fontWeight: FontWeight.w500, fontSize: 16),
-                ),
-                icon: const Icon(Icons.cloud_upload),
-                label: const Text('Import đơn hàng vào hệ thống'),
-                onPressed: () async {
-                  print('Import button pressed');
-                  print('Excel data length: [32m${_excelData.length}[0m');
-                  int orderCount = 0;
-                  int itemCount = 0;
-                  List<String> errorLogs = [];
-                  Map<String, DocumentReference> orderRefs = {};
-                  Map<String, String> companyTaxToId = {};
-                  Map<String, String> productNameToId = {};
-
-                  // 1. Lấy map company tax_code -> company_id
-                  final companySnapshot = await FirebaseFirestore.instance.collection('companies').get();
-                  print('Company snapshot: ${companySnapshot.docs.length}');
-                  for (var doc in companySnapshot.docs) {
-                    final taxCode = doc['tax_code']?.toString().trim() ?? '';
-                    if (taxCode.isNotEmpty) {
-                      companyTaxToId[taxCode] = doc.id;
-                    }
-                  }
-                  print('companyTaxToId: $companyTaxToId');
-                  // 2. Lấy map product name -> product_id
-                  final productSnapshot = await FirebaseFirestore.instance.collection('products').get();
-                  print('Product snapshot: ${productSnapshot.docs.length}');
-                  for (var doc in productSnapshot.docs) {
-                    String name = '';
-                    if (doc.data().containsKey('trade_name')) {
-                      name = doc['trade_name']?.toString() ?? '';
-                    } else if (doc.data().containsKey('internal_name')) {
-                      name = doc['internal_name']?.toString() ?? '';
-                    }
-                    if (name.isNotEmpty) {
-                      productNameToId[name] = doc.id;
-                    }
-                  }
-                  print('productNameToId: $productNameToId');
-
-                  for (final row in _excelData) {
-                    final invoiceNumber = row['số hóa đơn']?.toString() ?? '';
-                    if (invoiceNumber.isEmpty) continue;
-                    final taxCode = row['mã số thuế']?.toString() ?? '';
-                    final companyId = companyTaxToId[taxCode];
-                    if (companyId == null) {
-                      print('Không tìm thấy công ty với mã số thuế: $taxCode (HĐ: $invoiceNumber)');
-                      errorLogs.add('Không tìm thấy công ty với mã số thuế: $taxCode (HĐ: $invoiceNumber)');
-                      continue;
-                    }
-                    // 3. Tìm hoặc tạo order
-                    final serial = ((row['mẫu số']?.toString() ?? '').trim() + '/' + (row['ký hiệu']?.toString() ?? '').trim()).replaceAll(RegExp(r'^-|-$'), '');
-                    if (!orderRefs.containsKey(invoiceNumber)) {
-                      final orderQuery = await FirebaseFirestore.instance
-                          .collection('orders')
-                          .where('invoice_number', isEqualTo: invoiceNumber)
-                          .limit(1)
-                          .get();
-                      DocumentReference orderRef;
-                      if (orderQuery.docs.isEmpty) {
-                        print('Tạo mới order cho HĐ: $invoiceNumber');
-                        orderRef = await FirebaseFirestore.instance.collection('orders').add({
-                          'invoice_number': invoiceNumber,
-                          'serial': serial,
-                          'created_date': row['ngày hóa đơn'] ?? '',
-                          'company_id': companyId,
-                          'sub_total': double.tryParse(row['sub_total']?.toString() ?? '0') ?? 0,
-                          'discount': double.tryParse(row['tổng giảm trừ khác']?.toString() ?? '0') ?? 0,
-                          'tax': double.tryParse(row['thuế GTGT']?.toString() ?? '0') ?? 0,
-                          'total': double.tryParse(row['tổng tiền thanh toán']?.toString() ?? '0') ?? 0,
-                          'item_count': 0, // sẽ cập nhật sau
-                          'order_items_list': [], // sẽ cập nhật sau
-                          // ... các trường khác nếu cần
-                        });
-                        orderCount++;
-                      } else {
-                        print('Order đã tồn tại cho HĐ: $invoiceNumber');
-                        orderRef = orderQuery.docs.first.reference;
-                      }
-                      orderRefs[invoiceNumber] = orderRef;
-                    }
-                    final orderRef = orderRefs[invoiceNumber]!;
-
-                    // 4. Lấy product_id
-                    final productName = row['product']?.toString() ?? '';
-                    final productId = productNameToId[productName];
-                    if (productId == null) {
-                      print('Không tìm thấy sản phẩm: $productName (HĐ: $invoiceNumber)');
-                      errorLogs.add('Không tìm thấy sản phẩm: $productName (HĐ: $invoiceNumber)');
-                      continue;
-                    }
-                    // 5. Tạo order_item
-                    final quantity = double.tryParse(row['số lượng']?.toString() ?? '0') ?? 0;
-                    final price = double.tryParse(row['đơn giá']?.toString() ?? '0') ?? 0;
-                    final discount = double.tryParse(row['tiền chiết khấu']?.toString() ?? '0') ?? 0;
-                    final taxRate = double.tryParse(row['tax rate']?.toString() ?? '0') ?? 0;
-                    final taxable = (row['tax-able']?.toString().toLowerCase() == 'true' || row['tax-able']?.toString() == '1');
-                    final subTotal = quantity * price;
-                    final total = subTotal - discount + (taxable ? subTotal * taxRate / 100 : 0);
-                    print('Tạo order_item: product=$productName, product_id=$productId, quantity=$quantity, price=$price, total=$total');
-                    await orderRef.collection('order_items').add({
-                      'product_id': productId,
-                      'quantity': quantity,
-                      'price': price,
-                      'sub_total': subTotal,
-                      'discount_amount': discount,
-                      'tax_rate': taxRate,
-                      'taxable': taxable,
-                      'total': total,
-                    });
-                    itemCount++;
-                  }
-                  // 6. Hiển thị log
-                  print('Import xong: $orderCount đơn hàng, $itemCount sản phẩm. Lỗi: ${errorLogs.length}');
-                  showDialog(
-                    context: context,
-                    builder: (_) => AlertDialog(
-                      title: const Text('Kết quả import'),
-                      content: SingleChildScrollView(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text('Đã import $orderCount đơn hàng, $itemCount sản phẩm.'),
-                            if (errorLogs.isNotEmpty) ...[
-                              const SizedBox(height: 12),
-                              const Text('Lỗi:', style: TextStyle(fontWeight: FontWeight.bold)),
-                              ...errorLogs.map((e) => Text(e, style: const TextStyle(color: Colors.red))),
-                            ]
-                          ],
                         ),
                       ),
-                      actions: [
-                        TextButton(
-                          onPressed: () => Navigator.pop(context),
-                          child: const Text('Đóng'),
+                      const SizedBox(height: 8),
+                      Align(
+                        alignment: Alignment.centerRight,
+                        child: ElevatedButton.icon(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFF2563eb),
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            textStyle: const TextStyle(fontWeight: FontWeight.w500, fontSize: 16),
+                          ),
+                          icon: const Icon(Icons.business),
+                          label: const Text('Import dữ liệu công ty'),
+                          onPressed: () async {
+                            await _createCompaniesAndGetMap(_companyData);
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(content: Text('Tạo dữ liệu công ty hoàn tất!')),
+                            );
+                          },
                         ),
-                      ],
-                    ),
-                  );
-                },
-              ),
+                      ),
+                      const SizedBox(height: 8),
+                    ],
+                  ),
+                ),
+              ],
+              // Bước 5: Order
+              if (_excelData.isNotEmpty) ...[
+                Card(
+                  color: Colors.orange[50],
+                  margin: const EdgeInsets.symmetric(vertical: 8),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      ListTile(
+                        leading: const Icon(Icons.receipt, color: Colors.orange, size: 32),
+                        title: const Text('Bước 4: Danh sách hóa đơn', style: TextStyle(fontWeight: FontWeight.bold)),
+                        subtitle: Text('Tổng số hóa đơn: ${_excelData.length}'),
+                      ),
+                      const SizedBox(height: 8),
+                      Card(
+                        margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                        child: SizedBox(
+                          height: 300,
+                          child: LayoutBuilder(
+                            builder: (context, constraints) {
+                              final tableWidth = constraints.maxWidth;
+                              final colCount = 17;
+                              final colWidth = tableWidth / colCount;
+                              return SingleChildScrollView(
+                                scrollDirection: Axis.vertical,
+                                child: DataTable(
+                                  columnSpacing: 0,
+                                  horizontalMargin: 0,
+                                  columns: [
+                                    DataColumn(label: SizedBox(width: colWidth, child: Align(alignment: Alignment.centerLeft, child: Text('Số HĐ')))),
+                                    DataColumn(label: SizedBox(width: colWidth, child: Align(alignment: Alignment.centerLeft, child: Text('Ngày HĐ')))),
+                                    DataColumn(label: SizedBox(width: colWidth, child: Align(alignment: Alignment.centerLeft, child: Text('Ký hiệu')))),
+                                    DataColumn(label: SizedBox(width: colWidth, child: Align(alignment: Alignment.centerLeft, child: Text('Mẫu số')))),
+                                    DataColumn(label: SizedBox(width: colWidth, child: Align(alignment: Alignment.centerLeft, child: Text('Tên người bán')))),
+                                    DataColumn(label: SizedBox(width: colWidth, child: Align(alignment: Alignment.centerLeft, child: Text('Mã số thuế')))),
+                                    DataColumn(label: SizedBox(width: colWidth, child: Align(alignment: Alignment.centerLeft, child: Text('Địa chỉ')))),
+                                    DataColumn(label: SizedBox(width: colWidth, child: Align(alignment: Alignment.centerLeft, child: Text('Sản phẩm')))),
+                                    DataColumn(label: SizedBox(width: colWidth, child: Align(alignment: Alignment.centerLeft, child: Text('Đơn vị tính')))),
+                                    DataColumn(label: SizedBox(width: colWidth, child: Align(alignment: Alignment.centerLeft, child: Text('Số lượng')))),
+                                    DataColumn(label: SizedBox(width: colWidth, child: Align(alignment: Alignment.centerLeft, child: Text('Đơn giá')))),
+                                    DataColumn(label: SizedBox(width: colWidth, child: Align(alignment: Alignment.centerLeft, child: Text('Tiền chiết khấu')))),
+                                    DataColumn(label: SizedBox(width: colWidth, child: Align(alignment: Alignment.centerLeft, child: Text('Tax-able')))),
+                                    DataColumn(label: SizedBox(width: colWidth, child: Align(alignment: Alignment.centerLeft, child: Text('Tax rate')))),
+                                    DataColumn(label: SizedBox(width: colWidth, child: Align(alignment: Alignment.centerLeft, child: Text('Thuế GTGT')))),
+                                    DataColumn(label: SizedBox(width: colWidth, child: Align(alignment: Alignment.centerLeft, child: Text('Tổng giảm trừ khác')))),
+                                    DataColumn(label: SizedBox(width: colWidth, child: Align(alignment: Alignment.centerLeft, child: Text('Tổng tiền thanh toán')))),
+                                  ],
+                                  rows: _excelData.map((row) {
+                                    return DataRow(
+                                      cells: [
+                                        DataCell(SizedBox(width: colWidth, child: Align(alignment: Alignment.centerLeft, child: Text(row['số hóa đơn']?.toString() ?? '')))),
+                                        DataCell(SizedBox(width: colWidth, child: Align(alignment: Alignment.centerLeft, child: Text(row['ngày hóa đơn']?.toString() ?? '')))),
+                                        DataCell(SizedBox(width: colWidth, child: Align(alignment: Alignment.centerLeft, child: Text(row['ký hiệu']?.toString() ?? '')))),
+                                        DataCell(SizedBox(width: colWidth, child: Align(alignment: Alignment.centerLeft, child: Text(row['mẫu số']?.toString() ?? '')))),
+                                        DataCell(SizedBox(width: colWidth, child: Align(alignment: Alignment.centerLeft, child: Text(row['tên người bán']?.toString() ?? '')))),
+                                        DataCell(SizedBox(width: colWidth, child: Align(alignment: Alignment.centerLeft, child: Text(row['mã số thuế']?.toString() ?? '')))),
+                                        DataCell(SizedBox(width: colWidth, child: Align(alignment: Alignment.centerLeft, child: Text(row['địa chỉ bên bán']?.toString() ?? '')))),
+                                        DataCell(SizedBox(width: colWidth, child: Align(alignment: Alignment.centerLeft, child: Text(row['product']?.toString() ?? '')))),
+                                        DataCell(SizedBox(width: colWidth, child: Align(alignment: Alignment.centerLeft, child: Text(row['đơn vị tính']?.toString() ?? '')))),
+                                        DataCell(SizedBox(width: colWidth, child: Align(alignment: Alignment.centerLeft, child: Text(row['số lượng']?.toString() ?? '')))),
+                                        DataCell(SizedBox(width: colWidth, child: Align(alignment: Alignment.centerLeft, child: Text(row['đơn giá']?.toString() ?? '')))),
+                                        DataCell(SizedBox(width: colWidth, child: Align(alignment: Alignment.centerLeft, child: Text(row['tiền chiết khấu']?.toString() ?? '')))),
+                                        DataCell(SizedBox(width: colWidth, child: Align(alignment: Alignment.centerLeft, child: Text(row['tax-able']?.toString() ?? '')))),
+                                        DataCell(SizedBox(width: colWidth, child: Align(alignment: Alignment.centerLeft, child: Text(row['tax rate']?.toString() ?? '')))),
+                                        DataCell(SizedBox(width: colWidth, child: Align(alignment: Alignment.centerLeft, child: Text(row['thuế GTGT']?.toString() ?? '')))),
+                                        DataCell(SizedBox(width: colWidth, child: Align(alignment: Alignment.centerLeft, child: Text(row['tổng giảm trừ khác']?.toString() ?? '')))),
+                                        DataCell(SizedBox(width: colWidth, child: Align(alignment: Alignment.centerLeft, child: Text(row['tổng tiền thanh toán']?.toString() ?? '')))),
+                                      ],
+                                    );
+                                  }).toList(),
+                                ),
+                              );
+                            },
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Align(
+                        alignment: Alignment.centerRight,
+                        child: ElevatedButton.icon(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFF2563eb),
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            textStyle: const TextStyle(fontWeight: FontWeight.w500, fontSize: 16),
+                          ),
+                          icon: const Icon(Icons.cloud_upload),
+                          label: const Text('Import đơn hàng vào hệ thống'),
+                          onPressed: () async {
+                            print('Import button pressed');
+                            print('Excel data length: [32m${_excelData.length}[0m');
+                            int orderCount = 0;
+                            int itemCount = 0;
+                            List<String> errorLogs = [];
+                            Map<String, DocumentReference> orderRefs = {};
+                            Map<String, String> companyTaxToId = {};
+                            Map<String, String> productNameToId = {};
+
+                            // 1. Lấy map company tax_code -> company_id
+                            final companySnapshot = await FirebaseFirestore.instance.collection('companies').get();
+                            print('Company snapshot: ${companySnapshot.docs.length}');
+                            for (var doc in companySnapshot.docs) {
+                              final taxCode = doc['tax_code']?.toString().trim() ?? '';
+                              if (taxCode.isNotEmpty) {
+                                companyTaxToId[taxCode] = doc.id;
+                              }
+                            }
+                            print('companyTaxToId: $companyTaxToId');
+                            // 2. Lấy map product name -> product_id
+                            final productSnapshot = await FirebaseFirestore.instance.collection('products').get();
+                            print('Product snapshot: ${productSnapshot.docs.length}');
+                            for (var doc in productSnapshot.docs) {
+                              String name = '';
+                              if (doc.data().containsKey('trade_name')) {
+                                name = doc['trade_name']?.toString() ?? '';
+                              } else if (doc.data().containsKey('internal_name')) {
+                                name = doc['internal_name']?.toString() ?? '';
+                              }
+                              if (name.isNotEmpty) {
+                                productNameToId[name] = doc.id;
+                              }
+                            }
+                            print('productNameToId: $productNameToId');
+
+                            for (final row in _excelData) {
+                              final invoiceNumber = row['số hóa đơn']?.toString() ?? '';
+                              if (invoiceNumber.isEmpty) continue;
+                              final taxCode = row['mã số thuế']?.toString() ?? '';
+                              final companyId = companyTaxToId[taxCode];
+                              if (companyId == null) {
+                                print('Không tìm thấy công ty với mã số thuế: $taxCode (HĐ: $invoiceNumber)');
+                                errorLogs.add('Không tìm thấy công ty với mã số thuế: $taxCode (HĐ: $invoiceNumber)');
+                                continue;
+                              }
+                              // 3. Tìm hoặc tạo order
+                              final serial = ((row['mẫu số']?.toString() ?? '').trim() + '/' + (row['ký hiệu']?.toString() ?? '').trim()).replaceAll(RegExp(r'^-|-$'), '');
+                              if (!orderRefs.containsKey(invoiceNumber)) {
+                                final orderQuery = await FirebaseFirestore.instance
+                                    .collection('orders')
+                                    .where('invoice_number', isEqualTo: invoiceNumber)
+                                    .limit(1)
+                                    .get();
+                                DocumentReference orderRef;
+                                if (orderQuery.docs.isEmpty) {
+                                  print('Tạo mới order cho HĐ: $invoiceNumber');
+                                  orderRef = await FirebaseFirestore.instance.collection('orders').add({
+                                    'invoice_number': invoiceNumber,
+                                    'serial': serial,
+                                    'created_date': _parseDateString(row['ngày hóa đơn']?.toString() ?? ''),
+                                    'company_id': companyId,
+                                    'sub_total': double.tryParse(row['sub_total']?.toString() ?? '0') ?? 0,
+                                    'discount': double.tryParse(row['tổng giảm trừ khác']?.toString() ?? '0') ?? 0,
+                                    'tax': double.tryParse(row['thuế GTGT']?.toString() ?? '0') ?? 0,
+                                    'total': double.tryParse(row['tổng tiền thanh toán']?.toString() ?? '0') ?? 0,
+                                    'item_count': 0, // sẽ cập nhật sau
+                                    'order_items_list': [], // sẽ cập nhật sau
+                                    // ... các trường khác nếu cần
+                                  });
+                                  orderCount++;
+                                } else {
+                                  print('Order đã tồn tại cho HĐ: $invoiceNumber');
+                                  orderRef = orderQuery.docs.first.reference;
+                                }
+                                orderRefs[invoiceNumber] = orderRef;
+                              }
+                              final orderRef = orderRefs[invoiceNumber]!;
+
+                              // 4. Lấy product_id
+                              final productName = row['product']?.toString() ?? '';
+                              final productId = productNameToId[productName];
+                              if (productId == null) {
+                                print('Không tìm thấy sản phẩm: $productName (HĐ: $invoiceNumber)');
+                                errorLogs.add('Không tìm thấy sản phẩm: $productName (HĐ: $invoiceNumber)');
+                                continue;
+                              }
+                              // 5. Tạo order_item
+                              final quantity = double.tryParse(row['số lượng']?.toString() ?? '0') ?? 0;
+                              final price = double.tryParse(row['đơn giá']?.toString() ?? '0') ?? 0;
+                              final discount = double.tryParse(row['tiền chiết khấu']?.toString() ?? '0') ?? 0;
+                              final taxRate = double.tryParse(row['tax rate']?.toString() ?? '0') ?? 0;
+                              final taxable = (row['tax-able']?.toString().toLowerCase() == 'true' || row['tax-able']?.toString() == '1');
+                              final subTotal = quantity * price;
+                              final total = subTotal - discount + (taxable ? subTotal * taxRate / 100 : 0);
+                              print('Tạo order_item: product=$productName, product_id=$productId, quantity=$quantity, price=$price, total=$total');
+                              await orderRef.collection('order_items').add({
+                                'product_id': productId,
+                                'quantity': quantity,
+                                'price': price,
+                                'sub_total': subTotal,
+                                'discount_amount': discount,
+                                'tax_rate': taxRate,
+                                'taxable': taxable,
+                                'total': total,
+                              });
+                              itemCount++;
+                            }
+                            // 6. Hiển thị log
+                            print('Import xong: $orderCount đơn hàng, $itemCount sản phẩm. Lỗi: ${errorLogs.length}');
+                            showDialog(
+                              context: context,
+                              builder: (_) => AlertDialog(
+                                title: const Text('Kết quả import'),
+                                content: SingleChildScrollView(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text('Đã import $orderCount đơn hàng, $itemCount sản phẩm.'),
+                                      if (errorLogs.isNotEmpty) ...[
+                                        const SizedBox(height: 12),
+                                        const Text('Lỗi:', style: TextStyle(fontWeight: FontWeight.bold)),
+                                        ...errorLogs.map((e) => Text(e, style: const TextStyle(color: Colors.red))),
+                                      ]
+                                    ],
+                                  ),
+                                ),
+                                actions: [
+                                  TextButton(
+                                    onPressed: () => Navigator.pop(context),
+                                    child: const Text('Đóng'),
+                                  ),
+                                ],
+                              ),
+                            );
+                          },
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                    ],
+                  ),
+                ),
+              ],
             ],
           ),
         ),
