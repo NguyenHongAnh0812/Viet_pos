@@ -283,9 +283,9 @@ class _InventoryCreateSessionScreenState extends State<InventoryCreateSessionScr
                                             mainAxisSize: MainAxisSize.min,
                                             crossAxisAlignment: CrossAxisAlignment.start,
                                             children: [
-                                              Text(p.internalName, style: bodyLarge.copyWith(color: textPrimary)),
-                                              if (p.tradeName.isNotEmpty)
-                                                Text(p.tradeName, style: bodyLarge.copyWith(color: textSecondary)),
+                                              Text(p.tradeName, style: bodyLarge.copyWith(color: textPrimary)),
+                                              if (p.internalName.isNotEmpty && p.internalName != p.tradeName)
+                                                Text(p.internalName, style: bodyLarge.copyWith(color: textSecondary)),
                                             ],
                                           ),
                                         ),
@@ -344,9 +344,9 @@ class _InventoryCreateSessionScreenState extends State<InventoryCreateSessionScr
                     }
                     final sessionData = {
                       'name': _nameController.text.trim(),
-                      'createdAt': now,
-                      'createdBy': userName ?? 'Không rõ',
-                      'createdById': user?.uid,
+                      'created_at': now,
+                      'created_by': userName ?? 'Không rõ',
+                      'created_by_id': user?.uid,
                       'note': _noteController.text,
                       'status': 'Đang kiểm kê',
                     };
@@ -355,11 +355,11 @@ class _InventoryCreateSessionScreenState extends State<InventoryCreateSessionScr
                     // Tạo các inventory_items
                     for (final p in selectedProducts) {
                       await _itemService.addItem({
-                        'sessionId': sessionId,
-                        'productId': p.id,
-                        'productName': p.tradeName,
-                        'systemStock': p.stockQuantity,
-                        'actualStock': p.stockQuantity,
+                        'session_id': sessionId,
+                        'product_id': p.id,
+                        'product_name': p.tradeName,
+                        'stock_system': p.stockSystem,
+                        'stock_actual': p.stockSystem,
                         'diff': 0,
                         'note': '',
                       });

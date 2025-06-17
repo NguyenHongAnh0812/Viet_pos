@@ -475,20 +475,21 @@ class _InvoiceImportScreenState extends State<InvoiceImportScreen> {
         } else {
               // Tạo sản phẩm mới
           final productData = {
-                'internal_name': name,
-            'unit': unit,
+                'internal_name': '',
+                'trade_name': name,
+                'unit': unit,
+                'stock_system': 0,
                 'stock_invoice': quantity,
                 'cost_price': costPrice,
                 'category_id': null, // Cho phép null
                 'status': 'active',
-            'description': '',
                 'usage': '',
                 'ingredients': '',
                 'notes': '',
                 'sale_price': 0,
                 'gross_profit': 0,
                 'auto_price': false,
-            'tags': [],
+                'tags': [],
                 'barcode': null,
                 'sku': null,
                 'created_at': FieldValue.serverTimestamp(),

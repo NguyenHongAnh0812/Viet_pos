@@ -13,7 +13,7 @@ class Product {
   final String usage;
   final String ingredients; 
   final String notes;
-  final int stockQuantity;   // stock_quantity
+  final int stockSystem;   // stock_system
   final int stockInvoice;    // stock_invoice
   final double costPrice;
   final double salePrice;
@@ -37,7 +37,7 @@ class Product {
     this.usage = '',
     this.ingredients = '',
     this.notes = '',
-    this.stockQuantity = 0,
+    this.stockSystem = 0,
     this.stockInvoice = 0,
     this.costPrice = 0,
     this.salePrice = 0,
@@ -62,7 +62,7 @@ class Product {
       'usage': usage,
       'ingredients': ingredients,
       'notes': notes,
-      'stock_quantity': stockQuantity,
+      'stock_system': stockSystem,
       'stock_invoice': stockInvoice,
       'cost_price': costPrice,
       'sale_price': salePrice,
@@ -107,7 +107,7 @@ class Product {
       usage: map['usage'] ?? '',
       ingredients: map['ingredients'] ?? '',
       notes: map['notes'] ?? '',
-      stockQuantity: map['stock_quantity'] ?? 0,
+      stockSystem: map['stock_system'] ?? 0,
       stockInvoice: map['stock_invoice'] ?? 0,
       costPrice: (map['cost_price'] ?? 0).toDouble(),
       salePrice: (map['sale_price'] ?? 0).toDouble(),
@@ -133,7 +133,7 @@ class Product {
     String? usage,
     String? ingredients,
     String? notes,
-    int? stockQuantity,
+    int? stockSystem,
     int? stockInvoice,
     double? costPrice,
     double? salePrice,
@@ -157,7 +157,7 @@ class Product {
       usage: usage ?? this.usage,
       ingredients: ingredients ?? this.ingredients,
       notes: notes ?? this.notes,
-      stockQuantity: stockQuantity ?? this.stockQuantity,
+      stockSystem: stockSystem ?? this.stockSystem,
       stockInvoice: stockInvoice ?? this.stockInvoice,
       costPrice: costPrice ?? this.costPrice,
       salePrice: salePrice ?? this.salePrice,

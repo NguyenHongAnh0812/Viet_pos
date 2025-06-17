@@ -124,8 +124,8 @@ class ProductCardItem extends StatelessWidget {
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Text('Số lượng: ', style: const TextStyle(fontWeight: FontWeight.w500)),
-                      Text('${product.stockQuantity}', style: const TextStyle(fontWeight: FontWeight.bold)),
-                      if ((product.stockQuantity ?? 0) < 60)
+                      Text('${product.stockSystem}', style: const TextStyle(fontWeight: FontWeight.bold)),
+                      if ((product.stockSystem ?? 0) < 60)
                         Container(
                           margin: const EdgeInsets.only(left: 8),
                           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),

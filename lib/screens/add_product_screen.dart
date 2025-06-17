@@ -225,7 +225,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
       _barcodeController.text = widget.product!.barcode ?? '';
       _skuController.text = widget.product!.sku ?? '';
       _unitController.text = widget.product!.unit;
-      _quantityController.text = widget.product!.stockQuantity.toString();
+      _quantityController.text = widget.product!.stockSystem.toString();
       _costPriceController.text = numberFormat.format(widget.product!.costPrice.round());
       _sellPriceController.text = numberFormat.format(widget.product!.salePrice.round());
       _tagsController.text = widget.product!.tags.join(', ');
@@ -1034,7 +1034,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
         'barcode': _barcodeController.text.trim(),
         'sku': _skuController.text.trim(),
         'unit': _unitController.text.trim(),
-        'stockQuantity': int.tryParse(_quantityController.text) ?? 0,
+        'stock_system': int.tryParse(_quantityController.text) ?? 0,
         'costPrice': costPrice,
         'salePrice': salePrice,
         'tags': _tags,

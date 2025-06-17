@@ -16,7 +16,7 @@
 | sale_price         | Decimal             | Giá bán                                                      |
 | grcss_profit       | Decimal             | Lợi nhuận gộp (tính theo chênh lệch giá bán và giá vốn)     |
 | auto_price         | Boolean             | Tự động tính giá bán theo lợi nhuận gộp                      |
-| stock_quantity     | Integer             | Số lượng tồn kho hiện tại                                    |
+| stock_system     | Integer             | Số lượng tồn kho hiện tại                                    |
 | stock_invoice      | Integer             | Số lượng tồn kho hóa đơn                                     |
 | status             | Enum                | Trạng thái sản phẩm (active/inactive/discontinued)           |
 | discontinue_reason | Text (optional)     | Lý do ngừng bán nếu có                                       |

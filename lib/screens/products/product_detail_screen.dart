@@ -52,7 +52,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
     _barcodeController.text = p.barcode ?? '';
     _skuController.text = p.sku ?? '';
     _unitController.text = p.unit;
-    _quantityController.text = p.stockQuantity.toString();
+    _quantityController.text = p.stockSystem.toString();
     
     // Format giá nhập và giá bán
     final numberFormat = NumberFormat('#,###', 'vi_VN');
@@ -172,7 +172,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
         'barcode': _barcodeController.text.trim(),
         'sku': _skuController.text.trim(),
         'unit': _unitController.text.trim(),
-        'stockQuantity': int.tryParse(_quantityController.text) ?? 0,
+        'stockSystem': int.tryParse(_quantityController.text) ?? 0,
         'costPrice': costPrice,
         'salePrice': salePrice,
         'tags': _tags,

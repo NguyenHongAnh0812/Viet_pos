@@ -45,7 +45,7 @@ class _LowStockProductsScreenState extends State<LowStockProductsScreen> {
         ex.TextCellValue(p.sku ?? ''),
         ex.TextCellValue(p.tags.join(', ')),
         ex.DoubleCellValue(p.salePrice),
-        ex.IntCellValue(p.stockQuantity),
+        ex.IntCellValue(p.stockSystem),
       ]);
     }
     final fileBytes = excel.encode()!;
@@ -133,7 +133,7 @@ class _LowStockProductsScreenState extends State<LowStockProductsScreen> {
                 ElevatedButton.icon(
                   onPressed: _exporting ? null : () async {
                     final products = await _productService.getProducts().first;
-                    final lowStock = products.where((p) => (p.stockQuantity ?? 0) < 60).toList();
+                    final lowStock = products.where((p) => (p.stockSystem ?? 0) < 60).toList();
                     await _exportToExcel(lowStock);
                   },
                   icon: const Icon(Icons.file_download),
@@ -155,7 +155,7 @@ class _LowStockProductsScreenState extends State<LowStockProductsScreen> {
                   if (snapshot.connectionState == ConnectionState.waiting) {
                     return const Center(child: CircularProgressIndicator());
                   }
-                  final products = (snapshot.data ?? []).where((p) => (p.stockQuantity ?? 0) < 60).toList();
+                  final products = (snapshot.data ?? []).where((p) => (p.stockSystem ?? 0) < 60).toList();
                   if (products.isEmpty) {
                     return const Center(child: Text('Không có sản phẩm nào sắp hết hàng.'));
                   }

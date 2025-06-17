@@ -110,8 +110,8 @@ class MainLayoutState extends State<MainLayout> {
   // Thêm hàm mới để cập nhật filter ranges
   void updateFilterRanges(List<Product> products) {
     if (products.isNotEmpty) {
-      int newMinStock = products.map((p) => p.stockQuantity).reduce((a, b) => a < b ? a : b);
-      int newMaxStock = products.map((p) => p.stockQuantity).reduce((a, b) => a > b ? a : b);
+      int newMinStock = products.map((p) => p.stockSystem).reduce((a, b) => a < b ? a : b);
+      int newMaxStock = products.map((p) => p.stockSystem).reduce((a, b) => a > b ? a : b);
       double newMinPrice = products.map((p) => p.salePrice).reduce((a, b) => a < b ? a : b);
       double newMaxPrice = products.map((p) => p.salePrice).reduce((a, b) => a > b ? a : b);
 

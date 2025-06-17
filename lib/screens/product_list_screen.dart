@@ -186,7 +186,7 @@ class _ProductListScreenState extends State<ProductListScreen> {
       
       // Stock filter - Only apply if stock range is not default
       if (stockRange.start > 0 || stockRange.end < 99999) {
-        if (p.stockQuantity < stockRange.start || p.stockQuantity > stockRange.end) {
+        if (p.stockSystem < stockRange.start || p.stockSystem > stockRange.end) {
           return false;
         }
       }
@@ -237,10 +237,10 @@ class _ProductListScreenState extends State<ProductListScreen> {
         products.sort((a, b) => b.salePrice.compareTo(a.salePrice));
         break;
       case 'stock_asc':
-        products.sort((a, b) => a.stockQuantity.compareTo(b.stockQuantity));
+        products.sort((a, b) => a.stockSystem.compareTo(b.stockSystem));
         break;
       case 'stock_desc':
-        products.sort((a, b) => b.stockQuantity.compareTo(a.stockQuantity));
+        products.sort((a, b) => b.stockSystem.compareTo(a.stockSystem));
         break;
     }
     return products;
@@ -294,7 +294,7 @@ class _ProductListScreenState extends State<ProductListScreen> {
           'công dụng': 'usage',
           'thành phần': 'ingredients',
           'ghi chú': 'notes',
-          'số lượng sản phẩm': 'stockQuantity',
+          'số lượng sản phẩm': 'stockSystem',
           'giá nhập': 'costPrice',
           'giá bán': 'salePrice',
           'trạng thái': 'status'
@@ -305,7 +305,7 @@ class _ProductListScreenState extends State<ProductListScreen> {
         print('Processed headers: \\${processedHeaders}');
 
         // Kiểm tra các trường bắt buộc
-        final requiredFields = ['internalName', 'categoryId', 'unit', 'stockQuantity'];
+        final requiredFields = ['internalName', 'categoryId', 'unit', 'stockSystem'];
         final missingFields = requiredFields.where((field) => !processedHeaders.contains(field)).toList();
         if (missingFields.isNotEmpty) {
           print('Thiếu các trường bắt buộc: \\${missingFields.join(", ")}');
@@ -330,7 +330,7 @@ class _ProductListScreenState extends State<ProductListScreen> {
 
             if (field != null) {
               switch (field) {
-                case 'stockQuantity':
+                case 'stockSystem':
                   product[field] = int.tryParse(value) ?? 0;
                   break;
                 case 'costPrice':
@@ -395,7 +395,7 @@ class _ProductListScreenState extends State<ProductListScreen> {
           'công dụng': 'usage',
           'thành phần': 'ingredients',
           'ghi chú': 'notes',
-          'số lượng sản phẩm': 'stockQuantity',
+          'số lượng sản phẩm': 'stockSystem',
           'giá nhập': 'costPrice',
           'giá bán': 'salePrice',
           'trạng thái': 'status'
@@ -412,7 +412,7 @@ class _ProductListScreenState extends State<ProductListScreen> {
             final value = cell?.value;
             print('Row $i, Col $j: header="${headers[j]}", mapped="$field", value="$value"');
             switch (field) {
-              case 'stockQuantity':
+              case 'stockSystem':
                 product[field] = int.tryParse(value?.toString() ?? '') ?? 0;
                 break;
               case 'costPrice':
@@ -438,7 +438,7 @@ class _ProductListScreenState extends State<ProductListScreen> {
           product['updatedAt'] = FieldValue.serverTimestamp();
           // Kiểm tra dữ liệu bắt buộc
           bool valid = true;
-          for (final field in ['internalName', 'categoryId', 'unit', 'stockQuantity']) {
+          for (final field in ['internalName', 'categoryId', 'unit', 'stockSystem']) {
             if (product[field] == null || product[field].toString().isEmpty) {
               print('Bỏ qua dòng $i: Thiếu trường bắt buộc $field');
               valid = false;
@@ -528,7 +528,7 @@ class _ProductListScreenState extends State<ProductListScreen> {
         excel.TextCellValue(p.usage),
         excel.TextCellValue(p.ingredients),
         excel.TextCellValue(p.notes),
-        excel.IntCellValue(p.stockQuantity),
+        excel.IntCellValue(p.stockSystem),
         excel.DoubleCellValue(p.costPrice),
         excel.DoubleCellValue(p.salePrice),
         
@@ -559,8 +559,8 @@ class _ProductListScreenState extends State<ProductListScreen> {
 
   void updateFilterRanges(List<Product> products) {
     if (products.isNotEmpty) {
-      int newMinStock = products.map((p) => p.stockQuantity).reduce((a, b) => a < b ? a : b);
-      int newMaxStock = products.map((p) => p.stockQuantity).reduce((a, b) => a > b ? a : b);
+      int newMinStock = products.map((p) => p.stockSystem).reduce((a, b) => a < b ? a : b);
+      int newMaxStock = products.map((p) => p.stockSystem).reduce((a, b) => a > b ? a : b);
       double newMinPrice = products.map((p) => p.salePrice).reduce((a, b) => a < b ? a : b);
       double newMaxPrice = products.map((p) => p.salePrice).reduce((a, b) => a > b ? a : b);
 
@@ -581,11 +581,11 @@ class _ProductListScreenState extends State<ProductListScreen> {
   }
 
   void checkExtremeProducts(List<Product> products) {
-    final stock99999 = products.where((p) => p.stockQuantity == 99999).toList();
+    final stock99999 = products.where((p) => p.stockSystem == 99999).toList();
     final price1000000 = products.where((p) => p.salePrice == 1000000).toList();
     print('--- Sản phẩm có tồn kho = 99999 ---');
     for (final p in stock99999) {
-      print('ID: \\${p.id}, Tên: \\${p.internalName}, Tồn kho: \\${p.stockQuantity}');
+      print('ID: \\${p.id}, Tên: \\${p.internalName}, Tồn kho: \\${p.stockSystem}');
     }
     print('--- Sản phẩm có giá bán = 1,000,000 ---');
     for (final p in price1000000) {
@@ -1094,7 +1094,7 @@ class _ProductListScreenState extends State<ProductListScreen> {
                                                                 style: TextStyle(fontSize: 14, color: Colors.grey[600]),
                                                               ),
                                                               Text(
-                                                                'Số lượng: ${product.stockQuantity}',
+                                                                'Số lượng: ${product.stockSystem}',
                                                                 style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
                                                               ),
                                                             ],
@@ -1163,7 +1163,7 @@ class _ProductListScreenState extends State<ProductListScreen> {
                                                                         Text('SKU: ${product.sku}', style: const TextStyle(fontSize: 13, color: Colors.black54)),
                                                                       if (product.unit.isNotEmpty)
                                                                         Text('Đơn vị: ${product.unit}', style: const TextStyle(fontSize: 13, color: Colors.black54)),
-                                                                      Text('Tồn kho hệ thống: ${product.stockQuantity}', style: const TextStyle(fontSize: 13, color: Colors.black87, fontWeight: FontWeight.w600)),
+                                                                      Text('Tồn kho hệ thống: ${product.stockSystem}', style: const TextStyle(fontSize: 13, color: Colors.black87, fontWeight: FontWeight.w600)),
                                                                       Text('Tồn kho hóa đơn: ${product.stockInvoice}', style: const TextStyle(fontSize: 13, color: Colors.black54, fontWeight: FontWeight.w600)),
                                                                       if (product.description.isNotEmpty)
                                                                         Text('Mô tả: ${product.description}', style: const TextStyle(fontSize: 13, color: Colors.black54)),
@@ -1193,7 +1193,7 @@ class _ProductListScreenState extends State<ProductListScreen> {
                                                             flex: 2,
                                                             child: Align(
                                                               alignment: Alignment.center,
-                                                              child: Text('${product.stockQuantity}', style: bodyLarge.copyWith(fontWeight: FontWeight.w600)),
+                                                              child: Text('${product.stockSystem}', style: bodyLarge.copyWith(fontWeight: FontWeight.w600)),
                                                             ),
                                                           ),
                                                         ],

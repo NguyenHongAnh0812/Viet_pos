@@ -5,6 +5,8 @@ import '../services/inventory_item_service.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../widgets/main_layout.dart';
 import 'package:flutter/services.dart';
+import '../services/product_service.dart';
+import '../models/product.dart';
 
 class InventoryDetailScreen extends StatefulWidget {
   final String sessionId;
@@ -16,6 +18,7 @@ class InventoryDetailScreen extends StatefulWidget {
 
 class _InventoryDetailScreenState extends State<InventoryDetailScreen> {
   final _itemService = InventoryItemService();
+  final _productService = ProductService();
   DocumentSnapshot? _sessionDoc;
   List<Map<String, dynamic>> _items = [];
   bool _loading = true;
@@ -26,6 +29,7 @@ class _InventoryDetailScreenState extends State<InventoryDetailScreen> {
   Map<String, dynamic>? _userInfo;
   final Map<String, TextEditingController> _actualControllers = {};
   final Map<String, TextEditingController> _noteControllers = {};
+  List<Product> _products = [];
 
   @override
   void initState() {
@@ -36,29 +40,42 @@ class _InventoryDetailScreenState extends State<InventoryDetailScreen> {
   Future<void> _fetchData() async {
     final sessionDoc = await FirebaseFirestore.instance.collection('inventory_sessions').doc(widget.sessionId).get();
     final sessionData = sessionDoc.data() as Map<String, dynamic>;
-    // Lấy user info thật nếu có createdById
-    if (sessionData['createdById'] != null) {
-      final userDoc = await FirebaseFirestore.instance.collection('users').doc(sessionData['createdById']).get();
+    // Lấy user info thật nếu có created_by_id
+    if (sessionData['created_by_id'] != null) {
+      final userDoc = await FirebaseFirestore.instance.collection('users').doc(sessionData['created_by_id']).get();
       _userInfo = userDoc.data();
     } else {
       _userInfo = null;
     }
+    // Lấy toàn bộ sản phẩm
+    final products = await _productService.getProducts().first;
+    _products = products;
     // Lấy toàn bộ inventory_items của session này (đã có snapshot product info)
     final itemsSnapshot = await FirebaseFirestore.instance
         .collection('inventory_items')
-        .where('sessionId', isEqualTo: widget.sessionId)
+        .where('session_id', isEqualTo: widget.sessionId)
         .get();
     final itemsList = itemsSnapshot.docs.map((doc) {
       final data = doc.data();
+      final productId = (data['product_id'] ?? '').toString();
+      final product = products.firstWhere(
+        (p) => p.id == productId,
+        orElse: () => Product(
+          id: '',
+          createdAt: DateTime.now(),
+          updatedAt: DateTime.now(),
+        ),
+      );
       return {
         'id': doc.id,
-        'sessionId': (data['sessionId'] ?? '').toString(),
-        'productId': (data['productId'] ?? '').toString(),
-        'productName': (data['productName'] ?? '').toString(),
-        'systemStock': data['systemStock'] ?? 0,
-        'actualStock': data['actualStock'] ?? 0,
+        'session_id': (data['session_id'] ?? '').toString(),
+        'product_id': productId,
+        'product_name': (data['product_name'] ?? '').toString(),
+        'stock_system': data['stock_system'] ?? 0,
+        'stock_actual': data['stock_actual'] ?? 0,
         'diff': data['diff'] ?? 0,
         'note': (data['note'] ?? '').toString(),
+        'stock_invoice': product?.stockInvoice ?? 0,
       };
     }).toList();
     setState(() {
@@ -72,15 +89,15 @@ class _InventoryDetailScreenState extends State<InventoryDetailScreen> {
     final base = displayItems;
     if (_searchText.trim().isEmpty) return base;
     final search = _searchText.trim().toLowerCase();
-    return base.where((item) => (item['productName'] ?? '').toLowerCase().contains(search)).toList();
+    return base.where((item) => (item['product_name'] ?? '').toLowerCase().contains(search)).toList();
   }
 
   List<Map<String, dynamic>> get displayItems {
     if (isCompleted || isUpdated) {
       // Sắp xếp: diff != 0 lên đầu, đã kiểm kê không lệch ở giữa, chưa kiểm kê ở cuối
-      final changed = _items.where((i) => (i['actualStock'] != null && i['actualStock'].toString().isNotEmpty && (i['diff'] ?? 0) != 0)).toList();
-      final checkedNoDiff = _items.where((i) => (i['actualStock'] != null && i['actualStock'].toString().isNotEmpty && (i['diff'] ?? 0) == 0)).toList();
-      final notChecked = _items.where((i) => i['actualStock'] == null || i['actualStock'].toString().isEmpty).toList();
+      final changed = _items.where((i) => (i['stock_actual'] != null && i['stock_actual'].toString().isNotEmpty && (i['diff'] ?? 0) != 0)).toList();
+      final checkedNoDiff = _items.where((i) => (i['stock_actual'] != null && i['stock_actual'].toString().isNotEmpty && (i['diff'] ?? 0) == 0)).toList();
+      final notChecked = _items.where((i) => i['stock_actual'] == null || i['stock_actual'].toString().isEmpty).toList();
       return [...changed, ...checkedNoDiff, ...notChecked];
     } else {
       return _items;
@@ -90,7 +107,7 @@ class _InventoryDetailScreenState extends State<InventoryDetailScreen> {
   Future<void> _syncSessionProducts() async {
     final itemsSnapshot = await FirebaseFirestore.instance
         .collection('inventory_items')
-        .where('sessionId', isEqualTo: widget.sessionId)
+        .where('session_id', isEqualTo: widget.sessionId)
         .get();
     final products = itemsSnapshot.docs.map((doc) => doc.data()).toList();
     await FirebaseFirestore.instance
@@ -101,21 +118,21 @@ class _InventoryDetailScreenState extends State<InventoryDetailScreen> {
 
   Future<void> _saveAsDraft() async {
     for (final item in _items) {
-      final id = (item['id'] ?? item['productId'] ?? '').toString();
+      final id = (item['id'] ?? item['product_id'] ?? '').toString();
       final actualController = _actualControllers[id];
       final noteController = _noteControllers[id];
       final actualStock = int.tryParse(actualController?.text ?? '') ?? 0;
       final note = (noteController?.text ?? '').toString();
-      final systemStock = item['systemStock'] ?? 0;
+      final systemStock = item['stock_system'] ?? 0;
       final diff = actualStock - systemStock;
       final docRef = FirebaseFirestore.instance.collection('inventory_items').doc(id);
       final docSnap = await docRef.get();
       final data = {
-        'sessionId': (item['sessionId'] ?? widget.sessionId ?? '').toString(),
-        'productId': (item['productId'] ?? id ?? '').toString(),
-        'productName': (item['productName'] ?? '').toString(),
-        'systemStock': systemStock,
-        'actualStock': actualStock,
+        'session_id': (item['session_id'] ?? widget.sessionId ?? '').toString(),
+        'product_id': (item['product_id'] ?? id ?? '').toString(),
+        'product_name': (item['product_name'] ?? '').toString(),
+        'stock_system': systemStock,
+        'stock_actual': actualStock,
         'diff': diff,
         'note': note,
       };
@@ -151,18 +168,31 @@ class _InventoryDetailScreenState extends State<InventoryDetailScreen> {
 
   Future<void> _confirmCompleteInventory() async {
     setState(() { _completeLoading = true; });
-    final notCheckedCount = _items.where((i) => i['actualStock'] == null || i['actualStock'].toString().isEmpty).length;
+    final notCheckedCount = _items.where((i) => i['stock_actual'] == null || i['stock_actual'].toString().isEmpty).length;
     if (notCheckedCount > 0) {
-      final confirmed = await showDialog<bool>(
+      final contentWidget = Text(
+        notCheckedCount > 0
+          ? 'Có $notCheckedCount sản phẩm chưa kiểm kê. Bạn vẫn muốn hoàn tất?'
+          : 'Sau khi hoàn tất, bạn không thể thay đổi số liệu kiểm kê.',
+        style: body,
+      );
+      final confirmed = await showDesignSystemDialog<bool>(
         context: context,
-        builder: (context) => AlertDialog(
-          title: const Text('Vẫn còn sản phẩm chưa kiểm kê'),
-          content: Text('Có $notCheckedCount sản phẩm chưa kiểm kê. Bạn vẫn muốn hoàn tất?'),
-          actions: [
-            TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Hủy')),
-            ElevatedButton(onPressed: () => Navigator.pop(context, true), child: const Text('Vẫn hoàn tất')),
-          ],
-        ),
+        title: 'Xác nhận hoàn tất phiên kiểm kê',
+        content: contentWidget,
+        icon: Icons.check_circle,
+        iconColor: Colors.green,
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Hủy'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: primaryButtonStyle,
+            child: const Text('Xác nhận'),
+          ),
+        ],
       );
       if (confirmed != true) {
         setState(() { _completeLoading = false; });
@@ -183,10 +213,10 @@ class _InventoryDetailScreenState extends State<InventoryDetailScreen> {
   Future<void> _updateStock() async {
     setState(() { _updateStockLoading = true; });
     for (final item in _items) {
-      final productId = item['productId'];
-      final actualStock = int.tryParse(_actualControllers[item['id']]?.text ?? '') ?? item['actualStock'] ?? 0;
+      final productId = item['product_id'];
+      final actualStock = int.tryParse(_actualControllers[item['id']]?.text ?? '') ?? item['stock_actual'] ?? 0;
       try {
-        await FirebaseFirestore.instance.collection('products').doc(productId).update({'stockQuantity': actualStock});
+        await FirebaseFirestore.instance.collection('products').doc(productId).update({'stock_system': actualStock});
       } catch (e) {
         debugPrint('Lỗi khi cập nhật productId=$productId: $e');
       }
@@ -316,7 +346,18 @@ class _InventoryDetailScreenState extends State<InventoryDetailScreen> {
                                     children: [
                                       Text('Ngày kiểm kê', style: body.copyWith(color: textSecondary)),
                                       const SizedBox(height: 4),
-                                          Text((session['createdAt'] as Timestamp).toDate().toString().split(' ')[0], style: body.copyWith(fontWeight: FontWeight.bold, color: textPrimary)),
+                                      (() {
+                                        final createdAt = session['created_at'];
+                                        if (createdAt is Timestamp) {
+                                          return Text(createdAt.toDate().toString().split(' ')[0], style: body.copyWith(fontWeight: FontWeight.bold, color: textPrimary));
+                                        } else if (createdAt is DateTime) {
+                                          return Text(createdAt.toString().split(' ')[0], style: body.copyWith(fontWeight: FontWeight.bold, color: textPrimary));
+                                        } else if (createdAt != null) {
+                                          return Text(DateTime.tryParse(createdAt.toString())?.toString().split(' ')[0] ?? '', style: body.copyWith(fontWeight: FontWeight.bold, color: textPrimary));
+                                        } else {
+                                          return Text('', style: body);
+                                        }
+                                      })(),
                                       const SizedBox(height: 16),
                                           Text('Cập nhật kho', style: body.copyWith(fontWeight: FontWeight.w500, color: textPrimary)),
                                       const SizedBox(height: 4),
@@ -336,7 +377,7 @@ class _InventoryDetailScreenState extends State<InventoryDetailScreen> {
                                     children: [
                                       Text('Người kiểm kê', style: body.copyWith(color: textSecondary)),
                                       const SizedBox(height: 4),
-                                          Text(_userInfo?['name'] ?? session['createdBy'] ?? '', style: body.copyWith(fontWeight: FontWeight.bold, color: textPrimary)),
+                                          Text(_userInfo?['name'] ?? session['created_by'] ?? '', style: body.copyWith(fontWeight: FontWeight.bold, color: textPrimary)),
                                       if (_userInfo?['email'] != null)
                                         Text(_userInfo?['email'] ?? '', style: body.copyWith(color: textSecondary)),
                                     ],
@@ -406,22 +447,23 @@ class _InventoryDetailScreenState extends State<InventoryDetailScreen> {
                                   onPressed: _completeLoading
                                       ? null
                                       : () async {
-                                          final confirmed = await showDialog<bool>(
+                                          final confirmed = await showDesignSystemDialog<bool>(
                                             context: context,
-                                            builder: (context) => AlertDialog(
-                                              title: const Text('Xác nhận hoàn tất phiên kiểm kê?'),
-                                              content: const Text('Sau khi hoàn tất, bạn không thể thay đổi số liệu kiểm kê.'),
-                                              actions: [
-                                                TextButton(
-                                                  onPressed: () => Navigator.pop(context, false),
-                                                  child: const Text('Hủy'),
-                                                ),
-                                                ElevatedButton(
-                                                  onPressed: () => Navigator.pop(context, true),
-                                                  child: const Text('Xác nhận'),
-                                                ),
-                                              ],
-                                            ),
+                                            title: 'Xác nhận hoàn tất phiên kiểm kê',
+                                            content: Text('Sau khi hoàn tất, bạn không thể thay đổi số liệu kiểm kê.', style: body),
+                                            icon: Icons.check_circle,
+                                            iconColor: Colors.green,
+                                            actions: [
+                                              TextButton(
+                                                onPressed: () => Navigator.pop(context, false),
+                                                child: const Text('Hủy'),
+                                              ),
+                                              ElevatedButton(
+                                                onPressed: () => Navigator.pop(context, true),
+                                                style: primaryButtonStyle,
+                                                child: const Text('Xác nhận'),
+                                              ),
+                                            ],
                                           );
                                           if (confirmed == true) {
                                             _confirmCompleteInventory();
@@ -469,6 +511,7 @@ class _InventoryDetailScreenState extends State<InventoryDetailScreen> {
                                   Expanded(flex: 3, child: Text('Tên sản phẩm', style: body.copyWith(fontWeight: FontWeight.bold, color: textSecondary))),
                                   Expanded(flex: 2, child: Text('Số lượng hệ thống', textAlign: TextAlign.center, style: body.copyWith(fontWeight: FontWeight.bold, color: textSecondary))),
                                   Expanded(flex: 2, child: Text('Số lượng thực tế', textAlign: TextAlign.center, style: body.copyWith(fontWeight: FontWeight.bold, color: textSecondary))),
+                                  Expanded(flex: 2, child: Text('Tồn kho hóa đơn', textAlign: TextAlign.center, style: body.copyWith(fontWeight: FontWeight.bold, color: textSecondary))),
                                   Expanded(flex: 2, child: Text('Chênh lệch', textAlign: TextAlign.center, style: body.copyWith(fontWeight: FontWeight.bold, color: textSecondary))),
                                   Expanded(flex: 3, child: Text('Ghi chú', style: body.copyWith(fontWeight: FontWeight.bold, color: textSecondary))),
                                 ],
@@ -483,10 +526,10 @@ class _InventoryDetailScreenState extends State<InventoryDetailScreen> {
                                 itemCount: filteredItems.length,
                                 itemBuilder: (context, i) {
                                   final item = filteredItems[i];
-                                  final id = item['id'] ?? item['productId'];
-                                      final actualController = _actualControllers[id] ??= TextEditingController(text: (item['actualStock']?.toString() ?? ''));
+                                  final id = item['id'] ?? item['product_id'];
+                                      final actualController = _actualControllers[id] ??= TextEditingController(text: (item['stock_actual']?.toString() ?? ''));
                                       final noteController = _noteControllers[id] ??= TextEditingController(text: (item['note']?.toString() ?? ''));
-                                      final systemStock = item['systemStock'] ?? 0;
+                                      final systemStock = item['stock_system'] ?? 0;
                                       final actualStock = int.tryParse(actualController.text) ?? 0;
                                       final diff = actualController.text.isEmpty ? null : actualStock - systemStock;
                                       final rowColor = actualController.text.isEmpty
@@ -506,8 +549,8 @@ class _InventoryDetailScreenState extends State<InventoryDetailScreen> {
                                     ),
                                     child: Row(
                                       children: [
-                                            Expanded(flex: 3, child: Text((item['productName'] ?? '').toString(), style: body.copyWith(fontWeight: FontWeight.bold,color: textPrimary))),
-                                        Expanded(flex: 2, child: Text('${item['systemStock']}', textAlign: TextAlign.center, style: body)),
+                                            Expanded(flex: 3, child: Text((item['product_name'] ?? '').toString(), style: body.copyWith(fontWeight: FontWeight.bold,color: textPrimary))),
+                                        Expanded(flex: 2, child: Text('${item['stock_system']}', textAlign: TextAlign.center, style: body)),
                                         Expanded(
                                           flex: 2,
                                           child: (!isCompleted && !isUpdated)
@@ -517,8 +560,8 @@ class _InventoryDetailScreenState extends State<InventoryDetailScreen> {
                                                         onFocusChange: (hasFocus) async {
                                                           if (!hasFocus) {
                                                             final actual = int.tryParse(actualController.text) ?? 0;
-                                                            final diff = actual - (item['systemStock'] ?? 0);
-                                                            await _itemService.updateItem(item['id'], {'actualStock': actual, 'diff': diff});
+                                                            final diff = actual - (item['stock_system'] ?? 0);
+                                                            await _itemService.updateItem(item['id'], {'stock_actual': actual, 'diff': diff});
                                                           }
                                                         },
                                                         child: TextField(
@@ -539,13 +582,17 @@ class _InventoryDetailScreenState extends State<InventoryDetailScreen> {
                                                 )
                                               : Center(
                                                   child: Text(
-                                                        (item['actualStock']?.toString() ?? '').isEmpty
+                                                        (item['stock_actual']?.toString() ?? '').isEmpty
                                                         ? '—'
-                                                          : item['actualStock'].toString(),
+                                                          : item['stock_actual'].toString(),
                                                     textAlign: TextAlign.center,
                                                     style: body,
                                                   ),
                                                 ),
+                                        ),
+                                        Expanded(
+                                          flex: 2,
+                                          child: Text('${item['stock_invoice']}', textAlign: TextAlign.center, style: body),
                                         ),
                                         Expanded(
                                           flex: 2,

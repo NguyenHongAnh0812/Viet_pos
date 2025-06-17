@@ -83,10 +83,10 @@ class ProductListCard extends StatelessWidget {
                       children: [
                         const Text('Số lượng: ', style: TextStyle(fontWeight: FontWeight.w500, fontSize: 16)),
                         Text(
-                          '${product.stockQuantity}',
+                          '${product.stockSystem}',
                           style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 17),
                         ),
-                        if ((product.stockQuantity ?? 0) < 60)
+                        if ((product.stockSystem ?? 0) < 60)
                           Container(
                             margin: const EdgeInsets.only(left: 8),
                             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),

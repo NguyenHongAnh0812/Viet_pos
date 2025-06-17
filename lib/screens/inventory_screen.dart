@@ -170,7 +170,6 @@ class _InventoryScreenState extends State<InventoryScreen> with SingleTickerProv
                             Expanded(flex: 2, child: Text('Trạng thái', textAlign: TextAlign.center, style: TextStyle(color: textMuted, fontWeight: FontWeight.bold))),
                             Expanded(flex: 2, child: Text('Số sản phẩm', textAlign: TextAlign.center, style: TextStyle(color: textMuted, fontWeight: FontWeight.bold))),
                             Expanded(flex: 2, child: Text('Số sản phẩm lệch', textAlign: TextAlign.center, style: TextStyle(color: textMuted, fontWeight: FontWeight.bold))),
-                            Expanded(flex: 2, child: Text('Đã cập nhật kho', textAlign: TextAlign.center, style: TextStyle(color: textMuted, fontWeight: FontWeight.bold))),
                           ],
                         ),
                       ),
@@ -214,14 +213,12 @@ class _InventoryScreenState extends State<InventoryScreen> with SingleTickerProv
                                   flex: 2,
                                   child: Center(
                                     child: DesignSystemBadge(
-                                      text: filtered[i].status == 'active' ? 'Còn bán' : 'Ngừng bán',
+                                      text: filtered[i].status,
                                       variant: filtered[i].status == 'Đã cập nhật kho'
                                           ? BadgeVariant.secondary
                                           : filtered[i].status == 'Đã hoàn tất'
                                               ? BadgeVariant.warning
-                                              : filtered[i].status == 'Đang kiểm kê'
-                                                  ? BadgeVariant.defaultVariant
-                                                  : BadgeVariant.outline,
+                                              : BadgeVariant.defaultVariant,
                                     ),
                                   ),
                                 ),
@@ -231,7 +228,7 @@ class _InventoryScreenState extends State<InventoryScreen> with SingleTickerProv
                                       child: FutureBuilder<QuerySnapshot>(
                                         future: FirebaseFirestore.instance
                                             .collection('inventory_items')
-                                            .where('sessionId', isEqualTo: filtered[i].id)
+                                            .where('session_id', isEqualTo: filtered[i].id)
                                             .get(),
                                         builder: (context, snapshot) {
                                           if (!snapshot.hasData) {
@@ -249,7 +246,7 @@ class _InventoryScreenState extends State<InventoryScreen> with SingleTickerProv
                                       child: FutureBuilder<QuerySnapshot>(
                                         future: FirebaseFirestore.instance
                                             .collection('inventory_items')
-                                            .where('sessionId', isEqualTo: filtered[i].id)
+                                            .where('session_id', isEqualTo: filtered[i].id)
                                             .get(),
                                         builder: (context, snapshot) {
                                           if (!snapshot.hasData) {
@@ -268,19 +265,10 @@ class _InventoryScreenState extends State<InventoryScreen> with SingleTickerProv
                                         },
                                   ),
                                 ),
-                                // Đã cập nhật kho
-                                  Expanded(
-                                    flex: 2,
-                                    child: Center(
-                                    child: filtered[i].status == 'Đã cập nhật kho'
-                                        ? const Icon(Icons.check_circle, color: successGreen, size: 20)
-                                        : Text('—', style: h3.copyWith(color: textSecondary)),
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                    ),
+                              ],
+                            ),
+                          ),
+                        ),
                     ],
                   ),
                 );
@@ -426,13 +414,13 @@ class _InventoryScreenState extends State<InventoryScreen> with SingleTickerProv
       final actualQty = int.tryParse(actualStr ?? '') ?? 0;
       sessionProducts.add(InventoryProduct(
         productId: p.id,
-        name: p.internalName,
-        systemQty: p.stockQuantity,
+        name: p.tradeName,
+        systemQty: p.stockSystem,
         actualQty: actualQty,
-        diff: actualQty - p.stockQuantity,
+        diff: actualQty - p.stockSystem,
       ));
       if (_syncStock && actualStr != null && actualStr.isNotEmpty) {
-        await _productService.updateProduct(p.id, p.copyWith(stockQuantity: actualQty));
+        await _productService.updateProduct(p.id, p.copyWith(stockSystem: actualQty));
       }
     }
     final session = InventorySession(
@@ -533,7 +521,7 @@ class _InventoryScreenState extends State<InventoryScreen> with SingleTickerProv
       
       // Tạo bản sao của sản phẩm với số lượng mới và cập nhật updatedAt
       final updatedProduct = product.copyWith(
-        stockQuantity: newQuantity,
+        stockSystem: newQuantity,
         updatedAt: DateTime.now(),
       );
       

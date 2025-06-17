@@ -64,7 +64,7 @@ class ProductService {
           print('Successfully parsed product:');
           print('- Name: ${product.internalName}');
           print('- Category: ${product.categoryId}');
-          print('- Stock: ${product.stockQuantity}');
+          print('- Stock: ${product.stockSystem}');
           print('- Price: ${product.salePrice}');
           
           products.add(product);

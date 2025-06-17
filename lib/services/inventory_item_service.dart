@@ -11,7 +11,7 @@ class InventoryItemService {
   Stream<List<Map<String, dynamic>>> getItemsBySession(String sessionId) {
     return _firestore
         .collection(_collection)
-        .where('sessionId', isEqualTo: sessionId)
+        .where('session_id', isEqualTo: sessionId)
         .snapshots()
         .map((snap) => snap.docs.map((doc) => {...doc.data(), 'id': doc.id}).toList());
   }
