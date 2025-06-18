@@ -189,6 +189,23 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
       print('Cost price in data: ${productData['costPrice']}');
       print('Sale price in data: ${productData['salePrice']}');
 
+      print('--- LOG GIÁ TRỊ CÁC TRƯỜNG TRƯỚC KHI LƯU ---');
+      print('internal_name: \'${_nameController.text}\'');
+      print('trade_name: \'${_commonNameController.text}\'');
+      print('cost_price: \'${_costPriceController.text}\'');
+      print('sale_price: \'${_sellPriceController.text}\'');
+      print('profit_margin: \'${_profitMarginController.text}\'');
+      print('unit: \'${_unitController.text}\'');
+      print('stock_system: \'${_quantityController.text}\'');
+      print('tags: $_tags');
+      print('description: \'${_descriptionController.text}\'');
+      print('usage: \'${_usageController.text}\'');
+      print('ingredients: \'${_ingredientsController.text}\'');
+      print('notes: \'${_notesController.text}\'');
+      print('category_id: $_selectedCategories');
+      print('status: ${_isActive ? 'active' : 'inactive'}');
+      print('--- END LOG ---');
+
       await FirebaseFirestore.instance.collection('products').doc(widget.product.id).update(productData);
       
       // Format lại giá sau khi lưu

@@ -993,43 +993,30 @@ class _ProductListScreenState extends State<ProductListScreen> {
                                             children: [
                                               Expanded(
                                                 flex: 1,
-                                                child: ValueListenableBuilder<Set<String>>(
-                                                  valueListenable: selectedProductIds,
-                                                  builder: (context, selected, _) {
-                                                    return Checkbox(
-                                                      value: selected.length == pagedProducts.length,
-                                                      onChanged: pagedProducts.isEmpty ? null : (checked) {
-                                                        if (checked == true) {
-                                                          selectedProductIds.value = Set<String>.from(pagedProducts.map((p) => p.id));
-                                                        } else {
-                                                          selectedProductIds.value = {};
-                                                        }
-                                                      },
-                                                    );
-                                                  },
-                                                ),
-                                              ),
-                                              Expanded(
-                                                flex: 5,
                                                 child: Align(
                                                   alignment: Alignment.centerLeft,
-                                                  child: Text('Tên sản phẩm', style: TextStyle(color: textMuted, fontWeight: FontWeight.bold)),
+                                                  child: ValueListenableBuilder<Set<String>>(
+                                                    valueListenable: selectedProductIds,
+                                                    builder: (context, selected, _) {
+                                                      return Checkbox(
+                                                        value: selected.length == pagedProducts.length,
+                                                        onChanged: pagedProducts.isEmpty ? null : (checked) {
+                                                          if (checked == true) {
+                                                            selectedProductIds.value = Set<String>.from(pagedProducts.map((p) => p.id));
+                                                          } else {
+                                                            selectedProductIds.value = {};
+                                                          }
+                                                        },
+                                                      );
+                                                    },
+                                                  ),
                                                 ),
                                               ),
-                                              Expanded(
-                                                flex: 2,
-                                                child: Align(
-                                                  alignment: Alignment.center,
-                                                  child: Text('Mã vạch', style: TextStyle(color: textMuted, fontWeight: FontWeight.bold)),
-                                                ),
-                                              ),
-                                              Expanded(
-                                                flex: 2,
-                                                child: Align(
-                                                  alignment: Alignment.center,
-                                                  child: Text('Số lượng', style: TextStyle(color: textMuted, fontWeight: FontWeight.bold)),
-                                                ),
-                                              ),
+                                              Expanded(flex: 3, child: Text('Tên sản phẩm', style: TextStyle(color: textMuted, fontWeight: FontWeight.bold))),
+                                              Expanded(flex: 2, child: Text('Giá nhập', textAlign: TextAlign.center, style: TextStyle(color: textMuted, fontWeight: FontWeight.bold))),
+                                              Expanded(flex: 2, child: Text('Đơn vị', textAlign: TextAlign.center, style: TextStyle(color: textMuted, fontWeight: FontWeight.bold))),
+                                              Expanded(flex: 2, child: Text('Tồn kho hóa đơn', textAlign: TextAlign.center, style: TextStyle(color: textMuted, fontWeight: FontWeight.bold))),
+                                              Expanded(flex: 2, child: Text('Tồn kho hệ thống', textAlign: TextAlign.center, style: TextStyle(color: textMuted, fontWeight: FontWeight.bold))),
                                             ],
                                           ),
                                         ),
@@ -1119,66 +1106,35 @@ class _ProductListScreenState extends State<ProductListScreen> {
                                                         children: [
                                                           Expanded(
                                                             flex: 1,
-                                                            child: ValueListenableBuilder<Set<String>>(
-                                                              valueListenable: selectedProductIds,
-                                                              builder: (context, selected, _) {
-                                                                return Checkbox(
-                                                                  value: selected.contains(product.id),
-                                                                  onChanged: (checked) {
-                                                                    final newSet = Set<String>.from(selected);
-                                                                    if (checked == true) {
-                                                                      newSet.add(product.id);
-                                                                    } else {
-                                                                      newSet.remove(product.id);
-                                                                    }
-                                                                    selectedProductIds.value = newSet;
-                                                                  },
-                                                                );
-                                                              },
+                                                            child: Align(
+                                                              alignment: Alignment.centerLeft,
+                                                              child: ValueListenableBuilder<Set<String>>(
+                                                                valueListenable: selectedProductIds,
+                                                                builder: (context, selected, _) {
+                                                                  return Checkbox(
+                                                                    value: selected.contains(product.id),
+                                                                    onChanged: (checked) {
+                                                                      final newSet = Set<String>.from(selected);
+                                                                      if (checked == true) {
+                                                                        newSet.add(product.id);
+                                                                      } else {
+                                                                        newSet.remove(product.id);
+                                                                      }
+                                                                      selectedProductIds.value = newSet;
+                                                                    },
+                                                                  );
+                                                                },
+                                                              ),
                                                             ),
                                                           ),
                                                           Expanded(
-                                                            flex: 5,
+                                                            flex: 3,
                                                             child: Column(
                                                               crossAxisAlignment: CrossAxisAlignment.start,
                                                               children: [
                                                                 Text(product.tradeName, style: bodyLarge.copyWith(fontWeight: FontWeight.w700)),
                                                                 if (product.internalName.isNotEmpty)
                                                                   Text(product.internalName, style: body.copyWith(color: Colors.grey[600])),
-                                                                // Ô nội dung chi tiết
-                                                                Container(
-                                                                  margin: const EdgeInsets.only(top: 8, bottom: 8),
-                                                                  padding: const EdgeInsets.all(12),
-                                                                  decoration: BoxDecoration(
-                                                                    color: Colors.grey[50],
-                                                                    borderRadius: BorderRadius.circular(8),
-                                                                    border: Border.all(color: Colors.grey.shade200),
-                                                                  ),
-                                                                  child: Column(
-                                                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                                                    children: [
-                                                                      if ((product.barcode ?? '').isNotEmpty)
-                                                                        Text('Mã vạch: ${product.barcode}', style: const TextStyle(fontSize: 13, color: Colors.black54)),
-                                                                      if ((product.sku ?? '').isNotEmpty)
-                                                                        Text('SKU: ${product.sku}', style: const TextStyle(fontSize: 13, color: Colors.black54)),
-                                                                      if (product.unit.isNotEmpty)
-                                                                        Text('Đơn vị: ${product.unit}', style: const TextStyle(fontSize: 13, color: Colors.black54)),
-                                                                      Text('Tồn kho hệ thống: ${product.stockSystem}', style: const TextStyle(fontSize: 13, color: Colors.black87, fontWeight: FontWeight.w600)),
-                                                                      Text('Tồn kho hóa đơn: ${product.stockInvoice}', style: const TextStyle(fontSize: 13, color: Colors.black54, fontWeight: FontWeight.w600)),
-                                                                      if (product.description.isNotEmpty)
-                                                                        Text('Mô tả: ${product.description}', style: const TextStyle(fontSize: 13, color: Colors.black54)),
-                                                                      if (product.usage.isNotEmpty)
-                                                                        Text('Công dụng: ${product.usage}', style: const TextStyle(fontSize: 13, color: Colors.black54)),
-                                                                      if (product.ingredients.isNotEmpty)
-                                                                        Text('Thành phần: ${product.ingredients}', style: const TextStyle(fontSize: 13, color: Colors.black54)),
-                                                                      if (product.notes.isNotEmpty)
-                                                                        Text('Ghi chú: ${product.notes}', style: const TextStyle(fontSize: 13, color: Colors.black54)),
-                                                                      Text('Giá nhập: ${NumberFormat.currency(locale: 'vi_VN', symbol: '₫').format(product.costPrice)}', style: const TextStyle(fontSize: 13, color: Colors.black54)),
-                                                                      Text('Giá bán: ${NumberFormat.currency(locale: 'vi_VN', symbol: '₫').format(product.salePrice)}', style: const TextStyle(fontSize: 13, color: Colors.blue, fontWeight: FontWeight.bold)),
-                                                                      //Text('Trạng thái: ${product.status ? 'Còn bán' : 'Ngừng bán'}', style: TextStyle(fontSize: 13, color: product.status ? Colors.green : Colors.red, fontWeight: FontWeight.w600)),
-                                                                    ],
-                                                                  ),
-                                                                ),
                                                               ],
                                                             ),
                                                           ),
@@ -1186,7 +1142,21 @@ class _ProductListScreenState extends State<ProductListScreen> {
                                                             flex: 2,
                                                             child: Align(
                                                               alignment: Alignment.center,
-                                                              child: Text(product.barcode ?? '-', style: body),
+                                                              child: Text('${NumberFormat.currency(locale: 'vi_VN', symbol: '₫').format(product.costPrice)}', style: body),
+                                                            ),
+                                                          ),
+                                                          Expanded(
+                                                            flex: 2,
+                                                            child: Align(
+                                                              alignment: Alignment.center,
+                                                              child: Text(product.unit, style: body),
+                                                            ),
+                                                          ),
+                                                          Expanded(
+                                                            flex: 2,
+                                                            child: Align(
+                                                              alignment: Alignment.center,
+                                                              child: Text('${product.stockInvoice}', style: bodyLarge.copyWith(fontWeight: FontWeight.w600)),
                                                             ),
                                                           ),
                                                           Expanded(
