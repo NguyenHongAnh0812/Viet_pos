@@ -77,9 +77,9 @@ class ProductCardItem extends StatelessWidget {
                       spacing: 8,
                       runSpacing: 4,
                       children: [
-                        if (product.categoryId.isNotEmpty)
+                        if (product.categoryIds.isNotEmpty)
                           Chip(
-                            label: Text(product.categoryId, style: const TextStyle(fontSize: 13)),
+                            label: Text(product.categoryIds.join(', '), style: const TextStyle(fontSize: 13)),
                             backgroundColor: Colors.grey[100],
                             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                           ),

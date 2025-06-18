@@ -4,7 +4,7 @@ class Product {
   final String id;
   final String internalName; // internal_name
   final String tradeName;    // trade_name
-  final String categoryId;   // category_id
+  final List<String> categoryIds;   // category_ids - hỗ trợ N-N
   final String? barcode;
   final String? sku;
   final String unit;
@@ -28,7 +28,7 @@ class Product {
     required this.id,
     this.internalName = '',
     this.tradeName = '',
-    this.categoryId = '',
+    this.categoryIds = const [],
     this.barcode,
     this.sku,
     this.unit = '',
@@ -53,7 +53,7 @@ class Product {
     return {
       'internal_name': internalName,
       'trade_name': tradeName,
-      'category_id': categoryId,
+      'category_ids': categoryIds,
       'barcode': barcode,
       'sku': sku,
       'unit': unit,
@@ -94,11 +94,24 @@ class Product {
         updatedAt = DateTime.tryParse(map['updated_at'].toString());
       }
     } catch (e) {}
+    
+    // Xử lý category_ids - có thể là List<String> hoặc List<dynamic>
+    List<String> categoryIds = [];
+    if (map['category_ids'] != null) {
+      if (map['category_ids'] is List) {
+        categoryIds = List<String>.from(map['category_ids']);
+      } else if (map['category_ids'] is List<dynamic>) {
+        categoryIds = List<String>.from(map['category_ids'].map((e) => e.toString()));
+      } else {
+        categoryIds = [map['category_ids'].toString()];
+      }
+    }
+    
     return Product(
       id: id,
       internalName: map['internal_name'] ?? '',
       tradeName: map['trade_name'] ?? '',
-      categoryId: map['category_id'] ?? '',
+      categoryIds: categoryIds,
       barcode: map['barcode'],
       sku: map['sku'],
       unit: map['unit'] ?? '',
@@ -124,7 +137,7 @@ class Product {
     String? id,
     String? internalName,
     String? tradeName,
-    String? categoryId,
+    List<String>? categoryIds,
     String? barcode,
     String? sku,
     String? unit,
@@ -148,7 +161,7 @@ class Product {
       id: id ?? this.id,
       internalName: internalName ?? this.internalName,
       tradeName: tradeName ?? this.tradeName,
-      categoryId: categoryId ?? this.categoryId,
+      categoryIds: categoryIds ?? this.categoryIds,
       barcode: barcode ?? this.barcode,
       sku: sku ?? this.sku,
       unit: unit ?? this.unit,
@@ -168,5 +181,58 @@ class Product {
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
     );
+  }
+
+  static Map<String, dynamic> normalizeProductData(Map<String, dynamic> raw) {
+    // Xử lý category_ids - đảm bảo luôn là List<String>
+    List<String> categoryIds = [];
+    final rawCategoryIds = raw['category_ids'] ?? raw['categoryIds'];
+    if (rawCategoryIds != null) {
+      if (rawCategoryIds is List) {
+        categoryIds = List<String>.from(rawCategoryIds);
+      } else if (rawCategoryIds is List<dynamic>) {
+        categoryIds = List<String>.from(rawCategoryIds.map((e) => e.toString()));
+      } else {
+        categoryIds = [rawCategoryIds.toString()];
+      }
+    }
+    
+    return {
+      'internal_name': raw['internal_name'] ?? raw['internalName'] ?? '',
+      'trade_name': raw['trade_name'] ?? raw['tradeName'] ?? '',
+      'category_ids': categoryIds,
+      'barcode': raw['barcode'],
+      'sku': raw['sku'],
+      'unit': raw['unit'] ?? '',
+      'tags': raw['tags'] is String ? (raw['tags'] as String).split(',').map((e) => e.trim()).toList() : (raw['tags'] ?? []),
+      'description': raw['description'] ?? '',
+      'usage': raw['usage'] ?? '',
+      'ingredients': raw['ingredients'] ?? '',
+      'notes': raw['notes'] ?? '',
+      'stock_system': raw['stock_system'] ?? raw['stockSystem'] ?? 0,
+      'stock_invoice': raw['stock_invoice'] ?? raw['stockInvoice'] ?? 0,
+      'cost_price': raw['cost_price'] ?? raw['costPrice'] ?? 0.0,
+      'sale_price': raw['sale_price'] ?? raw['salePrice'] ?? 0.0,
+      'gross_profit': raw['gross_profit'] ?? raw['grossProfit'] ?? 0.0,
+      'auto_price': raw['auto_price'] ?? raw['autoPrice'] ?? false,
+      'status': raw['status'] ?? 'active',
+      'discontinue_reason': raw['discontinue_reason'] ?? raw['discontinueReason'],
+      'created_at': raw['created_at'] ?? raw['createdAt'],
+      'updated_at': raw['updated_at'] ?? raw['updatedAt'],
+    };
+  }
+
+  // Helper methods để tương thích ngược
+  String get categoryId => categoryIds.isNotEmpty ? categoryIds.first : '';
+  String get categoryDisplay => categoryIds.join(', ');
+  
+  // Kiểm tra xem sản phẩm có thuộc danh mục nào không
+  bool hasCategory(String categoryName) {
+    return categoryIds.contains(categoryName);
+  }
+  
+  // Kiểm tra xem sản phẩm có thuộc bất kỳ danh mục nào trong list không
+  bool hasAnyCategory(List<String> categoryNames) {
+    return categoryIds.any((id) => categoryNames.contains(id));
   }
 } 

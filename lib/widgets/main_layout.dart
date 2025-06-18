@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import '../screens/product_list_screen.dart';
 import '../screens/product_category_screen.dart';
-import '../screens/add_product_screen.dart';
+import '../screens/products/add_product_screen.dart';
 import '../screens/products/product_detail_screen.dart';
 import '../models/product.dart';
 import '../screens/dashboard/dashboard_screen.dart';
@@ -421,8 +421,6 @@ class MainLayoutState extends State<MainLayout> {
         );
       case MainPage.addProduct:
         return AddProductScreen(
-          product: null,
-          isEdit: false,
           onBack: _openProductList,
         );
       case MainPage.productDetail:

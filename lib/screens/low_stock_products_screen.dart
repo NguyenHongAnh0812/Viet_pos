@@ -5,7 +5,7 @@ import 'dart:html' as html;
 import '../models/product.dart';
 import '../services/product_service.dart';
 import '../widgets/product_list_card.dart';
-import '../screens/add_product_screen.dart';
+import '../screens/products/add_product_screen.dart';
 import '../widgets/common/design_system.dart';
 
 class LowStockProductsScreen extends StatefulWidget {
@@ -40,7 +40,7 @@ class _LowStockProductsScreenState extends State<LowStockProductsScreen> {
       sheet.appendRow([
         ex.TextCellValue(p.internalName),
         ex.TextCellValue(p.tradeName),
-        ex.TextCellValue(p.categoryId),
+        ex.TextCellValue(p.categoryIds.join(', ')),
         ex.TextCellValue(p.barcode ?? ''),
         ex.TextCellValue(p.sku ?? ''),
         ex.TextCellValue(p.tags.join(', ')),

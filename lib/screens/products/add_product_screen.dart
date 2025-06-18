@@ -1,24 +1,21 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import '../../widgets/main_layout.dart';
-import '../../models/product.dart';
 import '../../models/product_category.dart';
 import '../../services/product_category_service.dart';
 import '../../widgets/common/design_system.dart';
 import 'package:intl/intl.dart';
 import 'package:flutter/services.dart';
+import '../../models/product.dart';
 
-class ProductDetailScreen extends StatefulWidget {
-  final Product product;
+class AddProductScreen extends StatefulWidget {
   final VoidCallback? onBack;
-  final VoidCallback? onDelete;
-  const ProductDetailScreen({super.key, required this.product, this.onBack, this.onDelete});
+  const AddProductScreen({super.key, this.onBack});
 
   @override
-  State<ProductDetailScreen> createState() => _ProductDetailScreenState();
+  State<AddProductScreen> createState() => _AddProductScreenState();
 }
 
-class _ProductDetailScreenState extends State<ProductDetailScreen> {
+class _AddProductScreenState extends State<AddProductScreen> {
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
   final _commonNameController = TextEditingController();
@@ -33,41 +30,18 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
   final _usageController = TextEditingController();
   final _ingredientsController = TextEditingController();
   final _notesController = TextEditingController();
-  List<String> _tags = [];
-  final _tagInputController = TextEditingController();
   final _profitMarginController = TextEditingController();
+  List<String> _tags = [];
+  List<String> _selectedCategories = [];
+  bool _isActive = true;
   bool _autoCalculatePrice = true;
   static const double _defaultProfitMargin = 20.0;
-  String? _selectedCategory;
-  bool _isActive = false;
   final _categoryService = ProductCategoryService();
-  List<String> _selectedCategories = [];
 
   @override
   void initState() {
     super.initState();
-    final p = widget.product;
-    _nameController.text = p.internalName;
-    _commonNameController.text = p.tradeName;
-    _barcodeController.text = p.barcode ?? '';
-    _skuController.text = p.sku ?? '';
-    _unitController.text = p.unit;
-    _quantityController.text = p.stockSystem.toString();
-    
-    // Format giá với dấu phẩy
-    final numberFormat = NumberFormat('#,###', 'vi_VN');
-    _costPriceController.text = numberFormat.format(p.costPrice.round());
-    _sellPriceController.text = numberFormat.format(p.salePrice.round());
-    
-    _tagsController.text = p.tags.join(', ');
-    _descriptionController.text = p.description;
-    _usageController.text = p.usage;
-    _ingredientsController.text = p.ingredients;
-    _notesController.text = p.notes;
-    _tags = List.from(p.tags);
-    _isActive = p.status == 'active';
-    _selectedCategories = List.from(p.categoryIds);
-    _profitMarginController.text = p.grossProfit.toString();
+    _profitMarginController.text = _defaultProfitMargin.toStringAsFixed(0);
   }
 
   @override
@@ -85,74 +59,45 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
     _usageController.dispose();
     _ingredientsController.dispose();
     _notesController.dispose();
-    _tagInputController.dispose();
     _profitMarginController.dispose();
     super.dispose();
   }
 
-  void _deleteProduct() async {
-    final confirm = await showDesignSystemDialog<bool>(
-      context: context,
-      title: 'Xóa sản phẩm',
-      content: const Text('Bạn có chắc chắn muốn xóa sản phẩm này?'),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.pop(context, false),
-          style: ghostBorderButtonStyle,
-          child: const Text('Hủy'),
-        ),
-        ElevatedButton(
-          onPressed: () => Navigator.pop(context, true),
-          style: destructiveButtonStyle,
-          child: const Text('Xóa'),
-        ),
-      ],
-    );
-    if (confirm == true) {
-      await FirebaseFirestore.instance.collection('products').doc(widget.product.id).delete();
-      if (mounted) {
-        OverlayEntry? entry;
-        entry = OverlayEntry(
-          builder: (_) => DesignSystemSnackbar(
-            message: 'Đã xóa sản phẩm!',
-            icon: Icons.check_circle,
-            onDismissed: () => entry?.remove(),
-          ),
-        );
-        Overlay.of(context).insert(entry);
-        await Future.delayed(const Duration(milliseconds: 600));
-        if (widget.onBack != null) widget.onBack!();
-        Navigator.of(context).pop();
-      }
+  void _addTag() {
+    final tag = _tagsController.text.trim();
+    if (tag.isNotEmpty && !_tags.contains(tag)) {
+      setState(() {
+        _tags.add(tag);
+        _tagsController.clear();
+      });
+    }
+  }
+
+  void _calculateSalePrice() {
+    if (!_autoCalculatePrice) return;
+    final costPriceStr = _costPriceController.text.replaceAll(RegExp(r'[^0-9]'), '');
+    final costPrice = double.tryParse(costPriceStr) ?? 0.0;
+    final profitMargin = double.tryParse(_profitMarginController.text) ?? _defaultProfitMargin;
+    if (costPrice > 0) {
+      final salePrice = costPrice * (1 + profitMargin / 100);
+      final formattedPrice = NumberFormat('#,###', 'vi_VN').format(salePrice.round());
+      _sellPriceController.value = TextEditingValue(
+        text: formattedPrice,
+        selection: TextSelection.collapsed(offset: formattedPrice.length),
+      );
+    } else {
+      _sellPriceController.text = '';
     }
   }
 
   Future<void> _saveProduct() async {
     if (!_formKey.currentState!.validate()) return;
-
     try {
-      // Xử lý giá nhập và giá bán
       final costPriceStr = _costPriceController.text.replaceAll(RegExp(r'[^0-9]'), '');
       final salePriceStr = _sellPriceController.text.replaceAll(RegExp(r'[^0-9]'), '');
-      
-      print('Debug - Before saving:');
-      print('Cost price string: ${_costPriceController.text}');
-      print('Cost price cleaned: $costPriceStr');
-      print('Sale price string: ${_sellPriceController.text}');
-      print('Sale price cleaned: $salePriceStr');
-      
       final costPrice = double.tryParse(costPriceStr) ?? 0.0;
       final salePrice = double.tryParse(salePriceStr) ?? 0.0;
-      
-      // Tính gross profit
-      final grossProfit = costPrice > 0 ? ((salePrice / costPrice - 1) * 100) : 0.0;
-      
-      print('Debug - Parsed values:');
-      print('Cost price: $costPrice');
-      print('Sale price: $salePrice');
-      print('Gross profit: $grossProfit%');
-      
-      final productData = {
+      final rawData = {
         'internal_name': _nameController.text.trim(),
         'trade_name': _commonNameController.text.trim(),
         'barcode': _barcodeController.text.trim(),
@@ -161,7 +106,6 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
         'stock_system': int.tryParse(_quantityController.text) ?? 0,
         'cost_price': costPrice,
         'sale_price': salePrice,
-        'gross_profit': grossProfit,
         'tags': _tags,
         'description': _descriptionController.text.trim(),
         'usage': _usageController.text.trim(),
@@ -169,65 +113,46 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
         'notes': _notesController.text.trim(),
         'category_ids': _selectedCategories,
         'status': _isActive ? 'active' : 'inactive',
+        'created_at': FieldValue.serverTimestamp(),
         'updated_at': FieldValue.serverTimestamp(),
       };
-
-      // Sử dụng normalizeProductData để đảm bảo dữ liệu đúng format
-      final normalizedData = Product.normalizeProductData(productData);
-
-      print('Debug - Final data to save:');
-      print('Cost price in data: ${normalizedData['cost_price']}');
-      print('Sale price in data: ${normalizedData['sale_price']}');
-
-      print('--- LOG GIÁ TRỊ CÁC TRƯỜNG TRƯỚC KHI LƯU ---');
-      print('internal_name: \'${_nameController.text}\'');
-      print('trade_name: \'${_commonNameController.text}\'');
-      print('cost_price: \'${_costPriceController.text}\'');
-      print('sale_price: \'${_sellPriceController.text}\'');
-      print('profit_margin: \'${_profitMarginController.text}\'');
-      print('unit: \'${_unitController.text}\'');
-      print('stock_system: \'${_quantityController.text}\'');
-      print('tags: $_tags');
-      print('description: \'${_descriptionController.text}\'');
-      print('usage: \'${_usageController.text}\'');
-      print('ingredients: \'${_ingredientsController.text}\'');
-      print('notes: \'${_notesController.text}\'');
-      print('category_ids: $_selectedCategories');
-      print('status: ${_isActive ? 'active' : 'inactive'}');
-      print('--- END LOG ---');
-
-      await FirebaseFirestore.instance.collection('products').doc(widget.product.id).update(normalizedData);
-      
-      // Format lại giá sau khi lưu
-      final numberFormat = NumberFormat('#,###', 'vi_VN');
-      _costPriceController.text = numberFormat.format(costPrice.round());
-      _sellPriceController.text = numberFormat.format(salePrice.round());
-      
+      final productData = Product.normalizeProductData(rawData);
+      await FirebaseFirestore.instance.collection('products').add(productData);
       if (mounted) {
-        OverlayEntry? entry;
-        entry = OverlayEntry(
-          builder: (_) => DesignSystemSnackbar(
-            message: 'Đã cập nhật sản phẩm thành công',
-            icon: Icons.check_circle,
-            onDismissed: () => entry?.remove(),
-          ),
-        );
-        Overlay.of(context).insert(entry);
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Đã thêm sản phẩm mới!')));
+        if (widget.onBack != null) widget.onBack!();
       }
     } catch (e) {
-      print('Debug - Error saving product: $e');
       if (mounted) {
-        OverlayEntry? entry;
-        entry = OverlayEntry(
-          builder: (_) => DesignSystemSnackbar(
-            message: 'Lỗi: $e',
-            icon: Icons.error,
-            onDismissed: () => entry?.remove(),
-          ),
-        );
-        Overlay.of(context).insert(entry);
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Lỗi: $e')));
       }
     }
+  }
+
+  void _fillSampleData() {
+    setState(() {
+      _commonNameController.text = 'Pro-cell';
+      _nameController.text = 'PC-001';
+      _barcodeController.text = '8938505970012';
+      _skuController.text = 'SKU-001';
+      _unitController.text = 'Hộp';
+      _ingredientsController.text = 'Thành phần mẫu';
+      _usageController.text = 'Công dụng mẫu';
+      _descriptionController.text = 'Mô tả sản phẩm mẫu';
+      _tags = ['kháng sinh', 'vitamin'];
+      _tagsController.clear();
+      
+      // Format giá mẫu với định dạng Việt Nam
+      final numberFormat = NumberFormat('#,###', 'vi_VN');
+      _costPriceController.text = numberFormat.format(100000);
+      _sellPriceController.text = numberFormat.format(120000);
+      
+      _profitMarginController.text = '20';
+      _quantityController.text = '50';
+      _isActive = true;
+      _notesController.text = 'Ghi chú sản phẩm mẫu';
+      // Không fill _selectedCategories (danh mục)
+    });
   }
 
   Widget _buildProductInfoSection({required bool isMobile}) {
@@ -315,10 +240,12 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                   stream: _categoryService.getCategories(),
                   builder: (context, snapshot) {
                     final categories = snapshot.data ?? [];
-                    return ShopifyMultiSelectDropdown(
-                      items: categories.map((cat) => cat.name).toList(),
-                      selectedValues: _selectedCategories,
-                      onChanged: (selected) => setState(() => _selectedCategories = selected),
+                    return DropdownButtonFormField<String>(
+                      value: _selectedCategories.isNotEmpty ? _selectedCategories.first : null,
+                      items: categories.map((cat) => DropdownMenuItem(value: cat.name, child: Text(cat.name))).toList(),
+                      onChanged: (v) => setState(() => _selectedCategories = v != null ? [v] : []),
+                      decoration: designSystemInputDecoration(label: '', fillColor: mutedBackground),
+                      hint: const Text('Chọn danh mục'),
                     );
                   },
                 ),
@@ -395,7 +322,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                 children: [
                   Expanded(
                     child: TextField(
-                      controller: _tagInputController,
+                      controller: _tagsController,
                       decoration: designSystemInputDecoration(hint: '', fillColor: mutedBackground),
                       onSubmitted: (val) => _addTag(),
                     ),
@@ -414,16 +341,6 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
         ),
       ],
     );
-  }
-
-  void _addTag() {
-    final tag = _tagInputController.text.trim();
-    if (tag.isNotEmpty && !_tags.contains(tag)) {
-      setState(() {
-        _tags.add(tag);
-        _tagInputController.clear();
-      });
-    }
   }
 
   Widget _buildPriceSection() {
@@ -452,18 +369,13 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                     keyboardType: TextInputType.number,
                     inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                     onChanged: (val) {
-                      print('Debug - Raw input value: $val');
-                      
                       // Xóa tất cả dấu phẩy và chấm, chỉ giữ lại số
                       final cleanValue = val.replaceAll(RegExp(r'[^0-9]'), '');
-                      print('Debug - Cleaned value: $cleanValue');
                       
                       final numberFormat = NumberFormat('#,###', 'vi_VN');
                       final value = int.tryParse(cleanValue) ?? 0;
-                      print('Debug - Parsed value: $value');
                       
                       final formatted = numberFormat.format(value);
-                      print('Debug - Formatted value: $formatted');
                       
                       if (val != formatted) {
                         _costPriceController.value = TextEditingValue(
@@ -502,19 +414,17 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                       ),
                     ),
                     enabled: !_autoCalculatePrice,
+                    keyboardType: TextInputType.number,
+                    inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                     onChanged: (val) {
                       if (!_autoCalculatePrice) {
-                        print('Debug - Raw sale price input: $val');
-                        
+                        // Xóa tất cả dấu phẩy và chấm, chỉ giữ lại số
                         final cleanValue = val.replaceAll(RegExp(r'[^0-9]'), '');
-                        print('Debug - Cleaned sale price: $cleanValue');
                         
                         final numberFormat = NumberFormat('#,###', 'vi_VN');
                         final value = int.tryParse(cleanValue) ?? 0;
-                        print('Debug - Parsed sale price: $value');
                         
                         final formatted = numberFormat.format(value);
-                        print('Debug - Formatted sale price: $formatted');
                         
                         if (val != formatted) {
                           _sellPriceController.value = TextEditingValue(
@@ -553,17 +463,9 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                 hint: _autoCalculatePrice ? '20' : '',
               ),
               keyboardType: TextInputType.number,
-              inputFormatters: [
-                FilteringTextInputFormatter.digitsOnly,
-              ],
+              inputFormatters: [FilteringTextInputFormatter.digitsOnly],
               enabled: _autoCalculatePrice,
-              onChanged: (val) {
-                if (val.isNotEmpty) {
-                  _calculateSalePrice();
-                } else {
-                  _calculateSalePrice();
-                }
-              },
+              onChanged: (val) => _calculateSalePrice(),
             ),
           ),
           const SizedBox(height: 20),
@@ -580,7 +482,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
               const Text('Tính giá tự động', style: TextStyle(fontWeight: FontWeight.w500)),
               const SizedBox(width: 4),
               Tooltip(
-                message: 'Khi bật, giá bán sẽ tự động tính theo giá nhập và % lợi nhuận',
+                message: 'Tự động tính giá bán dựa trên giá nhập và lợi nhuận',
                 child: Icon(Icons.info_outline, size: 18, color: textSecondary),
               ),
             ],
@@ -588,35 +490,6 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
         ],
       ),
     );
-  }
-
-  void _calculateSalePrice() {
-    if (!_autoCalculatePrice) return;
-    
-    // Xóa tất cả dấu phẩy và chấm, chỉ giữ lại số
-    final costPriceStr = _costPriceController.text.replaceAll(RegExp(r'[^0-9]'), '');
-    print('Debug - Cost price string after cleaning: $costPriceStr');
-    
-    final costPrice = double.tryParse(costPriceStr) ?? 0.0;
-    print('Debug - Cost price parsed: $costPrice');
-    
-    final profitMargin = double.tryParse(_profitMarginController.text) ?? _defaultProfitMargin;
-    print('Debug - Profit margin: $profitMargin');
-    
-    if (costPrice > 0) {
-      final salePrice = costPrice * (1 + profitMargin / 100);
-      print('Debug - Calculated sale price: $salePrice');
-      
-      final formattedPrice = NumberFormat('#,###', 'vi_VN').format(salePrice.round());
-      print('Debug - Formatted sale price: $formattedPrice');
-      
-      _sellPriceController.value = TextEditingValue(
-        text: formattedPrice,
-        selection: TextSelection.collapsed(offset: formattedPrice.length),
-      );
-    } else {
-      _sellPriceController.text = '';
-    }
   }
 
   Widget _buildStockSection() {
@@ -629,10 +502,11 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
           DesignSystemFormField(
             label: 'Số lượng',
             input: TextFormField(
-               style: const TextStyle(fontSize: 14),
+              style: const TextStyle(fontSize: 14),
               controller: _quantityController,
               decoration: designSystemInputDecoration(label: 'Số lượng', fillColor: mutedBackground),
               keyboardType: TextInputType.number,
+              inputFormatters: [FilteringTextInputFormatter.digitsOnly],
             ),
           ),
           const SizedBox(height: 20),
@@ -660,7 +534,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
           DesignSystemFormField(
             label: 'Ghi chú',
             input: TextFormField(
-               style: const TextStyle(fontSize: 14),
+              style: const TextStyle(fontSize: 14),
               controller: _notesController,
               decoration: designSystemInputDecoration(label: '', fillColor: mutedBackground),
               minLines: 2,
@@ -700,38 +574,27 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                         child: Padding(
                           padding: const EdgeInsets.only(top: 0),
                           child: Text(
-                                    'Chi tiết sản phẩm',
-                                    style: MediaQuery.of(context).size.width < 600 ? h1Mobile : h2,
-                                  ),
+                            'Thêm sản phẩm mới',
+                            style: MediaQuery.of(context).size.width < 600 ? h1Mobile : h2,
+                          ),
                         ),
                       ),
-                     
                       Padding(
                         padding: const EdgeInsets.symmetric(horizontal: 4.0),
                         child: ElevatedButton.icon(
                           onPressed: _saveProduct,
                           icon: const Icon(Icons.save),
-                          label: const Text('Lưu thay đổi'),
+                          label: const Text('Lưu'),
                           style: primaryButtonStyle,
                         ),
                       ),
                       Padding(
                         padding: const EdgeInsets.symmetric(horizontal: 4.0),
                         child: OutlinedButton.icon(
-                          onPressed: () {
-                            print('=== TEST: Kiểm tra dữ liệu hiện tại ===');
-                            print('Selected categories: $_selectedCategories');
-                            print('Tags: $_tags');
-                            print('Cost price: ${_costPriceController.text}');
-                            print('Sale price: ${_sellPriceController.text}');
-                            print('=== END TEST ===');
-                          },
-                          icon: const Icon(Icons.bug_report),
-                          label: const Text('Test Data'),
-                          style: OutlinedButton.styleFrom(
-                            foregroundColor: Colors.orange,
-                            side: const BorderSide(color: Colors.orange),
-                          ),
+                          onPressed: _fillSampleData,
+                          icon: const Icon(Icons.bolt),
+                          label: const Text('Dữ liệu mẫu'),
+                          style: secondaryButtonStyle,
                         ),
                       ),
                     ],
@@ -798,166 +661,6 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                   const SizedBox(height: 16),
                 ],
               ),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class ShopifyMultiSelectDropdown extends StatefulWidget {
-  final List<String> items;
-  final List<String> selectedValues;
-  final String hint;
-  final ValueChanged<List<String>> onChanged;
-
-  const ShopifyMultiSelectDropdown({
-    super.key,
-    required this.items,
-    required this.selectedValues,
-    required this.onChanged,
-    this.hint = 'Chọn danh mục',
-  });
-
-  @override
-  State<ShopifyMultiSelectDropdown> createState() => _ShopifyMultiSelectDropdownState();
-}
-
-class _ShopifyMultiSelectDropdownState extends State<ShopifyMultiSelectDropdown> {
-  final LayerLink _layerLink = LayerLink();
-  OverlayEntry? _overlayEntry;
-  bool _isOpen = false;
-
-  void _removeOverlay() {
-    _overlayEntry?.remove();
-    _overlayEntry = null;
-    setState(() => _isOpen = false);
-  }
-
-  void _showOverlay() {
-    final RenderBox renderBox = context.findRenderObject() as RenderBox;
-    final Size size = renderBox.size;
-    List<String> tempSelected = List.from(widget.selectedValues);
-
-    _overlayEntry = OverlayEntry(
-      builder: (context) => Stack(
-        children: [
-          Positioned.fill(
-            child: GestureDetector(
-              onTap: _removeOverlay,
-              behavior: HitTestBehavior.translucent,
-              child: const SizedBox.expand(),
-            ),
-          ),
-          Positioned(
-            width: size.width,
-            child: CompositedTransformFollower(
-              link: _layerLink,
-              showWhenUnlinked: false,
-              offset: Offset(0, size.height + 4),
-              child: Material(
-                color: Colors.transparent,
-                child: StatefulBuilder(
-                  builder: (context, setStateOverlay) => Container(
-                    constraints: BoxConstraints(
-                      maxHeight: 260,
-                      minWidth: size.width,
-                    ),
-                    decoration: BoxDecoration(
-                      color: cardBackground,
-                      border: Border.all(color: borderColor),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        ...widget.items.map((item) => CheckboxListTile(
-                          value: tempSelected.contains(item),
-                          title: Text(item),
-                          controlAffinity: ListTileControlAffinity.leading,
-                          contentPadding: EdgeInsets.zero,
-                          onChanged: (checked) {
-                            setStateOverlay(() {
-                              if (checked == true) {
-                                tempSelected.add(item);
-                              } else {
-                                tempSelected.remove(item);
-                              }
-                            });
-                          },
-                        )),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.end,
-                          children: [
-                            TextButton(
-                              onPressed: _removeOverlay,
-                              child: const Text('Hủy'),
-                            ),
-                            ElevatedButton(
-                              onPressed: () {
-                                widget.onChanged(tempSelected);
-                                _removeOverlay();
-                              },
-                              child: const Text('Xác nhận'),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-    Overlay.of(context).insert(_overlayEntry!);
-    setState(() => _isOpen = true);
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    String label;
-    if (widget.selectedValues.isEmpty) {
-      label = widget.hint;
-    } else if (widget.selectedValues.length == 1) {
-      label = '1 danh mục đã chọn';
-    } else {
-      label = '${widget.selectedValues.length} danh mục đã chọn';
-    }
-
-    return SizedBox(
-      height: 40,
-      child: CompositedTransformTarget(
-        link: _layerLink,
-        child: GestureDetector(
-          onTap: _isOpen ? _removeOverlay : _showOverlay,
-          child: Container(
-            decoration: BoxDecoration(
-              color: cardBackground,
-              border: Border.all(color: borderColor),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Expanded(
-                  child: Text(
-                    label,
-                    style: body.copyWith(
-                      color: widget.selectedValues.isEmpty ? textMuted : textPrimary,
-                    ),
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ),
-                Icon(
-                  _isOpen ? Icons.keyboard_arrow_up : Icons.keyboard_arrow_down,
-                  color: textSecondary,
-                ),
-              ],
             ),
           ),
         ),

@@ -38,7 +38,7 @@ class ProductService {
       }
 
       // Thêm sản phẩm mới
-      final docRef = await _firestore.collection(_collection).add(product.toMap());
+      final docRef = await _firestore.collection(_collection).add(Product.normalizeProductData(product.toMap()));
       return docRef.id;
     } catch (e) {
       throw 'Lỗi khi thêm sản phẩm: $e';
@@ -47,44 +47,79 @@ class ProductService {
 
   // Lấy danh sách sản phẩm
   Stream<List<Product>> getProducts() {
-    print('\n=== DEBUG: Fetching Products from Firebase ===');
     return _firestore
         .collection(_collection)
         .snapshots()
-        .map((snapshot) {
-      print('DEBUG: Firebase returned ${snapshot.docs.length} products');
+        .asyncMap((snapshot) async {
+      // Tự động fix dữ liệu category_id nếu cần
+      await _autoFixCategoryIdData(snapshot.docs);
+      
       final products = <Product>[];
       for (final doc in snapshot.docs) {
         try {
-          print('\nDEBUG: Processing product document:');
-          print('Document ID: ${doc.id}');
-          print('Raw data: ${doc.data()}');
-          
           final product = Product.fromMap(doc.id, doc.data());
-          print('Successfully parsed product:');
-          print('- Name: ${product.internalName}');
-          print('- Category: ${product.categoryId}');
-          print('- Stock: ${product.stockSystem}');
-          print('- Price: ${product.salePrice}');
-          
           products.add(product);
         } catch (e) {
-          print('\nERROR: Failed to parse product:');
-          print('Document ID: ${doc.id}');
-          print('Raw data: ${doc.data()}');
-          print('Error: $e');
+          print('ERROR: Failed to parse product ${doc.id}: $e');
         }
       }
-      print('\nDEBUG: Total products parsed: ${products.length}');
-      print('=== End Debug ===\n');
       return products;
     });
+  }
+
+  // Hàm tự động fix dữ liệu category_id
+  Future<void> _autoFixCategoryIdData(List<QueryDocumentSnapshot> docs) async {
+    try {
+      int fixedCount = 0;
+      for (final doc in docs) {
+        final data = doc.data() as Map<String, dynamic>;
+        
+        // Kiểm tra nếu có category_id cũ (String) và chưa có category_ids
+        if (data.containsKey('category_id') && !data.containsKey('category_ids')) {
+          final oldCategoryId = data['category_id'];
+          List<String> newCategoryIds = [];
+          
+          if (oldCategoryId is String && oldCategoryId.isNotEmpty) {
+            newCategoryIds = [oldCategoryId];
+          } else if (oldCategoryId is List) {
+            newCategoryIds = List<String>.from(oldCategoryId);
+          }
+          
+          print('Migrate document ${doc.id}: category_id "$oldCategoryId" -> category_ids $newCategoryIds');
+          
+          await _firestore.collection(_collection).doc(doc.id).update({
+            'category_ids': newCategoryIds,
+            'category_id': FieldValue.delete(), // Xóa trường cũ
+          });
+          fixedCount++;
+        }
+        // Kiểm tra nếu category_ids là List<dynamic> thay vì List<String>
+        else if (data.containsKey('category_ids') && data['category_ids'] is List) {
+          final categoryIds = data['category_ids'] as List;
+          if (categoryIds.isNotEmpty && categoryIds.first is! String) {
+            final stringCategoryIds = List<String>.from(categoryIds.map((e) => e.toString()));
+            print('Fix document ${doc.id}: category_ids $categoryIds -> $stringCategoryIds');
+            
+            await _firestore.collection(_collection).doc(doc.id).update({
+              'category_ids': stringCategoryIds,
+            });
+            fixedCount++;
+          }
+        }
+      }
+      
+      if (fixedCount > 0) {
+        print('Auto-fixed $fixedCount documents for category_ids migration');
+      }
+    } catch (e) {
+      print('Lỗi khi auto-fix dữ liệu: $e');
+    }
   }
 
   // Cập nhật sản phẩm
   Future<void> updateProduct(String id, Product product) async {
     try {
-      await _firestore.collection(_collection).doc(id).update(product.toMap());
+      await _firestore.collection(_collection).doc(id).update(Product.normalizeProductData(product.toMap()));
     } catch (e) {
       throw 'Lỗi khi cập nhật sản phẩm: $e';
     }
@@ -105,17 +140,13 @@ class ProductService {
     
     for (var product in products) {
       final docRef = _firestore.collection(_collection).doc();
-      batch.set(docRef, {
-        ...product,
-        'createdAt': FieldValue.serverTimestamp(),
-        'updatedAt': FieldValue.serverTimestamp(),
-      });
+      batch.set(docRef, Product.normalizeProductData(product));
     }
 
     await batch.commit();
   }
 
   Future<void> updateProductCategory(String productId, String categoryName) async {
-    await _firestore.collection(_collection).doc(productId).update({'categoryId': categoryName});
+    await _firestore.collection(_collection).doc(productId).update({'category_ids': [categoryName]});
   }
 } 

@@ -155,7 +155,7 @@ class _ProductListScreenState extends State<ProductListScreen> {
   ];
 
   List<String> getCategoriesFromProducts(List<Product> products) {
-    final set = products.map((p) => p.categoryId).where((c) => c != null && c.isNotEmpty).toSet();
+    final set = products.expand((p) => p.categoryIds).where((c) => c.isNotEmpty).toSet();
     final list = set.toList()..sort();
     return ['Tất cả', ...list];
   }
@@ -163,63 +163,8 @@ class _ProductListScreenState extends State<ProductListScreen> {
   List<String> get allTags => ['kháng sinh', 'phổ rộng', 'vitamin', 'bổ sung', 'NSAID', 'giảm đau', 'quinolone'];
 
   List<Product> filterProducts(List<Product> products) {
-    print('\n=== Product Filtering Debug ===');
-    print('Raw products from Firebase: ${products.length}');
-    print('Current filter settings:');
-    print('- Category: $selectedCategory');
-    print('- Price range: $priceRange');
-    print('- Stock range: $stockRange');
-    print('- Status: $status');
-    print('- Selected tags: $selectedTags');
-    print('- Search text: $searchText');
-    
-    final filtered = products.where((p) {
-      // Category filter
-      if (selectedCategory != 'Tất cả' && p.categoryId != selectedCategory) {
-        return false;
-      }
-      
-      // Price filter
-      if (p.salePrice < priceRange.start || p.salePrice > priceRange.end) {
-        return false;
-      }
-      
-      // Stock filter - Only apply if stock range is not default
-      if (stockRange.start > 0 || stockRange.end < 99999) {
-        if (p.stockSystem < stockRange.start || p.stockSystem > stockRange.end) {
-          return false;
-        }
-      }
-    
-      
-      // Tags filter - Only apply if tags are selected
-      if (selectedTags.isNotEmpty) {
-        if (!selectedTags.any((tag) => p.tags.contains(tag))) {
-          return false;
-        }
-      }
-      
-      // Search text filter - Only apply if search text is not empty
-      if (searchText.isNotEmpty) {
-        final searchLower = searchText.toLowerCase();
-        // Tìm theo tên nội bộ, tên thương mại và mã vạch
-        if (!p.internalName.toLowerCase().contains(searchLower) && 
-            !p.tradeName.toLowerCase().contains(searchLower) &&
-            !(p.barcode != null && p.barcode!.toLowerCase().contains(searchLower))) {
-          return false;
-        }
-      }
-      
-      return true;
-    }).toList();
-    
-    print('\nFiltering results:');
-    print('- Total products: ${products.length}');
-    print('- Filtered products: ${filtered.length}');
-    print('- Filtered out: ${products.length - filtered.length}');
-    print('=== End Product Filtering Debug ===\n');
-    
-    return filtered;
+    // Luôn trả về toàn bộ danh sách sản phẩm, không lọc
+    return products;
   }
 
   List<Product> sortProducts(List<Product> products) {
@@ -285,7 +230,7 @@ class _ProductListScreenState extends State<ProductListScreen> {
         final headerMapping = {
           'tên nội bộ': 'internalName',
           'tên thương mại': 'tradeName',
-          'danh mục sản phẩm': 'categoryId',
+          'danh mục sản phẩm': 'categoryIds',
           'mã vạch': 'barcode',
           'sku': 'sku',
           'đơn vị tính': 'unit',
@@ -305,7 +250,7 @@ class _ProductListScreenState extends State<ProductListScreen> {
         print('Processed headers: \\${processedHeaders}');
 
         // Kiểm tra các trường bắt buộc
-        final requiredFields = ['internalName', 'categoryId', 'unit', 'stockSystem'];
+        final requiredFields = ['internalName', 'categoryIds', 'unit', 'stockSystem'];
         final missingFields = requiredFields.where((field) => !processedHeaders.contains(field)).toList();
         if (missingFields.isNotEmpty) {
           print('Thiếu các trường bắt buộc: \\${missingFields.join(", ")}');
@@ -340,6 +285,7 @@ class _ProductListScreenState extends State<ProductListScreen> {
                 case 'status':
                   product[field] = value.toLowerCase() == 'còn bán';
                   break;
+                case 'categoryIds':
                 case 'tags':
                   product[field] = value.split(',').map((e) => e.trim()).toList();
                   break;
@@ -386,7 +332,7 @@ class _ProductListScreenState extends State<ProductListScreen> {
         final headerMapping = {
           'tên nội bộ': 'internalName',
           'tên thương mại': 'tradeName',
-          'danh mục sản phẩm': 'categoryId',
+          'danh mục sản phẩm': 'categoryIds',
           'mã vạch': 'barcode',
           'sku': 'sku',
           'đơn vị tính': 'unit',
@@ -422,6 +368,7 @@ class _ProductListScreenState extends State<ProductListScreen> {
               case 'status':
                 product[field] = (value?.toString().toLowerCase() ?? '') == 'còn bán';
                 break;
+              case 'categoryIds':
               case 'tags':
                 product[field] = (value?.toString() ?? '').split(',').map((e) => e.trim()).toList();
                 break;
@@ -438,7 +385,7 @@ class _ProductListScreenState extends State<ProductListScreen> {
           product['updatedAt'] = FieldValue.serverTimestamp();
           // Kiểm tra dữ liệu bắt buộc
           bool valid = true;
-          for (final field in ['internalName', 'categoryId', 'unit', 'stockSystem']) {
+          for (final field in ['internalName', 'categoryIds', 'unit', 'stockSystem']) {
             if (product[field] == null || product[field].toString().isEmpty) {
               print('Bỏ qua dòng $i: Thiếu trường bắt buộc $field');
               valid = false;
@@ -460,7 +407,7 @@ class _ProductListScreenState extends State<ProductListScreen> {
       final batch = FirebaseFirestore.instance.batch();
       for (var product in products) {
         final docRef = FirebaseFirestore.instance.collection('products').doc();
-        batch.set(docRef, product);
+        batch.set(docRef, Product.normalizeProductData(product));
       }
 
       await batch.commit();
@@ -519,7 +466,7 @@ class _ProductListScreenState extends State<ProductListScreen> {
       sheet.appendRow([
         excel.TextCellValue(p.internalName),
         excel.TextCellValue(p.tradeName),
-        excel.TextCellValue(p.categoryId),
+        excel.TextCellValue(p.categoryIds.join(', ')),
         excel.TextCellValue(p.barcode ?? ''),
         excel.TextCellValue(p.sku ?? ''),
         excel.TextCellValue(p.unit),

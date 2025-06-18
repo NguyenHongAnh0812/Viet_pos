@@ -29,11 +29,48 @@ class _InventoryCreateSessionScreenState extends State<InventoryCreateSessionScr
   final _inventoryService = InventoryService();
   final _itemService = InventoryItemService();
   bool _saving = false;
+  final _formKey = GlobalKey<FormState>();
 
-  int getTotalSelected(List<Product> products) {
-    if (_selectMode == 0) return products.length;
-    if (_selectMode == 1) return products.where((p) => p.categoryId == _selectedCategory).length;
+  @override
+  void initState() {
+    super.initState();
+    _checkActiveInventorySession();
+  }
+
+  Future<void> _checkActiveInventorySession() async {
+    final snapshot = await FirebaseFirestore.instance
+        .collection('inventory_sessions')
+        .where('status', isNotEqualTo: 'done')
+        .limit(1)
+        .get();
+    if (snapshot.docs.isNotEmpty) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        showDialog(
+          context: context,
+          builder: (context) => AlertDialog(
+            title: const Text('Thông báo'),
+            content: const Text('Hiện tại đã có một phiên kiểm kê đang diễn ra. Vui lòng hoàn tất trước khi tạo phiên mới.'),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('Đóng'),
+              ),
+            ],
+          ),
+        );
+      });
+    }
+  }
+
+  int get selectedProductCount {
+    if (_selectMode == 0) return _selectedProducts.length;
+    if (_selectMode == 1) return _selectedProducts.length;
     return _selectedProducts.length;
+  }
+
+  int getProductCountByCategory(List<Product> products, String? category) {
+    if (category == null) return 0;
+    return products.where((p) => p.categoryIds.contains(category)).length;
   }
 
   @override
@@ -79,110 +116,120 @@ class _InventoryCreateSessionScreenState extends State<InventoryCreateSessionScr
                 children: [
                   Text('Thông tin cơ bản', style: h3.copyWith(color: textPrimary)),
                   const SizedBox(height: space16),
-                  Text('Tên phiên kiểm kê *', style: bodyLarge.copyWith(color: textPrimary)),
-                  const SizedBox(height: space8),
-                  TextField(
-                    controller: _nameController,
-                    style: bodyLarge.copyWith(color: textPrimary),
-                    decoration: InputDecoration(
-                      hintText: 'Nhập tên phiên kiểm kê...',
-                      hintStyle: bodyLarge.copyWith(color: textSecondary),
-                      filled: true,
-                      fillColor: appBackground,
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(8),
-                        borderSide: const BorderSide(color: borderColor),
-                      ),
-                      enabledBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(8),
-                        borderSide: const BorderSide(color: borderColor),
-                      ),
-                      focusedBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(8),
-                        borderSide: const BorderSide(color: primaryBlue, width: 1.5),
-                      ),
-                      contentPadding: const EdgeInsets.symmetric(vertical: 0, horizontal: 16),
-                    ),
-                  ),
-                  const SizedBox(height: space16),
-                  Text('Ghi chú', style: bodyLarge.copyWith(color: textPrimary)),
-                  const SizedBox(height: space8),
-                  TextField(
-                    controller: _noteController,
-                    minLines: 2,
-                    maxLines: 4,
-                    style: bodyLarge.copyWith(color: textPrimary),
-                    decoration: InputDecoration(
-                      hintText: 'Ghi chú về phiên kiểm kê...',
-                      hintStyle: bodyLarge.copyWith(color: textSecondary),
-                      filled: true,
-                      fillColor: appBackground,
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(8),
-                        borderSide: const BorderSide(color: borderColor),
-                      ),
-                      enabledBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(8),
-                        borderSide: const BorderSide(color: borderColor),
-                      ),
-                      focusedBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(8),
-                        borderSide: const BorderSide(color: primaryBlue, width: 1.5),
-                      ),
-                      contentPadding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
-                    ),
-                  ),
-                  const SizedBox(height: space16),
-                  Text('Ngày kiểm kê', style: bodyLarge.copyWith(color: textPrimary)),
-                  const SizedBox(height: space8),
-                  GestureDetector(
-                    onTap: () async {
-                      final picked = await showDatePicker(
-                        context: context,
-                        initialDate: _selectedDate ?? DateTime.now(),
-                        firstDate: DateTime(2020),
-                        lastDate: DateTime(2100),
-                        builder: (context, child) => Theme(
-                          data: Theme.of(context).copyWith(
-                            colorScheme: ColorScheme.light(
-                              primary: primaryBlue,
-                              onPrimary: Colors.white,
-                              surface: cardBackground,
-                              onSurface: textPrimary,
+                  Form(
+                    key: _formKey,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        TextFormField(
+                          controller: _nameController,
+                          style: bodyLarge.copyWith(color: textPrimary),
+                          decoration: InputDecoration(
+                            labelText: 'Tên phiên kiểm kê *',
+                            hintText: 'Nhập tên phiên kiểm kê...',
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(8),
+                              borderSide: const BorderSide(color: borderColor),
+                            ),
+                            enabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(8),
+                              borderSide: const BorderSide(color: borderColor),
+                            ),
+                            focusedBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(8),
+                              borderSide: const BorderSide(color: primaryBlue, width: 1.5),
+                            ),
+                            contentPadding: const EdgeInsets.symmetric(vertical: 0, horizontal: 16),
+                          ),
+                          validator: (value) {
+                            if (value == null || value.trim().isEmpty) {
+                              return 'Vui lòng nhập tên phiên kiểm kê';
+                            }
+                            return null;
+                          },
+                        ),
+                        const SizedBox(height: space16),
+                        Text('Ghi chú', style: bodyLarge.copyWith(color: textPrimary)),
+                        const SizedBox(height: space8),
+                        TextFormField(
+                          controller: _noteController,
+                          minLines: 2,
+                          maxLines: 4,
+                          style: bodyLarge.copyWith(color: textPrimary),
+                          decoration: InputDecoration(
+                            hintText: 'Ghi chú về phiên kiểm kê...',
+                            hintStyle: bodyLarge.copyWith(color: textSecondary),
+                            filled: true,
+                            fillColor: appBackground,
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(8),
+                              borderSide: const BorderSide(color: borderColor),
+                            ),
+                            enabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(8),
+                              borderSide: const BorderSide(color: borderColor),
+                            ),
+                            focusedBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(8),
+                              borderSide: const BorderSide(color: primaryBlue, width: 1.5),
+                            ),
+                            contentPadding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+                          ),
+                        ),
+                        const SizedBox(height: space16),
+                        Text('Ngày kiểm kê', style: bodyLarge.copyWith(color: textPrimary)),
+                        const SizedBox(height: space8),
+                        GestureDetector(
+                          onTap: () async {
+                            final picked = await showDatePicker(
+                              context: context,
+                              initialDate: _selectedDate ?? DateTime.now(),
+                              firstDate: DateTime(2020),
+                              lastDate: DateTime(2100),
+                              builder: (context, child) => Theme(
+                                data: Theme.of(context).copyWith(
+                                  colorScheme: ColorScheme.light(
+                                    primary: primaryBlue,
+                                    onPrimary: Colors.white,
+                                    surface: cardBackground,
+                                    onSurface: textPrimary,
+                                  ),
+                                ),
+                                child: child!,
+                              ),
+                            );
+                            if (picked != null) setState(() => _selectedDate = picked);
+                          },
+                          child: AbsorbPointer(
+                            child: TextField(
+                              controller: TextEditingController(
+                                text: _selectedDate != null
+                                    ? 'ngày ${_selectedDate!.day} tháng ${_selectedDate!.month} năm ${_selectedDate!.year}'
+                                    : '',
+                              ),
+                              style: bodyLarge.copyWith(color: textPrimary),
+                              decoration: InputDecoration(
+                                prefixIcon: const Icon(Icons.calendar_today, color: textSecondary),
+                                filled: true,
+                                fillColor: appBackground,
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(8),
+                                  borderSide: const BorderSide(color: borderColor),
+                                ),
+                                enabledBorder: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(8),
+                                  borderSide: const BorderSide(color: borderColor),
+                                ),
+                                focusedBorder: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(8),
+                                  borderSide: const BorderSide(color: primaryBlue, width: 1.5),
+                                ),
+                                contentPadding: const EdgeInsets.symmetric(vertical: 0, horizontal: 16),
+                              ),
                             ),
                           ),
-                          child: child!,
                         ),
-                      );
-                      if (picked != null) setState(() => _selectedDate = picked);
-                    },
-                    child: AbsorbPointer(
-                      child: TextField(
-                        controller: TextEditingController(
-                          text: _selectedDate != null
-                              ? 'ngày ${_selectedDate!.day} tháng ${_selectedDate!.month} năm ${_selectedDate!.year}'
-                              : '',
-                        ),
-                        style: bodyLarge.copyWith(color: textPrimary),
-                        decoration: InputDecoration(
-                          prefixIcon: const Icon(Icons.calendar_today, color: textSecondary),
-                          filled: true,
-                          fillColor: appBackground,
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(8),
-                            borderSide: const BorderSide(color: borderColor),
-                          ),
-                          enabledBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(8),
-                            borderSide: const BorderSide(color: borderColor),
-                          ),
-                          focusedBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(8),
-                            borderSide: const BorderSide(color: primaryBlue, width: 1.5),
-                          ),
-                          contentPadding: const EdgeInsets.symmetric(vertical: 0, horizontal: 16),
-                        ),
-                      ),
+                      ],
                     ),
                   ),
                 ],
@@ -201,7 +248,7 @@ class _InventoryCreateSessionScreenState extends State<InventoryCreateSessionScr
                 stream: _productService.getProducts(),
                 builder: (context, snapshot) {
                   final products = snapshot.data ?? [];
-                  final categories = products.map((p) => p.categoryId).toSet().toList();
+                  final categories = products.expand((p) => p.categoryIds).toSet().toList()..sort();
                   return Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -305,7 +352,7 @@ class _InventoryCreateSessionScreenState extends State<InventoryCreateSessionScr
                           color: appBackground,
                           borderRadius: BorderRadius.circular(8),
                         ),
-                        child: Text('Tổng số sản phẩm sẽ kiểm kê: ${getTotalSelected(products)}', style: bodyLarge.copyWith(color: textPrimary)),
+                        child: Text('Tổng số sản phẩm sẽ kiểm kê: ${_selectMode == 0 ? products.length : _selectMode == 1 ? getProductCountByCategory(products, _selectedCategory) : _selectedProducts.length}', style: bodyLarge.copyWith(color: textPrimary)),
                       ),
                     ],
                   );
@@ -324,6 +371,10 @@ class _InventoryCreateSessionScreenState extends State<InventoryCreateSessionScr
                 const SizedBox(width: space16),
                 ElevatedButton(
                   onPressed: _saving ? null : () async {
+                    if (!_formKey.currentState!.validate()) {
+                      setState(() => _saving = false);
+                      return;
+                    }
                     setState(() => _saving = true);
                     // Tạo phiên kiểm kê
                     final products = await _productService.getProducts().first;
@@ -331,7 +382,7 @@ class _InventoryCreateSessionScreenState extends State<InventoryCreateSessionScr
                     if (_selectMode == 0) {
                       selectedProducts = products;
                     } else if (_selectMode == 1) {
-                      selectedProducts = products.where((p) => p.categoryId == _selectedCategory).toList();
+                      selectedProducts = products.where((p) => p.categoryIds.contains(_selectedCategory)).toList();
                     } else {
                       selectedProducts = products.where((p) => _selectedProducts.contains(p.id)).toList();
                     }

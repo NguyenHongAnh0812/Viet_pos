@@ -70,10 +70,31 @@ class _InventoryScreenState extends State<InventoryScreen> with SingleTickerProv
                 Text('Kiểm kê kho', style: h1),
                 const Spacer(),
                 ElevatedButton.icon(
-                  onPressed: () {
-                    final mainLayoutState = context.findAncestorStateOfType<MainLayoutState>();
-                    if (mainLayoutState != null) {
-                      mainLayoutState.onSidebarTap(MainPage.inventoryCreateSession);
+                  onPressed: () async {
+                    final snapshot = await FirebaseFirestore.instance
+                        .collection('inventory_sessions')
+                        .where('status', isNotEqualTo: 'done')
+                        .limit(1)
+                        .get();
+                    if (snapshot.docs.isNotEmpty) {
+                      showDialog(
+                        context: context,
+                        builder: (context) => AlertDialog(
+                          title: const Text('Thông báo'),
+                          content: const Text('Hiện tại đã có một phiên kiểm kê đang diễn ra. Vui lòng hoàn tất trước khi tạo phiên mới.'),
+                          actions: [
+                            TextButton(
+                              onPressed: () => Navigator.pop(context),
+                              child: const Text('Đóng'),
+                            ),
+                          ],
+                        ),
+                      );
+                    } else {
+                      final mainLayoutState = context.findAncestorStateOfType<MainLayoutState>();
+                      if (mainLayoutState != null) {
+                        mainLayoutState.onSidebarTap(MainPage.inventoryCreateSession);
+                      }
                     }
                   },
                   icon: const Icon(Icons.add),
@@ -149,7 +170,7 @@ class _InventoryScreenState extends State<InventoryScreen> with SingleTickerProv
                 }).toList();
                 return Container(
                   decoration: BoxDecoration(
-                    color: Colors.transparent,
+                    color: cardBackground,
                     borderRadius: BorderRadius.circular(12),
                     border: Border.all(color: borderColor),
                   ),
