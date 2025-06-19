@@ -149,4 +149,18 @@ class ProductService {
   Future<void> updateProductCategory(String productId, String categoryName) async {
     await _firestore.collection(_collection).doc(productId).update({'category_ids': [categoryName]});
   }
+
+  Future<List<String>> getProductIdsByCategory(String categoryId) async {
+    final snapshot = await _firestore
+        .collection('product_category')
+        .where('category_id', isEqualTo: categoryId)
+        .get();
+    return snapshot.docs.map((doc) => doc['product_id'] as String).toList();
+  }
+
+  Future<List<Product>> getProductsByIds(List<String> ids) async {
+    if (ids.isEmpty) return [];
+    final snapshot = await _firestore.collection('products').where(FieldPath.documentId, whereIn: ids).get();
+    return snapshot.docs.map((doc) => Product.fromFirestore(doc)).toList();
+  }
 } 

@@ -1,6 +1,8 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/product_category.dart';
-import '../services/product_service.dart';
+import '../models/product.dart';
+import '../screens/product_category_detail_screen.dart'; // Import ProductCondition
+import './product_service.dart';
 
 class ProductCategoryService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
@@ -8,7 +10,7 @@ class ProductCategoryService {
   final _productService = ProductService();
 
   Stream<List<ProductCategory>> getCategories() {
-    return _firestore.collection(_collection).snapshots().map((snapshot) {
+    return _firestore.collection('categories').snapshots().map((snapshot) {
       return snapshot.docs.map((doc) => ProductCategory.fromFirestore(doc)).toList();
     });
   }
@@ -21,17 +23,86 @@ class ProductCategoryService {
     });
   }
 
-  Future<void> deleteCategory(String categoryName) async {
-    // Xóa danh mục
-    final catDocs = await _firestore.collection(_collection).where('name', isEqualTo: categoryName).get();
-    for (final doc in catDocs.docs) {
-      await doc.reference.delete();
+  Future<void> updateCategory(
+    String id,
+    String name,
+    String description,
+    String? parentId,
+    bool isSmart,
+    List<ProductCondition> conditions,
+    String conditionType,
+    List<String>? manualProductIds,
+  ) async {
+    final batch = _firestore.batch();
+    
+    // 1. Update category data
+    final categoryRef = _firestore.collection('categories').doc(id);
+    batch.update(categoryRef, {
+      'name': name,
+      'description': description,
+      'parentId': parentId,
+      'is_smart': isSmart,
+      'condition_type': isSmart ? conditionType : null,
+      'conditions': isSmart ? conditions.map((c) => c.toMap()).toList() : [],
+      'updated_at': FieldValue.serverTimestamp(),
+    });
+
+    // 2. Clear existing product links for this category
+    final linksSnapshot = await _firestore.collection('product_category').where('category_id', isEqualTo: id).get();
+    for (final doc in linksSnapshot.docs) {
+      batch.delete(doc.reference);
     }
-    // Cập nhật tất cả sản phẩm có category này về 'Khác'
-    final prodDocs = await _firestore.collection('products').where('category', isEqualTo: categoryName).get();
-    for (final doc in prodDocs.docs) {
-      await doc.reference.update({'category': 'Khác'});
+    
+    // 3. Add new product links
+    List<String> productIdsToLink = [];
+    if (isSmart) {
+      // Smart mode: evaluate conditions
+      final productService = ProductService();
+      final allProducts = await productService.getProducts().first;
+      productIdsToLink = allProducts
+          .where((p) {
+            if (conditions.isEmpty) return false;
+            if (conditionType == 'all') {
+              return conditions.every((cond) => cond.evaluate(p));
+            } else {
+              return conditions.any((cond) => cond.evaluate(p));
+            }
+          })
+          .map((p) => p.id)
+          .toList();
+    } else {
+      // Manual mode
+      productIdsToLink = manualProductIds ?? [];
     }
+
+    for (final productId in productIdsToLink) {
+      final linkRef = _firestore.collection('product_category').doc();
+      batch.set(linkRef, {
+        'product_id': productId,
+        'category_id': id,
+        'created_at': FieldValue.serverTimestamp(),
+      });
+    }
+
+    await batch.commit();
+  }
+
+  Future<void> deleteCategory(String id) async {
+    final batch = _firestore.batch();
+
+    // Delete category
+    final categoryRef = _firestore.collection('categories').doc(id);
+    batch.delete(categoryRef);
+
+    // Delete associated product links
+    final linksSnapshot = await _firestore.collection('product_category').where('category_id', isEqualTo: id).get();
+    for (final doc in linksSnapshot.docs) {
+      batch.delete(doc.reference);
+    }
+
+    // TODO: Handle children categories. For now, they become orphans.
+    
+    await batch.commit();
   }
 
   Future<void> renameCategory(String oldName, String newName) async {

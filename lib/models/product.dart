@@ -133,6 +133,11 @@ class Product {
     );
   }
 
+  factory Product.fromFirestore(DocumentSnapshot doc) {
+    Map<String, dynamic> data = doc.data() as Map<String, dynamic>;
+    return Product.fromMap(doc.id, data);
+  }
+
   Product copyWith({
     String? id,
     String? internalName,
