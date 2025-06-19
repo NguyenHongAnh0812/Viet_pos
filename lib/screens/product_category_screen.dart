@@ -217,6 +217,7 @@ class _ProductCategoryScreenState extends State<ProductCategoryScreen> {
                                       final count = products.where((p) => p.categoryIds.contains(cat.name)).length;
                                       return _CategoryCardItem(
                                         name: cat.name,
+                                        description: cat.description,
                                         count: count,
                                         isLast: idx == categories.length - 1,
                                         onTap: () {
@@ -266,6 +267,7 @@ class _ProductCategoryScreenState extends State<ProductCategoryScreen> {
                                         final count = products.where((p) => p.categoryIds.contains(cat.name)).length;
                                         return _CategoryTableRow(
                                           name: cat.name,
+                                          description: cat.description,
                                           count: count,
                                           isLast: idx == categories.length - 1,
                                           onTap: () {
@@ -295,10 +297,11 @@ class _ProductCategoryScreenState extends State<ProductCategoryScreen> {
 
 class _CategoryTableRow extends StatefulWidget {
   final String name;
+  final String? description;
   final int count;
   final bool isLast;
   final VoidCallback onTap;
-  const _CategoryTableRow({required this.name, required this.count, required this.isLast, required this.onTap});
+  const _CategoryTableRow({required this.name, this.description, required this.count, required this.isLast, required this.onTap});
   @override
   State<_CategoryTableRow> createState() => _CategoryTableRowState();
 }
@@ -323,7 +326,22 @@ class _CategoryTableRowState extends State<_CategoryTableRow> {
                 flex: 7,
                 child: Align(
                   alignment: Alignment.centerLeft,
-                  child: Text(widget.name, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14)),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(widget.name, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14)),
+                      if (widget.description != null && widget.description!.isNotEmpty)
+                        Padding(
+                          padding: const EdgeInsets.only(top: 2),
+                          child: Text(
+                            widget.description!,
+                            style: const TextStyle(fontSize: 13, color: Color(0xFF94A3B8)),
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                    ],
+                  ),
                 ),
               ),
               Expanded(
@@ -343,10 +361,11 @@ class _CategoryTableRowState extends State<_CategoryTableRow> {
 
 class _CategoryCardItem extends StatefulWidget {
   final String name;
+  final String? description;
   final int count;
   final bool isLast;
   final VoidCallback onTap;
-  const _CategoryCardItem({required this.name, required this.count, required this.isLast, required this.onTap});
+  const _CategoryCardItem({required this.name, this.description, required this.count, required this.isLast, required this.onTap});
   @override
   State<_CategoryCardItem> createState() => _CategoryCardItemState();
 }
@@ -380,6 +399,16 @@ class _CategoryCardItemState extends State<_CategoryCardItem> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(widget.name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 17)),
+                    if (widget.description != null && widget.description!.isNotEmpty)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 2),
+                        child: Text(
+                          widget.description!,
+                          style: const TextStyle(fontSize: 14, color: Color(0xFF94A3B8)),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
                     const SizedBox(height: 6),
                     Text('${widget.count} sản phẩm', style: const TextStyle(fontSize: 15, color: Color(0xFF64748B), fontWeight: FontWeight.w500)),
                   ],

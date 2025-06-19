@@ -61,4 +61,41 @@ class ProductCategoryService {
       await _firestore.collection(_collection).add({'name': name, 'description': ''});
     }
   }
+}
+
+class ProductCategoryLinkService {
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  final String _collection = 'product_category';
+
+  Future<void> addProductToCategory({required String productId, required String categoryId}) async {
+    await _firestore.collection(_collection).add({
+      'product_id': productId,
+      'category_id': categoryId,
+      'created_at': FieldValue.serverTimestamp(),
+    });
+  }
+
+  Future<void> removeProductFromCategory({required String productId, required String categoryId}) async {
+    final query = await _firestore.collection(_collection)
+      .where('product_id', isEqualTo: productId)
+      .where('category_id', isEqualTo: categoryId)
+      .get();
+    for (final doc in query.docs) {
+      await doc.reference.delete();
+    }
+  }
+
+  Future<List<String>> getProductIdsByCategory(String categoryId) async {
+    final query = await _firestore.collection(_collection)
+      .where('category_id', isEqualTo: categoryId)
+      .get();
+    return query.docs.map((doc) => doc['product_id'] as String).toList();
+  }
+
+  Future<List<String>> getCategoryIdsByProduct(String productId) async {
+    final query = await _firestore.collection(_collection)
+      .where('product_id', isEqualTo: productId)
+      .get();
+    return query.docs.map((doc) => doc['category_id'] as String).toList();
+  }
 } 
