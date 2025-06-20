@@ -7,6 +7,9 @@ import '../../services/product_category_service.dart';
 import '../../widgets/common/design_system.dart';
 import 'package:intl/intl.dart';
 import 'package:flutter/services.dart';
+import '../../models/company.dart';
+import '../../services/company_service.dart';
+import '../../widgets/custom/multi_select_dropdown.dart';
 
 class ProductDetailScreen extends StatefulWidget {
   final Product product;
@@ -26,7 +29,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
   final _skuController = TextEditingController();
   final _unitController = TextEditingController();
   final _quantityController = TextEditingController();
-  final _importPriceController = TextEditingController();
+  final _costPriceController = TextEditingController();
   final _sellPriceController = TextEditingController();
   final _tagsController = TextEditingController();
   final _descriptionController = TextEditingController();
@@ -41,24 +44,26 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
   String? _selectedCategory;
   bool _isActive = false;
   final _categoryService = ProductCategoryService();
+  final _companyService = CompanyService();
   List<String> _selectedCategories = [];
-  List<String> _distributors = [];
-  String? _selectedDistributor;
+  List<String> _selectedSupplierIds = [];
+  List<Company> _allCompanies = [];
+  bool _companiesLoading = true;
 
   @override
   void initState() {
     super.initState();
     final p = widget.product;
-    _nameController.text = p.name;
-    _commonNameController.text = p.commonName;
+    _nameController.text = p.internalName;
+    _commonNameController.text = p.tradeName;
     _barcodeController.text = p.barcode ?? '';
     _skuController.text = p.sku ?? '';
     _unitController.text = p.unit;
-    _quantityController.text = p.stock.toString();
+    _quantityController.text = p.stockSystem.toString();
     
-    // Format giá nhập và giá bán
+    // Format giá với dấu phẩy
     final numberFormat = NumberFormat('#,###', 'vi_VN');
-    _importPriceController.text = numberFormat.format(p.importPrice.round());
+    _costPriceController.text = numberFormat.format(p.costPrice.round());
     _sellPriceController.text = numberFormat.format(p.salePrice.round());
     
     _tagsController.text = p.tags.join(', ');
@@ -66,37 +71,12 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
     _usageController.text = p.usage;
     _ingredientsController.text = p.ingredients;
     _notesController.text = p.notes;
-    _selectedCategory = p.category;
-    _isActive = p.isActive;
-    _tags = List<String>.from(p.tags);
-    if (p.category is List) {
-      _selectedCategories = (p.category as List).map((e) => e.toString()).toList();
-    } else if (p.category is String && p.category.isNotEmpty) {
-      if (p.category.contains(',')) {
-        _selectedCategories = p.category.split(',').map((e) => e.trim()).toList();
-      } else {
-        _selectedCategories = [p.category];
-      }
-    } else {
-      _selectedCategories = [];
-    }
-    _selectedDistributor = p.distributor;
-    _fetchDistributors();
-    
-    // Tính % lợi nhuận
-    final calculatedMargin = ((p.salePrice / (p.importPrice == 0 ? 1 : p.importPrice) - 1) * 100).toStringAsFixed(0);
-    if (calculatedMargin != _defaultProfitMargin.toString()) {
-      _profitMarginController.text = calculatedMargin;
-    } else {
-      _profitMarginController.text = _defaultProfitMargin.toStringAsFixed(0);
-    }
-  }
-
-  void _fetchDistributors() async {
-    final snapshot = await FirebaseFirestore.instance.collection('distributors').get();
-    setState(() {
-      _distributors = snapshot.docs.map((doc) => doc['name'] as String).toList();
-    });
+    _tags = List.from(p.tags);
+    _isActive = p.status == 'active';
+    _selectedCategories = List.from(p.categoryIds);
+    _selectedSupplierIds = List.from(p.supplierIds);
+    _profitMarginController.text = p.grossProfit.toString();
+    _loadCompanies();
   }
 
   @override
@@ -107,7 +87,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
     _skuController.dispose();
     _unitController.dispose();
     _quantityController.dispose();
-    _importPriceController.dispose();
+    _costPriceController.dispose();
     _sellPriceController.dispose();
     _tagsController.dispose();
     _descriptionController.dispose();
@@ -117,6 +97,17 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
     _tagInputController.dispose();
     _profitMarginController.dispose();
     super.dispose();
+  }
+
+  Future<void> _loadCompanies() async {
+    setState(() => _companiesLoading = true);
+    final companies = await _companyService.getCompanies().first;
+    if (mounted) {
+      setState(() {
+        _allCompanies = companies;
+        _companiesLoading = false;
+      });
+    }
   }
 
   void _deleteProduct() async {
@@ -161,51 +152,77 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
 
     try {
       // Xử lý giá nhập và giá bán
-      final importPriceStr = _importPriceController.text.replaceAll(RegExp(r'[^\d]'), '');
-      final salePriceStr = _sellPriceController.text.replaceAll(RegExp(r'[^\d]'), '');
+      final costPriceStr = _costPriceController.text.replaceAll(RegExp(r'[^0-9]'), '');
+      final salePriceStr = _sellPriceController.text.replaceAll(RegExp(r'[^0-9]'), '');
       
       print('Debug - Before saving:');
-      print('Import price string: ${_importPriceController.text}');
-      print('Import price cleaned: $importPriceStr');
+      print('Cost price string: ${_costPriceController.text}');
+      print('Cost price cleaned: $costPriceStr');
       print('Sale price string: ${_sellPriceController.text}');
       print('Sale price cleaned: $salePriceStr');
       
-      final importPrice = double.tryParse(importPriceStr) ?? 0.0;
+      final costPrice = double.tryParse(costPriceStr) ?? 0.0;
       final salePrice = double.tryParse(salePriceStr) ?? 0.0;
       
+      // Tính gross profit
+      final grossProfit = costPrice > 0 ? ((salePrice / costPrice - 1) * 100) : 0.0;
+      
       print('Debug - Parsed values:');
-      print('Import price: $importPrice');
+      print('Cost price: $costPrice');
       print('Sale price: $salePrice');
+      print('Gross profit: $grossProfit%');
       
       final productData = {
-        'name': _nameController.text.trim(),
-        'commonName': _commonNameController.text.trim(),
+        'internal_name': _nameController.text.trim(),
+        'trade_name': _commonNameController.text.trim(),
         'barcode': _barcodeController.text.trim(),
         'sku': _skuController.text.trim(),
         'unit': _unitController.text.trim(),
-        'stock': int.tryParse(_quantityController.text) ?? 0,
-        'importPrice': importPrice,
-        'salePrice': salePrice,
+        'stock_system': int.tryParse(_quantityController.text) ?? 0,
+        'cost_price': costPrice,
+        'sale_price': salePrice,
+        'gross_profit': grossProfit,
         'tags': _tags,
         'description': _descriptionController.text.trim(),
         'usage': _usageController.text.trim(),
         'ingredients': _ingredientsController.text.trim(),
         'notes': _notesController.text.trim(),
-        'category': _selectedCategories,
-        'isActive': _isActive,
-        'distributor': _selectedDistributor,
-        'updatedAt': FieldValue.serverTimestamp(),
+        'category_ids': _selectedCategories,
+        'supplier_ids': _selectedSupplierIds,
+        'status': _isActive ? 'active' : 'inactive',
+        'updated_at': FieldValue.serverTimestamp(),
       };
 
-      print('Debug - Final data to save:');
-      print('Import price in data: ${productData['importPrice']}');
-      print('Sale price in data: ${productData['salePrice']}');
+      // Sử dụng normalizeProductData để đảm bảo dữ liệu đúng format
+      final normalizedData = Product.normalizeProductData(productData);
 
-      await FirebaseFirestore.instance.collection('products').doc(widget.product.id).update(productData);
+      print('Debug - Final data to save:');
+      print('Cost price in data: ${normalizedData['cost_price']}');
+      print('Sale price in data: ${normalizedData['sale_price']}');
+
+      print('--- LOG GIÁ TRỊ CÁC TRƯỜNG TRƯỚC KHI LƯU ---');
+      print('internal_name: \'${_nameController.text}\'');
+      print('trade_name: \'${_commonNameController.text}\'');
+      print('cost_price: \'${_costPriceController.text}\'');
+      print('sale_price: \'${_sellPriceController.text}\'');
+      print('profit_margin: \'${_profitMarginController.text}\'');
+      print('unit: \'${_unitController.text}\'');
+      print('stock_system: \'${_quantityController.text}\'');
+      print('tags: $_tags');
+      print('description: \'${_descriptionController.text}\'');
+      print('usage: \'${_usageController.text}\'');
+      print('ingredients: \'${_ingredientsController.text}\'');
+      print('notes: \'${_notesController.text}\'');
+      print('category_ids: $_selectedCategories');
+      print('supplier_ids: $_selectedSupplierIds');
+      print('status: ${_isActive ? 'active' : 'inactive'}');
+      print('--- END LOG ---');
+
+      await FirebaseFirestore.instance.collection('products').doc(widget.product.id).update(normalizedData);
       
       // Format lại giá sau khi lưu
       final numberFormat = NumberFormat('#,###', 'vi_VN');
-      _importPriceController.text = numberFormat.format(importPrice.round());
+      _costPriceController.text = numberFormat.format(costPrice.round());
       _sellPriceController.text = numberFormat.format(salePrice.round());
       
       if (mounted) {
@@ -333,14 +350,20 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
         ),
         const SizedBox(height: 12),
         DesignSystemFormField(
-          label: 'Nhà phân phối',
-          input: DropdownButtonFormField<String>(
-            value: _selectedDistributor,
-            items: _distributors.map((d) => DropdownMenuItem(value: d, child: Text(d))).toList(),
-            onChanged: (v) => setState(() => _selectedDistributor = v),
-            decoration: designSystemInputDecoration(label: '', fillColor: mutedBackground),
-            hint: const Text('Chọn nhà phân phối'),
-          ),
+          label: 'Nhà cung cấp',
+          input: _companiesLoading 
+            ? const Center(child: CircularProgressIndicator())
+            : MultiSelectDropdown<String>(
+                label: 'Nhà cung cấp',
+                items: _allCompanies.map((c) => MultiSelectItem(value: c.id, label: c.name)).toList(),
+                initialSelectedValues: _selectedSupplierIds,
+                onSelectionChanged: (values) {
+                  setState(() {
+                    _selectedSupplierIds = values;
+                  });
+                },
+                hint: 'Chọn nhà cung cấp',
+              ),
         ),
         const SizedBox(height: 12),
         DesignSystemFormField(
@@ -453,10 +476,10 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
             children: [
               Expanded(
                 child: DesignSystemFormField(
-                  label: 'Giá nhập',
+                  label: 'Đơn giá nhập',
                   input: TextFormField(
                     style: const TextStyle(fontSize: 14),
-                    controller: _importPriceController,
+                    controller: _costPriceController,
                     decoration: designSystemInputDecoration(
                       label: '',
                       fillColor: mutedBackground,
@@ -471,7 +494,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                       print('Debug - Raw input value: $val');
                       
                       // Xóa tất cả dấu phẩy và chấm, chỉ giữ lại số
-                      final cleanValue = val.replaceAll(RegExp(r'[^\d]'), '');
+                      final cleanValue = val.replaceAll(RegExp(r'[^0-9]'), '');
                       print('Debug - Cleaned value: $cleanValue');
                       
                       final numberFormat = NumberFormat('#,###', 'vi_VN');
@@ -482,7 +505,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                       print('Debug - Formatted value: $formatted');
                       
                       if (val != formatted) {
-                        _importPriceController.value = TextEditingValue(
+                        _costPriceController.value = TextEditingValue(
                           text: formatted,
                           selection: TextSelection.collapsed(offset: formatted.length),
                         );
@@ -490,11 +513,11 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                       _calculateSalePrice();
                     },
                     onEditingComplete: () {
-                      final cleanValue = _importPriceController.text.replaceAll(RegExp(r'[^\d]'), '');
+                      final cleanValue = _costPriceController.text.replaceAll(RegExp(r'[^0-9]'), '');
                       final numberFormat = NumberFormat('#,###', 'vi_VN');
                       final value = int.tryParse(cleanValue) ?? 0;
                       final formatted = numberFormat.format(value);
-                      _importPriceController.value = TextEditingValue(
+                      _costPriceController.value = TextEditingValue(
                         text: formatted,
                         selection: TextSelection.collapsed(offset: formatted.length),
                       );
@@ -522,7 +545,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                       if (!_autoCalculatePrice) {
                         print('Debug - Raw sale price input: $val');
                         
-                        final cleanValue = val.replaceAll(RegExp(r'[^\d]'), '');
+                        final cleanValue = val.replaceAll(RegExp(r'[^0-9]'), '');
                         print('Debug - Cleaned sale price: $cleanValue');
                         
                         final numberFormat = NumberFormat('#,###', 'vi_VN');
@@ -542,7 +565,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                     },
                     onEditingComplete: () {
                       if (!_autoCalculatePrice) {
-                        final cleanValue = _sellPriceController.text.replaceAll(RegExp(r'[^\d]'), '');
+                        final cleanValue = _sellPriceController.text.replaceAll(RegExp(r'[^0-9]'), '');
                         final numberFormat = NumberFormat('#,###', 'vi_VN');
                         final value = int.tryParse(cleanValue) ?? 0;
                         final formatted = numberFormat.format(value);
@@ -610,17 +633,17 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
     if (!_autoCalculatePrice) return;
     
     // Xóa tất cả dấu phẩy và chấm, chỉ giữ lại số
-    final importPriceStr = _importPriceController.text.replaceAll(RegExp(r'[^\d]'), '');
-    print('Debug - Import price string after cleaning: $importPriceStr');
+    final costPriceStr = _costPriceController.text.replaceAll(RegExp(r'[^0-9]'), '');
+    print('Debug - Cost price string after cleaning: $costPriceStr');
     
-    final importPrice = double.tryParse(importPriceStr) ?? 0;
-    print('Debug - Import price parsed: $importPrice');
+    final costPrice = double.tryParse(costPriceStr) ?? 0.0;
+    print('Debug - Cost price parsed: $costPrice');
     
     final profitMargin = double.tryParse(_profitMarginController.text) ?? _defaultProfitMargin;
     print('Debug - Profit margin: $profitMargin');
     
-    if (importPrice > 0) {
-      final salePrice = importPrice * (1 + profitMargin / 100);
+    if (costPrice > 0) {
+      final salePrice = costPrice * (1 + profitMargin / 100);
       print('Debug - Calculated sale price: $salePrice');
       
       final formattedPrice = NumberFormat('#,###', 'vi_VN').format(salePrice.round());
@@ -661,14 +684,14 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                   groupValue: _isActive,
                   onChanged: (v) => setState(() => _isActive = v ?? true),
                 ),
-                const Text('Đang kinh doanh'),
+                const Text('Còn bán'),
                 const SizedBox(width: 16),
                 Radio<bool>(
                   value: false,
                   groupValue: _isActive,
                   onChanged: (v) => setState(() => _isActive = v ?? false),
                 ),
-                const Text('Ngừng kinh doanh'),
+                const Text('Ngừng bán'),
               ],
             ),
           ),
@@ -727,17 +750,27 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                         child: ElevatedButton.icon(
                           onPressed: _saveProduct,
                           icon: const Icon(Icons.save),
-                          label: const Text('Lưu'),
+                          label: const Text('Lưu thay đổi'),
                           style: primaryButtonStyle,
                         ),
                       ),
                        Padding(
                         padding: const EdgeInsets.symmetric(horizontal: 4.0),
-                        child: ElevatedButton.icon(
-                          onPressed: _deleteProduct,
-                          icon: const Icon(Icons.delete),
-                          label: const Text('Xóa'),
-                          style: destructiveButtonStyle,
+                        child: OutlinedButton.icon(
+                          onPressed: () {
+                            print('=== TEST: Kiểm tra dữ liệu hiện tại ===');
+                            print('Selected categories: $_selectedCategories');
+                            print('Tags: $_tags');
+                            print('Cost price: ${_costPriceController.text}');
+                            print('Sale price: ${_sellPriceController.text}');
+                            print('=== END TEST ===');
+                          },
+                          icon: const Icon(Icons.bug_report),
+                          label: const Text('Test Data'),
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: Colors.orange,
+                            side: const BorderSide(color: Colors.orange),
+                          ),
                         ),
                       ),
                     ],

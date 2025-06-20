@@ -32,11 +32,11 @@ class ProductCardItem extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(product.name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
-                    if (product.commonName.isNotEmpty)
+                    Text(product.internalName, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+                    if (product.tradeName.isNotEmpty)
                       Padding(
                         padding: const EdgeInsets.only(top: 2),
-                        child: Text(product.commonName, style: const TextStyle(color: Colors.black87), semanticsLabel: 'Tên thương mại'),
+                        child: Text(product.tradeName, style: const TextStyle(color: Colors.black87), semanticsLabel: 'Tên thương mại'),
                       ),
                     // Ô nội dung chi tiết
                     Container(
@@ -64,13 +64,9 @@ class ProductCardItem extends StatelessWidget {
                             Text('Thành phần: ${product.ingredients}', style: const TextStyle(fontSize: 13, color: Colors.black54)),
                           if (product.notes.isNotEmpty)
                             Text('Ghi chú: ${product.notes}', style: const TextStyle(fontSize: 13, color: Colors.black54)),
-                          if ((product.distributor ?? '').isNotEmpty)
-                            Text('Nhà phân phối: ${product.distributor}', style: const TextStyle(fontSize: 13, color: Colors.black54)),
-                          Text('Giá nhập: ${NumberFormat.currency(locale: 'vi_VN', symbol: '₫').format(product.importPrice)}', style: const TextStyle(fontSize: 13, color: Colors.black54)),
+                          Text('Giá nhập: ${NumberFormat.currency(locale: 'vi_VN', symbol: '₫').format(product.costPrice)}', style: const TextStyle(fontSize: 13, color: Colors.black54)),
                           Text('Giá bán: ${NumberFormat.currency(locale: 'vi_VN', symbol: '₫').format(product.salePrice)}', style: const TextStyle(fontSize: 13, color: Colors.blue, fontWeight: FontWeight.bold)),
-                          Text('Trạng thái: ${product.isActive ? 'Còn bán' : 'Ngừng bán'}', style: TextStyle(fontSize: 13, color: product.isActive ? Colors.green : Colors.red, fontWeight: FontWeight.w600)),
-                          if (product.taxRate != null)
-                            Text('Thuế suất: ${(product.taxRate! * 100).toStringAsFixed(0)}%', style: const TextStyle(fontSize: 13, color: Colors.black54)),
+                          //Text('Trạng thái: ${product.status == 'active' ? 'Còn bán' : 'Ngừng bán'}', style: TextStyle(fontSize: 13, color: product.status == 'active' ? Colors.green : Colors.red, fontWeight: FontWeight.w600)),
                           Text('Ngày tạo: ${product.createdAt != null ? DateFormat('dd/MM/yyyy HH:mm').format(product.createdAt) : '-'}', style: const TextStyle(fontSize: 12, color: Colors.grey)),
                           Text('Ngày cập nhật: ${product.updatedAt != null ? DateFormat('dd/MM/yyyy HH:mm').format(product.updatedAt) : '-'}', style: const TextStyle(fontSize: 12, color: Colors.grey)),
                         ],
@@ -81,9 +77,9 @@ class ProductCardItem extends StatelessWidget {
                       spacing: 8,
                       runSpacing: 4,
                       children: [
-                        if (product.category.isNotEmpty)
+                        if (product.categoryIds.isNotEmpty)
                           Chip(
-                            label: Text(product.category, style: const TextStyle(fontSize: 13)),
+                            label: Text(product.categoryIds.join(', '), style: const TextStyle(fontSize: 13)),
                             backgroundColor: Colors.grey[100],
                             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                           ),
@@ -128,8 +124,8 @@ class ProductCardItem extends StatelessWidget {
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Text('Số lượng: ', style: const TextStyle(fontWeight: FontWeight.w500)),
-                      Text('${product.stock}', style: const TextStyle(fontWeight: FontWeight.bold)),
-                      if ((product.stock ?? 0) < 60)
+                      Text('${product.stockSystem}', style: const TextStyle(fontWeight: FontWeight.bold)),
+                      if ((product.stockSystem ?? 0) < 60)
                         Container(
                           margin: const EdgeInsets.only(left: 8),
                           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),

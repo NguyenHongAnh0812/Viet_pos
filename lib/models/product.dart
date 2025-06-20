@@ -2,32 +2,34 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 
 class Product {
   final String id;
-  final String name;           // Tên danh pháp
-  final String commonName;     // Tên thông dụng
-  final String category;       // Danh mục
-  final String? barcode;       // Mã vạch (optional)
-  final String? sku;          // SKU (optional)
-  final String unit;          // Đơn vị tính
-  final List<String> tags;    // Tags
-  final String description;   // Mô tả
-  final String usage;         // Công dụng
-  final String ingredients;   // Thành phần
-  final String notes;         // Ghi chú
-  final int stock;           // Số lượng
-  final int invoiceStock;    // Số lượng trong hóa đơn
-  final double importPrice;   // Giá nhập
-  final double salePrice;     // Giá bán
-  final bool isActive;        // Trạng thái
-  final DateTime createdAt;   // Ngày tạo
-  final DateTime updatedAt;   // Ngày cập nhật
-  final String? distributor; // Tên nhà phân phối (optional)
-  final double? taxRate; // Thuế suất (optional)
+  final String internalName; // internal_name
+  final String tradeName;    // trade_name
+  final List<String> categoryIds;   // category_ids - hỗ trợ N-N
+  final String? barcode;
+  final String? sku;
+  final String unit;
+  final List<String> tags;
+  final String description;
+  final String usage;
+  final String ingredients; 
+  final String notes;
+  final int stockSystem;   // stock_system
+  final int stockInvoice;    // stock_invoice
+  final double costPrice;
+  final double salePrice;
+  final double grossProfit;  // gross_profit
+  final bool autoPrice;      // auto_price
+  final String status;       // status (active/inactive/discontinued)
+  final String? discontinueReason; // discontinue_reason
+  final DateTime createdAt;  // created_at
+  final DateTime updatedAt;  // updated_at
+  final List<String> supplierIds; // Thêm trường này
 
   Product({
     required this.id,
-    this.name = '',
-    this.commonName = '',
-    this.category = 'Khác',
+    this.internalName = '',
+    this.tradeName = '',
+    this.categoryIds = const [],
     this.barcode,
     this.sku,
     this.unit = '',
@@ -35,24 +37,25 @@ class Product {
     this.description = '',
     this.usage = '',
     this.ingredients = '',
-    this.notes = '',
-    this.stock = 0,
-    this.invoiceStock = 0,
-    this.importPrice = 0,
+    required this.notes,
+    this.stockSystem = 0,
+    this.stockInvoice = 0,
+    this.costPrice = 0,
     this.salePrice = 0,
-    this.isActive = true,
+    this.grossProfit = 0,
+    this.autoPrice = false,
+    required this.status,
+    this.discontinueReason,
     required this.createdAt,
     required this.updatedAt,
-    this.distributor,
-    this.taxRate,
+    this.supplierIds = const [], // Thêm vào constructor
   });
 
-  // Convert to Map for Firestore
   Map<String, dynamic> toMap() {
     return {
-      'name': name,
-      'commonName': commonName,
-      'category': category,
+      'internal_name': internalName,
+      'trade_name': tradeName,
+      'category_ids': categoryIds,
       'barcode': barcode,
       'sku': sku,
       'unit': unit,
@@ -61,131 +64,89 @@ class Product {
       'usage': usage,
       'ingredients': ingredients,
       'notes': notes,
-      'stock': stock,
-      'invoiceStock': invoiceStock,
-      'importPrice': importPrice,
-      'salePrice': salePrice,
-      'isActive': isActive,
-      'createdAt': createdAt,
-      'updatedAt': updatedAt,
-      'distributor': distributor,
-      'taxRate': taxRate,
+      'stock_system': stockSystem,
+      'stock_invoice': stockInvoice,
+      'cost_price': costPrice,
+      'sale_price': salePrice,
+      'gross_profit': grossProfit,
+      'auto_price': autoPrice,
+      'status': status,
+      'discontinue_reason': discontinueReason,
+      'created_at': createdAt,
+      'updated_at': updatedAt,
+      'supplier_ids': supplierIds, // Thêm vào toMap
     };
   }
 
-  // Create from Firestore document
   factory Product.fromMap(String id, Map<String, dynamic> map) {
-    print('\nDEBUG: Parsing product from map:');
-    print('ID: $id');
-    print('Raw map: $map');
-    
     DateTime? createdAt;
     DateTime? updatedAt;
     try {
-      print('DEBUG: Parsing createdAt...');
-      if (map['createdAt'] is Timestamp) {
-        createdAt = (map['createdAt'] as Timestamp).toDate();
-        print('createdAt is Timestamp: $createdAt');
-      } else if (map['createdAt'] is DateTime) {
-        createdAt = map['createdAt'] as DateTime;
-        print('createdAt is DateTime: $createdAt');
-      } else if (map['createdAt'] != null) {
-        createdAt = DateTime.tryParse(map['createdAt'].toString());
-        print('createdAt parsed from string: $createdAt');
+      if (map['created_at'] is Timestamp) {
+        createdAt = (map['created_at'] as Timestamp).toDate();
+      } else if (map['created_at'] is DateTime) {
+        createdAt = map['created_at'] as DateTime;
+      } else if (map['created_at'] != null) {
+        createdAt = DateTime.tryParse(map['created_at'].toString());
       }
-    } catch (e) {
-      print('ERROR parsing createdAt: $e');
+      if (map['updated_at'] is Timestamp) {
+        updatedAt = (map['updated_at'] as Timestamp).toDate();
+      } else if (map['updated_at'] is DateTime) {
+        updatedAt = map['updated_at'] as DateTime;
+      } else if (map['updated_at'] != null) {
+        updatedAt = DateTime.tryParse(map['updated_at'].toString());
+      }
+    } catch (e) {}
+    
+    // Xử lý category_ids - có thể là List<String> hoặc List<dynamic>
+    List<String> categoryIds = [];
+    if (map['category_ids'] != null) {
+      if (map['category_ids'] is List) {
+        categoryIds = List<String>.from(map['category_ids']);
+      } else if (map['category_ids'] is List<dynamic>) {
+        categoryIds = List<String>.from(map['category_ids'].map((e) => e.toString()));
+      } else {
+        categoryIds = [map['category_ids'].toString()];
+      }
     }
     
-    try {
-      print('DEBUG: Parsing updatedAt...');
-      if (map['updatedAt'] is Timestamp) {
-        updatedAt = (map['updatedAt'] as Timestamp).toDate();
-        print('updatedAt is Timestamp: $updatedAt');
-      } else if (map['updatedAt'] is DateTime) {
-        updatedAt = map['updatedAt'] as DateTime;
-        print('updatedAt is DateTime: $updatedAt');
-      } else if (map['updatedAt'] != null) {
-        updatedAt = DateTime.tryParse(map['updatedAt'].toString());
-        print('updatedAt parsed from string: $updatedAt');
-      }
-    } catch (e) {
-      print('ERROR parsing updatedAt: $e');
-    }
-
-    if (createdAt == null) {
-      print('WARNING: createdAt is null, using current time');
-      createdAt = DateTime.now();
-    }
-    if (updatedAt == null) {
-      print('WARNING: updatedAt is null, using current time');
-      updatedAt = DateTime.now();
-    }
-
-    print('DEBUG: Parsing category...');
-    String category = 'Khác';
-    if (map['category'] != null) {
-      if (map['category'] is List) {
-        final categories = (map['category'] as List).map((e) => e.toString()).toList();
-        category = categories.isNotEmpty ? categories.first : 'Khác';
-        print('Category is List, using first item: $category');
-      } else {
-        category = map['category'].toString();
-        print('Category is String: $category');
-      }
-    }
-
-    print('DEBUG: Parsing tags...');
-    List<String> tags = [];
-    if (map['tags'] != null) {
-      if (map['tags'] is List) {
-        tags = (map['tags'] as List).map((e) => e.toString()).toList();
-        print('Tags is List: $tags');
-      } else if (map['tags'] is String) {
-        tags = (map['tags'] as String).split(',').map((e) => e.trim()).toList();
-        print('Tags is String, split by comma: $tags');
-      }
-    }
-
-    final product = Product(
+    return Product(
       id: id,
-      name: map['name'] ?? map['commonName'] ?? '',
-      commonName: map['commonName'] ?? '',
-      category: category,
+      internalName: map['internal_name'] ?? '',
+      tradeName: map['trade_name'] ?? '',
+      categoryIds: categoryIds,
       barcode: map['barcode'],
       sku: map['sku'],
       unit: map['unit'] ?? '',
-      tags: tags,
+      tags: List<String>.from(map['tags'] ?? []),
       description: map['description'] ?? '',
       usage: map['usage'] ?? '',
       ingredients: map['ingredients'] ?? '',
       notes: map['notes'] ?? '',
-      stock: map['stock'] ?? 0,
-      invoiceStock: map['invoiceStock'] ?? 0,
-      importPrice: (map['importPrice'] ?? 0).toDouble(),
-      salePrice: (map['salePrice'] ?? 0).toDouble(),
-      isActive: map['isActive'] ?? true,
-      createdAt: createdAt,
-      updatedAt: updatedAt,
-      distributor: map['distributor'],
-      taxRate: map['taxRate'],
+      stockSystem: map['stock_system'] ?? 0,
+      stockInvoice: map['stock_invoice'] ?? 0,
+      costPrice: (map['cost_price'] ?? 0).toDouble(),
+      salePrice: (map['sale_price'] ?? 0).toDouble(),
+      grossProfit: (map['gross_profit'] ?? 0).toDouble(),
+      autoPrice: map['auto_price'] ?? false,
+      status: map['status'] ?? 'active',
+      discontinueReason: map['discontinue_reason'],
+      createdAt: createdAt ?? DateTime.now(),
+      updatedAt: updatedAt ?? DateTime.now(),
+      supplierIds: List<String>.from(map['supplier_ids'] ?? []), // Thêm vào factory
     );
-    
-    print('DEBUG: Successfully created product:');
-    print('- Name: ${product.name}');
-    print('- Category: ${product.category}');
-    print('- Stock: ${product.stock}');
-    print('- Price: ${product.salePrice}');
-    print('=== End Product Parse ===\n');
-    
-    return product;
+  }
+
+  factory Product.fromFirestore(DocumentSnapshot doc) {
+    Map<String, dynamic> data = doc.data() as Map<String, dynamic>;
+    return Product.fromMap(doc.id, data);
   }
 
   Product copyWith({
     String? id,
-    String? name,
-    String? commonName,
-    String? category,
+    String? internalName,
+    String? tradeName,
+    List<String>? categoryIds,
     String? barcode,
     String? sku,
     String? unit,
@@ -194,21 +155,23 @@ class Product {
     String? usage,
     String? ingredients,
     String? notes,
-    int? stock,
-    int? invoiceStock,
-    double? importPrice,
+    int? stockSystem,
+    int? stockInvoice,
+    double? costPrice,
     double? salePrice,
-    bool? isActive,
+    double? grossProfit,
+    bool? autoPrice,
+    String? status,
+    String? discontinueReason,
     DateTime? createdAt,
     DateTime? updatedAt,
-    String? distributor,
-    double? taxRate,
+    List<String>? supplierIds, // Thêm vào copyWith
   }) {
     return Product(
       id: id ?? this.id,
-      name: name ?? this.name,
-      commonName: commonName ?? this.commonName,
-      category: category ?? this.category,
+      internalName: internalName ?? this.internalName,
+      tradeName: tradeName ?? this.tradeName,
+      categoryIds: categoryIds ?? this.categoryIds,
       barcode: barcode ?? this.barcode,
       sku: sku ?? this.sku,
       unit: unit ?? this.unit,
@@ -217,15 +180,71 @@ class Product {
       usage: usage ?? this.usage,
       ingredients: ingredients ?? this.ingredients,
       notes: notes ?? this.notes,
-      stock: stock ?? this.stock,
-      invoiceStock: invoiceStock ?? this.invoiceStock,
-      importPrice: importPrice ?? this.importPrice,
+      stockSystem: stockSystem ?? this.stockSystem,
+      stockInvoice: stockInvoice ?? this.stockInvoice,
+      costPrice: costPrice ?? this.costPrice,
       salePrice: salePrice ?? this.salePrice,
-      isActive: isActive ?? this.isActive,
+      grossProfit: grossProfit ?? this.grossProfit,
+      autoPrice: autoPrice ?? this.autoPrice,
+      status: status ?? this.status,
+      discontinueReason: discontinueReason ?? this.discontinueReason,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
-      distributor: distributor ?? this.distributor,
-      taxRate: taxRate ?? this.taxRate,
+      supplierIds: supplierIds ?? this.supplierIds, // Thêm vào copyWith
     );
+  }
+
+  static Map<String, dynamic> normalizeProductData(Map<String, dynamic> raw) {
+    // Xử lý category_ids - đảm bảo luôn là List<String>
+    List<String> categoryIds = [];
+    final rawCategoryIds = raw['category_ids'] ?? raw['categoryIds'];
+    if (rawCategoryIds != null) {
+      if (rawCategoryIds is List) {
+        categoryIds = List<String>.from(rawCategoryIds);
+      } else if (rawCategoryIds is List<dynamic>) {
+        categoryIds = List<String>.from(rawCategoryIds.map((e) => e.toString()));
+      } else {
+        categoryIds = [rawCategoryIds.toString()];
+      }
+    }
+    
+    return {
+      'internal_name': raw['internal_name'] ?? raw['internalName'] ?? '',
+      'trade_name': raw['trade_name'] ?? raw['tradeName'] ?? '',
+      'category_ids': categoryIds,
+      'barcode': raw['barcode'],
+      'sku': raw['sku'],
+      'unit': raw['unit'] ?? '',
+      'tags': raw['tags'] is String ? (raw['tags'] as String).split(',').map((e) => e.trim()).toList() : (raw['tags'] ?? []),
+      'description': raw['description'] ?? '',
+      'usage': raw['usage'] ?? '',
+      'ingredients': raw['ingredients'] ?? '',
+      'notes': raw['notes'] ?? '',
+      'stock_system': raw['stock_system'] ?? raw['stockSystem'] ?? 0,
+      'stock_invoice': raw['stock_invoice'] ?? raw['stockInvoice'] ?? 0,
+      'cost_price': raw['cost_price'] ?? raw['costPrice'] ?? 0.0,
+      'sale_price': raw['sale_price'] ?? raw['salePrice'] ?? 0.0,
+      'gross_profit': raw['gross_profit'] ?? raw['grossProfit'] ?? 0.0,
+      'auto_price': raw['auto_price'] ?? raw['autoPrice'] ?? false,
+      'status': raw['status'] ?? 'active',
+      'discontinue_reason': raw['discontinue_reason'] ?? raw['discontinueReason'],
+      'created_at': raw['created_at'] ?? raw['createdAt'],
+      'updated_at': raw['updated_at'] ?? raw['updatedAt'],
+      'supplier_ids': raw['supplier_ids'] ?? [], // Thêm vào hàm normalize
+    };
+  }
+
+  // Helper methods để tương thích ngược
+  String get categoryId => categoryIds.isNotEmpty ? categoryIds.first : '';
+  String get categoryDisplay => categoryIds.join(', ');
+  
+  // Kiểm tra xem sản phẩm có thuộc danh mục nào không
+  bool hasCategory(String categoryName) {
+    return categoryIds.contains(categoryName);
+  }
+  
+  // Kiểm tra xem sản phẩm có thuộc bất kỳ danh mục nào trong list không
+  bool hasAnyCategory(List<String> categoryNames) {
+    return categoryIds.any((id) => categoryNames.contains(id));
   }
 } 

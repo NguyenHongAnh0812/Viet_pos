@@ -14,15 +14,15 @@ class InventoryService {
     final end = DateTime(month.year, month.month + 1, 1);
     return _firestore
         .collection(_collection)
-        .where('createdAt', isGreaterThanOrEqualTo: start)
-        .where('createdAt', isLessThan: end)
-        .orderBy('createdAt', descending: true)
+        .where('created_at', isGreaterThanOrEqualTo: start)
+        .where('created_at', isLessThan: end)
+        .orderBy('created_at', descending: true)
         .snapshots()
         .map((snap) => snap.docs.map((doc) => InventorySession.fromFirestore(doc)).toList());
   }
 
   Future<InventorySession?> getLastSession() async {
-    final snap = await _firestore.collection(_collection).orderBy('createdAt', descending: true).limit(1).get();
+    final snap = await _firestore.collection(_collection).orderBy('created_at', descending: true).limit(1).get();
     if (snap.docs.isEmpty) return null;
     return InventorySession.fromFirestore(snap.docs.first);
   }
@@ -30,7 +30,7 @@ class InventoryService {
   Stream<List<InventorySession>> getAllSessions() {
     return _firestore
         .collection(_collection)
-        .orderBy('createdAt', descending: true)
+        .orderBy('created_at', descending: true)
         .snapshots()
         .map((snap) => snap.docs.map((doc) => InventorySession.fromFirestore(doc)).toList());
   }

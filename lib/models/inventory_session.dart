@@ -19,10 +19,20 @@ class InventorySession {
 
   factory InventorySession.fromFirestore(DocumentSnapshot doc) {
     final data = doc.data() as Map<String, dynamic>;
+    DateTime createdAt;
+    if (data['created_at'] is Timestamp) {
+      createdAt = (data['created_at'] as Timestamp).toDate();
+    } else if (data['created_at'] is DateTime) {
+      createdAt = data['created_at'] as DateTime;
+    } else if (data['created_at'] != null) {
+      createdAt = DateTime.tryParse(data['created_at'].toString()) ?? DateTime.now();
+    } else {
+      createdAt = DateTime.now();
+    }
     return InventorySession(
       id: doc.id,
-      createdAt: (data['createdAt'] as Timestamp).toDate(),
-      createdBy: data['createdBy'] ?? '',
+      createdAt: createdAt,
+      createdBy: data['created_by'] ?? '',
       note: data['note'] ?? '',
       status: data['status'] ?? 'done',
       products: (data['products'] as List<dynamic>? ?? []).map((p) => InventoryProduct.fromMap(p)).toList(),
@@ -31,8 +41,8 @@ class InventorySession {
 
   Map<String, dynamic> toMap() {
     return {
-      'createdAt': createdAt,
-      'createdBy': createdBy,
+      'created_at': createdAt,
+      'created_by': createdBy,
       'note': note,
       'status': status,
       'products': products.map((p) => p.toMap()).toList(),
@@ -57,20 +67,20 @@ class InventoryProduct {
 
   factory InventoryProduct.fromMap(Map<String, dynamic> map) {
     return InventoryProduct(
-      productId: map['productId'] ?? '',
-      name: map['name'] ?? '',
-      systemQty: map['systemQty'] ?? 0,
-      actualQty: map['actualQty'] ?? 0,
+      productId: map['product_id'] ?? '',
+      name: map['product_name'] ?? '',
+      systemQty: map['stock_system'] ?? 0,
+      actualQty: map['stock_actual'] ?? 0,
       diff: map['diff'] ?? 0,
     );
   }
 
   Map<String, dynamic> toMap() {
     return {
-      'productId': productId,
-      'name': name,
-      'systemQty': systemQty,
-      'actualQty': actualQty,
+      'product_id': productId,
+      'product_name': name,
+      'stock_system': systemQty,
+      'stock_actual': actualQty,
       'diff': diff,
     };
   }

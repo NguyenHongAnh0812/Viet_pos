@@ -3,7 +3,7 @@ import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
 import 'screens/login_screen.dart';
 import 'screens/product_list_screen.dart';
-import 'screens/add_product_screen.dart';
+import 'screens/products/add_product_screen.dart';
 import 'screens/invoice_import_screen.dart';
 import 'screens/invoice_import_list_screen.dart';
 import 'widgets/main_layout.dart';

@@ -5,7 +5,7 @@ import 'dart:html' as html;
 import '../models/product.dart';
 import '../services/product_service.dart';
 import '../widgets/product_list_card.dart';
-import '../screens/add_product_screen.dart';
+import '../screens/products/add_product_screen.dart';
 import '../widgets/common/design_system.dart';
 
 class LowStockProductsScreen extends StatefulWidget {
@@ -38,14 +38,14 @@ class _LowStockProductsScreenState extends State<LowStockProductsScreen> {
     sheet.appendRow(headers.map((h) => ex.TextCellValue(h)).toList());
     for (final p in products) {
       sheet.appendRow([
-        ex.TextCellValue(p.name),
-        ex.TextCellValue(p.commonName),
-        ex.TextCellValue(p.category),
+        ex.TextCellValue(p.internalName),
+        ex.TextCellValue(p.tradeName),
+        ex.TextCellValue(p.categoryIds.join(', ')),
         ex.TextCellValue(p.barcode ?? ''),
         ex.TextCellValue(p.sku ?? ''),
         ex.TextCellValue(p.tags.join(', ')),
         ex.DoubleCellValue(p.salePrice),
-        ex.IntCellValue(p.stock),
+        ex.IntCellValue(p.stockSystem),
       ]);
     }
     final fileBytes = excel.encode()!;
@@ -76,7 +76,7 @@ class _LowStockProductsScreenState extends State<LowStockProductsScreen> {
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Xóa sản phẩm'),
-        content: Text('Bạn có chắc muốn xóa sản phẩm "${product.name}"?'),
+        content: Text('Bạn có chắc muốn xóa sản phẩm "${product.internalName}"?'),
         actions: [
           TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Hủy')),
           TextButton(onPressed: () => Navigator.pop(context, true), child: const Text('Xóa', style: TextStyle(color: Colors.red))),
@@ -133,7 +133,7 @@ class _LowStockProductsScreenState extends State<LowStockProductsScreen> {
                 ElevatedButton.icon(
                   onPressed: _exporting ? null : () async {
                     final products = await _productService.getProducts().first;
-                    final lowStock = products.where((p) => (p.stock ?? 0) < 60).toList();
+                    final lowStock = products.where((p) => (p.stockSystem ?? 0) < 60).toList();
                     await _exportToExcel(lowStock);
                   },
                   icon: const Icon(Icons.file_download),
@@ -155,7 +155,7 @@ class _LowStockProductsScreenState extends State<LowStockProductsScreen> {
                   if (snapshot.connectionState == ConnectionState.waiting) {
                     return const Center(child: CircularProgressIndicator());
                   }
-                  final products = (snapshot.data ?? []).where((p) => (p.stock ?? 0) < 60).toList();
+                  final products = (snapshot.data ?? []).where((p) => (p.stockSystem ?? 0) < 60).toList();
                   if (products.isEmpty) {
                     return const Center(child: Text('Không có sản phẩm nào sắp hết hàng.'));
                   }

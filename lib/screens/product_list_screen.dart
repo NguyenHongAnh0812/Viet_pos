@@ -155,7 +155,7 @@ class _ProductListScreenState extends State<ProductListScreen> {
   ];
 
   List<String> getCategoriesFromProducts(List<Product> products) {
-    final set = products.map((p) => p.category).where((c) => c != null && c.isNotEmpty).toSet();
+    final set = products.expand((p) => p.categoryIds).where((c) => c.isNotEmpty).toSet();
     final list = set.toList()..sort();
     return ['Tất cả', ...list];
   }
@@ -163,79 +163,69 @@ class _ProductListScreenState extends State<ProductListScreen> {
   List<String> get allTags => ['kháng sinh', 'phổ rộng', 'vitamin', 'bổ sung', 'NSAID', 'giảm đau', 'quinolone'];
 
   List<Product> filterProducts(List<Product> products) {
-    print('\n=== Product Filtering Debug ===');
-    print('Raw products from Firebase: ${products.length}');
-    print('Current filter settings:');
-    print('- Category: $selectedCategory');
-    print('- Price range: $priceRange');
-    print('- Stock range: $stockRange');
-    print('- Status: $status');
-    print('- Selected tags: $selectedTags');
-    print('- Search text: $searchText');
-    
-    final filtered = products.where((p) {
-      // Category filter
-      if (selectedCategory != 'Tất cả' && p.category != selectedCategory) {
-        return false;
-      }
-      
-      // Price filter
-      if (p.salePrice < priceRange.start || p.salePrice > priceRange.end) {
-        return false;
-      }
-      
-      // Stock filter - Only apply if stock range is not default
-      if (stockRange.start > 0 || stockRange.end < 99999) {
-        if (p.stock < stockRange.start || p.stock > stockRange.end) {
-          return false;
-        }
-      }
-      
-      // Status filter
-      if (status == 'Còn bán' && !p.isActive) {
-        return false;
-      }
-      if (status == 'Ngừng bán' && p.isActive) {
-        return false;
-      }
-      
-      // Tags filter - Only apply if tags are selected
-      if (selectedTags.isNotEmpty) {
-        if (!selectedTags.any((tag) => p.tags.contains(tag))) {
-          return false;
-        }
-      }
-      
-      // Search text filter - Only apply if search text is not empty
+    return products.where((product) {
+      // Tìm kiếm theo tên, mã vạch, SKU
       if (searchText.isNotEmpty) {
         final searchLower = searchText.toLowerCase();
-        // Tìm theo tên nội bộ, tên thương mại và mã vạch
-        if (!p.name.toLowerCase().contains(searchLower) && 
-            !p.commonName.toLowerCase().contains(searchLower) &&
-            !(p.barcode != null && p.barcode!.toLowerCase().contains(searchLower))) {
+        final matchesSearch = product.internalName.toLowerCase().contains(searchLower) ||
+            product.tradeName.toLowerCase().contains(searchLower) ||
+            (product.barcode != null && product.barcode!.toLowerCase().contains(searchLower)) ||
+            (product.sku != null && product.sku!.toLowerCase().contains(searchLower));
+        if (!matchesSearch) return false;
+      }
+
+      // Lọc theo danh mục
+      if (selectedCategory != 'Tất cả') {
+        if (!product.categoryIds.contains(selectedCategory)) {
+        return false;
+      }
+      }
+      
+      // Lọc theo khoảng giá
+      if (priceRange.start > 0 || priceRange.end < maxPrice) {
+        if (product.salePrice < priceRange.start || product.salePrice > priceRange.end) {
           return false;
         }
+      }
+    
+      // Lọc theo khoảng tồn kho
+      if (stockRange.start > 0 || stockRange.end < maxStock) {
+        if (product.stockSystem < stockRange.start || product.stockSystem > stockRange.end) {
+          return false;
+        }
+      }
+      
+      // Lọc theo trạng thái
+      if (status != 'Tất cả trạng thái') {
+        final isActive = product.status;
+        switch (status) {
+          case 'Còn bán':
+            if (isActive == false) return false;
+            break;
+          case 'Ngừng bán':
+            if (isActive == true) return false;
+            break;
+        }
+      }
+
+      // Lọc theo tags
+      if (selectedTags.isNotEmpty) {
+        final productTags = product.tags.map((tag) => tag.toLowerCase()).toSet();
+        final hasMatchingTag = selectedTags.any((tag) => productTags.contains(tag.toLowerCase()));
+        if (hasMatchingTag == false) return false;
       }
       
       return true;
     }).toList();
-    
-    print('\nFiltering results:');
-    print('- Total products: ${products.length}');
-    print('- Filtered products: ${filtered.length}');
-    print('- Filtered out: ${products.length - filtered.length}');
-    print('=== End Product Filtering Debug ===\n');
-    
-    return filtered;
   }
 
   List<Product> sortProducts(List<Product> products) {
     switch (sortOption) {
       case 'name_asc':
-        products.sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
+        products.sort((a, b) => a.internalName.toLowerCase().compareTo(b.internalName.toLowerCase()));
         break;
       case 'name_desc':
-        products.sort((a, b) => b.name.toLowerCase().compareTo(a.name.toLowerCase()));
+        products.sort((a, b) => b.internalName.toLowerCase().compareTo(a.internalName.toLowerCase()));
         break;
       case 'price_asc':
         products.sort((a, b) => a.salePrice.compareTo(b.salePrice));
@@ -244,10 +234,10 @@ class _ProductListScreenState extends State<ProductListScreen> {
         products.sort((a, b) => b.salePrice.compareTo(a.salePrice));
         break;
       case 'stock_asc':
-        products.sort((a, b) => a.stock.compareTo(b.stock));
+        products.sort((a, b) => a.stockSystem.compareTo(b.stockSystem));
         break;
       case 'stock_desc':
-        products.sort((a, b) => b.stock.compareTo(a.stock));
+        products.sort((a, b) => b.stockSystem.compareTo(a.stockSystem));
         break;
     }
     return products;
@@ -290,9 +280,9 @@ class _ProductListScreenState extends State<ProductListScreen> {
 
         // Mapping header tiếng Việt sang tên trường tiếng Anh
         final headerMapping = {
-          'tên nội bộ': 'name',
-          'tên thương mại': 'commonName',
-          'danh mục sản phẩm': 'category',
+          'tên nội bộ': 'internalName',
+          'tên thương mại': 'tradeName',
+          'danh mục sản phẩm': 'categoryIds',
           'mã vạch': 'barcode',
           'sku': 'sku',
           'đơn vị tính': 'unit',
@@ -301,10 +291,10 @@ class _ProductListScreenState extends State<ProductListScreen> {
           'công dụng': 'usage',
           'thành phần': 'ingredients',
           'ghi chú': 'notes',
-          'số lượng sản phẩm': 'stock',
-          'giá nhập': 'importPrice',
+          'số lượng sản phẩm': 'stockSystem',
+          'giá nhập': 'costPrice',
           'giá bán': 'salePrice',
-          'trạng thái': 'isActive'
+          'trạng thái': 'status'
         };
 
         // Chuyển đổi header sang tiếng Anh
@@ -312,7 +302,7 @@ class _ProductListScreenState extends State<ProductListScreen> {
         print('Processed headers: \\${processedHeaders}');
 
         // Kiểm tra các trường bắt buộc
-        final requiredFields = ['name', 'category', 'unit', 'stock'];
+        final requiredFields = ['internalName', 'categoryIds', 'unit', 'stockSystem'];
         final missingFields = requiredFields.where((field) => !processedHeaders.contains(field)).toList();
         if (missingFields.isNotEmpty) {
           print('Thiếu các trường bắt buộc: \\${missingFields.join(", ")}');
@@ -337,16 +327,17 @@ class _ProductListScreenState extends State<ProductListScreen> {
 
             if (field != null) {
               switch (field) {
-                case 'stock':
+                case 'stockSystem':
                   product[field] = int.tryParse(value) ?? 0;
                   break;
-                case 'importPrice':
+                case 'costPrice':
                 case 'salePrice':
                   product[field] = double.tryParse(value) ?? 0.0;
                   break;
-                case 'isActive':
+                case 'status':
                   product[field] = value.toLowerCase() == 'còn bán';
                   break;
+                case 'categoryIds':
                 case 'tags':
                   product[field] = value.split(',').map((e) => e.trim()).toList();
                   break;
@@ -357,10 +348,10 @@ class _ProductListScreenState extends State<ProductListScreen> {
           }
 
           // Thêm các trường mặc định nếu chưa có
-          product['commonName'] ??= product['name'];
-          product['importPrice'] ??= 0.0;
+          product['tradeName'] ??= product['internalName'];
+          product['costPrice'] ??= 0.0;
           product['salePrice'] ??= 0.0;
-          product['isActive'] ??= true;
+          product['status'] ??= true;
           product['createdAt'] = FieldValue.serverTimestamp();
           product['updatedAt'] = FieldValue.serverTimestamp();
 
@@ -391,9 +382,9 @@ class _ProductListScreenState extends State<ProductListScreen> {
         print('Excel headers (gốc): $headers');
         // Mapping header tiếng Việt sang tên trường tiếng Anh
         final headerMapping = {
-          'tên nội bộ': 'name',
-          'tên thương mại': 'commonName',
-          'danh mục sản phẩm': 'category',
+          'tên nội bộ': 'internalName',
+          'tên thương mại': 'tradeName',
+          'danh mục sản phẩm': 'categoryIds',
           'mã vạch': 'barcode',
           'sku': 'sku',
           'đơn vị tính': 'unit',
@@ -402,10 +393,10 @@ class _ProductListScreenState extends State<ProductListScreen> {
           'công dụng': 'usage',
           'thành phần': 'ingredients',
           'ghi chú': 'notes',
-          'số lượng sản phẩm': 'stock',
-          'giá nhập': 'importPrice',
+          'số lượng sản phẩm': 'stockSystem',
+          'giá nhập': 'costPrice',
           'giá bán': 'salePrice',
-          'trạng thái': 'isActive'
+          'trạng thái': 'status'
         };
         final processedHeaders = headers.map((h) => headerMapping[h] ?? h).toList();
         print('Processed Excel headers (mapping): $processedHeaders');
@@ -419,16 +410,17 @@ class _ProductListScreenState extends State<ProductListScreen> {
             final value = cell?.value;
             print('Row $i, Col $j: header="${headers[j]}", mapped="$field", value="$value"');
             switch (field) {
-              case 'stock':
+              case 'stockSystem':
                 product[field] = int.tryParse(value?.toString() ?? '') ?? 0;
                 break;
-              case 'importPrice':
+              case 'costPrice':
               case 'salePrice':
                 product[field] = double.tryParse(value?.toString() ?? '') ?? 0.0;
                 break;
-              case 'isActive':
+              case 'status':
                 product[field] = (value?.toString().toLowerCase() ?? '') == 'còn bán';
                 break;
+              case 'categoryIds':
               case 'tags':
                 product[field] = (value?.toString() ?? '').split(',').map((e) => e.trim()).toList();
                 break;
@@ -437,15 +429,15 @@ class _ProductListScreenState extends State<ProductListScreen> {
             }
           }
           // Thêm các trường mặc định nếu chưa có
-          product['commonName'] ??= product['name'];
-          product['importPrice'] ??= 0.0;
+          product['tradeName'] ??= product['internalName'];
+          product['costPrice'] ??= 0.0;
           product['salePrice'] ??= 0.0;
-          product['isActive'] ??= true;
+          product['status'] ??= true;
           product['createdAt'] = FieldValue.serverTimestamp();
           product['updatedAt'] = FieldValue.serverTimestamp();
           // Kiểm tra dữ liệu bắt buộc
           bool valid = true;
-          for (final field in ['name', 'category', 'unit', 'stock']) {
+          for (final field in ['internalName', 'categoryIds', 'unit', 'stockSystem']) {
             if (product[field] == null || product[field].toString().isEmpty) {
               print('Bỏ qua dòng $i: Thiếu trường bắt buộc $field');
               valid = false;
@@ -467,7 +459,7 @@ class _ProductListScreenState extends State<ProductListScreen> {
       final batch = FirebaseFirestore.instance.batch();
       for (var product in products) {
         final docRef = FirebaseFirestore.instance.collection('products').doc();
-        batch.set(docRef, product);
+        batch.set(docRef, Product.normalizeProductData(product));
       }
 
       await batch.commit();
@@ -524,9 +516,9 @@ class _ProductListScreenState extends State<ProductListScreen> {
     sheet.appendRow(headers.map((h) => excel.TextCellValue(h)).toList());
     for (final p in products) {
       sheet.appendRow([
-        excel.TextCellValue(p.name),
-        excel.TextCellValue(p.commonName),
-        excel.TextCellValue(p.category),
+        excel.TextCellValue(p.internalName),
+        excel.TextCellValue(p.tradeName),
+        excel.TextCellValue(p.categoryIds.join(', ')),
         excel.TextCellValue(p.barcode ?? ''),
         excel.TextCellValue(p.sku ?? ''),
         excel.TextCellValue(p.unit),
@@ -535,10 +527,10 @@ class _ProductListScreenState extends State<ProductListScreen> {
         excel.TextCellValue(p.usage),
         excel.TextCellValue(p.ingredients),
         excel.TextCellValue(p.notes),
-        excel.IntCellValue(p.stock),
-        excel.DoubleCellValue(p.importPrice),
+        excel.IntCellValue(p.stockSystem),
+        excel.DoubleCellValue(p.costPrice),
         excel.DoubleCellValue(p.salePrice),
-        excel.TextCellValue(p.isActive ? 'Còn bán' : 'Ngừng bán'),
+        
         excel.TextCellValue(p.createdAt.toString()),
         excel.TextCellValue(p.updatedAt.toString()),
       ]);
@@ -566,8 +558,8 @@ class _ProductListScreenState extends State<ProductListScreen> {
 
   void updateFilterRanges(List<Product> products) {
     if (products.isNotEmpty) {
-      int newMinStock = products.map((p) => p.stock).reduce((a, b) => a < b ? a : b);
-      int newMaxStock = products.map((p) => p.stock).reduce((a, b) => a > b ? a : b);
+      int newMinStock = products.map((p) => p.stockSystem).reduce((a, b) => a < b ? a : b);
+      int newMaxStock = products.map((p) => p.stockSystem).reduce((a, b) => a > b ? a : b);
       double newMinPrice = products.map((p) => p.salePrice).reduce((a, b) => a < b ? a : b);
       double newMaxPrice = products.map((p) => p.salePrice).reduce((a, b) => a > b ? a : b);
 
@@ -588,16 +580,66 @@ class _ProductListScreenState extends State<ProductListScreen> {
   }
 
   void checkExtremeProducts(List<Product> products) {
-    final stock99999 = products.where((p) => p.stock == 99999).toList();
+    final stock99999 = products.where((p) => p.stockSystem == 99999).toList();
     final price1000000 = products.where((p) => p.salePrice == 1000000).toList();
     print('--- Sản phẩm có tồn kho = 99999 ---');
     for (final p in stock99999) {
-      print('ID: \\${p.id}, Tên: \\${p.name}, Tồn kho: \\${p.stock}');
+      print('ID: \\${p.id}, Tên: \\${p.internalName}, Tồn kho: \\${p.stockSystem}');
     }
     print('--- Sản phẩm có giá bán = 1,000,000 ---');
     for (final p in price1000000) {
-      print('ID: \\${p.id}, Tên: \\${p.name}, Giá bán: \\${p.salePrice}');
+      print('ID: \\${p.id}, Tên: \\${p.internalName}, Giá bán: \\${p.salePrice}');
     }
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _searchController.addListener(_onSearchChanged);
+  }
+
+  @override
+  void didUpdateWidget(ProductListScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // Reset pagination when filters change
+    if (oldWidget.filterCategory != widget.filterCategory ||
+        oldWidget.filterPriceRange != widget.filterPriceRange ||
+        oldWidget.filterStockRange != widget.filterStockRange ||
+        oldWidget.filterStatus != widget.filterStatus ||
+        oldWidget.filterTags != widget.filterTags) {
+      _resetPagination();
+    }
+  }
+
+  @override
+  void dispose() {
+    _searchController.removeListener(_onSearchChanged);
+    _searchController.dispose();
+    selectedProductIds.dispose();
+    super.dispose();
+  }
+
+  void _onSearchChanged() {
+    setState(() {
+      searchText = _searchController.text;
+      _resetPagination();
+    });
+  }
+
+  void _resetPagination() {
+    currentPage = 1;
+    selectedProductIds.value = {}; // Clear selection when filter changes
+  }
+
+  bool get _hasActiveFilters {
+    return searchText.isNotEmpty ||
+           selectedCategory != 'Tất cả' ||
+           status != 'Tất cả' ||
+           selectedTags.isNotEmpty ||
+           priceRange.start > 0 ||
+           priceRange.end < maxPrice ||
+           stockRange.start > 0 ||
+           stockRange.end < maxStock;
   }
 
   @override
@@ -869,7 +911,6 @@ class _ProductListScreenState extends State<ProductListScreen> {
                                 hint: 'Tìm theo tên, mã vạch...',
                               ),
                               style: const TextStyle(fontSize: 14),
-                              onChanged: (v) => setState(() => searchText = v),
                             ),
                             Positioned(
                               right: 0,
@@ -941,6 +982,27 @@ class _ProductListScreenState extends State<ProductListScreen> {
                               );
                             }
 
+                            if (filteredProducts.isEmpty && _hasActiveFilters) {
+                              return Padding(
+                                padding: const EdgeInsets.symmetric(vertical: 32.0),
+                                child: Center(
+                                  child: Column(
+                                    children: [
+                                      Text(
+                                        'Không tìm thấy sản phẩm nào phù hợp với bộ lọc',
+                                        style: TextStyle(fontSize: 16, color: Colors.grey[600], fontWeight: FontWeight.w500),
+                                      ),
+                                      const SizedBox(height: 8),
+                                      Text(
+                                        'Thử thay đổi điều kiện tìm kiếm hoặc bộ lọc',
+                                        style: TextStyle(fontSize: 14, color: Colors.grey[500]),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              );
+                            }
+
                             return Column(
                               children: [
                                 // Filter and Sort Row
@@ -954,7 +1016,12 @@ class _ProductListScreenState extends State<ProductListScreen> {
                                           items: sortOptions.map((o) => o['key'] as String).toList(),
                                           value: sortOption,
                                           getLabel: (key) => sortOptions.firstWhere((o) => o['key'] == key)['label'],
-                                          onChanged: (val) => setState(() => sortOption = val ?? sortOption),
+                                          onChanged: (val) {
+                                            setState(() {
+                                              sortOption = val ?? sortOption;
+                                              _resetPagination();
+                                            });
+                                          },
                                           hint: 'Tên: A - Z',
                                         ),
                                       ),
@@ -1000,6 +1067,8 @@ class _ProductListScreenState extends State<ProductListScreen> {
                                             children: [
                                               Expanded(
                                                 flex: 1,
+                                                child: Align(
+                                                  alignment: Alignment.centerLeft,
                                                 child: ValueListenableBuilder<Set<String>>(
                                                   valueListenable: selectedProductIds,
                                                   builder: (context, selected, _) {
@@ -1016,27 +1085,12 @@ class _ProductListScreenState extends State<ProductListScreen> {
                                                   },
                                                 ),
                                               ),
-                                              Expanded(
-                                                flex: 5,
-                                                child: Align(
-                                                  alignment: Alignment.centerLeft,
-                                                  child: Text('Tên sản phẩm', style: TextStyle(color: textMuted, fontWeight: FontWeight.bold)),
-                                                ),
                                               ),
-                                              Expanded(
-                                                flex: 2,
-                                                child: Align(
-                                                  alignment: Alignment.center,
-                                                  child: Text('Mã vạch', style: TextStyle(color: textMuted, fontWeight: FontWeight.bold)),
-                                                ),
-                                              ),
-                                              Expanded(
-                                                flex: 2,
-                                                child: Align(
-                                                  alignment: Alignment.center,
-                                                  child: Text('Số lượng', style: TextStyle(color: textMuted, fontWeight: FontWeight.bold)),
-                                                ),
-                                              ),
+                                              Expanded(flex: 3, child: Text('Tên sản phẩm', style: TextStyle(color: textMuted, fontWeight: FontWeight.bold))),
+                                              Expanded(flex: 2, child: Text('Giá nhập', textAlign: TextAlign.center, style: TextStyle(color: textMuted, fontWeight: FontWeight.bold))),
+                                              Expanded(flex: 2, child: Text('Đơn vị', textAlign: TextAlign.center, style: TextStyle(color: textMuted, fontWeight: FontWeight.bold))),
+                                              Expanded(flex: 2, child: Text('Tồn kho hóa đơn', textAlign: TextAlign.center, style: TextStyle(color: textMuted, fontWeight: FontWeight.bold))),
+                                              Expanded(flex: 2, child: Text('Tồn kho hệ thống', textAlign: TextAlign.center, style: TextStyle(color: textMuted, fontWeight: FontWeight.bold))),
                                             ],
                                           ),
                                         ),
@@ -1045,9 +1099,20 @@ class _ProductListScreenState extends State<ProductListScreen> {
                                         Padding(
                                           padding: const EdgeInsets.symmetric(vertical: 32.0),
                                           child: Center(
-                                            child: Text(
-                                              'Không tìm thấy sản phẩm nào',
+                                            child: Column(
+                                              children: [
+                                                Text(
+                                                  'Không có sản phẩm nào để hiển thị',
                                               style: TextStyle(fontSize: 16, color: Colors.grey[600], fontWeight: FontWeight.w500),
+                                                ),
+                                                if (currentPage > 1) ...[
+                                                  const SizedBox(height: 8),
+                                                  Text(
+                                                    'Đã hiển thị tất cả sản phẩm',
+                                                    style: TextStyle(fontSize: 14, color: Colors.grey[500]),
+                                                  ),
+                                                ],
+                                              ],
                                             ),
                                           ),
                                         )
@@ -1056,7 +1121,7 @@ class _ProductListScreenState extends State<ProductListScreen> {
                                           height: MediaQuery.of(context).size.height * 0.6,
                                           child: NotificationListener<ScrollNotification>(
                                             onNotification: (scrollInfo) {
-                                              _handleScroll(scrollInfo, sortedProducts.length);
+                                              _handleScroll(scrollInfo, filteredProducts.length);
                                               return false;
                                             },
                                             child: ListView.builder(
@@ -1086,11 +1151,11 @@ class _ProductListScreenState extends State<ProductListScreen> {
                                                       child: Column(
                                                         crossAxisAlignment: CrossAxisAlignment.start,
                                                         children: [
-                                                          Text(product.commonName, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, fontFamily: 'Inter')),
-                                                          if (product.name.isNotEmpty)
+                                                          Text(product.tradeName, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, fontFamily: 'Inter')),
+                                                          if (product.internalName.isNotEmpty)
                                                             Padding(
                                                               padding: const EdgeInsets.only(top: 2),
-                                                              child: Text(product.name, style: TextStyle(fontSize: 14, color: Colors.grey[600], fontWeight: FontWeight.w400, fontFamily: 'Inter')),
+                                                              child: Text(product.internalName, style: TextStyle(fontSize: 14, color: Colors.grey[600], fontWeight: FontWeight.w400, fontFamily: 'Inter')),
                                                             ),
                                                           const SizedBox(height: 16),
                                                           Row(
@@ -1101,7 +1166,7 @@ class _ProductListScreenState extends State<ProductListScreen> {
                                                                 style: TextStyle(fontSize: 14, color: Colors.grey[600]),
                                                               ),
                                                               Text(
-                                                                'Số lượng: ${product.stock}',
+                                                                'Số lượng: ${product.stockSystem}',
                                                                 style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
                                                               ),
                                                             ],
@@ -1126,6 +1191,8 @@ class _ProductListScreenState extends State<ProductListScreen> {
                                                         children: [
                                                           Expanded(
                                                             flex: 1,
+                                                            child: Align(
+                                                              alignment: Alignment.centerLeft,
                                                             child: ValueListenableBuilder<Set<String>>(
                                                               valueListenable: selectedProductIds,
                                                               builder: (context, selected, _) {
@@ -1142,71 +1209,46 @@ class _ProductListScreenState extends State<ProductListScreen> {
                                                                   },
                                                                 );
                                                               },
+                                                              ),
                                                             ),
                                                           ),
                                                           Expanded(
-                                                            flex: 5,
+                                                            flex: 3,
                                                             child: Column(
                                                               crossAxisAlignment: CrossAxisAlignment.start,
                                                               children: [
-                                                                Text(product.commonName, style: bodyLarge.copyWith(fontWeight: FontWeight.w700)),
-                                                                if (product.name.isNotEmpty)
-                                                                  Text(product.name, style: body.copyWith(color: Colors.grey[600])),
-                                                                // Ô nội dung chi tiết
-                                                                Container(
-                                                                  margin: const EdgeInsets.only(top: 8, bottom: 8),
-                                                                  padding: const EdgeInsets.all(12),
-                                                                  decoration: BoxDecoration(
-                                                                    color: Colors.grey[50],
-                                                                    borderRadius: BorderRadius.circular(8),
-                                                                    border: Border.all(color: Colors.grey.shade200),
-                                                                  ),
-                                                                  child: Column(
-                                                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                                                    children: [
-                                                                      if ((product.barcode ?? '').isNotEmpty)
-                                                                        Text('Mã vạch: ${product.barcode}', style: const TextStyle(fontSize: 13, color: Colors.black54)),
-                                                                      if ((product.sku ?? '').isNotEmpty)
-                                                                        Text('SKU: ${product.sku}', style: const TextStyle(fontSize: 13, color: Colors.black54)),
-                                                                      if (product.unit.isNotEmpty)
-                                                                        Text('Đơn vị: ${product.unit}', style: const TextStyle(fontSize: 13, color: Colors.black54)),
-                                                                      Text('Tồn kho hệ thống: ${product.stock}', style: const TextStyle(fontSize: 13, color: Colors.black87, fontWeight: FontWeight.w600)),
-                                                                      Text('Tồn kho hóa đơn: ${product.invoiceStock}', style: const TextStyle(fontSize: 13, color: Colors.black54, fontWeight: FontWeight.w600)),
-                                                                      if (product.description.isNotEmpty)
-                                                                        Text('Mô tả: ${product.description}', style: const TextStyle(fontSize: 13, color: Colors.black54)),
-                                                                      if (product.usage.isNotEmpty)
-                                                                        Text('Công dụng: ${product.usage}', style: const TextStyle(fontSize: 13, color: Colors.black54)),
-                                                                      if (product.ingredients.isNotEmpty)
-                                                                        Text('Thành phần: ${product.ingredients}', style: const TextStyle(fontSize: 13, color: Colors.black54)),
-                                                                      if (product.notes.isNotEmpty)
-                                                                        Text('Ghi chú: ${product.notes}', style: const TextStyle(fontSize: 13, color: Colors.black54)),
-                                                                      if ((product.distributor ?? '').isNotEmpty)
-                                                                        Text('Nhà phân phối: ${product.distributor}', style: const TextStyle(fontSize: 13, color: Colors.black54)),
-                                                                      Text('Giá nhập: ${NumberFormat.currency(locale: 'vi_VN', symbol: '₫').format(product.importPrice)}', style: const TextStyle(fontSize: 13, color: Colors.black54)),
-                                                                      Text('Giá bán: ${NumberFormat.currency(locale: 'vi_VN', symbol: '₫').format(product.salePrice)}', style: const TextStyle(fontSize: 13, color: Colors.blue, fontWeight: FontWeight.bold)),
-                                                                      Text('Trạng thái: ${product.isActive ? 'Còn bán' : 'Ngừng bán'}', style: TextStyle(fontSize: 13, color: product.isActive ? Colors.green : Colors.red, fontWeight: FontWeight.w600)),
-                                                                      if (product.taxRate != null)
-                                                                        Text('Thuế suất: ${(product.taxRate! * 100).toStringAsFixed(0)}%', style: const TextStyle(fontSize: 13, color: Colors.black54)),
-                                                                      Text('Ngày tạo: ${DateFormat('dd/MM/yyyy HH:mm').format(product.createdAt)}', style: const TextStyle(fontSize: 12, color: Colors.grey)),
-                                                                      Text('Ngày cập nhật: ${DateFormat('dd/MM/yyyy HH:mm').format(product.updatedAt)}', style: const TextStyle(fontSize: 12, color: Colors.grey)),
+                                                                Text(product.tradeName, style: bodyLarge.copyWith(fontWeight: FontWeight.w700)),
+                                                                if (product.internalName.isNotEmpty)
+                                                                  Text(product.internalName, style: body.copyWith(color: Colors.grey[600])),
                                                                     ],
                                                                   ),
                                                                 ),
-                                                              ],
+                                                          Expanded(
+                                                            flex: 2,
+                                                            child: Align(
+                                                              alignment: Alignment.center,
+                                                              child: Text('${NumberFormat.currency(locale: 'vi_VN', symbol: '₫').format(product.costPrice)}', style: body),
                                                             ),
                                                           ),
                                                           Expanded(
                                                             flex: 2,
                                                             child: Align(
                                                               alignment: Alignment.center,
-                                                              child: Text(product.barcode ?? '-', style: body),
+                                                              child: Text(product.unit, style: body),
                                                             ),
                                                           ),
                                                           Expanded(
                                                             flex: 2,
                                                             child: Align(
                                                               alignment: Alignment.center,
-                                                              child: Text('${product.stock}', style: bodyLarge.copyWith(fontWeight: FontWeight.w600)),
+                                                              child: Text('${product.stockInvoice}', style: bodyLarge.copyWith(fontWeight: FontWeight.w600)),
+                                                            ),
+                                                          ),
+                                                          Expanded(
+                                                            flex: 2,
+                                                            child: Align(
+                                                              alignment: Alignment.center,
+                                                              child: Text('${product.stockSystem}', style: bodyLarge.copyWith(fontWeight: FontWeight.w600)),
                                                             ),
                                                           ),
                                                         ],
@@ -1235,12 +1277,6 @@ class _ProductListScreenState extends State<ProductListScreen> {
         ),
       ),
     );
-  }
-
-  @override
-  void dispose() {
-    selectedProductIds.dispose();
-    super.dispose();
   }
 
   void _handleScroll(ScrollNotification scrollInfo, int totalItems) {

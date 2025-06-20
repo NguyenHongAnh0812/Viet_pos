@@ -11,8 +11,8 @@ class LoginScreen extends StatefulWidget {
 }
 
 class _LoginScreenState extends State<LoginScreen> {
-  final _emailController = TextEditingController(text: 'admin1@gmail.com');
-  final _passwordController = TextEditingController(text: 'admin123');
+  final _emailController = TextEditingController(text: '');
+  final _passwordController = TextEditingController(text: '');
   String? _error;
   bool _loading = false;
 
@@ -179,7 +179,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 // Footer
                 const SizedBox(height: 24),
                 Text(
-                  '© 2024 VET-POS. All rights reserved.',
+                  '© 2025 VET-POS. All rights reserved.',
                   style: caption.copyWith(color: textSecondary),
                 ),
               ],

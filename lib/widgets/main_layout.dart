@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import '../screens/product_list_screen.dart';
 import '../screens/product_category_screen.dart';
-import '../screens/add_product_screen.dart';
+import '../screens/products/add_product_screen.dart';
 import '../screens/products/product_detail_screen.dart';
 import '../models/product.dart';
 import '../screens/dashboard/dashboard_screen.dart';
@@ -17,11 +17,14 @@ import '../screens/invoice_import_list_screen.dart';
 import '../screens/invoice_import_screen.dart';
 import '../screens/inventory_detail_screen.dart';
 import '../screens/inventory_create_session_screen.dart';
-import '../screens/distributor_screen.dart';
+import '../screens/company_screen.dart';
 import '../screens/settings_screen.dart';
+import '../screens/add_company_screen.dart';
+import '../screens/company_detail_screen.dart';
+import '../models/company.dart';
 
 // Định nghĩa enum cho các trang
-enum MainPage { dashboard, productList, productCategory, addProduct, inventory, report, settings, productDetail, lowStockProducts, addProductCategory, inventoryHistory, styleGuide, invoiceImportList, invoiceImport, inventoryDetail, inventoryCreateSession, distributor }
+enum MainPage { dashboard, productList, productCategory, addProduct, inventory, report, settings, productDetail, lowStockProducts, addProductCategory, inventoryHistory, styleGuide, invoiceImportList, invoiceImport, inventoryDetail, inventoryCreateSession, companies, addCompany, companyDetail }
 
 class MainLayout extends StatefulWidget {
   final Widget? child; // Không cần truyền child nữa, sẽ render theo _currentPage
@@ -37,6 +40,7 @@ class MainLayoutState extends State<MainLayout> {
   MainPage _currentPage = MainPage.dashboard;
   MainPage? _previousPage;
   Product? _selectedProduct;
+  Company? _selectedCompany;
   bool isFilterSidebarOpen = false;
 
   // Filter state
@@ -110,8 +114,8 @@ class MainLayoutState extends State<MainLayout> {
   // Thêm hàm mới để cập nhật filter ranges
   void updateFilterRanges(List<Product> products) {
     if (products.isNotEmpty) {
-      int newMinStock = products.map((p) => p.stock).reduce((a, b) => a < b ? a : b);
-      int newMaxStock = products.map((p) => p.stock).reduce((a, b) => a > b ? a : b);
+      int newMinStock = products.map((p) => p.stockSystem).reduce((a, b) => a < b ? a : b);
+      int newMaxStock = products.map((p) => p.stockSystem).reduce((a, b) => a > b ? a : b);
       double newMinPrice = products.map((p) => p.salePrice).reduce((a, b) => a < b ? a : b);
       double newMaxPrice = products.map((p) => p.salePrice).reduce((a, b) => a > b ? a : b);
 
@@ -146,6 +150,9 @@ class MainLayoutState extends State<MainLayout> {
       }
       if (page != MainPage.inventoryDetail) {
         _selectedInventorySessionId = null;
+      }
+      if (page != MainPage.companyDetail) {
+        _selectedCompany = null;
       }
     });
   }
@@ -214,6 +221,14 @@ class MainLayoutState extends State<MainLayout> {
       _selectedInventorySessionId = sessionId;
       _previousPage = _currentPage;
       _currentPage = MainPage.inventoryDetail;
+    });
+  }
+
+  void _openCompanyDetail(Company company) {
+    setState(() {
+      _previousPage = _currentPage;
+      _currentPage = MainPage.companyDetail;
+      _selectedCompany = company;
     });
   }
 
@@ -421,8 +436,6 @@ class MainLayoutState extends State<MainLayout> {
         );
       case MainPage.addProduct:
         return AddProductScreen(
-          product: null,
-          isEdit: false,
           onBack: _openProductList,
         );
       case MainPage.productDetail:
@@ -495,8 +508,15 @@ class MainLayoutState extends State<MainLayout> {
         return InventoryDetailScreen(sessionId: _selectedInventorySessionId!);
       case MainPage.inventoryCreateSession:
         return InventoryCreateSessionScreen();
-      case MainPage.distributor:
-        return DistributorScreen();
+      case MainPage.companies:
+        return CompanyScreen(onCompanySelected: _openCompanyDetail);
+      case MainPage.addCompany:
+        return AddCompanyScreen(onBack: () => onSidebarTap(MainPage.companies));
+      case MainPage.companyDetail:
+        return CompanyDetailScreen(
+          company: _selectedCompany!, 
+          onBack: () => onSidebarTap(MainPage.companies)
+        );
       default:
         return const DashboardScreen();
     }
@@ -676,11 +696,11 @@ class _SidebarState extends State<_Sidebar> {
           ),
           // Nhà cung cấp
           _SidebarItem(
-            icon: Icon(Icons.local_shipping_outlined, size: 16),
+            icon: const Icon(Icons.business_outlined, size: 16),
             label: 'Nhà cung cấp',
-            selected: widget.currentPage == MainPage.distributor,
+            selected: widget.currentPage == MainPage.companies,
             isOpen: widget.isOpen,
-            onTap: () => widget.onItemTap(MainPage.distributor),
+            onTap: () => widget.onItemTap(MainPage.companies),
           ),
           // Cài đặt
 
