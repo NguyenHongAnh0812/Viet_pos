@@ -62,6 +62,13 @@ class _InventoryDetailScreenState extends State<InventoryDetailScreen> {
         (p) => p.id == productId,
         orElse: () => Product(
           id: '',
+          internalName: 'Sản phẩm không xác định',
+          tradeName: 'Sản phẩm không xác định',
+          unit: '',
+          description: '',
+          notes: '',
+          categoryIds: [],
+          status: 'inactive',
           createdAt: DateTime.now(),
           updatedAt: DateTime.now(),
         ),

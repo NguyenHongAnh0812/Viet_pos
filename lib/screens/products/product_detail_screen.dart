@@ -7,6 +7,9 @@ import '../../services/product_category_service.dart';
 import '../../widgets/common/design_system.dart';
 import 'package:intl/intl.dart';
 import 'package:flutter/services.dart';
+import '../../models/company.dart';
+import '../../services/company_service.dart';
+import '../../widgets/custom/multi_select_dropdown.dart';
 
 class ProductDetailScreen extends StatefulWidget {
   final Product product;
@@ -41,7 +44,11 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
   String? _selectedCategory;
   bool _isActive = false;
   final _categoryService = ProductCategoryService();
+  final _companyService = CompanyService();
   List<String> _selectedCategories = [];
+  List<String> _selectedSupplierIds = [];
+  List<Company> _allCompanies = [];
+  bool _companiesLoading = true;
 
   @override
   void initState() {
@@ -67,7 +74,9 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
     _tags = List.from(p.tags);
     _isActive = p.status == 'active';
     _selectedCategories = List.from(p.categoryIds);
+    _selectedSupplierIds = List.from(p.supplierIds);
     _profitMarginController.text = p.grossProfit.toString();
+    _loadCompanies();
   }
 
   @override
@@ -88,6 +97,17 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
     _tagInputController.dispose();
     _profitMarginController.dispose();
     super.dispose();
+  }
+
+  Future<void> _loadCompanies() async {
+    setState(() => _companiesLoading = true);
+    final companies = await _companyService.getCompanies().first;
+    if (mounted) {
+      setState(() {
+        _allCompanies = companies;
+        _companiesLoading = false;
+      });
+    }
   }
 
   void _deleteProduct() async {
@@ -168,6 +188,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
         'ingredients': _ingredientsController.text.trim(),
         'notes': _notesController.text.trim(),
         'category_ids': _selectedCategories,
+        'supplier_ids': _selectedSupplierIds,
         'status': _isActive ? 'active' : 'inactive',
         'updated_at': FieldValue.serverTimestamp(),
       };
@@ -193,6 +214,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
       print('ingredients: \'${_ingredientsController.text}\'');
       print('notes: \'${_notesController.text}\'');
       print('category_ids: $_selectedCategories');
+      print('supplier_ids: $_selectedSupplierIds');
       print('status: ${_isActive ? 'active' : 'inactive'}');
       print('--- END LOG ---');
 
@@ -325,6 +347,23 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
               ),
             ),
           ],
+        ),
+        const SizedBox(height: 12),
+        DesignSystemFormField(
+          label: 'Nhà cung cấp',
+          input: _companiesLoading 
+            ? const Center(child: CircularProgressIndicator())
+            : MultiSelectDropdown<String>(
+                label: 'Nhà cung cấp',
+                items: _allCompanies.map((c) => MultiSelectItem(value: c.id, label: c.name)).toList(),
+                initialSelectedValues: _selectedSupplierIds,
+                onSelectionChanged: (values) {
+                  setState(() {
+                    _selectedSupplierIds = values;
+                  });
+                },
+                hint: 'Chọn nhà cung cấp',
+              ),
         ),
         const SizedBox(height: 12),
         DesignSystemFormField(

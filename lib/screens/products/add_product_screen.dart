@@ -6,6 +6,9 @@ import '../../widgets/common/design_system.dart';
 import 'package:intl/intl.dart';
 import 'package:flutter/services.dart';
 import '../../models/product.dart';
+import '../../models/company.dart';
+import '../../services/company_service.dart';
+import '../../widgets/custom/multi_select_dropdown.dart';
 
 class AddProductScreen extends StatefulWidget {
   final VoidCallback? onBack;
@@ -33,15 +36,31 @@ class _AddProductScreenState extends State<AddProductScreen> {
   final _profitMarginController = TextEditingController();
   List<String> _tags = [];
   List<String> _selectedCategories = [];
+  List<String> _selectedSupplierIds = [];
+  List<Company> _allCompanies = [];
   bool _isActive = true;
   bool _autoCalculatePrice = true;
   static const double _defaultProfitMargin = 20.0;
   final _categoryService = ProductCategoryService();
+  final _companyService = CompanyService();
+  bool _companiesLoading = true;
 
   @override
   void initState() {
     super.initState();
     _profitMarginController.text = _defaultProfitMargin.toStringAsFixed(0);
+    _loadInitialData();
+  }
+
+  Future<void> _loadInitialData() async {
+    setState(() => _companiesLoading = true);
+    final companies = await _companyService.getCompanies().first;
+    if (mounted) {
+      setState(() {
+        _allCompanies = companies;
+        _companiesLoading = false;
+      });
+    }
   }
 
   @override
@@ -112,6 +131,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
         'ingredients': _ingredientsController.text.trim(),
         'notes': _notesController.text.trim(),
         'category_ids': _selectedCategories,
+        'supplier_ids': _selectedSupplierIds,
         'status': _isActive ? 'active' : 'inactive',
         'created_at': FieldValue.serverTimestamp(),
         'updated_at': FieldValue.serverTimestamp(),
@@ -151,7 +171,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
       _quantityController.text = '50';
       _isActive = true;
       _notesController.text = 'Ghi chú sản phẩm mẫu';
-      // Không fill _selectedCategories (danh mục)
+      _selectedSupplierIds = _allCompanies.isNotEmpty ? [_allCompanies.first.id] : [];
     });
   }
 
@@ -252,6 +272,23 @@ class _AddProductScreenState extends State<AddProductScreen> {
               ),
             ),
           ],
+        ),
+        const SizedBox(height: 12),
+        DesignSystemFormField(
+          label: 'Nhà cung cấp',
+          input: _companiesLoading 
+            ? const Center(child: CircularProgressIndicator())
+            : MultiSelectDropdown<String>(
+                label: 'Nhà cung cấp',
+                items: _allCompanies.map((c) => MultiSelectItem(value: c.id, label: c.name)).toList(),
+                initialSelectedValues: _selectedSupplierIds,
+                onSelectionChanged: (values) {
+                  setState(() {
+                    _selectedSupplierIds = values;
+                  });
+                },
+                hint: 'Chọn nhà cung cấp',
+              ),
         ),
         const SizedBox(height: 12),
         DesignSystemFormField(

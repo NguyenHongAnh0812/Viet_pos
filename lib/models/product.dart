@@ -23,6 +23,7 @@ class Product {
   final String? discontinueReason; // discontinue_reason
   final DateTime createdAt;  // created_at
   final DateTime updatedAt;  // updated_at
+  final List<String> supplierIds; // Thêm trường này
 
   Product({
     required this.id,
@@ -36,17 +37,18 @@ class Product {
     this.description = '',
     this.usage = '',
     this.ingredients = '',
-    this.notes = '',
+    required this.notes,
     this.stockSystem = 0,
     this.stockInvoice = 0,
     this.costPrice = 0,
     this.salePrice = 0,
     this.grossProfit = 0,
     this.autoPrice = false,
-    this.status = 'active',
+    required this.status,
     this.discontinueReason,
     required this.createdAt,
     required this.updatedAt,
+    this.supplierIds = const [], // Thêm vào constructor
   });
 
   Map<String, dynamic> toMap() {
@@ -72,6 +74,7 @@ class Product {
       'discontinue_reason': discontinueReason,
       'created_at': createdAt,
       'updated_at': updatedAt,
+      'supplier_ids': supplierIds, // Thêm vào toMap
     };
   }
 
@@ -130,6 +133,7 @@ class Product {
       discontinueReason: map['discontinue_reason'],
       createdAt: createdAt ?? DateTime.now(),
       updatedAt: updatedAt ?? DateTime.now(),
+      supplierIds: List<String>.from(map['supplier_ids'] ?? []), // Thêm vào factory
     );
   }
 
@@ -161,6 +165,7 @@ class Product {
     String? discontinueReason,
     DateTime? createdAt,
     DateTime? updatedAt,
+    List<String>? supplierIds, // Thêm vào copyWith
   }) {
     return Product(
       id: id ?? this.id,
@@ -185,6 +190,7 @@ class Product {
       discontinueReason: discontinueReason ?? this.discontinueReason,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
+      supplierIds: supplierIds ?? this.supplierIds, // Thêm vào copyWith
     );
   }
 
@@ -224,6 +230,7 @@ class Product {
       'discontinue_reason': raw['discontinue_reason'] ?? raw['discontinueReason'],
       'created_at': raw['created_at'] ?? raw['createdAt'],
       'updated_at': raw['updated_at'] ?? raw['updatedAt'],
+      'supplier_ids': raw['supplier_ids'] ?? [], // Thêm vào hàm normalize
     };
   }
 

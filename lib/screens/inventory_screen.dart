@@ -73,7 +73,7 @@ class _InventoryScreenState extends State<InventoryScreen> with SingleTickerProv
                   onPressed: () async {
                     final snapshot = await FirebaseFirestore.instance
                         .collection('inventory_sessions')
-                        .where('status', isNotEqualTo: 'done')
+                        .where('status', isEqualTo: 'Đang kiểm kê')
                         .limit(1)
                         .get();
                     if (snapshot.docs.isNotEmpty) {

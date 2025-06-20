@@ -6,8 +6,7 @@
 | trade_name         | String              | Tên thương mại (hiển thị)                                    |
 | internal_name      | String              | Tên nội bộ dùng cho quản lý                                  |
 | barcode            | String              | Mã barcode sản phẩm                                          |
-| sku                | String              | Mã SKU sản phẩm                                              |
-| category_id        | UUID / Integer      | ID danh mục sản phẩm                                         |
+| sku                | String              | Mã SKU sản phẩm                                              |                                       |
 | ingredients        | Text                | Thành phần                                                   |
 | usage              | Text                | Công dụng                                                    |
 | description        | Text                | Mô tả chi tiết sản phẩm                                      |
@@ -77,7 +76,7 @@
 | created_at    | Timestamp | Thời gian tạo                      |
 | updated_at    | Timestamp | Thời gian cập nhật                 |
 
-## Bảng: product_supplier
+## Bảng: product_company
 | Field       | Type           | Description                                                    |
 |-------------|----------------|----------------------------------------------------------------|
 | product_id  | UUID / Integer | FK đến bảng product                                            |
