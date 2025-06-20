@@ -122,111 +122,111 @@ class _InventoryCreateSessionScreenState extends State<InventoryCreateSessionScr
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         TextFormField(
-                          controller: _nameController,
-                          style: bodyLarge.copyWith(color: textPrimary),
-                          decoration: InputDecoration(
+                    controller: _nameController,
+                    style: bodyLarge.copyWith(color: textPrimary),
+                    decoration: InputDecoration(
                             labelText: 'Tên phiên kiểm kê *',
-                            hintText: 'Nhập tên phiên kiểm kê...',
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(8),
-                              borderSide: const BorderSide(color: borderColor),
-                            ),
-                            enabledBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(8),
-                              borderSide: const BorderSide(color: borderColor),
-                            ),
-                            focusedBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(8),
-                              borderSide: const BorderSide(color: primaryBlue, width: 1.5),
-                            ),
-                            contentPadding: const EdgeInsets.symmetric(vertical: 0, horizontal: 16),
-                          ),
+                      hintText: 'Nhập tên phiên kiểm kê...',
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8),
+                        borderSide: const BorderSide(color: borderColor),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8),
+                        borderSide: const BorderSide(color: borderColor),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8),
+                        borderSide: const BorderSide(color: primaryBlue, width: 1.5),
+                      ),
+                      contentPadding: const EdgeInsets.symmetric(vertical: 0, horizontal: 16),
+                    ),
                           validator: (value) {
                             if (value == null || value.trim().isEmpty) {
                               return 'Vui lòng nhập tên phiên kiểm kê';
                             }
                             return null;
                           },
-                        ),
-                        const SizedBox(height: space16),
-                        Text('Ghi chú', style: bodyLarge.copyWith(color: textPrimary)),
-                        const SizedBox(height: space8),
+                  ),
+                  const SizedBox(height: space16),
+                  Text('Ghi chú', style: bodyLarge.copyWith(color: textPrimary)),
+                  const SizedBox(height: space8),
                         TextFormField(
-                          controller: _noteController,
-                          minLines: 2,
-                          maxLines: 4,
-                          style: bodyLarge.copyWith(color: textPrimary),
-                          decoration: InputDecoration(
-                            hintText: 'Ghi chú về phiên kiểm kê...',
-                            hintStyle: bodyLarge.copyWith(color: textSecondary),
-                            filled: true,
-                            fillColor: appBackground,
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(8),
-                              borderSide: const BorderSide(color: borderColor),
+                    controller: _noteController,
+                    minLines: 2,
+                    maxLines: 4,
+                    style: bodyLarge.copyWith(color: textPrimary),
+                    decoration: InputDecoration(
+                      hintText: 'Ghi chú về phiên kiểm kê...',
+                      hintStyle: bodyLarge.copyWith(color: textSecondary),
+                      filled: true,
+                      fillColor: appBackground,
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8),
+                        borderSide: const BorderSide(color: borderColor),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8),
+                        borderSide: const BorderSide(color: borderColor),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8),
+                        borderSide: const BorderSide(color: primaryBlue, width: 1.5),
+                      ),
+                      contentPadding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+                    ),
+                  ),
+                  const SizedBox(height: space16),
+                  Text('Ngày kiểm kê', style: bodyLarge.copyWith(color: textPrimary)),
+                  const SizedBox(height: space8),
+                  GestureDetector(
+                    onTap: () async {
+                      final picked = await showDatePicker(
+                        context: context,
+                        initialDate: _selectedDate ?? DateTime.now(),
+                        firstDate: DateTime(2020),
+                        lastDate: DateTime(2100),
+                        builder: (context, child) => Theme(
+                          data: Theme.of(context).copyWith(
+                            colorScheme: ColorScheme.light(
+                              primary: primaryBlue,
+                              onPrimary: Colors.white,
+                              surface: cardBackground,
+                              onSurface: textPrimary,
                             ),
-                            enabledBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(8),
-                              borderSide: const BorderSide(color: borderColor),
-                            ),
-                            focusedBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(8),
-                              borderSide: const BorderSide(color: primaryBlue, width: 1.5),
-                            ),
-                            contentPadding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
                           ),
+                          child: child!,
                         ),
-                        const SizedBox(height: space16),
-                        Text('Ngày kiểm kê', style: bodyLarge.copyWith(color: textPrimary)),
-                        const SizedBox(height: space8),
-                        GestureDetector(
-                          onTap: () async {
-                            final picked = await showDatePicker(
-                              context: context,
-                              initialDate: _selectedDate ?? DateTime.now(),
-                              firstDate: DateTime(2020),
-                              lastDate: DateTime(2100),
-                              builder: (context, child) => Theme(
-                                data: Theme.of(context).copyWith(
-                                  colorScheme: ColorScheme.light(
-                                    primary: primaryBlue,
-                                    onPrimary: Colors.white,
-                                    surface: cardBackground,
-                                    onSurface: textPrimary,
-                                  ),
-                                ),
-                                child: child!,
-                              ),
-                            );
-                            if (picked != null) setState(() => _selectedDate = picked);
-                          },
-                          child: AbsorbPointer(
-                            child: TextField(
-                              controller: TextEditingController(
-                                text: _selectedDate != null
-                                    ? 'ngày ${_selectedDate!.day} tháng ${_selectedDate!.month} năm ${_selectedDate!.year}'
-                                    : '',
-                              ),
-                              style: bodyLarge.copyWith(color: textPrimary),
-                              decoration: InputDecoration(
-                                prefixIcon: const Icon(Icons.calendar_today, color: textSecondary),
-                                filled: true,
-                                fillColor: appBackground,
-                                border: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(8),
-                                  borderSide: const BorderSide(color: borderColor),
-                                ),
-                                enabledBorder: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(8),
-                                  borderSide: const BorderSide(color: borderColor),
-                                ),
-                                focusedBorder: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(8),
-                                  borderSide: const BorderSide(color: primaryBlue, width: 1.5),
-                                ),
-                                contentPadding: const EdgeInsets.symmetric(vertical: 0, horizontal: 16),
-                              ),
-                            ),
+                      );
+                      if (picked != null) setState(() => _selectedDate = picked);
+                    },
+                    child: AbsorbPointer(
+                      child: TextField(
+                        controller: TextEditingController(
+                          text: _selectedDate != null
+                              ? 'ngày ${_selectedDate!.day} tháng ${_selectedDate!.month} năm ${_selectedDate!.year}'
+                              : '',
+                        ),
+                        style: bodyLarge.copyWith(color: textPrimary),
+                        decoration: InputDecoration(
+                          prefixIcon: const Icon(Icons.calendar_today, color: textSecondary),
+                          filled: true,
+                          fillColor: appBackground,
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8),
+                            borderSide: const BorderSide(color: borderColor),
+                          ),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8),
+                            borderSide: const BorderSide(color: borderColor),
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8),
+                            borderSide: const BorderSide(color: primaryBlue, width: 1.5),
+                          ),
+                          contentPadding: const EdgeInsets.symmetric(vertical: 0, horizontal: 16),
+                        ),
+                      ),
                           ),
                         ),
                       ],

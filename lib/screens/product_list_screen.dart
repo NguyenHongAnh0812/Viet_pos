@@ -163,8 +163,60 @@ class _ProductListScreenState extends State<ProductListScreen> {
   List<String> get allTags => ['kháng sinh', 'phổ rộng', 'vitamin', 'bổ sung', 'NSAID', 'giảm đau', 'quinolone'];
 
   List<Product> filterProducts(List<Product> products) {
-    // Luôn trả về toàn bộ danh sách sản phẩm, không lọc
-    return products;
+    return products.where((product) {
+      // Tìm kiếm theo tên, mã vạch, SKU
+      if (searchText.isNotEmpty) {
+        final searchLower = searchText.toLowerCase();
+        final matchesSearch = product.internalName.toLowerCase().contains(searchLower) ||
+            product.tradeName.toLowerCase().contains(searchLower) ||
+            (product.barcode != null && product.barcode!.toLowerCase().contains(searchLower)) ||
+            (product.sku != null && product.sku!.toLowerCase().contains(searchLower));
+        if (!matchesSearch) return false;
+      }
+
+      // Lọc theo danh mục
+      if (selectedCategory != 'Tất cả') {
+        if (!product.categoryIds.contains(selectedCategory)) {
+        return false;
+      }
+      }
+      
+      // Lọc theo khoảng giá
+      if (priceRange.start > 0 || priceRange.end < maxPrice) {
+        if (product.salePrice < priceRange.start || product.salePrice > priceRange.end) {
+          return false;
+        }
+      }
+    
+      // Lọc theo khoảng tồn kho
+      if (stockRange.start > 0 || stockRange.end < maxStock) {
+        if (product.stockSystem < stockRange.start || product.stockSystem > stockRange.end) {
+          return false;
+        }
+      }
+      
+      // Lọc theo trạng thái
+      if (status != 'Tất cả trạng thái') {
+        final isActive = product.status;
+        switch (status) {
+          case 'Còn bán':
+            if (isActive == false) return false;
+            break;
+          case 'Ngừng bán':
+            if (isActive == true) return false;
+            break;
+        }
+      }
+
+      // Lọc theo tags
+      if (selectedTags.isNotEmpty) {
+        final productTags = product.tags.map((tag) => tag.toLowerCase()).toSet();
+        final hasMatchingTag = selectedTags.any((tag) => productTags.contains(tag.toLowerCase()));
+        if (hasMatchingTag == false) return false;
+      }
+      
+      return true;
+    }).toList();
   }
 
   List<Product> sortProducts(List<Product> products) {
@@ -541,6 +593,56 @@ class _ProductListScreenState extends State<ProductListScreen> {
   }
 
   @override
+  void initState() {
+    super.initState();
+    _searchController.addListener(_onSearchChanged);
+  }
+
+  @override
+  void didUpdateWidget(ProductListScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // Reset pagination when filters change
+    if (oldWidget.filterCategory != widget.filterCategory ||
+        oldWidget.filterPriceRange != widget.filterPriceRange ||
+        oldWidget.filterStockRange != widget.filterStockRange ||
+        oldWidget.filterStatus != widget.filterStatus ||
+        oldWidget.filterTags != widget.filterTags) {
+      _resetPagination();
+    }
+  }
+
+  @override
+  void dispose() {
+    _searchController.removeListener(_onSearchChanged);
+    _searchController.dispose();
+    selectedProductIds.dispose();
+    super.dispose();
+  }
+
+  void _onSearchChanged() {
+    setState(() {
+      searchText = _searchController.text;
+      _resetPagination();
+    });
+  }
+
+  void _resetPagination() {
+    currentPage = 1;
+    selectedProductIds.value = {}; // Clear selection when filter changes
+  }
+
+  bool get _hasActiveFilters {
+    return searchText.isNotEmpty ||
+           selectedCategory != 'Tất cả' ||
+           status != 'Tất cả' ||
+           selectedTags.isNotEmpty ||
+           priceRange.start > 0 ||
+           priceRange.end < maxPrice ||
+           stockRange.start > 0 ||
+           stockRange.end < maxStock;
+  }
+
+  @override
   Widget build(BuildContext context) {
     print('\n=== DEBUG: Building ProductListScreen ===');
     
@@ -809,7 +911,6 @@ class _ProductListScreenState extends State<ProductListScreen> {
                                 hint: 'Tìm theo tên, mã vạch...',
                               ),
                               style: const TextStyle(fontSize: 14),
-                              onChanged: (v) => setState(() => searchText = v),
                             ),
                             Positioned(
                               right: 0,
@@ -881,6 +982,27 @@ class _ProductListScreenState extends State<ProductListScreen> {
                               );
                             }
 
+                            if (filteredProducts.isEmpty && _hasActiveFilters) {
+                              return Padding(
+                                padding: const EdgeInsets.symmetric(vertical: 32.0),
+                                child: Center(
+                                  child: Column(
+                                    children: [
+                                      Text(
+                                        'Không tìm thấy sản phẩm nào phù hợp với bộ lọc',
+                                        style: TextStyle(fontSize: 16, color: Colors.grey[600], fontWeight: FontWeight.w500),
+                                      ),
+                                      const SizedBox(height: 8),
+                                      Text(
+                                        'Thử thay đổi điều kiện tìm kiếm hoặc bộ lọc',
+                                        style: TextStyle(fontSize: 14, color: Colors.grey[500]),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              );
+                            }
+
                             return Column(
                               children: [
                                 // Filter and Sort Row
@@ -894,7 +1016,12 @@ class _ProductListScreenState extends State<ProductListScreen> {
                                           items: sortOptions.map((o) => o['key'] as String).toList(),
                                           value: sortOption,
                                           getLabel: (key) => sortOptions.firstWhere((o) => o['key'] == key)['label'],
-                                          onChanged: (val) => setState(() => sortOption = val ?? sortOption),
+                                          onChanged: (val) {
+                                            setState(() {
+                                              sortOption = val ?? sortOption;
+                                              _resetPagination();
+                                            });
+                                          },
                                           hint: 'Tên: A - Z',
                                         ),
                                       ),
@@ -942,22 +1069,22 @@ class _ProductListScreenState extends State<ProductListScreen> {
                                                 flex: 1,
                                                 child: Align(
                                                   alignment: Alignment.centerLeft,
-                                                  child: ValueListenableBuilder<Set<String>>(
-                                                    valueListenable: selectedProductIds,
-                                                    builder: (context, selected, _) {
-                                                      return Checkbox(
-                                                        value: selected.length == pagedProducts.length,
-                                                        onChanged: pagedProducts.isEmpty ? null : (checked) {
-                                                          if (checked == true) {
-                                                            selectedProductIds.value = Set<String>.from(pagedProducts.map((p) => p.id));
-                                                          } else {
-                                                            selectedProductIds.value = {};
-                                                          }
-                                                        },
-                                                      );
-                                                    },
-                                                  ),
+                                                child: ValueListenableBuilder<Set<String>>(
+                                                  valueListenable: selectedProductIds,
+                                                  builder: (context, selected, _) {
+                                                    return Checkbox(
+                                                      value: selected.length == pagedProducts.length,
+                                                      onChanged: pagedProducts.isEmpty ? null : (checked) {
+                                                        if (checked == true) {
+                                                          selectedProductIds.value = Set<String>.from(pagedProducts.map((p) => p.id));
+                                                        } else {
+                                                          selectedProductIds.value = {};
+                                                        }
+                                                      },
+                                                    );
+                                                  },
                                                 ),
+                                              ),
                                               ),
                                               Expanded(flex: 3, child: Text('Tên sản phẩm', style: TextStyle(color: textMuted, fontWeight: FontWeight.bold))),
                                               Expanded(flex: 2, child: Text('Giá nhập', textAlign: TextAlign.center, style: TextStyle(color: textMuted, fontWeight: FontWeight.bold))),
@@ -972,9 +1099,20 @@ class _ProductListScreenState extends State<ProductListScreen> {
                                         Padding(
                                           padding: const EdgeInsets.symmetric(vertical: 32.0),
                                           child: Center(
-                                            child: Text(
-                                              'Không tìm thấy sản phẩm nào',
+                                            child: Column(
+                                              children: [
+                                                Text(
+                                                  'Không có sản phẩm nào để hiển thị',
                                               style: TextStyle(fontSize: 16, color: Colors.grey[600], fontWeight: FontWeight.w500),
+                                                ),
+                                                if (currentPage > 1) ...[
+                                                  const SizedBox(height: 8),
+                                                  Text(
+                                                    'Đã hiển thị tất cả sản phẩm',
+                                                    style: TextStyle(fontSize: 14, color: Colors.grey[500]),
+                                                  ),
+                                                ],
+                                              ],
                                             ),
                                           ),
                                         )
@@ -983,7 +1121,7 @@ class _ProductListScreenState extends State<ProductListScreen> {
                                           height: MediaQuery.of(context).size.height * 0.6,
                                           child: NotificationListener<ScrollNotification>(
                                             onNotification: (scrollInfo) {
-                                              _handleScroll(scrollInfo, sortedProducts.length);
+                                              _handleScroll(scrollInfo, filteredProducts.length);
                                               return false;
                                             },
                                             child: ListView.builder(
@@ -1055,22 +1193,22 @@ class _ProductListScreenState extends State<ProductListScreen> {
                                                             flex: 1,
                                                             child: Align(
                                                               alignment: Alignment.centerLeft,
-                                                              child: ValueListenableBuilder<Set<String>>(
-                                                                valueListenable: selectedProductIds,
-                                                                builder: (context, selected, _) {
-                                                                  return Checkbox(
-                                                                    value: selected.contains(product.id),
-                                                                    onChanged: (checked) {
-                                                                      final newSet = Set<String>.from(selected);
-                                                                      if (checked == true) {
-                                                                        newSet.add(product.id);
-                                                                      } else {
-                                                                        newSet.remove(product.id);
-                                                                      }
-                                                                      selectedProductIds.value = newSet;
-                                                                    },
-                                                                  );
-                                                                },
+                                                            child: ValueListenableBuilder<Set<String>>(
+                                                              valueListenable: selectedProductIds,
+                                                              builder: (context, selected, _) {
+                                                                return Checkbox(
+                                                                  value: selected.contains(product.id),
+                                                                  onChanged: (checked) {
+                                                                    final newSet = Set<String>.from(selected);
+                                                                    if (checked == true) {
+                                                                      newSet.add(product.id);
+                                                                    } else {
+                                                                      newSet.remove(product.id);
+                                                                    }
+                                                                    selectedProductIds.value = newSet;
+                                                                  },
+                                                                );
+                                                              },
                                                               ),
                                                             ),
                                                           ),
@@ -1082,9 +1220,9 @@ class _ProductListScreenState extends State<ProductListScreen> {
                                                                 Text(product.tradeName, style: bodyLarge.copyWith(fontWeight: FontWeight.w700)),
                                                                 if (product.internalName.isNotEmpty)
                                                                   Text(product.internalName, style: body.copyWith(color: Colors.grey[600])),
-                                                              ],
-                                                            ),
-                                                          ),
+                                                                    ],
+                                                                  ),
+                                                                ),
                                                           Expanded(
                                                             flex: 2,
                                                             child: Align(
@@ -1139,12 +1277,6 @@ class _ProductListScreenState extends State<ProductListScreen> {
         ),
       ),
     );
-  }
-
-  @override
-  void dispose() {
-    selectedProductIds.dispose();
-    super.dispose();
   }
 
   void _handleScroll(ScrollNotification scrollInfo, int totalItems) {

@@ -519,7 +519,7 @@ class _AddProductCategoryScreenState extends State<AddProductCategoryScreen> {
               ),
             ),
                 if (!isManualMode) ...[
-                  const SizedBox(height: 24),
+            const SizedBox(height: 24),
                   Container(
                     padding: const EdgeInsets.all(24),
                     margin: const EdgeInsets.symmetric(horizontal: 24),
@@ -668,9 +668,9 @@ class _AddProductCategoryScreenState extends State<AddProductCategoryScreen> {
                               children: [
                                 // Block: Sản phẩm đã chọn (chỉ hiển thị nếu có sản phẩm)
                                 if (selectedProducts.isNotEmpty)
-                                  Container(
+                                Container(
                                     margin: const EdgeInsets.symmetric(horizontal: 24, vertical: 0),
-                                    decoration: BoxDecoration(
+                                  decoration: BoxDecoration(
                                       color: Colors.white,
                                       borderRadius: BorderRadius.circular(12),
                                       border: Border.all(color: borderColor),
@@ -688,8 +688,8 @@ class _AddProductCategoryScreenState extends State<AddProductCategoryScreen> {
                                         const SizedBox(height: 8),
                                         Padding(
                                           padding: const EdgeInsets.symmetric(horizontal: 20),
-                                          child: Row(
-                                            children: const [
+                                  child: Row(
+                                    children: const [
                                               Expanded(
                                                 flex: 7,
                                                 child: Text('Tên sản phẩm', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14, color: textSecondary)),
@@ -712,14 +712,14 @@ class _AddProductCategoryScreenState extends State<AddProductCategoryScreen> {
                                             final p = selectedProducts[index];
                                             return Padding(
                                               padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-                                              child: Row(
+                                        child: Row(
                                                 crossAxisAlignment: CrossAxisAlignment.start,
                                                 children: [
                                                   Expanded(
                                                     flex: 7,
                                                     child: Column(
                                                       crossAxisAlignment: CrossAxisAlignment.start,
-                                                      children: [
+                                          children: [
                                                         Text(p.internalName, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15)),
                                                         Text(p.tradeName, style: const TextStyle(fontSize: 13, color: textSecondary)),
                                                       ],
@@ -758,9 +758,9 @@ class _AddProductCategoryScreenState extends State<AddProductCategoryScreen> {
                                       borderRadius: BorderRadius.circular(12),
                                       border: Border.all(color: borderColor),
                                     ),
-                                    child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
-                                      children: [
+                                              child: Column(
+                                                crossAxisAlignment: CrossAxisAlignment.start,
+                                                children: [
                                         Padding(
                                           padding: const EdgeInsets.fromLTRB(20, 18, 20, 0),
                                           child: const Text(
@@ -801,14 +801,14 @@ class _AddProductCategoryScreenState extends State<AddProductCategoryScreen> {
                                                   },
                                                   child: Padding(
                                                     padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-                                                    child: Row(
+                                              child: Row(
                                                       crossAxisAlignment: CrossAxisAlignment.start,
                                                       children: [
                                                 Expanded(
                                                           flex: 7,
                                                   child: Column(
                                                     crossAxisAlignment: CrossAxisAlignment.start,
-                                                    children: [
+                                                children: [
                                                               Text(product.internalName, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15)),
                                                               Text(product.tradeName, style: const TextStyle(fontSize: 13, color: textSecondary)),
                                                     ],
@@ -819,11 +819,11 @@ class _AddProductCategoryScreenState extends State<AddProductCategoryScreen> {
                                                           child: Padding(
                                                             padding: const EdgeInsets.only(top: 2),
                                                             child: Text(product.stockSystem.toString(), style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15)),
-                                                          ),
-                                                        ),
-                                                      ],
-                                                    ),
-                                                  ),
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
                                                 );
                                               },
                                             );
@@ -1019,15 +1019,15 @@ class _AddProductCategoryScreenState extends State<AddProductCategoryScreen> {
             if (matchingProducts.isEmpty)
               const Text('Không có sản phẩm phù hợp', style: TextStyle(color: Colors.grey)),
             if (matchingProducts.isNotEmpty)
-              Container(
-                decoration: BoxDecoration(
+                          Container(
+                            decoration: BoxDecoration(
                   color: Colors.white,
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: borderColor),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
+                              border: Border.all(color: borderColor),
+                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
                     // Header row
                     Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
@@ -1046,7 +1046,7 @@ class _AddProductCategoryScreenState extends State<AddProductCategoryScreen> {
                             ],
                           ),
                           const SizedBox(height: 16),
-                          Container(
+                                Container(
                             height: 1,
                             color: borderColor,
                           ),
@@ -1056,44 +1056,44 @@ class _AddProductCategoryScreenState extends State<AddProductCategoryScreen> {
                     // Product list
                     Container(
                       constraints: const BoxConstraints(maxHeight: 350),
-                      child: ListView.separated(
-                        shrinkWrap: true,
+                                  child: ListView.separated(
+                                    shrinkWrap: true,
                         itemCount: matchingProducts.length,
                         separatorBuilder: (_, __) => const Divider(height: 1, color: borderColor),
                         itemBuilder: (context, index) {
                           final p = matchingProducts[index];
                           return Padding(
                             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-                            child: Row(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Expanded(
+                                        child: Row(
+                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                          children: [
+                                            Expanded(
                                   flex: 7,
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
+                                              child: Column(
+                                                crossAxisAlignment: CrossAxisAlignment.start,
+                                                children: [
                                       Text(p.internalName, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15)),
                                       Text(p.tradeName, style: const TextStyle(fontSize: 13, color: textSecondary)),
-                                    ],
-                                  ),
-                                ),
+                                                ],
+                                              ),
+                                            ),
                                 Expanded(
                                   flex: 2,
                                   child: Padding(
                                     padding: const EdgeInsets.only(top: 2),
                                     child: Text(p.stockSystem.toString(), style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15)),
                                   ),
+                                            ),
+                                          ],
+                                        ),
+                                      );
+                                    },
+                                  ),
                                 ),
                               ],
                             ),
-                          );
-                        },
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-          ],
+                          ),
+                      ],
         );
       },
     );

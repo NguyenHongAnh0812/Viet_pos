@@ -179,7 +179,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 // Footer
                 const SizedBox(height: 24),
                 Text(
-                  '© 2024 VET-POS. All rights reserved.',
+                  '© 2025 VET-POS. All rights reserved.',
                   style: caption.copyWith(color: textSecondary),
                 ),
               ],

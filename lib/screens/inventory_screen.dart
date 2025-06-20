@@ -91,9 +91,9 @@ class _InventoryScreenState extends State<InventoryScreen> with SingleTickerProv
                         ),
                       );
                     } else {
-                      final mainLayoutState = context.findAncestorStateOfType<MainLayoutState>();
-                      if (mainLayoutState != null) {
-                        mainLayoutState.onSidebarTap(MainPage.inventoryCreateSession);
+                    final mainLayoutState = context.findAncestorStateOfType<MainLayoutState>();
+                    if (mainLayoutState != null) {
+                      mainLayoutState.onSidebarTap(MainPage.inventoryCreateSession);
                       }
                     }
                   },
@@ -284,12 +284,12 @@ class _InventoryScreenState extends State<InventoryScreen> with SingleTickerProv
                                     ),
                                           );
                                         },
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ),
                     ],
                   ),
                 );
