@@ -189,7 +189,7 @@ class _InventoryDetailScreenState extends State<InventoryDetailScreen> {
         content: contentWidget,
         icon: Icons.check_circle,
         iconColor: Colors.green,
-        actions: [
+          actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
             child: const Text('Hủy'),
@@ -199,7 +199,7 @@ class _InventoryDetailScreenState extends State<InventoryDetailScreen> {
             style: primaryButtonStyle,
             child: const Text('Xác nhận'),
           ),
-        ],
+          ],
       );
       if (confirmed != true) {
         setState(() { _completeLoading = false; });
@@ -460,17 +460,17 @@ class _InventoryDetailScreenState extends State<InventoryDetailScreen> {
                                             content: Text('Sau khi hoàn tất, bạn không thể thay đổi số liệu kiểm kê.', style: body),
                                             icon: Icons.check_circle,
                                             iconColor: Colors.green,
-                                            actions: [
-                                              TextButton(
-                                                onPressed: () => Navigator.pop(context, false),
-                                                child: const Text('Hủy'),
-                                              ),
-                                              ElevatedButton(
-                                                onPressed: () => Navigator.pop(context, true),
+                                              actions: [
+                                                TextButton(
+                                                  onPressed: () => Navigator.pop(context, false),
+                                                  child: const Text('Hủy'),
+                                                ),
+                                                ElevatedButton(
+                                                  onPressed: () => Navigator.pop(context, true),
                                                 style: primaryButtonStyle,
-                                                child: const Text('Xác nhận'),
-                                              ),
-                                            ],
+                                                  child: const Text('Xác nhận'),
+                                                ),
+                                              ],
                                           );
                                           if (confirmed == true) {
                                             _confirmCompleteInventory();

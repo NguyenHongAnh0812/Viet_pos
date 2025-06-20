@@ -237,6 +237,7 @@ class _InvoiceImportScreenState extends State<InvoiceImportScreen> {
 
       // Tìm vị trí các cột
       final productIndex = headers.indexWhere((h) => h.contains('product'));
+      final internalNameIndex = headers.indexWhere((h) => h.contains('tên nội bộ'));
       final unitIndex = headers.indexWhere((h) => h.contains('đơn vị tính'));
       final quantityIndex = headers.indexWhere((h) => h.contains('số lượng'));
       final toImportIndex = headers.indexWhere((h) => h.contains('to import'));
@@ -263,6 +264,7 @@ class _InvoiceImportScreenState extends State<InvoiceImportScreen> {
           final productName = row[headers[productIndex]]?.toString().trim() ?? '';
           if (productName.isEmpty) continue;
 
+          final internalName = internalNameIndex != -1 ? row[headers[internalNameIndex]]?.toString().trim() ?? '' : '';
           final unit = row[headers[unitIndex]]?.toString().trim() ?? '';
           final quantity = double.tryParse(row[headers[quantityIndex]]?.toString().replaceAll(',', '') ?? '0') ?? 0;
           final unitPrice = double.tryParse(row[headers[unitPriceIndex]]?.toString().replaceAll(',', '') ?? '0') ?? 0;
@@ -280,6 +282,7 @@ class _InvoiceImportScreenState extends State<InvoiceImportScreen> {
           } else {
             mergedProducts[productName] = {
               'product': productName,
+              'tên nội bộ': internalName,
               'đơn vị tính': unit,
               'số lượng': quantity.toString(),
               'đơn giá': unitPrice.toString(),
@@ -457,25 +460,28 @@ class _InvoiceImportScreenState extends State<InvoiceImportScreen> {
         for (int i = batchStart; i < batchEnd; i++) {
           final row = _mergedData[i];
           final name = row['product']?.toString() ?? '';
+          final internalName = row['tên nội bộ']?.toString() ?? '';
           final unit = row['đơn vị tính']?.toString() ?? '';
           final quantity = double.tryParse(row['số lượng']?.toString() ?? '0') ?? 0;
           final costPrice = double.tryParse(row['đơn giá']?.toString() ?? '0') ?? 0;
 
           try {
-        if (allProducts.containsKey(name)) {
+            // Sử dụng internal_name để tìm sản phẩm nếu có, nếu không thì dùng trade_name
+            final searchKey = internalName.isNotEmpty ? internalName : name;
+            if (allProducts.containsKey(searchKey)) {
               // Cập nhật sản phẩm hiện có
-          final doc = allProducts[name]!;
+              final doc = allProducts[searchKey]!;
               final currentStock = (doc['stock_invoice'] ?? 0).toDouble();
-          batch.update(doc.reference, {
+              batch.update(doc.reference, {
                 'stock_invoice': currentStock + quantity,
                 'cost_price': costPrice,
                 'updated_at': FieldValue.serverTimestamp(),
-          });
-          updatedCount++;
-        } else {
+              });
+              updatedCount++;
+            } else {
               // Tạo sản phẩm mới
-          final productData = {
-                'internal_name': '',
+              final productData = {
+                'internal_name': internalName.isNotEmpty ? internalName : name,
                 'trade_name': name,
                 'unit': unit,
                 'stock_system': 0,
@@ -494,11 +500,11 @@ class _InvoiceImportScreenState extends State<InvoiceImportScreen> {
                 'sku': null,
                 'created_at': FieldValue.serverTimestamp(),
                 'updated_at': FieldValue.serverTimestamp(),
-          };
+              };
               final docRef = FirebaseFirestore.instance.collection('products').doc();
-          batch.set(docRef, productData);
-          newCount++;
-        }
+              batch.set(docRef, productData);
+              newCount++;
+            }
             batchOperations++;
           } catch (e) {
             errorCount++;

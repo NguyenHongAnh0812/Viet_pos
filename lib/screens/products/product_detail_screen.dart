@@ -754,7 +754,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                           style: primaryButtonStyle,
                         ),
                       ),
-                      Padding(
+                       Padding(
                         padding: const EdgeInsets.symmetric(horizontal: 4.0),
                         child: OutlinedButton.icon(
                           onPressed: () {
