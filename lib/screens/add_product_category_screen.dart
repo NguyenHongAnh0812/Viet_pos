@@ -302,145 +302,160 @@ class _AddProductCategoryScreenState extends State<AddProductCategoryScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: appBackground,
-      appBar: AppBar(
-        backgroundColor: Colors.white,
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.black87),
+    return Container(
+      color: appBackground,
+      child: Column(
+          children: [
+          // Header section
+          Container(
+            padding: const EdgeInsets.all(24),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              border: Border(bottom: BorderSide(color: borderColor)),
+            ),
+            child: Row(
+              children: [
+                IconButton(
+                  icon: const Icon(Icons.arrow_back, color: Colors.black87),
                   onPressed: widget.onBack ?? () => Navigator.pop(context),
                 ),
-        title: const Text(
-          'Thêm danh mục',
-          style: TextStyle(color: Colors.black87, fontSize: 20),
-        ),
-        actions: [
-          TextButton(
-            onPressed: widget.onBack ?? () => Navigator.pop(context),
-            child: const Text('Hủy'),
-          ),
-          const SizedBox(width: 8),
-          Padding(
-            padding: const EdgeInsets.only(right: 16),
-            child: ElevatedButton(
-              onPressed: isSaving || _nameError != null ? null : _createCategory,
-              style: primaryButtonStyle,
-              child: isSaving
-                  ? const SizedBox(
-                      width: 20,
-                      height: 20,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2,
-                        color: Colors.white,
-                      ),
-                    )
-                  : const Text('Lưu'),
+                const SizedBox(width: 16),
+                const Expanded(
+                  child: Text(
+                    'Thêm danh mục',
+                    style: TextStyle(
+                      color: Colors.black87, 
+                      fontSize: 24,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+                TextButton(
+                  onPressed: widget.onBack ?? () => Navigator.pop(context),
+                  child: const Text('Hủy'),
+                ),
+                const SizedBox(width: 16),
+                ElevatedButton(
+                  onPressed: isSaving || _nameError != null ? null : _createCategory,
+                  style: primaryButtonStyle,
+                  child: isSaving
+                      ? const SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: Colors.white,
+                          ),
+                        )
+                      : const Text('Lưu'),
+                ),
+              ],
             ),
           ),
-        ],
-      ),
-      body: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Left column
+          // Main content
           Expanded(
-            flex: 11,
-            child: Column(
+            child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Category Info Section
-                Container(
-                  padding: const EdgeInsets.all(24),
-                  margin: const EdgeInsets.all(24),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: borderColor),
-                  ),
+                // Left column
+                Expanded(
+                  flex: 11,
+                  child: SingleChildScrollView(
+                    padding: const EdgeInsets.all(24),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // Category Info Section
+                        Container(
+                          padding: const EdgeInsets.all(24),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(color: borderColor),
+                          ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                      const Text(
-                        'Thông tin danh mục',
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w600,
-                          color: textPrimary,
-                        ),
-                      ),
-                      const SizedBox(height: 24),
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Text(
-                            'Tên danh mục',
-                            style: TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.w600,
-                              color: textPrimary,
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          TextField(
+                              const Text(
+                                'Thông tin danh mục',
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w600,
+                                  color: textPrimary,
+                                ),
+                              ),
+                              const SizedBox(height: 24),
+                              Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  const Text(
+                                    'Tên danh mục',
+                                    style: TextStyle(
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.w600,
+                                      color: textPrimary,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 8),
+                                  TextField(
                       controller: _nameController,
                       decoration: designSystemInputDecoration(
                         hint: 'Nhập tên danh mục',
-                              errorText: _nameError,
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 16),
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Text(
-                            'Mô tả',
-                            style: TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.w600,
-                              color: textPrimary,
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          TextField(
-                            controller: _descController,
-                            minLines: 3,
-                            maxLines: 5,
-                            decoration: designSystemInputDecoration(
-                              hint: 'Nhập mô tả cho danh mục',
-                            ),
-                          ),
-                        ],
+                                      errorText: _nameError,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 16),
+                              Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  const Text(
+                                    'Mô tả',
+                                    style: TextStyle(
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.w600,
+                                      color: textPrimary,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 8),
+                                  TextField(
+                                    controller: _descController,
+                                    minLines: 3,
+                                    maxLines: 5,
+                                    decoration: designSystemInputDecoration(
+                                      hint: 'Nhập mô tả cho danh mục',
+                                    ),
+                                  ),
+                                ],
                   ),
                   const SizedBox(height: 16),
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Text(
-                            'Danh mục cha',
-                            style: TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.w600,
-                              color: textPrimary,
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          StreamBuilder<List<ProductCategory>>(
+                              Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  const Text(
+                                    'Danh mục cha',
+                                    style: TextStyle(
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.w600,
+                                      color: textPrimary,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 8),
+                                  StreamBuilder<List<ProductCategory>>(
                       stream: _categoryService.getCategories(),
                       builder: (context, snapshot) {
-                              final categories = (snapshot.data ?? []).where((c) => c.parentId == null).toList();
+                                      final categories = (snapshot.data ?? []).where((c) => c.parentId == null).toList();
                         final parentOptions = [null, ...categories];
                         return ShopifyDropdown<String?>(
                           items: parentOptions.map((c) => c?.id).toList(),
                           value: _selectedParentId,
                           getLabel: (id) {
-                                  if (id == null) return 'Chọn danh mục cha';
-                                  final cat = categories.firstWhere(
-                                    (c) => c.id == id,
-                                    orElse: () => ProductCategory(id: '', name: '', description: ''),
-                                  );
+                                          if (id == null) return 'Chọn danh mục cha';
+                                          final cat = categories.firstWhere(
+                                            (c) => c.id == id,
+                                            orElse: () => ProductCategory(id: '', name: '', description: ''),
+                                          );
                             return cat.name.isNotEmpty ? cat.name : '(Không xác định)';
                           },
                           onChanged: (val) => setState(() => _selectedParentId = val),
@@ -448,400 +463,403 @@ class _AddProductCategoryScreenState extends State<AddProductCategoryScreen> {
                         );
                       },
                     ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-                // Category Type Section
-                Container(
-                  padding: const EdgeInsets.all(24),
-                  margin: const EdgeInsets.symmetric(horizontal: 24),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: borderColor),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text(
-                        'Loại danh mục',
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w600,
-                          color: textPrimary,
-                        ),
-                      ),
-                      const SizedBox(height: 14),
-                      Column(
-                        children: [
-                          RadioListTile<bool>(
-                            title: const Text(
-                              'Thủ công',
-                              style: TextStyle(
-                                fontWeight: FontWeight.w600,
-                                color: textPrimary,
-                              ),
-                            ),
-                            subtitle: const Text(
-                              'Thêm từng sản phẩm vào danh mục này.',
-                              style: TextStyle(fontSize: 13),
-                            ),
-                            value: true,
-                            groupValue: isManualMode,
-                            onChanged: (value) {
-                              setState(() => isManualMode = value!);
-                            },
-                          ),
-                          const SizedBox(height: 2),
-                          RadioListTile<bool>(
-                            title: const Text(
-                              'Thông minh',
-                              style: TextStyle(
-                                fontWeight: FontWeight.w600,
-                                color: textPrimary,
-                              ),
-                            ),
-                            subtitle: const Text(
-                              'Các sản phẩm hiện tại và tương lai phù hợp với các điều kiện bạn đặt sẽ tự động được thêm vào danh mục này.',
-                              style: TextStyle(fontSize: 13),
-                            ),
-                            value: false,
-                            groupValue: isManualMode,
-                            onChanged: (value) {
-                              setState(() => isManualMode = value!);
-                            },
-                          ),
-                        ],
+                                ],
                   ),
                 ],
               ),
             ),
-                if (!isManualMode) ...[
             const SizedBox(height: 24),
-                  Container(
-                    padding: const EdgeInsets.all(24),
-                    margin: const EdgeInsets.symmetric(horizontal: 24),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: borderColor),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text(
-                          'Điều kiện',
-                          style: TextStyle(
-                            fontWeight: FontWeight.w700,
-                            fontSize: 20,
-                            color: textPrimary,
-                          ),
-                        ),
-                        const SizedBox(height: 18),
-                        const Text(
-                          'Sản phẩm phải phù hợp:',
-                          style: TextStyle(
-                            fontWeight: FontWeight.w500,
-                            fontSize: 15,
-                            color: textPrimary,
-                          ),
-                        ),
-                        const SizedBox(height: 10),
-                        Row(
-                          children: [
-                            Radio<String>(
-                              value: 'all',
-                              groupValue: _selectedConditionType,
-                              onChanged: (value) {
-                                setState(() => _selectedConditionType = value!);
-                              },
-                            ),
-                            const Text(
-                              'Tất cả các điều kiện',
-                              style: TextStyle(
-                                fontWeight: FontWeight.w500,
-                                fontSize: 15,
-                                color: textPrimary,
-                              ),
-                            ),
-                            const SizedBox(width: 24),
-                            Radio<String>(
-                              value: 'any',
-                              groupValue: _selectedConditionType,
-                              onChanged: (value) {
-                                setState(() => _selectedConditionType = value!);
-                              },
-                            ),
-                            const Text(
-                              'Bất kỳ điều kiện nào',
-                              style: TextStyle(
-                                fontWeight: FontWeight.w500,
-                                fontSize: 15,
-                                color: textPrimary,
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 24),
-                        ..._conditions.asMap().entries.map((entry) {
-                          final index = entry.key;
-                          final condition = entry.value;
-                          return _buildConditionRow(condition, index);
-                        }).toList(),
+                        // Category Type Section
                         Container(
-                          margin: const EdgeInsets.only(top: 12),
-                          child: OutlinedButton.icon(
-                            onPressed: _addCondition,
-                            icon: const Icon(Icons.add),
-                            label: const Text('Thêm điều kiện'),
-                            style: secondaryButtonStyle,
+                          padding: const EdgeInsets.all(24),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(color: borderColor),
                           ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ],
-            ),
-          ),
-          // Right column
-          Container(
-            width: 1,
-            height: double.infinity,
-            color: borderColor,
-          ),
-          Expanded(
-            flex: 9,
-            child: Container(
-              height: double.infinity,
-              color: Colors.white,
-              padding: const EdgeInsets.only(top: 24),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Container(
-                    margin: const EdgeInsets.fromLTRB(24, 0, 24, 24),
-                    padding: const EdgeInsets.all(24),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: borderColor),
+                              const Text(
+                                'Loại danh mục',
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w600,
+                                  color: textPrimary,
+                                ),
+                              ),
+                              const SizedBox(height: 14),
+                              Column(
+                                children: [
+                                  RadioListTile<bool>(
+                                    title: const Text(
+                                      'Thủ công',
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.w600,
+                                        color: textPrimary,
+                                      ),
+                                    ),
+                                    subtitle: const Text(
+                                      'Thêm từng sản phẩm vào danh mục này.',
+                                      style: TextStyle(fontSize: 13),
+                                    ),
+                                    value: true,
+                                    groupValue: isManualMode,
+                                    onChanged: (value) {
+                                      setState(() => isManualMode = value!);
+                                    },
+                                  ),
+                                  const SizedBox(height: 2),
+                                  RadioListTile<bool>(
+                                    title: const Text(
+                                      'Thông minh',
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.w600,
+                                        color: textPrimary,
+                                      ),
+                                    ),
+                                    subtitle: const Text(
+                                      'Các sản phẩm hiện tại và tương lai phù hợp với các điều kiện bạn đặt sẽ tự động được thêm vào danh mục này.',
+                                      style: TextStyle(fontSize: 13),
+                                    ),
+                                    value: false,
+                                    groupValue: isManualMode,
+                                    onChanged: (value) {
+                                      setState(() => isManualMode = value!);
+                                    },
+                        ),
+                      ],
                     ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text(
-                          'Sản phẩm trong danh mục',
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
+                            ],
                           ),
                         ),
-                        const SizedBox(height: 4),
-                        if (isManualMode) ...[
-                          Text(
-                            '${selectedProducts.length} sản phẩm được chọn thủ công',
-                            style: TextStyle(
-                              fontSize: 14,
-                              color: Colors.grey[600],
+                        if (!isManualMode) ...[
+                          const SizedBox(height: 24),
+                          Container(
+                            padding: const EdgeInsets.all(24),
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(color: borderColor),
                             ),
-                          ),
-                          const SizedBox(height: 16),
-                          TextField(
-                            controller: _searchController,
-                            decoration: searchInputDecoration(
-                              hint: 'Tìm kiếm sản phẩm để thêm...',
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Text(
+                                  'Điều kiện',
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.w700,
+                                    fontSize: 20,
+                                    color: textPrimary,
+                                  ),
+                                ),
+                                const SizedBox(height: 18),
+                                const Text(
+                                  'Sản phẩm phải phù hợp:',
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.w500,
+                                    fontSize: 15,
+                                    color: textPrimary,
+                                  ),
+                                ),
+                                const SizedBox(height: 10),
+                                Row(
+                                  children: [
+                                    Radio<String>(
+                                      value: 'all',
+                                      groupValue: _selectedConditionType,
+                                      onChanged: (value) {
+                                        setState(() => _selectedConditionType = value!);
+                                      },
+                                    ),
+                                    const Text(
+                                      'Tất cả các điều kiện',
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.w500,
+                                        fontSize: 15,
+                                        color: textPrimary,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 24),
+                                    Radio<String>(
+                                      value: 'any',
+                                      groupValue: _selectedConditionType,
+                                      onChanged: (value) {
+                                        setState(() => _selectedConditionType = value!);
+                                      },
+                                    ),
+                                    const Text(
+                                      'Bất kỳ điều kiện nào',
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.w500,
+                                        fontSize: 15,
+                                        color: textPrimary,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 24),
+                                ..._conditions.asMap().entries.map((entry) {
+                                  final index = entry.key;
+                                  final condition = entry.value;
+                                  return _buildConditionRow(condition, index);
+                                }).toList(),
+                                Container(
+                                  margin: const EdgeInsets.only(top: 12),
+                                  child: OutlinedButton.icon(
+                                    onPressed: _addCondition,
+                                    icon: const Icon(Icons.add),
+                                    label: const Text('Thêm điều kiện'),
+                                    style: secondaryButtonStyle,
+                                  ),
+                                ),
+                              ],
                             ),
-                            onChanged: (v) => setState(() => searchText = v),
                           ),
                         ],
                       ],
                     ),
                   ),
-                  Expanded(
-                    child: SingleChildScrollView(
-                      child: isManualMode
-                          ? Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                // Block: Sản phẩm đã chọn (chỉ hiển thị nếu có sản phẩm)
-                                if (selectedProducts.isNotEmpty)
-                                Container(
-                                    margin: const EdgeInsets.symmetric(horizontal: 24, vertical: 0),
-                                  decoration: BoxDecoration(
-                                      color: Colors.white,
-                                      borderRadius: BorderRadius.circular(12),
-                                      border: Border.all(color: borderColor),
-                                    ),
-                                    child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
-                                      children: [
-                                        Padding(
-                                          padding: const EdgeInsets.fromLTRB(20, 18, 20, 0),
-                                          child: Text(
-                                            'Sản phẩm đã chọn (${selectedProducts.length})',
-                                            style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 16, color: textPrimary),
-                                          ),
-                                        ),
-                                        const SizedBox(height: 8),
-                                        Padding(
-                                          padding: const EdgeInsets.symmetric(horizontal: 20),
-                                  child: Row(
-                                    children: const [
-                                              Expanded(
-                                                flex: 7,
-                                                child: Text('Tên sản phẩm', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14, color: textSecondary)),
-                                              ),
-                                              Expanded(
-                                                flex: 2,
-                                                child: Text('Tồn kho', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14, color: textSecondary)),
-                                              ),
-                                              SizedBox(width: 32),
-                                            ],
-                                          ),
-                                        ),
-                                        const SizedBox(height: 4),
-                                        ListView.separated(
-                                          shrinkWrap: true,
-                                          physics: const NeverScrollableScrollPhysics(),
-                                          itemCount: selectedProducts.length,
-                                          separatorBuilder: (context, index) => const Divider(height: 1, color: borderColor),
-                                          itemBuilder: (context, index) {
-                                            final p = selectedProducts[index];
-                                            return Padding(
-                                              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-                                        child: Row(
-                                                crossAxisAlignment: CrossAxisAlignment.start,
-                                                children: [
-                                                  Expanded(
-                                                    flex: 7,
-                                                    child: Column(
-                                                      crossAxisAlignment: CrossAxisAlignment.start,
-                                          children: [
-                                                        Text(p.internalName, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15)),
-                                                        Text(p.tradeName, style: const TextStyle(fontSize: 13, color: textSecondary)),
-                                                      ],
-                                                    ),
-                                                  ),
-                                                  Expanded(
-                                                    flex: 2,
-                                                    child: Padding(
-                                                      padding: const EdgeInsets.only(top: 2),
-                                                      child: Text(p.stockSystem.toString(), style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15)),
-                                                    ),
-                                                  ),
-                                                  IconButton(
-                                                    icon: const Icon(Icons.close, size: 20),
-                                                    splashRadius: 20,
-                                                    onPressed: () {
-                                                      setState(() {
-                                                        selectedProducts.remove(p);
-                                                      });
-                                                    },
-                                                  ),
-                                                ],
-                                              ),
-                                            );
-                                          },
-                                        ),
-                                      ],
-                                    ),
+                ),
+                // Right column
+                Container(
+                  width: 1,
+                  height: double.infinity,
+                  color: borderColor,
+                ),
+                Expanded(
+                  flex: 9,
+                  child: Container(
+                    height: double.infinity,
+                    color: Colors.white,
+                    padding: const EdgeInsets.only(top: 24),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Container(
+                          margin: const EdgeInsets.fromLTRB(24, 0, 24, 24),
+                          padding: const EdgeInsets.all(24),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(color: borderColor),
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text(
+                                'Sản phẩm trong danh mục',
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              if (isManualMode) ...[
+                                Text(
+                                  '${selectedProducts.length} sản phẩm được chọn thủ công',
+                                  style: TextStyle(
+                                    fontSize: 14,
+                                    color: Colors.grey[600],
                                   ),
-                                // Block: Kết quả tìm kiếm (chỉ hiển thị khi có searchText)
-                                if (searchText.isNotEmpty)
-                                  Container(
-                                    margin: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                                    decoration: BoxDecoration(
-                                      color: Colors.white,
-                                      borderRadius: BorderRadius.circular(12),
-                                      border: Border.all(color: borderColor),
-                                    ),
+                                ),
+                                const SizedBox(height: 16),
+                                TextField(
+                                  controller: _searchController,
+                                  decoration: searchInputDecoration(
+                                    hint: 'Tìm kiếm sản phẩm để thêm...',
+                                  ),
+                                  onChanged: (v) => setState(() => searchText = v),
+                                ),
+                              ],
+                            ],
+                          ),
+                        ),
+                        Expanded(
+                          child: SingleChildScrollView(
+                            child: isManualMode
+                                ? Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      // Block: Sản phẩm đã chọn (chỉ hiển thị nếu có sản phẩm)
+                                      if (selectedProducts.isNotEmpty)
+                                      Container(
+                                          margin: const EdgeInsets.symmetric(horizontal: 24, vertical: 0),
+                                        decoration: BoxDecoration(
+                                            color: Colors.white,
+                                            borderRadius: BorderRadius.circular(12),
+                                            border: Border.all(color: borderColor),
+                                        ),
+                                          child: Column(
+                                            crossAxisAlignment: CrossAxisAlignment.start,
+                                          children: [
+                                              Padding(
+                                                padding: const EdgeInsets.fromLTRB(20, 18, 20, 0),
+                                                child: Text(
+                                                  'Sản phẩm đã chọn (${selectedProducts.length})',
+                                                  style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 16, color: textPrimary),
+                                                ),
+                                              ),
+                                              const SizedBox(height: 8),
+                                              Padding(
+                                                padding: const EdgeInsets.symmetric(horizontal: 20),
+                                                child: Row(
+                                                  children: const [
+                                                    Expanded(
+                                                      flex: 7,
+                                                      child: Text('Tên sản phẩm', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14, color: textSecondary)),
+                                            ),
+                                            Expanded(
+                                                      flex: 2,
+                                                      child: Text('Tồn kho', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14, color: textSecondary)),
+                                                    ),
+                                                    SizedBox(width: 32),
+                                                  ],
+                                                ),
+                                              ),
+                                              const SizedBox(height: 4),
+                                              ListView.separated(
+                                                shrinkWrap: true,
+                                                physics: const NeverScrollableScrollPhysics(),
+                                                itemCount: selectedProducts.length,
+                                                separatorBuilder: (context, index) => const Divider(height: 1, color: borderColor),
+                                                itemBuilder: (context, index) {
+                                                  final p = selectedProducts[index];
+                                                  return Padding(
+                                                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                                                    child: Row(
+                                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                                      children: [
+                                                        Expanded(
+                                                          flex: 7,
                                               child: Column(
                                                 crossAxisAlignment: CrossAxisAlignment.start,
                                                 children: [
-                                        Padding(
-                                          padding: const EdgeInsets.fromLTRB(20, 18, 20, 0),
-                                          child: const Text(
-                                            'Kết quả tìm kiếm',
-                                            style: TextStyle(fontWeight: FontWeight.w700, fontSize: 16, color: textPrimary),
-                                          ),
-                                        ),
-                                        const SizedBox(height: 8),
-                                        StreamBuilder<List<Product>>(
-                                          stream: _productService.getProducts(),
-                                          builder: (context, snapshot) {
-                                            if (snapshot.connectionState == ConnectionState.waiting) {
-                                              return const Center(child: CircularProgressIndicator());
-                                            }
-                                            final products = (snapshot.data ?? [])
-                                                .where((p) => p.internalName.toLowerCase().contains(searchText.toLowerCase()) && !selectedProducts.contains(p))
-                                                .toList();
-                                            if (products.isEmpty) {
-                                              return const Center(
-                                                child: Padding(
-                                                  padding: EdgeInsets.symmetric(vertical: 32),
-                                                  child: Text('Không tìm thấy sản phẩm phù hợp', style: TextStyle(color: Colors.grey)),
-                                                ),
-                                              );
-                                            }
-                                            return ListView.separated(
-                                              shrinkWrap: true,
-                                              physics: const NeverScrollableScrollPhysics(),
-                                              itemCount: products.length,
-                                              separatorBuilder: (context, index) => const Divider(height: 1, color: borderColor),
-                                              itemBuilder: (context, index) {
-                                                final product = products[index];
-                                                return InkWell(
-                                                  onTap: () {
-                                                    setState(() {
-                                                      selectedProducts.add(product);
-                                                    });
-                                                  },
-                                                  child: Padding(
-                                                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-                                              child: Row(
-                                                      crossAxisAlignment: CrossAxisAlignment.start,
-                                                      children: [
-                                                Expanded(
-                                                          flex: 7,
-                                                  child: Column(
-                                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                                children: [
-                                                              Text(product.internalName, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15)),
-                                                              Text(product.tradeName, style: const TextStyle(fontSize: 13, color: textSecondary)),
-                                                    ],
-                                                  ),
-                                                ),
+                                                              Text(p.internalName, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15)),
+                                                              Text(p.tradeName, style: const TextStyle(fontSize: 13, color: textSecondary)),
+                                                ],
+                                              ),
+                                            ),
                                                         Expanded(
                                                           flex: 2,
                                                           child: Padding(
                                                             padding: const EdgeInsets.only(top: 2),
-                                                            child: Text(product.stockSystem.toString(), style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15)),
+                                                            child: Text(p.stockSystem.toString(), style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15)),
+                                                          ),
+                                                        ),
+                                                        IconButton(
+                                                          icon: const Icon(Icons.close, size: 20),
+                                                          splashRadius: 20,
+                                                          onPressed: () {
+                                                            setState(() {
+                                                              selectedProducts.remove(p);
+                                                            });
+                                                          },
+                                                        ),
+                                                      ],
+                                                    ),
+                                                  );
+                                                },
+                                              ),
+                                                ],
+                                              ),
+                                            ),
+                                      // Block: Kết quả tìm kiếm (chỉ hiển thị khi có searchText)
+                                      if (searchText.isNotEmpty)
+                                        Container(
+                                          margin: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                                                decoration: BoxDecoration(
+                                            color: Colors.white,
+                                            borderRadius: BorderRadius.circular(12),
+                                                  border: Border.all(color: borderColor),
+                                          ),
+                                          child: Column(
+                                            crossAxisAlignment: CrossAxisAlignment.start,
+                                            children: [
+                                              Padding(
+                                                padding: const EdgeInsets.fromLTRB(20, 18, 20, 0),
+                                                child: const Text(
+                                                  'Kết quả tìm kiếm',
+                                                  style: TextStyle(fontWeight: FontWeight.w700, fontSize: 16, color: textPrimary),
+                                                ),
+                                              ),
+                                              const SizedBox(height: 8),
+                                              StreamBuilder<List<Product>>(
+                                                stream: _productService.getProducts(),
+                                                builder: (context, snapshot) {
+                                                  if (snapshot.connectionState == ConnectionState.waiting) {
+                                                    return const Center(child: CircularProgressIndicator());
+                                                  }
+                                                  final products = (snapshot.data ?? [])
+                                                      .where((p) => p.internalName.toLowerCase().contains(searchText.toLowerCase()) && !selectedProducts.contains(p))
+                                                      .toList();
+                                                  if (products.isEmpty) {
+                                                    return const Center(
+                                                      child: Padding(
+                                                        padding: EdgeInsets.symmetric(vertical: 32),
+                                                        child: Text('Không tìm thấy sản phẩm phù hợp', style: TextStyle(color: Colors.grey)),
+                                                      ),
+                                                    );
+                                                  }
+                                                  return ListView.separated(
+                                                    shrinkWrap: true,
+                                                    physics: const NeverScrollableScrollPhysics(),
+                                                    itemCount: products.length,
+                                                    separatorBuilder: (context, index) => const Divider(height: 1, color: borderColor),
+                                                    itemBuilder: (context, index) {
+                                                      final product = products[index];
+                                                      return InkWell(
+                                                        onTap: () {
+                                                          setState(() {
+                                                            selectedProducts.add(product);
+                                                          });
+                                                        },
+                                                        child: Padding(
+                                                          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                                                          child: Row(
+                                                            crossAxisAlignment: CrossAxisAlignment.start,
+                                                            children: [
+                                                              Expanded(
+                                                                flex: 7,
+                                                                child: Column(
+                                                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                                                  children: [
+                                                                    Text(product.internalName, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15)),
+                                                                    Text(product.tradeName, style: const TextStyle(fontSize: 13, color: textSecondary)),
+                                                                  ],
+                                                                ),
+                                                              ),
+                                                              Expanded(
+                                                                flex: 2,
+                                                                child: Padding(
+                                                                  padding: const EdgeInsets.only(top: 2),
+                                                                  child: Text(product.stockSystem.toString(), style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15)),
                                               ),
                                             ),
                                           ],
                                         ),
                                       ),
-                                                );
-                                              },
-                                            );
-                                          },
+                                                      );
+                                                    },
+                                                  );
+                                                },
+                                              ),
+                                            ],
+                                          ),
                                         ),
-                                      ],
-                                    ),
+                                    ],
+                                  )
+                                : Container(
+                                    margin: const EdgeInsets.symmetric(horizontal: 24),
+                                    child: _buildPreviewSectionStyled(),
                                   ),
-                              ],
-                            )
-                          : Container(
-                              margin: const EdgeInsets.symmetric(horizontal: 24),
-                              child: _buildPreviewSectionStyled(),
-                            ),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
-                ],
-              ),
+                ),
+              ],
             ),
           ),
         ],

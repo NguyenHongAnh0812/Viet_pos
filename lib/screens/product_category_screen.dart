@@ -11,7 +11,8 @@ import 'product_category_detail_screen.dart';
 
 class ProductCategoryScreen extends StatefulWidget {
   final Function(MainPage)? onNavigate;
-  const ProductCategoryScreen({super.key, this.onNavigate});
+  final Function(ProductCategory)? onCategorySelected;
+  const ProductCategoryScreen({super.key, this.onNavigate, this.onCategorySelected});
 
   @override
   State<ProductCategoryScreen> createState() => _ProductCategoryScreenState();
@@ -63,12 +64,9 @@ class _ProductCategoryScreenState extends State<ProductCategoryScreen> with Sing
                   ),
                   ElevatedButton.icon(
                     onPressed: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => const AddProductCategoryScreen(),
-                        ),
-                      );
+                      if (widget.onNavigate != null) {
+                        widget.onNavigate!(MainPage.addProductCategory);
+                      }
                     },
                     icon: const Icon(Icons.add),
                     label: const Text('Thêm danh mục'),
@@ -258,12 +256,9 @@ class _ProductCategoryScreenState extends State<ProductCategoryScreen> with Sing
               if (hasChildren) {
                 _toggleExpand(category.id);
               } else {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => ProductCategoryDetailScreen(category: category),
-                  ),
-                );
+                if (widget.onCategorySelected != null) {
+                  widget.onCategorySelected!(category);
+                }
               }
             },
             child: Container(

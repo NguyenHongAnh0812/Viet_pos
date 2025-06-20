@@ -22,9 +22,33 @@ import '../screens/settings_screen.dart';
 import '../screens/add_company_screen.dart';
 import '../screens/company_detail_screen.dart';
 import '../models/company.dart';
+import '../screens/product_category_detail_screen.dart';
+import '../models/product_category.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 // Định nghĩa enum cho các trang
-enum MainPage { dashboard, productList, productCategory, addProduct, inventory, report, settings, productDetail, lowStockProducts, addProductCategory, inventoryHistory, styleGuide, invoiceImportList, invoiceImport, inventoryDetail, inventoryCreateSession, companies, addCompany, companyDetail }
+enum MainPage { 
+  dashboard, 
+  productList, 
+  productCategory, 
+  addProduct, 
+  inventory, 
+  report, 
+  settings, 
+  productDetail, 
+  lowStockProducts, 
+  addProductCategory, 
+  inventoryHistory, 
+  styleGuide, 
+  invoiceImportList, 
+  invoiceImport, 
+  inventoryDetail, 
+  inventoryCreateSession, 
+  companies, 
+  addCompany, 
+  companyDetail,
+  productCategoryDetail 
+}
 
 class MainLayout extends StatefulWidget {
   final Widget? child; // Không cần truyền child nữa, sẽ render theo _currentPage
@@ -41,6 +65,7 @@ class MainLayoutState extends State<MainLayout> {
   MainPage? _previousPage;
   Product? _selectedProduct;
   Company? _selectedCompany;
+  ProductCategory? _selectedCategory;
   bool isFilterSidebarOpen = false;
 
   // Filter state
@@ -60,6 +85,14 @@ class MainLayoutState extends State<MainLayout> {
   int productListKey = 0;
 
   String? _selectedInventorySessionId;
+
+  // Trạng thái mở/đóng cho từng mục cha
+  Map<String, bool> _openMenus = {
+    'product': false,
+    'order': false,
+    'customer': false,
+    'promotion': false,
+  };
 
   @override
   void initState() {
@@ -154,6 +187,16 @@ class MainLayoutState extends State<MainLayout> {
       if (page != MainPage.companyDetail) {
         _selectedCompany = null;
       }
+      if (page != MainPage.productCategoryDetail) {
+        _selectedCategory = null;
+      }
+      
+      // Auto-open product submenu when navigating to product-related pages
+      if (page == MainPage.productList || 
+          page == MainPage.addProduct ||
+          page == MainPage.addProductCategory) {
+        _openMenus['product'] = true;
+      }
     });
   }
 
@@ -232,6 +275,14 @@ class MainLayoutState extends State<MainLayout> {
     });
   }
 
+  void _openCategoryDetail(ProductCategory category) {
+    setState(() {
+      _previousPage = _currentPage;
+      _currentPage = MainPage.productCategoryDetail;
+      _selectedCategory = category;
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return Stack(
@@ -265,6 +316,12 @@ class MainLayoutState extends State<MainLayout> {
                           isOpen: true,
                           currentPage: _currentPage,
                           onItemTap: onSidebarTap,
+                          openMenus: _openMenus,
+                          onMenuToggle: (String key, bool value) {
+                            setState(() {
+                              _openMenus[key] = value;
+                            });
+                          },
                         ),
                       ),
                     ),
@@ -281,6 +338,12 @@ class MainLayoutState extends State<MainLayout> {
                         isOpen: true,
                         currentPage: _currentPage,
                         onItemTap: onSidebarTap,
+                        openMenus: _openMenus,
+                        onMenuToggle: (String key, bool value) {
+                          setState(() {
+                            _openMenus[key] = value;
+                          });
+                        },
                       ),
                     ),
                     Expanded(
@@ -433,6 +496,7 @@ class MainLayoutState extends State<MainLayout> {
       case MainPage.productCategory:
         return ProductCategoryScreen(
            onNavigate: onSidebarTap,
+           onCategorySelected: _openCategoryDetail,
         );
       case MainPage.addProduct:
         return AddProductScreen(
@@ -517,6 +581,12 @@ class MainLayoutState extends State<MainLayout> {
           company: _selectedCompany!, 
           onBack: () => onSidebarTap(MainPage.companies)
         );
+      case MainPage.productCategoryDetail:
+        if (_selectedCategory == null) return const SizedBox();
+        return ProductCategoryDetailScreen(
+          category: _selectedCategory!,
+          onBack: () => onSidebarTap(MainPage.productCategory),
+        );
       default:
         return const DashboardScreen();
     }
@@ -582,21 +652,21 @@ class _Sidebar extends StatefulWidget {
   final bool isOpen;
   final MainPage currentPage;
   final Function(MainPage) onItemTap;
-  const _Sidebar({this.isOpen = true, required this.currentPage, required this.onItemTap});
+  final Map<String, bool> openMenus;
+  final Function(String, bool) onMenuToggle;
+  const _Sidebar({
+    this.isOpen = true, 
+    required this.currentPage, 
+    required this.onItemTap,
+    required this.openMenus,
+    required this.onMenuToggle,
+  });
 
   @override
   State<_Sidebar> createState() => _SidebarState();
 }
 
 class _SidebarState extends State<_Sidebar> {
-  // Trạng thái mở/đóng cho từng mục cha
-  Map<String, bool> _openMenus = {
-    'product': false,
-    'order': false,
-    'customer': false,
-    'promotion': false,
-  };
-
   Widget _sidebarParentItem({
     required Widget icon,
     required String label,
@@ -667,11 +737,11 @@ class _SidebarState extends State<_Sidebar> {
           _sidebarParentItem(
             icon: SvgPicture.asset('assets/icons/products.svg', width: 16, height: 16),
             label: 'Sản phẩm',
-            open: _openMenus['product']!,
+            open: widget.openMenus['product']!,
             selected: false,
-            onTap: () => setState(() => _openMenus['product'] = !_openMenus['product']!),
+            onTap: () => widget.onMenuToggle('product', !widget.openMenus['product']!),
           ),
-          if (_openMenus['product']!)
+          if (widget.openMenus['product']!)
             _submenuIndent(
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -683,6 +753,7 @@ class _SidebarState extends State<_Sidebar> {
                     isOpen: widget.isOpen,
                     onTap: () => widget.onItemTap(MainPage.productList),
                   ),
+                        // Danh mục sản phẩm (menu chính)
                   _SidebarItem(
                     icon: SvgPicture.asset('assets/icons/list_products.svg', width: 16, height: 16),
                     label: 'Danh mục sản phẩm',
@@ -692,8 +763,8 @@ class _SidebarState extends State<_Sidebar> {
                   ),
                 ],
               ),
-              height: 80,
           ),
+    
           // Nhà cung cấp
           _SidebarItem(
             icon: const Icon(Icons.business_outlined, size: 16),
@@ -820,13 +891,14 @@ class _SidebarState extends State<_Sidebar> {
             isOpen: widget.isOpen,
             onTap: () => widget.onItemTap(MainPage.invoiceImportList),
           ),
-          //           _SidebarItem(
-          //   icon: Icon(Icons.palette, size: 16),
-          //   label: 'Style Guide',
-          //   selected: widget.currentPage == MainPage.styleGuide,
-          //   isOpen: widget.isOpen,
-          //   onTap: () => widget.onItemTap(MainPage.styleGuide),
-          // ),
+
+          _SidebarItem(
+            icon: Icon(Icons.palette, size: 16),
+            label: 'Style Guide',
+            selected: widget.currentPage == MainPage.styleGuide,
+            isOpen: widget.isOpen,
+            onTap: () => widget.onItemTap(MainPage.styleGuide),
+          ),
                     _SidebarItem(
             icon: Icon(Icons.settings_outlined, size: 16),
             label: 'Cài đặt',

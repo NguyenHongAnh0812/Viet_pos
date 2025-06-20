@@ -344,6 +344,412 @@ class StyleGuideScreen extends StatelessWidget {
               ),
             ),
 
+            // Table Design System Section
+            _buildSection(
+              title: 'Table Design System',
+              description: 'Consistent table components for displaying structured data.',
+              content: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Basic Table
+                  Text('Basic Table', style: h3),
+                  const SizedBox(height: space16),
+                  StandardTableContainer(
+                    child: Column(
+                      children: [
+                        StandardTableHeader(
+                          children: [
+                            TableColumn(
+                              flex: 3,
+                              child: Text('Product Name', style: TableDesignSystem.tableHeaderTextStyle),
+                            ),
+                            TableColumn(
+                              flex: 1,
+                              child: Text('Stock', style: TableDesignSystem.tableHeaderTextStyle),
+                            ),
+                            TableColumn(
+                              flex: 1,
+                              child: Text('Price', style: TableDesignSystem.tableHeaderTextStyle),
+                            ),
+                          ],
+                        ),
+                        StandardTableRow(
+                          onTap: () {},
+                          children: [
+                            TableColumn(
+                              flex: 3,
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text('Amoxicillin 500mg', style: TableDesignSystem.tableRowTextStyle),
+                                  Text('Antibiotic', style: TableDesignSystem.tableRowSubtitleStyle),
+                                ],
+                              ),
+                            ),
+                            TableColumn(
+                              flex: 1,
+                              child: Text('150', style: TableDesignSystem.tableRowTextStyle, textAlign: TextAlign.center),
+                            ),
+                            TableColumn(
+                              flex: 1,
+                              child: Text('\$25.00', style: TableDesignSystem.tableRowTextStyle, textAlign: TextAlign.center),
+                            ),
+                          ],
+                        ),
+                        StandardTableRow(
+                          onTap: () {},
+                          children: [
+                            TableColumn(
+                              flex: 3,
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text('Vitamin B Complex', style: TableDesignSystem.tableRowTextStyle),
+                                  Text('Supplement', style: TableDesignSystem.tableRowSubtitleStyle),
+                                ],
+                              ),
+                            ),
+                            TableColumn(
+                              flex: 1,
+                              child: Text('89', style: TableDesignSystem.tableRowTextStyle, textAlign: TextAlign.center),
+                            ),
+                            TableColumn(
+                              flex: 1,
+                              child: Text('\$18.50', style: TableDesignSystem.tableRowTextStyle, textAlign: TextAlign.center),
+                            ),
+                          ],
+                        ),
+                        StandardTableRow(
+                          onTap: () {},
+                          children: [
+                            TableColumn(
+                              flex: 3,
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text('Ivermectin Injection', style: TableDesignSystem.tableRowTextStyle),
+                                  Text('Parasiticide', style: TableDesignSystem.tableRowSubtitleStyle),
+                                ],
+                              ),
+                            ),
+                            TableColumn(
+                              flex: 1,
+                              child: Text('45', style: TableDesignSystem.tableRowTextStyle, textAlign: TextAlign.center),
+                            ),
+                            TableColumn(
+                              flex: 1,
+                              child: Text('\$32.75', style: TableDesignSystem.tableRowTextStyle, textAlign: TextAlign.center),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: space24),
+
+                  // Table with Actions
+                  Text('Table with Actions', style: h3),
+                  const SizedBox(height: space16),
+                  StandardTableContainer(
+                    child: Column(
+                      children: [
+                        StandardTableHeader(
+                          children: [
+                            TableColumn(
+                              flex: 3,
+                              child: Text('Category Name', style: TableDesignSystem.tableHeaderTextStyle),
+                            ),
+                            TableColumn(
+                              flex: 1,
+                              child: Text('Products', style: TableDesignSystem.tableHeaderTextStyle),
+                            ),
+                            TableColumnFixed(
+                              width: 100,
+                              child: Text('Actions', style: TableDesignSystem.tableHeaderTextStyle),
+                            ),
+                          ],
+                        ),
+                        StandardTableRow(
+                          children: [
+                            TableColumn(
+                              flex: 3,
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text('Antibiotics', style: TableDesignSystem.tableRowTextStyle),
+                                  Text('General antibiotics for livestock', style: TableDesignSystem.tableRowSubtitleStyle),
+                                ],
+                              ),
+                            ),
+                            TableColumn(
+                              flex: 1,
+                              child: Text('24', style: TableDesignSystem.tableRowTextStyle, textAlign: TextAlign.center),
+                            ),
+                            TableColumnFixed(
+                              width: 100,
+                              child: Row(
+                                children: [
+                                  IconButton(
+                                    icon: const Icon(Icons.edit, size: 20),
+                                    onPressed: () {},
+                                  ),
+                                  IconButton(
+                                    icon: const Icon(Icons.delete, size: 20, color: Colors.red),
+                                    onPressed: () {},
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                        StandardTableRow(
+                          children: [
+                            TableColumn(
+                              flex: 3,
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text('Vitamins & Supplements', style: TableDesignSystem.tableRowTextStyle),
+                                  Text('Nutritional supplements', style: TableDesignSystem.tableRowSubtitleStyle),
+                                ],
+                              ),
+                            ),
+                            TableColumn(
+                              flex: 1,
+                              child: Text('18', style: TableDesignSystem.tableRowTextStyle, textAlign: TextAlign.center),
+                            ),
+                            TableColumnFixed(
+                              width: 100,
+                              child: Row(
+                                children: [
+                                  IconButton(
+                                    icon: const Icon(Icons.edit, size: 20),
+                                    onPressed: () {},
+                                  ),
+                                  IconButton(
+                                    icon: const Icon(Icons.delete, size: 20, color: Colors.red),
+                                    onPressed: () {},
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: space24),
+
+                  // Hierarchical Table
+                  Text('Hierarchical Table (Tree Structure)', style: h3),
+                  const SizedBox(height: space16),
+                  StandardTableContainer(
+                    child: Column(
+                      children: [
+                        StandardTableHeader(
+                          children: [
+                            TableColumn(
+                              flex: 3,
+                              child: Text('Category Name', style: TableDesignSystem.tableHeaderTextStyle),
+                            ),
+                            TableColumnFixed(
+                              width: 120,
+                              child: Text('Products', style: TableDesignSystem.tableHeaderTextStyle),
+                            ),
+                          ],
+                        ),
+                        // Root category
+                        StandardTableRow(
+                          onTap: () {},
+                          children: [
+                            TableColumn(
+                              flex: 3,
+                              child: Row(
+                                children: [
+                                  SizedBox(
+                                    width: 28,
+                                    child: Center(
+                                      child: AnimatedRotation(
+                                        duration: const Duration(milliseconds: 200),
+                                        turns: 0.25,
+                                        child: Icon(
+                                          Icons.keyboard_arrow_right,
+                                          size: 20,
+                                          color: Colors.grey[600],
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 12),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text('Livestock Medications', style: TableDesignSystem.tableRowTextStyle),
+                                        Text('All livestock medications', style: TableDesignSystem.tableRowSubtitleStyle),
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            TableColumnFixed(
+                              width: 120,
+                              child: Text('156', style: TableDesignSystem.tableRowTextStyle, textAlign: TextAlign.center),
+                            ),
+                          ],
+                        ),
+                        // Child category (indented)
+                        StandardTableRow(
+                          onTap: () {},
+                          children: [
+                            TableColumn(
+                              flex: 3,
+                              child: Row(
+                                children: [
+                                  const SizedBox(width: 32), // Indentation
+                                  SizedBox(
+                                    width: 28,
+                                    child: Center(
+                                      child: Container(
+                                        width: 6,
+                                        height: 6,
+                                        decoration: BoxDecoration(
+                                          shape: BoxShape.circle,
+                                          color: Colors.grey[600],
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 12),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text('Antibiotics', style: TableDesignSystem.tableRowTextStyle),
+                                        Text('General antibiotics', style: TableDesignSystem.tableRowSubtitleStyle),
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            TableColumnFixed(
+                              width: 120,
+                              child: Text('24', style: TableDesignSystem.tableRowTextStyle, textAlign: TextAlign.center),
+                            ),
+                          ],
+                        ),
+                        // Another child category
+                        StandardTableRow(
+                          onTap: () {},
+                          children: [
+                            TableColumn(
+                              flex: 3,
+                              child: Row(
+                                children: [
+                                  const SizedBox(width: 32), // Indentation
+                                  SizedBox(
+                                    width: 28,
+                                    child: Center(
+                                      child: Container(
+                                        width: 6,
+                                        height: 6,
+                                        decoration: BoxDecoration(
+                                          shape: BoxShape.circle,
+                                          color: Colors.grey[600],
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 12),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text('Parasiticides', style: TableDesignSystem.tableRowTextStyle),
+                                        Text('Anti-parasitic treatments', style: TableDesignSystem.tableRowSubtitleStyle),
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            TableColumnFixed(
+                              width: 120,
+                              child: Text('18', style: TableDesignSystem.tableRowTextStyle, textAlign: TextAlign.center),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: space24),
+
+                  // Table States
+                  Text('Table States', style: h3),
+                  const SizedBox(height: space16),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: StandardTableContainer(
+                          child: TableDesignSystem.tableLoadingState,
+                        ),
+                      ),
+                      const SizedBox(width: space16),
+                      Expanded(
+                        child: StandardTableContainer(
+                          child: TableDesignSystem.tableEmptyState('No data available'),
+                        ),
+                      ),
+                      const SizedBox(width: space16),
+                      Expanded(
+                        child: StandardTableContainer(
+                          child: TableDesignSystem.tableErrorState('Failed to load data'),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: space24),
+
+                  // Table Usage Examples
+                  Text('Usage Examples', style: h3),
+                  const SizedBox(height: space16),
+                  designSystemCard(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('Basic Table Structure', style: h4),
+                        const SizedBox(height: space8),
+                        Text(
+                          'Use StandardTableContainer, StandardTableHeader, and StandardTableRow for consistent table styling.',
+                          style: body,
+                        ),
+                        const SizedBox(height: space16),
+                        Text('Column Sizing', style: h4),
+                        const SizedBox(height: space8),
+                        Text(
+                          '• Use TableColumn with flex for flexible width\n'
+                          '• Use TableColumnFixed for fixed-width columns\n'
+                          '• Common flex ratios: 3:1, 2:1, 1:1',
+                          style: body,
+                        ),
+                        const SizedBox(height: space16),
+                        Text('Interactive Features', style: h4),
+                        const SizedBox(height: space8),
+                        Text(
+                          '• Add onTap to StandardTableRow for clickable rows\n'
+                          '• Use Material + InkWell for proper touch feedback\n'
+                          '• Support for hierarchical/tree structures',
+                          style: body,
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
             // Spacing Section
             _buildSection(
               title: 'Spacing',
@@ -426,6 +832,514 @@ class StyleGuideScreen extends StatelessWidget {
               title: 'Shopify-style Dropdown',
               description: 'A dropdown menu styled like Shopify admin, with full-width, shadow, border, scroll, and hover.',
               content: _ShopifyDropdownDemo(),
+            ),
+
+            // Font Weight Test Section
+            _buildSection(
+              title: 'Font Weight Test',
+              description: 'Testing different font weights to ensure they render correctly.',
+              content: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('Font Weight 100 (Thin)', style: getInterTextStyle(fontSize: 16, fontWeight: FontWeight.w100)),
+                  Text('Font Weight 200 (Extra Light)', style: getInterTextStyle(fontSize: 16, fontWeight: FontWeight.w200)),
+                  Text('Font Weight 300 (Light)', style: getInterTextStyle(fontSize: 16, fontWeight: FontWeight.w300)),
+                  Text('Font Weight 400 (Regular/Normal)', style: getInterTextStyle(fontSize: 16, fontWeight: FontWeight.w400)),
+                  Text('Font Weight 500 (Medium)', style: getInterTextStyle(fontSize: 16, fontWeight: FontWeight.w500)),
+                  Text('Font Weight 600 (Semi Bold)', style: getInterTextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+                  Text('Font Weight 700 (Bold)', style: getInterTextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
+                  Text('Font Weight 800 (Extra Bold)', style: getInterTextStyle(fontSize: 16, fontWeight: FontWeight.w800)),
+                  Text('Font Weight 900 (Black)', style: getInterTextStyle(fontSize: 16, fontWeight: FontWeight.w900)),
+                  const SizedBox(height: space24),
+                  Text('Design System Styles:', style: h3),
+                  const SizedBox(height: space16),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text('bodyLarge (w400)', style: bodyLarge),
+                      ),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: Colors.blue[100],
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                        child: Text('w400', style: caption.copyWith(color: Colors.blue[700])),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: space8),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text('body (w400)', style: body),
+                      ),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: Colors.blue[100],
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                        child: Text('w400', style: caption.copyWith(color: Colors.blue[700])),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: space8),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text('bodySmall (w400)', style: bodySmall),
+                      ),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: Colors.blue[100],
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                        child: Text('w400', style: caption.copyWith(color: Colors.blue[700])),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: space8),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text('labelLarge (w500)', style: labelLarge),
+                      ),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: Colors.green[100],
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                        child: Text('w500', style: caption.copyWith(color: Colors.green[700])),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: space8),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text('labelMedium (w500)', style: labelMedium),
+                      ),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: Colors.green[100],
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                        child: Text('w500', style: caption.copyWith(color: Colors.green[700])),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: space8),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text('labelSmall (w500)', style: labelSmall),
+                      ),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: Colors.green[100],
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                        child: Text('w500', style: caption.copyWith(color: Colors.green[700])),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: space8),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text('h1 (w700)', style: h1),
+                      ),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: Colors.orange[100],
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                        child: Text('w700', style: caption.copyWith(color: Colors.orange[700])),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: space8),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text('h2 (w700)', style: h2),
+                      ),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: Colors.orange[100],
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                        child: Text('w700', style: caption.copyWith(color: Colors.orange[700])),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: space8),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text('h3 (w600)', style: h3),
+                      ),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: Colors.purple[100],
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                        child: Text('w600', style: caption.copyWith(color: Colors.purple[700])),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: space8),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text('h4 (w600)', style: h4),
+                      ),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: Colors.purple[100],
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                        child: Text('w600', style: caption.copyWith(color: Colors.purple[700])),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+
+            // Shopify Font Comparison Section
+            _buildSection(
+              title: 'Shopify Admin Font Comparison',
+              description: 'Comparing our font with Shopify admin font styles.',
+              content: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('Shopify Admin Font Stack:', style: h3),
+                  const SizedBox(height: space16),
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: Colors.grey[100],
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: borderColor),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;', style: body.copyWith(fontFamily: 'monospace')),
+                        const SizedBox(height: space8),
+                        Text('Font weights: 400 (regular), 500 (medium), 600 (semibold), 700 (bold)', style: body.copyWith(fontFamily: 'monospace')),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: space24),
+                  Text('Our Current Font (Inter):', style: h3),
+                  const SizedBox(height: space16),
+                  Text('Heading 1 - Product Management', style: getInterTextStyle(fontSize: 24, fontWeight: FontWeight.w700)),
+                  Text('Heading 2 - Inventory Overview', style: getInterTextStyle(fontSize: 20, fontWeight: FontWeight.w600)),
+                  Text('Heading 3 - Product Categories', style: getInterTextStyle(fontSize: 18, fontWeight: FontWeight.w600)),
+                  Text('Body Large - This is body text with 14px and regular weight', style: getInterTextStyle(fontSize: 14, fontWeight: FontWeight.w400)),
+                  Text('Body - Standard body text for descriptions', style: getInterTextStyle(fontSize: 14, fontWeight: FontWeight.w400)),
+                  Text('Label - Form labels and small text', style: getInterTextStyle(fontSize: 14, fontWeight: FontWeight.w500)),
+                  Text('Caption - Small helper text', style: getInterTextStyle(fontSize: 12, fontWeight: FontWeight.w400, color: textSecondary)),
+                  const SizedBox(height: space24),
+                  Text('Font Weight Comparison:', style: h3),
+                  const SizedBox(height: space16),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: Text('Regular (400)', style: getInterTextStyle(fontSize: 16, fontWeight: FontWeight.w400)),
+                                ),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                  decoration: BoxDecoration(
+                                    color: Colors.blue[100],
+                                    borderRadius: BorderRadius.circular(4),
+                                  ),
+                                  child: Text('400', style: caption.copyWith(color: Colors.blue[700])),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: space8),
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: Text('Medium (500)', style: getInterTextStyle(fontSize: 16, fontWeight: FontWeight.w500)),
+                                ),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                  decoration: BoxDecoration(
+                                    color: Colors.green[100],
+                                    borderRadius: BorderRadius.circular(4),
+                                  ),
+                                  child: Text('500', style: caption.copyWith(color: Colors.green[700])),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: space8),
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: Text('Semibold (600)', style: getInterTextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+                                ),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                  decoration: BoxDecoration(
+                                    color: Colors.purple[100],
+                                    borderRadius: BorderRadius.circular(4),
+                                  ),
+                                  child: Text('600', style: caption.copyWith(color: Colors.purple[700])),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: space8),
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: Text('Bold (700)', style: getInterTextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
+                                ),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                  decoration: BoxDecoration(
+                                    color: Colors.orange[100],
+                                    borderRadius: BorderRadius.circular(4),
+                                  ),
+                                  child: Text('700', style: caption.copyWith(color: Colors.orange[700])),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(width: space24),
+                      Expanded(
+                        child: Container(
+                          padding: const EdgeInsets.all(16),
+                          decoration: BoxDecoration(
+                            color: Colors.blue[50],
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(color: Colors.blue[200]!),
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text('Shopify Admin', style: h4.copyWith(color: Colors.blue[700])),
+                              const SizedBox(height: space8),
+                              Text('Uses Inter font family', style: body),
+                              Text('Variable font support', style: body),
+                              Text('Optimized for screens', style: body),
+                              Text('High x-height for readability', style: body),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: space24),
+                  Text('Font Loading Test:', style: h3),
+                  const SizedBox(height: space16),
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: Colors.green[50],
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: Colors.green[200]!),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('Google Fonts Inter Status:', style: h4.copyWith(color: Colors.green[700])),
+                        const SizedBox(height: space8),
+                        Text('✅ Using GoogleFonts.inter()', style: body),
+                        Text('✅ Font family: Inter', style: body),
+                        Text('✅ Variable font support', style: body),
+                        Text('✅ Fallback fonts available', style: body),
+                        Text('✅ Same as Shopify admin', style: body),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+            // Font Rendering Test Section
+            _buildSection(
+              title: 'Font Rendering Test',
+              description: 'Testing actual font rendering and comparison with Shopify admin.',
+              content: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('Real-world Text Examples:', style: h3),
+                  const SizedBox(height: space16),
+                  Container(
+                    padding: const EdgeInsets.all(24),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: borderColor),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('Product Management Dashboard', style: h1),
+                        const SizedBox(height: space16),
+                        Text('Manage your inventory and track product performance', style: bodyLarge),
+                        const SizedBox(height: space24),
+                        Text('Product Categories', style: h3),
+                        const SizedBox(height: space8),
+                        Text('Organize your products into logical groups for better management', style: body),
+                        const SizedBox(height: space16),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text('Total Products', style: labelLarge),
+                                  Text('1,234', style: h2),
+                                ],
+                              ),
+                            ),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text('Low Stock Items', style: labelLarge),
+                                  Text('23', style: h2.copyWith(color: warningOrange)),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: space24),
+                  Text('Font Weight Clarity Test:', style: h3),
+                  const SizedBox(height: space16),
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: Colors.grey[50],
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: borderColor),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Expanded(
+                              child: Text('Regular (400) - Should be clearly readable', style: getInterTextStyle(fontSize: 16, fontWeight: FontWeight.w400)),
+                            ),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                              decoration: BoxDecoration(
+                                color: Colors.blue[100],
+                                borderRadius: BorderRadius.circular(4),
+                              ),
+                              child: Text('400', style: caption.copyWith(color: Colors.blue[700])),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: space8),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: Text('Medium (500) - Slightly bolder for emphasis', style: getInterTextStyle(fontSize: 16, fontWeight: FontWeight.w500)),
+                            ),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                              decoration: BoxDecoration(
+                                color: Colors.green[100],
+                                borderRadius: BorderRadius.circular(4),
+                              ),
+                              child: Text('500', style: caption.copyWith(color: Colors.green[700])),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: space8),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: Text('Semibold (600) - Good for headings', style: getInterTextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+                            ),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                              decoration: BoxDecoration(
+                                color: Colors.purple[100],
+                                borderRadius: BorderRadius.circular(4),
+                              ),
+                              child: Text('600', style: caption.copyWith(color: Colors.purple[700])),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: space8),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: Text('Bold (700) - Strong emphasis', style: getInterTextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
+                            ),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                              decoration: BoxDecoration(
+                                color: Colors.orange[100],
+                                borderRadius: BorderRadius.circular(4),
+                              ),
+                              child: Text('700', style: caption.copyWith(color: Colors.orange[700])),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: space24),
+                  Text('Shopify Admin Comparison:', style: h3),
+                  const SizedBox(height: space16),
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: Colors.blue[50],
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: Colors.blue[200]!),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('Shopify Admin uses:', style: h4),
+                        const SizedBox(height: space8),
+                        Text('• Inter font family (same as us)', style: body),
+                        Text('• Font weights: 400, 500, 600, 700', style: body),
+                        Text('• Variable font for smooth scaling', style: body),
+                        Text('• High x-height for better readability', style: body),
+                        Text('• Optimized for web interfaces', style: body),
+                        const SizedBox(height: space16),
+                        Text('Our implementation:', style: h4),
+                        const SizedBox(height: space8),
+                        Text('✅ Inter font via Google Fonts', style: body),
+                        Text('✅ Same font weights as Shopify', style: body),
+                        Text('✅ Variable font support', style: body),
+                        Text('✅ Consistent with Shopify admin', style: body),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
             ),
           ],
         ),

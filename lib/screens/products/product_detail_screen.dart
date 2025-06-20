@@ -9,6 +9,7 @@ import 'package:intl/intl.dart';
 import 'package:flutter/services.dart';
 import '../../models/company.dart';
 import '../../services/company_service.dart';
+import '../../services/product_company_service.dart';
 import '../../widgets/custom/multi_select_dropdown.dart';
 
 class ProductDetailScreen extends StatefulWidget {
@@ -45,37 +46,16 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
   bool _isActive = false;
   final _categoryService = ProductCategoryService();
   final _companyService = CompanyService();
+  final _productCompanyService = ProductCompanyService();
   List<String> _selectedCategories = [];
-  List<String> _selectedSupplierIds = [];
+  List<String> _selectedCompanyIds = [];
   List<Company> _allCompanies = [];
   bool _companiesLoading = true;
 
   @override
   void initState() {
     super.initState();
-    final p = widget.product;
-    _nameController.text = p.internalName;
-    _commonNameController.text = p.tradeName;
-    _barcodeController.text = p.barcode ?? '';
-    _skuController.text = p.sku ?? '';
-    _unitController.text = p.unit;
-    _quantityController.text = p.stockSystem.toString();
-    
-    // Format giá với dấu phẩy
-    final numberFormat = NumberFormat('#,###', 'vi_VN');
-    _costPriceController.text = numberFormat.format(p.costPrice.round());
-    _sellPriceController.text = numberFormat.format(p.salePrice.round());
-    
-    _tagsController.text = p.tags.join(', ');
-    _descriptionController.text = p.description;
-    _usageController.text = p.usage;
-    _ingredientsController.text = p.ingredients;
-    _notesController.text = p.notes;
-    _tags = List.from(p.tags);
-    _isActive = p.status == 'active';
-    _selectedCategories = List.from(p.categoryIds);
-    _selectedSupplierIds = List.from(p.supplierIds);
-    _profitMarginController.text = p.grossProfit.toString();
+    _initializeData();
     _loadCompanies();
   }
 
@@ -99,12 +79,35 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
     super.dispose();
   }
 
+  void _initializeData() {
+    final p = widget.product;
+    _nameController.text = p.internalName;
+    _commonNameController.text = p.tradeName;
+    _barcodeController.text = p.barcode ?? '';
+    _skuController.text = p.sku ?? '';
+    _unitController.text = p.unit;
+    _quantityController.text = p.stockSystem.toString();
+    _costPriceController.text = NumberFormat('#,###', 'vi_VN').format(p.costPrice.round());
+    _sellPriceController.text = NumberFormat('#,###', 'vi_VN').format(p.salePrice.round());
+    _descriptionController.text = p.description;
+    _usageController.text = p.usage;
+    _ingredientsController.text = p.ingredients;
+    _notesController.text = p.notes;
+    _tags = List.from(p.tags);
+    _selectedCategories = List.from(p.categoryIds);
+    _isActive = p.status == 'active';
+    _profitMarginController.text = _defaultProfitMargin.toStringAsFixed(0);
+  }
+
   Future<void> _loadCompanies() async {
     setState(() => _companiesLoading = true);
     final companies = await _companyService.getCompanies().first;
+    final companyIds = await _productCompanyService.getCompanyIdsForProduct(widget.product.id);
+    
     if (mounted) {
       setState(() {
         _allCompanies = companies;
+        _selectedCompanyIds = companyIds;
         _companiesLoading = false;
       });
     }
@@ -188,7 +191,6 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
         'ingredients': _ingredientsController.text.trim(),
         'notes': _notesController.text.trim(),
         'category_ids': _selectedCategories,
-        'supplier_ids': _selectedSupplierIds,
         'status': _isActive ? 'active' : 'inactive',
         'updated_at': FieldValue.serverTimestamp(),
       };
@@ -214,11 +216,15 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
       print('ingredients: \'${_ingredientsController.text}\'');
       print('notes: \'${_notesController.text}\'');
       print('category_ids: $_selectedCategories');
-      print('supplier_ids: $_selectedSupplierIds');
+      print('company_ids: $_selectedCompanyIds');
       print('status: ${_isActive ? 'active' : 'inactive'}');
       print('--- END LOG ---');
 
+      // Lưu thông tin sản phẩm
       await FirebaseFirestore.instance.collection('products').doc(widget.product.id).update(normalizedData);
+      
+      // Cập nhật mối quan hệ Product-Company trong bảng trung gian
+      await _productCompanyService.updateProductCompanies(widget.product.id, _selectedCompanyIds);
       
       // Format lại giá sau khi lưu
       final numberFormat = NumberFormat('#,###', 'vi_VN');
@@ -350,19 +356,19 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
         ),
         const SizedBox(height: 12),
         DesignSystemFormField(
-          label: 'Nhà cung cấp',
+          label: 'Company',
           input: _companiesLoading 
             ? const Center(child: CircularProgressIndicator())
             : MultiSelectDropdown<String>(
-                label: 'Nhà cung cấp',
+                label: 'Company',
                 items: _allCompanies.map((c) => MultiSelectItem(value: c.id, label: c.name)).toList(),
-                initialSelectedValues: _selectedSupplierIds,
+                initialSelectedValues: _selectedCompanyIds,
                 onSelectionChanged: (values) {
                   setState(() {
-                    _selectedSupplierIds = values;
+                    _selectedCompanyIds = values;
                   });
                 },
-                hint: 'Chọn nhà cung cấp',
+                hint: 'Chọn công ty',
               ),
         ),
         const SizedBox(height: 12),

@@ -8,6 +8,7 @@ import 'package:flutter/services.dart';
 import '../../models/product.dart';
 import '../../models/company.dart';
 import '../../services/company_service.dart';
+import '../../services/product_company_service.dart';
 import '../../widgets/custom/multi_select_dropdown.dart';
 
 class AddProductScreen extends StatefulWidget {
@@ -36,23 +37,24 @@ class _AddProductScreenState extends State<AddProductScreen> {
   final _profitMarginController = TextEditingController();
   List<String> _tags = [];
   List<String> _selectedCategories = [];
-  List<String> _selectedSupplierIds = [];
+  List<String> _selectedCompanyIds = [];
   List<Company> _allCompanies = [];
   bool _isActive = true;
   bool _autoCalculatePrice = true;
   static const double _defaultProfitMargin = 20.0;
   final _categoryService = ProductCategoryService();
   final _companyService = CompanyService();
+  final _productCompanyService = ProductCompanyService();
   bool _companiesLoading = true;
 
   @override
   void initState() {
     super.initState();
     _profitMarginController.text = _defaultProfitMargin.toStringAsFixed(0);
-    _loadInitialData();
+    _loadCompanies();
   }
 
-  Future<void> _loadInitialData() async {
+  Future<void> _loadCompanies() async {
     setState(() => _companiesLoading = true);
     final companies = await _companyService.getCompanies().first;
     if (mounted) {
@@ -131,13 +133,20 @@ class _AddProductScreenState extends State<AddProductScreen> {
         'ingredients': _ingredientsController.text.trim(),
         'notes': _notesController.text.trim(),
         'category_ids': _selectedCategories,
-        'supplier_ids': _selectedSupplierIds,
         'status': _isActive ? 'active' : 'inactive',
         'created_at': FieldValue.serverTimestamp(),
         'updated_at': FieldValue.serverTimestamp(),
       };
       final productData = Product.normalizeProductData(rawData);
-      await FirebaseFirestore.instance.collection('products').add(productData);
+      
+      // Lưu sản phẩm
+      final docRef = await FirebaseFirestore.instance.collection('products').add(productData);
+      
+      // Lưu mối quan hệ Product-Company vào bảng trung gian
+      if (_selectedCompanyIds.isNotEmpty) {
+        await _productCompanyService.addProductCompanies(docRef.id, _selectedCompanyIds);
+      }
+      
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Đã thêm sản phẩm mới!')));
         if (widget.onBack != null) widget.onBack!();
@@ -171,7 +180,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
       _quantityController.text = '50';
       _isActive = true;
       _notesController.text = 'Ghi chú sản phẩm mẫu';
-      _selectedSupplierIds = _allCompanies.isNotEmpty ? [_allCompanies.first.id] : [];
+      _selectedCompanyIds = _allCompanies.isNotEmpty ? [_allCompanies.first.id] : [];
     });
   }
 
@@ -275,19 +284,19 @@ class _AddProductScreenState extends State<AddProductScreen> {
         ),
         const SizedBox(height: 12),
         DesignSystemFormField(
-          label: 'Nhà cung cấp',
+          label: 'Company',
           input: _companiesLoading 
             ? const Center(child: CircularProgressIndicator())
             : MultiSelectDropdown<String>(
-                label: 'Nhà cung cấp',
+                label: 'Company',
                 items: _allCompanies.map((c) => MultiSelectItem(value: c.id, label: c.name)).toList(),
-                initialSelectedValues: _selectedSupplierIds,
+                initialSelectedValues: _selectedCompanyIds,
                 onSelectionChanged: (values) {
                   setState(() {
-                    _selectedSupplierIds = values;
+                    _selectedCompanyIds = values;
                   });
                 },
-                hint: 'Chọn nhà cung cấp',
+                hint: 'Chọn công ty',
               ),
         ),
         const SizedBox(height: 12),

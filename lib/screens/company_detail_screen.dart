@@ -22,7 +22,8 @@ class _CompanyDetailScreenState extends State<CompanyDetailScreen> {
   late TextEditingController _nameController;
   late TextEditingController _taxCodeController;
   late TextEditingController _emailController;
-  late TextEditingController _contactPersonController;
+  late TextEditingController _hotlineController;
+  late TextEditingController _mainContactController;
   late TextEditingController _addressController;
   late TextEditingController _websiteController;
   late TextEditingController _paymentTermController;
@@ -33,6 +34,8 @@ class _CompanyDetailScreenState extends State<CompanyDetailScreen> {
 
   late String _status;
   late List<String> _tags;
+  late bool _isSupplier;
+  late bool _isCustomer;
 
   @override
   void initState() {
@@ -40,15 +43,18 @@ class _CompanyDetailScreenState extends State<CompanyDetailScreen> {
     _nameController = TextEditingController(text: widget.company.name);
     _taxCodeController = TextEditingController(text: widget.company.taxCode);
     _emailController = TextEditingController(text: widget.company.email);
-    _contactPersonController = TextEditingController(text: widget.company.contactPerson);
+    _hotlineController = TextEditingController(text: widget.company.hotline);
+    _mainContactController = TextEditingController(text: widget.company.mainContact);
     _addressController = TextEditingController(text: widget.company.address);
     _websiteController = TextEditingController(text: widget.company.website);
     _paymentTermController = TextEditingController(text: widget.company.paymentTerm);
-    _bankAccountController = TextEditingController(text: widget.company.bankAccountNumber);
+    _bankAccountController = TextEditingController(text: widget.company.bankAccount);
     _bankNameController = TextEditingController(text: widget.company.bankName);
-    _notesController = TextEditingController(text: widget.company.notes);
+    _notesController = TextEditingController(text: widget.company.note);
     _status = widget.company.status;
     _tags = List<String>.from(widget.company.tags);
+    _isSupplier = widget.company.isSupplier;
+    _isCustomer = widget.company.isCustomer;
   }
 
   @override
@@ -56,7 +62,8 @@ class _CompanyDetailScreenState extends State<CompanyDetailScreen> {
     _nameController.dispose();
     _taxCodeController.dispose();
     _emailController.dispose();
-    _contactPersonController.dispose();
+    _hotlineController.dispose();
+    _mainContactController.dispose();
     _addressController.dispose();
     _websiteController.dispose();
     _paymentTermController.dispose();
@@ -82,7 +89,7 @@ class _CompanyDetailScreenState extends State<CompanyDetailScreen> {
       setState(() => _isSaving = true);
       try {
         final newTaxCode = _taxCodeController.text.trim();
-        if (newTaxCode != widget.company.taxCode) {
+        if (newTaxCode.isNotEmpty && newTaxCode != widget.company.taxCode) {
           final isUnique = await _companyService.isTaxCodeUnique(
             newTaxCode,
             excludeCompanyId: widget.company.id,
@@ -104,22 +111,26 @@ class _CompanyDetailScreenState extends State<CompanyDetailScreen> {
           }
         }
 
-        final updatedData = {
-          'name': _nameController.text,
-          'taxCode': _taxCodeController.text,
-          'email': _emailController.text,
-          'address': _addressController.text,
-          'contactPerson': _contactPersonController.text,
-          'website': _websiteController.text,
-          'paymentTerm': _paymentTermController.text,
-          'bankAccountNumber': _bankAccountController.text,
-          'bankName': _bankNameController.text,
-          'notes': _notesController.text,
-          'status': _status,
-          'tags': _tags,
-        };
+        final updatedCompany = widget.company.copyWith(
+          name: _nameController.text.trim(),
+          taxCode: _taxCodeController.text.trim(),
+          address: _addressController.text.trim(),
+          hotline: _hotlineController.text.trim(),
+          email: _emailController.text.trim(),
+          website: _websiteController.text.trim(),
+          mainContact: _mainContactController.text.trim(),
+          bankAccount: _bankAccountController.text.trim(),
+          bankName: _bankNameController.text.trim(),
+          paymentTerm: _paymentTermController.text.trim(),
+          status: _status,
+          tags: _tags,
+          note: _notesController.text.trim(),
+          isSupplier: _isSupplier,
+          isCustomer: _isCustomer,
+          updatedAt: DateTime.now(),
+        );
 
-        await _companyService.updateCompany(widget.company.id, updatedData);
+        await _companyService.updateCompany(widget.company.id, updatedCompany.toMap());
 
         if (mounted) {
           OverlayEntry? entry;
@@ -235,12 +246,14 @@ class _CompanyDetailScreenState extends State<CompanyDetailScreen> {
             _buildEditableField('Mã số thuế', _taxCodeController),
             _buildEditableField('Email', _emailController),
             _buildEditableField('Địa chỉ', _addressController),
-            _buildEditableField('Người liên hệ chính', _contactPersonController),
+            _buildEditableField('Hotline', _hotlineController),
+            _buildEditableField('Người liên hệ chính', _mainContactController),
             _buildEditableField('Website', _websiteController),
             _buildEditableField('Số tài khoản ngân hàng', _bankAccountController),
             _buildEditableField('Tên ngân hàng', _bankNameController),
             _buildEditableField('Điều khoản thanh toán', _paymentTermController),
             _buildStatusDropdown(),
+            _buildClassificationCheckboxes(),
             _buildTagsSection(),
             _buildEditableField('Ghi chú', _notesController, maxLines: 3),
           ],
@@ -274,16 +287,40 @@ class _CompanyDetailScreenState extends State<CompanyDetailScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Trạng thái', style: labelLarge.copyWith(color: textThird)),
+          Text('Trạng thái', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: textSecondary)),
           const SizedBox(height: 8),
           ShopifyDropdown<String>(
-            items: const ['Hoạt động', 'Ngừng hoạt động'],
+            items: const ['active', 'inactive'],
             value: _status,
-            getLabel: (s) => s,
+            getLabel: (s) => (s == 'active' || s.isEmpty) ? 'Đang hoạt động' : 'Ngừng hoạt động',
             onChanged: (val) {
-              if (val != null) setState(() => _status = val);
+              if (val != null) {
+                setState(() => _status = val);
+              }
             },
           ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildClassificationCheckboxes() {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 16.0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('Phân loại', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: textSecondary)),
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              Checkbox(value: _isSupplier, onChanged: (val) => setState(() => _isSupplier = val ?? false)),
+              const Text('Là nhà cung cấp'),
+              const SizedBox(width: 24),
+              Checkbox(value: _isCustomer, onChanged: (val) => setState(() => _isCustomer = val ?? false)),
+              const Text('Là khách hàng'),
+            ],
+          )
         ],
       ),
     );

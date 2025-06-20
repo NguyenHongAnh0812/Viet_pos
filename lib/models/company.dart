@@ -4,66 +4,133 @@ class Company {
   final String id;
   final String name;
   final String? taxCode;
-  final String? email;
   final String? address;
-  final String? contactPerson;
+  final String? hotline;
+  final String? email;
   final String? website;
-  final String status;
-  final String? paymentTerm;
-  final String? bankAccountNumber;
+  final String? mainContact;
+  final String? bankAccount;
   final String? bankName;
+  final String? paymentTerm;
+  final String status;
   final List<String> tags;
-  final String? notes;
+  final String? note;
+  final bool isSupplier;
+  final bool isCustomer;
+  final DateTime createdAt;
+  final DateTime updatedAt;
 
   Company({
     required this.id,
     required this.name,
     this.taxCode,
-    this.email,
     this.address,
-    this.contactPerson,
+    this.hotline,
+    this.email,
     this.website,
-    required this.status,
-    this.paymentTerm,
-    this.bankAccountNumber,
+    this.mainContact,
+    this.bankAccount,
     this.bankName,
+    this.paymentTerm,
+    this.status = 'active',
     this.tags = const [],
-    this.notes,
+    this.note,
+    this.isSupplier = true,
+    this.isCustomer = false,
+    required this.createdAt,
+    required this.updatedAt,
   });
-
-  factory Company.fromFirestore(DocumentSnapshot doc) {
-    Map<String, dynamic> data = doc.data() as Map<String, dynamic>;
-    return Company(
-      id: doc.id,
-      name: data['name'] ?? '',
-      taxCode: data['taxCode'],
-      email: data['email'],
-      address: data['address'],
-      contactPerson: data['contactPerson'],
-      website: data['website'],
-      status: data['status'] ?? 'Hoạt động',
-      paymentTerm: data['paymentTerm'],
-      bankAccountNumber: data['bankAccountNumber'],
-      bankName: data['bankName'],
-      tags: List<String>.from(data['tags'] ?? []),
-      notes: data['notes'],
-    );
-  }
 
   Map<String, dynamic> toMap() {
     return {
       'name': name,
       'taxCode': taxCode,
-      'email': email,
       'address': address,
-      'contactPerson': contactPerson,
+      'hotline': hotline,
+      'email': email,
       'website': website,
-      'status': status,
-      'paymentTerm': paymentTerm,
-      'bankAccountNumber': bankAccountNumber,
+      'mainContact': mainContact,
+      'bankAccount': bankAccount,
       'bankName': bankName,
+      'paymentTerm': paymentTerm,
+      'status': status,
       'tags': tags,
-      'notes': notes,
+      'note': note,
+      'isSupplier': isSupplier,
+      'isCustomer': isCustomer,
+      'createdAt': FieldValue.serverTimestamp(),
+      'updatedAt': FieldValue.serverTimestamp(),
     };
+  }
+
+  factory Company.fromFirestore(DocumentSnapshot doc) {
+    Map<String, dynamic> data = doc.data() as Map<String, dynamic>;
+    String status = data['status'] ?? 'active';
+    if (status.isEmpty) {
+      status = 'active';
+    }
+    
+    return Company(
+      id: doc.id,
+      name: data['name'] ?? '',
+      taxCode: data['taxCode'],
+      address: data['address'],
+      hotline: data['hotline'],
+      email: data['email'],
+      website: data['website'],
+      mainContact: data['mainContact'],
+      bankAccount: data['bankAccount'],
+      bankName: data['bankName'],
+      paymentTerm: data['paymentTerm'],
+      status: status,
+      tags: List<String>.from(data['tags'] ?? []),
+      note: data['note'],
+      isSupplier: data['isSupplier'] ?? true,
+      isCustomer: data['isCustomer'] ?? false,
+      createdAt: (data['createdAt'] as Timestamp? ?? Timestamp.now()).toDate(),
+      updatedAt: (data['updatedAt'] as Timestamp? ?? Timestamp.now()).toDate(),
+    );
+  }
+
+  Company copyWith({
+    String? id,
+    String? name,
+    String? taxCode,
+    String? address,
+    String? hotline,
+    String? email,
+    String? website,
+    String? mainContact,
+    String? bankAccount,
+    String? bankName,
+    String? paymentTerm,
+    String? status,
+    List<String>? tags,
+    String? note,
+    bool? isSupplier,
+    bool? isCustomer,
+    DateTime? createdAt,
+    DateTime? updatedAt,
+  }) {
+    return Company(
+      id: id ?? this.id,
+      name: name ?? this.name,
+      taxCode: taxCode ?? this.taxCode,
+      address: address ?? this.address,
+      hotline: hotline ?? this.hotline,
+      email: email ?? this.email,
+      website: website ?? this.website,
+      mainContact: mainContact ?? this.mainContact,
+      bankAccount: bankAccount ?? this.bankAccount,
+      bankName: bankName ?? this.bankName,
+      paymentTerm: paymentTerm ?? this.paymentTerm,
+      status: status ?? this.status,
+      tags: tags ?? this.tags,
+      note: note ?? this.note,
+      isSupplier: isSupplier ?? this.isSupplier,
+      isCustomer: isCustomer ?? this.isCustomer,
+      createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+    );
   }
 } 

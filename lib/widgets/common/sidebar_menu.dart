@@ -58,7 +58,7 @@ class _SidebarMenuState extends State<SidebarMenu> {
         ),
       ],
     ),
-    const MenuItem(
+    const MenuItem( 
       title: 'Kho hàng',
       icon: Icons.warehouse_outlined,
       route: '/inventory',

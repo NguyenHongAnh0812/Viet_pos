@@ -472,18 +472,18 @@ class _InvoiceImportScreenState extends State<InvoiceImportScreen> {
               // Cập nhật sản phẩm hiện có
               final doc = allProducts[searchKey]!;
               final currentStock = (doc['stock_invoice'] ?? 0).toDouble();
-              batch.update(doc.reference, {
+          batch.update(doc.reference, {
                 'stock_invoice': currentStock + quantity,
                 'cost_price': costPrice,
                 'updated_at': FieldValue.serverTimestamp(),
-              });
-              updatedCount++;
-            } else {
+          });
+          updatedCount++;
+        } else {
               // Tạo sản phẩm mới
-              final productData = {
+          final productData = {
                 'internal_name': internalName.isNotEmpty ? internalName : name,
                 'trade_name': name,
-                'unit': unit,
+            'unit': unit,
                 'stock_system': 0,
                 'stock_invoice': quantity,
                 'cost_price': costPrice,
@@ -495,16 +495,16 @@ class _InvoiceImportScreenState extends State<InvoiceImportScreen> {
                 'sale_price': 0,
                 'gross_profit': 0,
                 'auto_price': false,
-                'tags': [],
+            'tags': [],
                 'barcode': null,
                 'sku': null,
                 'created_at': FieldValue.serverTimestamp(),
                 'updated_at': FieldValue.serverTimestamp(),
-              };
+          };
               final docRef = FirebaseFirestore.instance.collection('products').doc();
-              batch.set(docRef, productData);
-              newCount++;
-            }
+          batch.set(docRef, productData);
+          newCount++;
+        }
             batchOperations++;
           } catch (e) {
             errorCount++;

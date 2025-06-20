@@ -66,7 +66,7 @@ class ProductCategoryService {
               return conditions.every((cond) => cond.evaluate(p));
             } else {
               return conditions.any((cond) => cond.evaluate(p));
-            }
+    }
           })
           .map((p) => p.id)
           .toList();

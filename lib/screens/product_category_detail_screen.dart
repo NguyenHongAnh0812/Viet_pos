@@ -268,222 +268,239 @@ class _ProductCategoryDetailScreenState extends State<ProductCategoryDetailScree
   
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: appBackground,
-      appBar: AppBar(
-        backgroundColor: Colors.white,
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.black87),
-          onPressed: widget.onBack ?? () => Navigator.pop(context),
-        ),
-        title: const Text(
-          'Chi tiết danh mục',
-          style: TextStyle(color: Colors.black87, fontSize: 20),
-        ),
-        actions: [
-          TextButton(
-            onPressed: _deleteCategory,
-            style: TextButton.styleFrom(foregroundColor: Colors.red),
-            child: const Text('Xóa danh mục'),
-          ),
-          const SizedBox(width: 8),
-          Padding(
-            padding: const EdgeInsets.only(right: 16),
-            child: ElevatedButton(
-              onPressed: isSaving || _nameError != null ? null : _updateCategory,
-              style: primaryButtonStyle,
-              child: isSaving
-                  ? const SizedBox(
-                      width: 20, height: 20,
-                      child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
-                    )
-                  : const Text('Lưu'),
+    return Container(
+      color: appBackground,
+      child: Column(
+        children: [
+          // Header section
+          Container(
+            padding: const EdgeInsets.all(24),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              border: Border(bottom: BorderSide(color: borderColor)),
+            ),
+            child: Row(
+              children: [
+                IconButton(
+                  icon: const Icon(Icons.arrow_back, color: Colors.black87),
+                  onPressed: widget.onBack ?? () => Navigator.pop(context),
+                ),
+                const SizedBox(width: 16),
+                const Expanded(
+                  child: Text(
+                    'Chi tiết danh mục',
+                    style: TextStyle(
+                      color: Colors.black87, 
+                      fontSize: 24,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+                TextButton(
+                  onPressed: _deleteCategory,
+                  style: TextButton.styleFrom(foregroundColor: Colors.red),
+                  child: const Text('Xóa danh mục'),
+                ),
+                const SizedBox(width: 16),
+                ElevatedButton(
+                  onPressed: isSaving || _nameError != null ? null : _updateCategory,
+                  style: primaryButtonStyle,
+                  child: isSaving
+                      ? const SizedBox(
+                          width: 20, height: 20,
+                          child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                        )
+                      : const Text('Lưu'),
+                ),
+              ],
             ),
           ),
-        ],
-      ),
-      body: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Left column (same as Add screen)
+          // Main content
           Expanded(
-            flex: 11,
-            child: SingleChildScrollView(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Category Info Section
-                  Container(
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Left column
+                Expanded(
+                  flex: 11,
+                  child: SingleChildScrollView(
                     padding: const EdgeInsets.all(24),
-                    margin: const EdgeInsets.all(24),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: borderColor),
-                    ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                        const Text(
-                          'Thông tin danh mục',
-                          style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: textPrimary),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // Category Info Section
+                        Container(
+                          padding: const EdgeInsets.all(24),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(color: borderColor),
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text(
+                                'Thông tin danh mục',
+                                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: textPrimary),
+                              ),
+                              const SizedBox(height: 24),
+                              // Name field
+                              Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  const Text('Tên danh mục', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: textPrimary)),
+                                  const SizedBox(height: 8),
+                                  TextField(
+                                    controller: _nameController,
+                                    decoration: designSystemInputDecoration(hint: 'Nhập tên danh mục', errorText: _nameError),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 16),
+                              // Description field
+                              Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  const Text('Mô tả', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: textPrimary)),
+                                  const SizedBox(height: 8),
+                                  TextField(
+                                    controller: _descController,
+                                    minLines: 3,
+                                    maxLines: 5,
+                                    decoration: designSystemInputDecoration(hint: 'Nhập mô tả cho danh mục'),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 16),
+                              // Parent Category
+                              Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  const Text('Danh mục cha', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: textPrimary)),
+                                  const SizedBox(height: 8),
+                                  StreamBuilder<List<ProductCategory>>(
+                                    stream: _categoryService.getCategories(),
+                                    builder: (context, snapshot) {
+                                      final categories = (snapshot.data ?? []).where((c) => c.id != widget.category.id && c.parentId == null).toList();
+                                      final parentOptions = [null, ...categories];
+                                      return ShopifyDropdown<String?>(
+                                        items: parentOptions.map((c) => c?.id).toList(),
+                                        value: _selectedParentId,
+                                        getLabel: (id) {
+                                          if (id == null) return 'Chọn danh mục cha';
+                                          final cat = categories.firstWhere((c) => c.id == id, orElse: () => ProductCategory(id: '', name: ''));
+                                          return cat.name.isNotEmpty ? cat.name : '(Không xác định)';
+                                        },
+                                        onChanged: (val) => setState(() => _selectedParentId = val),
+                                        hint: 'Chọn danh mục cha',
+                                      );
+                                    },
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
                         ),
                         const SizedBox(height: 24),
-                        // Name field
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const Text('Tên danh mục', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: textPrimary)),
-                            const SizedBox(height: 8),
-                            TextField(
-                              controller: _nameController,
-                              decoration: designSystemInputDecoration(hint: 'Nhập tên danh mục', errorText: _nameError),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 16),
-                        // Description field
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const Text('Mô tả', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: textPrimary)),
-                            const SizedBox(height: 8),
-                            TextField(
-                              controller: _descController,
-                              minLines: 3,
-                              maxLines: 5,
-                              decoration: designSystemInputDecoration(hint: 'Nhập mô tả cho danh mục'),
-                            ),
-                          ],
-                    ),
-                    const SizedBox(height: 16),
-                    // Parent Category
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const Text('Danh mục cha', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: textPrimary)),
-                            const SizedBox(height: 8),
-                            StreamBuilder<List<ProductCategory>>(
-                              stream: _categoryService.getCategories(),
-                              builder: (context, snapshot) {
-                                final categories = (snapshot.data ?? []).where((c) => c.id != widget.category.id && c.parentId == null).toList();
-                                final parentOptions = [null, ...categories];
-                                return ShopifyDropdown<String?>(
-                                  items: parentOptions.map((c) => c?.id).toList(),
-                                  value: _selectedParentId,
-                                  getLabel: (id) {
-                                    if (id == null) return 'Chọn danh mục cha';
-                                    final cat = categories.firstWhere((c) => c.id == id, orElse: () => ProductCategory(id: '', name: ''));
-                                    return cat.name.isNotEmpty ? cat.name : '(Không xác định)';
-                                  },
-                                  onChanged: (val) => setState(() => _selectedParentId = val),
-                                  hint: 'Chọn danh mục cha',
-                                );
-                              },
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-                  ),
-                  // Category Type Section
-                  Container(
-                    padding: const EdgeInsets.all(24),
-                    margin: const EdgeInsets.symmetric(horizontal: 24),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: borderColor),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text('Loại danh mục', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: textPrimary)),
-                        const SizedBox(height: 14),
-                        Column(
-                          children: [
-                            RadioListTile<bool>(
-                              title: const Text('Thủ công', style: TextStyle(fontWeight: FontWeight.w600, color: textPrimary)),
-                              subtitle: const Text('Thêm từng sản phẩm vào danh mục này.', style: TextStyle(fontSize: 13)),
-                              value: true,
-                              groupValue: isManualMode,
-                              onChanged: (value) => setState(() => isManualMode = value!),
-                            ),
-                            const SizedBox(height: 2),
-                            RadioListTile<bool>(
-                              title: const Text('Thông minh', style: TextStyle(fontWeight: FontWeight.w600, color: textPrimary)),
-                              subtitle: const Text('Các sản phẩm hiện tại và tương lai phù hợp với các điều kiện bạn đặt sẽ tự động được thêm vào danh mục này.', style: TextStyle(fontSize: 13)),
-                              value: false,
-                              groupValue: isManualMode,
-                              onChanged: (value) => setState(() => isManualMode = value!),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-                  ),
-                  if (!isManualMode) ...[
-                    const SizedBox(height: 24),
-                    _buildConditionsSection(),
-                  ],
-                  const SizedBox(height: 24),
-                ],
-              ),
-            ),
-          ),
-          // Right column (same as Add screen)
-          Container(
-            width: 1,
-            height: double.infinity,
-            color: borderColor,
-          ),
-          Expanded(
-            flex: 9,
-            child: Container(
-              height: double.infinity,
-              color: Colors.white,
-              padding: const EdgeInsets.only(top: 24),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Container(
-                    margin: const EdgeInsets.fromLTRB(24, 0, 24, 24),
-                    padding: const EdgeInsets.all(24),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: borderColor),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text('Sản phẩm trong danh mục', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-                        const SizedBox(height: 4),
-                        if (isManualMode) ...[
-                          Text('${selectedProducts.length} sản phẩm được chọn thủ công', style: TextStyle(fontSize: 14, color: Colors.grey[600])),
-                          const SizedBox(height: 16),
-                          TextField(
-                            controller: _searchController,
-                            decoration: searchInputDecoration(hint: 'Tìm kiếm sản phẩm để thêm...'),
-                            onChanged: (v) => setState(() => searchText = v),
+                        // Category Type Section
+                        Container(
+                          padding: const EdgeInsets.all(24),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(color: borderColor),
                           ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text('Loại danh mục', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: textPrimary)),
+                              const SizedBox(height: 14),
+                              Column(
+                                children: [
+                                  RadioListTile<bool>(
+                                    title: const Text('Thủ công', style: TextStyle(fontWeight: FontWeight.w600, color: textPrimary)),
+                                    subtitle: const Text('Thêm từng sản phẩm vào danh mục này.', style: TextStyle(fontSize: 13)),
+                                    value: true,
+                                    groupValue: isManualMode,
+                                    onChanged: (value) => setState(() => isManualMode = value!),
+                                  ),
+                                  const SizedBox(height: 2),
+                                  RadioListTile<bool>(
+                                    title: const Text('Thông minh', style: TextStyle(fontWeight: FontWeight.w600, color: textPrimary)),
+                                    subtitle: const Text('Các sản phẩm hiện tại và tương lai phù hợp với các điều kiện bạn đặt sẽ tự động được thêm vào danh mục này.', style: TextStyle(fontSize: 13)),
+                                    value: false,
+                                    groupValue: isManualMode,
+                                    onChanged: (value) => setState(() => isManualMode = value!),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
+                        ),
+                        if (!isManualMode) ...[
+                          const SizedBox(height: 24),
+                          _buildConditionsSection(),
                         ],
+                        const SizedBox(height: 24),
                       ],
                     ),
                   ),
-                  Expanded(
-                    child: SingleChildScrollView(
-                      child: isManualMode
-                          ? _buildManualProductSelection()
-                          : Container(
-                              margin: const EdgeInsets.symmetric(horizontal: 24),
-                              child: _buildPreviewSectionStyled(),
-                            ),
+                ),
+                // Right column
+                Container(
+                  width: 1,
+                  height: double.infinity,
+                  color: borderColor,
+                ),
+                Expanded(
+                  flex: 9,
+                  child: Container(
+                    height: double.infinity,
+                    color: Colors.white,
+                    padding: const EdgeInsets.only(top: 24),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Container(
+                          margin: const EdgeInsets.fromLTRB(24, 0, 24, 24),
+                          padding: const EdgeInsets.all(24),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(color: borderColor),
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text('Sản phẩm trong danh mục', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                              const SizedBox(height: 4),
+                              if (isManualMode) ...[
+                                Text('${selectedProducts.length} sản phẩm được chọn thủ công', style: TextStyle(fontSize: 14, color: Colors.grey[600])),
+                                const SizedBox(height: 16),
+                                TextField(
+                                  controller: _searchController,
+                                  decoration: searchInputDecoration(hint: 'Tìm kiếm sản phẩm để thêm...'),
+                                  onChanged: (v) => setState(() => searchText = v),
+                                ),
+                              ],
+                            ],
+                          ),
+                        ),
+                        Expanded(
+                          child: SingleChildScrollView(
+                            child: isManualMode
+                                ? _buildManualProductSelection()
+                                : Container(
+                                    margin: const EdgeInsets.symmetric(horizontal: 24),
+                                    child: _buildPreviewSectionStyled(),
+                                  ),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
-                ],
-              ),
+                ),
+              ],
             ),
           ),
         ],

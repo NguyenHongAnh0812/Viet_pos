@@ -20,7 +20,8 @@ class _AddCompanyScreenState extends State<AddCompanyScreen> {
   final _nameController = TextEditingController();
   final _taxCodeController = TextEditingController();
   final _emailController = TextEditingController();
-  final _contactPersonController = TextEditingController();
+  final _hotlineController = TextEditingController();
+  final _mainContactController = TextEditingController();
   final _addressController = TextEditingController();
   final _websiteController = TextEditingController();
   final _paymentTermController = TextEditingController();
@@ -29,15 +30,18 @@ class _AddCompanyScreenState extends State<AddCompanyScreen> {
   final _notesController = TextEditingController();
   final _tagsController = TextEditingController();
 
-  String _status = 'Hoạt động';
+  String _status = 'active'; // 'active' hoặc 'inactive'
   List<String> _tags = [];
+  bool _isSupplier = true;
+  bool _isCustomer = false;
 
   @override
   void dispose() {
     _nameController.dispose();
     _taxCodeController.dispose();
     _emailController.dispose();
-    _contactPersonController.dispose();
+    _hotlineController.dispose();
+    _mainContactController.dispose();
     _addressController.dispose();
     _websiteController.dispose();
     _paymentTermController.dispose();
@@ -115,50 +119,32 @@ class _AddCompanyScreenState extends State<AddCompanyScreen> {
             const SizedBox(width: 24),
             Expanded(child: DesignSystemFormField(
               label: 'Mã số thuế', 
-              required: true, 
-              input: _buildTextField(_taxCodeController, validator: (value) {
-                if (value == null || value.trim().isEmpty) {
-                  return 'Vui lòng nhập mã số thuế';
-                }
-                return null;
-              })
+              input: _buildTextField(_taxCodeController)
             )),
           ],
         ),
         const SizedBox(height: 16),
+        DesignSystemFormField(label: 'Địa chỉ', input: _buildTextField(_addressController)),
+        const SizedBox(height: 16),
         Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Expanded(child: DesignSystemFormField(label: 'Email', required: true, input: _buildTextField(_emailController))),
+            Expanded(child: DesignSystemFormField(label: 'Email', input: _buildTextField(_emailController))),
             const SizedBox(width: 24),
-            Expanded(child: DesignSystemFormField(label: 'Người liên hệ chính', required: true, input: _buildTextField(_contactPersonController))),
+            Expanded(child: DesignSystemFormField(label: 'Hotline', input: _buildTextField(_hotlineController))),
           ],
         ),
         const SizedBox(height: 16),
-        DesignSystemFormField(label: 'Địa chỉ', required: true, input: _buildTextField(_addressController)),
-        const SizedBox(height: 16),
         Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Expanded(child: DesignSystemFormField(label: 'Website', input: _buildTextField(_websiteController))),
+             Expanded(child: DesignSystemFormField(label: 'Website', input: _buildTextField(_websiteController))),
             const SizedBox(width: 24),
-            Expanded(
-              child: DesignSystemFormField(
-                label: 'Trạng thái',
-                input: ShopifyDropdown<String>(
-                  items: const ['Hoạt động', 'Ngừng hoạt động'],
-                  value: _status,
-                  getLabel: (s) => s,
-                  onChanged: (val) {
-                    if(val != null) setState(() => _status = val);
-                  },
-                ),
-              ),
-            ),
+            Expanded(child: DesignSystemFormField(label: 'Người liên hệ chính', input: _buildTextField(_mainContactController))),
           ],
         ),
          const SizedBox(height: 16),
-         DesignSystemFormField(label: 'Điều khoản thanh toán', input: _buildTextField(_paymentTermController, hint: 'VD: Net 30')),
+         DesignSystemFormField(label: 'Điều khoản thanh toán', input: _buildTextField(_paymentTermController, hint: 'VD: Net 30, Công nợ 30 ngày')),
          const SizedBox(height: 16),
          Row(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -166,6 +152,43 @@ class _AddCompanyScreenState extends State<AddCompanyScreen> {
             Expanded(child: DesignSystemFormField(label: 'Số tài khoản ngân hàng', input: _buildTextField(_bankAccountController))),
             const SizedBox(width: 24),
             Expanded(child: DesignSystemFormField(label: 'Tên ngân hàng', input: _buildTextField(_bankNameController))),
+          ],
+        ),
+        const SizedBox(height: 16),
+        Row(
+          children: [
+            Expanded(
+              child: DesignSystemFormField(
+                label: 'Trạng thái',
+                input: ShopifyDropdown<String>(
+                  items: const ['active', 'inactive'],
+                  value: _status,
+                  getLabel: (s) => (s == 'active' || s.isEmpty) ? 'Đang hoạt động' : 'Ngừng hoạt động',
+                  onChanged: (val) {
+                    if(val != null) setState(() => _status = val);
+                  },
+                ),
+              ),
+            ),
+            const SizedBox(width: 24),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                   const Text('Phân loại', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: textSecondary)),
+                   const SizedBox(height: 8),
+                   Row(
+                     children: [
+                       Checkbox(value: _isSupplier, onChanged: (val) => setState(() => _isSupplier = val ?? false)),
+                       const Text('Là nhà cung cấp'),
+                       const SizedBox(width: 16),
+                       Checkbox(value: _isCustomer, onChanged: (val) => setState(() => _isCustomer = val ?? false)),
+                       const Text('Là khách hàng'),
+                     ],
+                   )
+                ],
+              )
+            )
           ],
         ),
          const SizedBox(height: 16),
@@ -242,7 +265,6 @@ class _AddCompanyScreenState extends State<AddCompanyScreen> {
       setState(() => _isSaving = true);
 
       try {
-        // Kiểm tra mã số thuế duy nhất
         final isUnique = await _companyService.isTaxCodeUnique(_taxCodeController.text.trim());
         if (!isUnique) {
           if (mounted) {
@@ -261,22 +283,28 @@ class _AddCompanyScreenState extends State<AddCompanyScreen> {
         }
 
         final newCompany = Company(
-          id: '', // Firestore will generate this
-          name: _nameController.text,
-          taxCode: _taxCodeController.text,
-          email: _emailController.text,
-          address: _addressController.text,
-          contactPerson: _contactPersonController.text,
-          website: _websiteController.text,
+          id: '', // Firestore will generate
+          name: _nameController.text.trim(),
+          taxCode: _taxCodeController.text.trim(),
+          address: _addressController.text.trim(),
+          hotline: _hotlineController.text.trim(),
+          email: _emailController.text.trim(),
+          website: _websiteController.text.trim(),
+          mainContact: _mainContactController.text.trim(),
+          bankAccount: _bankAccountController.text.trim(),
+          bankName: _bankNameController.text.trim(),
+          paymentTerm: _paymentTermController.text.trim(),
           status: _status,
-          paymentTerm: _paymentTermController.text,
-          bankAccountNumber: _bankAccountController.text,
-          bankName: _bankNameController.text,
-          notes: _notesController.text,
           tags: _tags,
+          note: _notesController.text.trim(),
+          isSupplier: _isSupplier,
+          isCustomer: _isCustomer,
+          createdAt: DateTime.now(),
+          updatedAt: DateTime.now(),
         );
 
         await _companyService.addCompany(newCompany);
+
         if (mounted) {
           OverlayEntry? entry;
           entry = OverlayEntry(
@@ -314,15 +342,18 @@ class _AddCompanyScreenState extends State<AddCompanyScreen> {
       _nameController.text = 'Công ty Dược phẩm Pharmacity';
       _taxCodeController.text = '0311602955';
       _emailController.text = 'cskh@pharmacity.vn';
-      _contactPersonController.text = 'Lê Nguyễn Nhật Tường';
+      _hotlineController.text = '028 3838 3838';
+      _mainContactController.text = 'Lê Nguyễn Nhật Tường';
       _addressController.text = '248A Nơ Trang Long, P. 12, Q. Bình Thạnh, TP. HCM';
       _websiteController.text = 'https://www.pharmacity.vn';
-      _status = 'Hoạt động';
+      _status = 'active';
       _paymentTermController.text = 'Thanh toán ngay';
       _bankAccountController.text = '060199998888';
       _bankNameController.text = 'Sacombank';
       _notesController.text = 'Đối tác lớn, ưu tiên giao hàng.';
       _tags = ['Tag1', 'Tag2'];
+      _isSupplier = true;
+      _isCustomer = false;
     });
   }
 

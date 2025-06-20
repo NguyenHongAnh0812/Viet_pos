@@ -23,7 +23,6 @@ class Product {
   final String? discontinueReason; // discontinue_reason
   final DateTime createdAt;  // created_at
   final DateTime updatedAt;  // updated_at
-  final List<String> supplierIds; // Thêm trường này
 
   Product({
     required this.id,
@@ -48,7 +47,6 @@ class Product {
     this.discontinueReason,
     required this.createdAt,
     required this.updatedAt,
-    this.supplierIds = const [], // Thêm vào constructor
   });
 
   Map<String, dynamic> toMap() {
@@ -74,7 +72,6 @@ class Product {
       'discontinue_reason': discontinueReason,
       'created_at': createdAt,
       'updated_at': updatedAt,
-      'supplier_ids': supplierIds, // Thêm vào toMap
     };
   }
 
@@ -133,7 +130,6 @@ class Product {
       discontinueReason: map['discontinue_reason'],
       createdAt: createdAt ?? DateTime.now(),
       updatedAt: updatedAt ?? DateTime.now(),
-      supplierIds: List<String>.from(map['supplier_ids'] ?? []), // Thêm vào factory
     );
   }
 
@@ -165,7 +161,6 @@ class Product {
     String? discontinueReason,
     DateTime? createdAt,
     DateTime? updatedAt,
-    List<String>? supplierIds, // Thêm vào copyWith
   }) {
     return Product(
       id: id ?? this.id,
@@ -190,7 +185,6 @@ class Product {
       discontinueReason: discontinueReason ?? this.discontinueReason,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
-      supplierIds: supplierIds ?? this.supplierIds, // Thêm vào copyWith
     );
   }
 
@@ -207,7 +201,7 @@ class Product {
         categoryIds = [rawCategoryIds.toString()];
       }
     }
-    
+
     return {
       'internal_name': raw['internal_name'] ?? raw['internalName'] ?? '',
       'trade_name': raw['trade_name'] ?? raw['tradeName'] ?? '',
@@ -215,22 +209,21 @@ class Product {
       'barcode': raw['barcode'],
       'sku': raw['sku'],
       'unit': raw['unit'] ?? '',
-      'tags': raw['tags'] is String ? (raw['tags'] as String).split(',').map((e) => e.trim()).toList() : (raw['tags'] ?? []),
+      'tags': List<String>.from(raw['tags'] ?? []),
       'description': raw['description'] ?? '',
       'usage': raw['usage'] ?? '',
       'ingredients': raw['ingredients'] ?? '',
       'notes': raw['notes'] ?? '',
       'stock_system': raw['stock_system'] ?? raw['stockSystem'] ?? 0,
       'stock_invoice': raw['stock_invoice'] ?? raw['stockInvoice'] ?? 0,
-      'cost_price': raw['cost_price'] ?? raw['costPrice'] ?? 0.0,
-      'sale_price': raw['sale_price'] ?? raw['salePrice'] ?? 0.0,
-      'gross_profit': raw['gross_profit'] ?? raw['grossProfit'] ?? 0.0,
+      'cost_price': raw['cost_price'] ?? raw['costPrice'] ?? 0,
+      'sale_price': raw['sale_price'] ?? raw['salePrice'] ?? 0,
+      'gross_profit': raw['gross_profit'] ?? raw['grossProfit'] ?? 0,
       'auto_price': raw['auto_price'] ?? raw['autoPrice'] ?? false,
       'status': raw['status'] ?? 'active',
       'discontinue_reason': raw['discontinue_reason'] ?? raw['discontinueReason'],
-      'created_at': raw['created_at'] ?? raw['createdAt'],
-      'updated_at': raw['updated_at'] ?? raw['updatedAt'],
-      'supplier_ids': raw['supplier_ids'] ?? [], // Thêm vào hàm normalize
+      'created_at': raw['created_at'] ?? raw['createdAt'] ?? FieldValue.serverTimestamp(),
+      'updated_at': raw['updated_at'] ?? raw['updatedAt'] ?? FieldValue.serverTimestamp(),
     };
   }
 
