@@ -40,12 +40,18 @@ class _LowStockProductsScreenState extends State<LowStockProductsScreen> {
       sheet.appendRow([
         ex.TextCellValue(p.internalName),
         ex.TextCellValue(p.tradeName),
-        ex.TextCellValue(p.categoryIds.join(', ')),
+        ex.TextCellValue(''), // TODO: Get category names from service
         ex.TextCellValue(p.barcode ?? ''),
         ex.TextCellValue(p.sku ?? ''),
+        ex.TextCellValue(p.unit),
         ex.TextCellValue(p.tags.join(', ')),
-        ex.DoubleCellValue(p.salePrice),
+        ex.TextCellValue(p.description),
+        ex.TextCellValue(p.usage),
+        ex.TextCellValue(p.ingredients),
+        ex.TextCellValue(p.notes),
         ex.IntCellValue(p.stockSystem),
+        ex.DoubleCellValue(p.costPrice),
+        ex.DoubleCellValue(p.salePrice),
       ]);
     }
     final fileBytes = excel.encode()!;

@@ -310,7 +310,7 @@ class _AddProductCategoryScreenState extends State<AddProductCategoryScreen> {
           Container(
             padding: const EdgeInsets.all(24),
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: Colors.transparent,
               border: Border(bottom: BorderSide(color: borderColor)),
             ),
             child: Row(
@@ -791,7 +791,7 @@ class _AddProductCategoryScreenState extends State<AddProductCategoryScreen> {
                                                     return const Center(child: CircularProgressIndicator());
                                                   }
                                                   final products = (snapshot.data ?? [])
-                                                      .where((p) => p.internalName.toLowerCase().contains(searchText.toLowerCase()) && !selectedProducts.contains(p))
+                                                      .where((p) => p.internalName.toLowerCase().contains(searchText.toLowerCase()) && !selectedProducts.any((sp) => sp.id == p.id))
                                                       .toList();
                                                   if (products.isEmpty) {
                                                     return const Center(

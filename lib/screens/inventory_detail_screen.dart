@@ -67,7 +67,6 @@ class _InventoryDetailScreenState extends State<InventoryDetailScreen> {
           unit: '',
           description: '',
           notes: '',
-          categoryIds: [],
           status: 'inactive',
           createdAt: DateTime.now(),
           updatedAt: DateTime.now(),

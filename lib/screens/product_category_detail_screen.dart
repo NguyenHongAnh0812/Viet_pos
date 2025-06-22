@@ -276,7 +276,7 @@ class _ProductCategoryDetailScreenState extends State<ProductCategoryDetailScree
           Container(
             padding: const EdgeInsets.all(24),
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: Colors.transparent,
               border: Border(bottom: BorderSide(color: borderColor)),
             ),
             child: Row(
@@ -514,7 +514,7 @@ class _ProductCategoryDetailScreenState extends State<ProductCategoryDetailScree
       padding: const EdgeInsets.all(24),
       margin: const EdgeInsets.symmetric(horizontal: 24),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Colors.transparent,
         borderRadius: BorderRadius.circular(8),
         border: Border.all(color: borderColor),
       ),
@@ -628,7 +628,10 @@ class _ProductCategoryDetailScreenState extends State<ProductCategoryDetailScree
             stream: _productService.getProducts(),
             builder: (context, snapshot) {
               if (snapshot.connectionState == ConnectionState.waiting) return const Center(child: CircularProgressIndicator());
-              final products = (snapshot.data ?? []).where((p) => p.internalName.toLowerCase().contains(searchText.toLowerCase()) && !selectedProducts.any((sp) => sp.id == p.id)).toList();
+              final products = (snapshot.data ?? []).where((p) => 
+                p.internalName.toLowerCase().contains(searchText.toLowerCase()) && 
+                !selectedProducts.any((sp) => sp.id == p.id)
+              ).toList();
               if (products.isEmpty) return const Center(child: Padding(padding: EdgeInsets.symmetric(vertical: 32), child: Text('Không tìm thấy sản phẩm phù hợp', style: TextStyle(color: Colors.grey))));
               return ListView.separated(
                 shrinkWrap: true,
@@ -641,8 +644,6 @@ class _ProductCategoryDetailScreenState extends State<ProductCategoryDetailScree
                     product: product,
                     onTap: () => setState(() {
                       selectedProducts.add(product);
-                      _searchController.clear();
-                      searchText = '';
                     }),
                   );
                 },

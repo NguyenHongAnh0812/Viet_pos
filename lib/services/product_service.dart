@@ -39,7 +39,7 @@ class ProductService {
         throw 'Tên danh pháp đã tồn tại';
       }
 
-      // Thêm sản phẩm mới
+      // Thêm sản phẩm mới (không xử lý category_ids)
       final docRef = await _firestore.collection(_collection).add(Product.normalizeProductData(product.toMap()));
       return docRef.id;
     } catch (e) {

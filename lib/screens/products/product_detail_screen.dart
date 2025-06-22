@@ -11,6 +11,7 @@ import '../../models/company.dart';
 import '../../services/company_service.dart';
 import '../../services/product_company_service.dart';
 import '../../widgets/custom/multi_select_dropdown.dart';
+import '../../widgets/custom/category_dropdown.dart';
 
 class ProductDetailScreen extends StatefulWidget {
   final Product product;
@@ -94,7 +95,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
     _ingredientsController.text = p.ingredients;
     _notesController.text = p.notes;
     _tags = List.from(p.tags);
-    _selectedCategories = List.from(p.categoryIds);
+    _selectedCategories = []; // Tạm thời empty list
     _isActive = p.status == 'active';
     _profitMarginController.text = _defaultProfitMargin.toStringAsFixed(0);
   }
@@ -339,16 +340,15 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
               child: DesignSystemFormField(
                 label: 'Danh mục',
                 required: true,
-                input: StreamBuilder<List<ProductCategory>>(
-                  stream: _categoryService.getCategories(),
-                  builder: (context, snapshot) {
-                    final categories = snapshot.data ?? [];
-                    return ShopifyMultiSelectDropdown(
-                      items: categories.map((cat) => cat.name).toList(),
-                      selectedValues: _selectedCategories,
-                      onChanged: (selected) => setState(() => _selectedCategories = selected),
-                    );
+                input: CategoryDropdownButton(
+                  selectedCategoryIds: _selectedCategories,
+                  onChanged: (categories) {
+                    setState(() {
+                      _selectedCategories = categories;
+                    });
                   },
+                  hint: 'Chọn danh mục',
+                  isMultiSelect: true,
                 ),
               ),
             ),

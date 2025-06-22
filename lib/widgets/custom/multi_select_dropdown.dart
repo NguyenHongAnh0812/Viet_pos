@@ -34,6 +34,7 @@ class _MultiSelectDropdownState<T> extends State<MultiSelectDropdown<T>> {
   late OverlayEntry _overlayEntry;
   final LayerLink _layerLink = LayerLink();
   late List<T> _currentSelectedValues;
+  final GlobalKey<State<StatefulWidget>> _dropdownKey = GlobalKey();
 
   @override
   void initState() {
@@ -65,56 +66,80 @@ class _MultiSelectDropdownState<T> extends State<MultiSelectDropdown<T>> {
   OverlayEntry _createOverlayEntry() {
     RenderBox renderBox = context.findRenderObject() as RenderBox;
     var size = renderBox.size;
-
+    
     return OverlayEntry(
       builder: (context) => Stack(
         children: [
-          // This full-screen GestureDetector handles taps outside the dropdown
-          Positioned.fill(
-            child: GestureDetector(
-              onTap: _toggleDropdown,
-              behavior: HitTestBehavior.translucent,
-              child: Container(color: Colors.transparent), // Make sure it can be hit
-            ),
-          ),
           // This positions the dropdown content below the input field
           CompositedTransformFollower(
             link: _layerLink,
             showWhenUnlinked: false,
-            offset: Offset(0.0, size.height + 5.0),
+            offset: const Offset(0, 45), // Offset from button
             child: Material(
               elevation: 4.0,
               borderRadius: BorderRadius.circular(borderRadiusMedium),
-              child: SizedBox(
-                width: size.width,
-                child: Container(
-                  constraints: const BoxConstraints(maxHeight: 250),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(borderRadiusMedium),
-                    border: Border.all(color: borderColor),
-                  ),
-                  child: ListView.builder(
-                    padding: EdgeInsets.zero,
-                    itemCount: widget.items.length,
-                    itemBuilder: (context, index) {
-                      final item = widget.items[index];
-                      final isSelected = _currentSelectedValues.contains(item.value);
-                      return ListTile(
-                        title: Text(item.label, style: body),
-                        leading: Checkbox(
-                          value: isSelected,
-                          onChanged: (bool? checked) {
-                            _onItemCheckedChange(item.value, checked ?? false);
-                          },
-                          activeColor: primaryBlue,
+              child: Container(
+                width: size.width, // Use button width
+                constraints: const BoxConstraints(maxHeight: 250),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(borderRadiusMedium),
+                  border: Border.all(color: borderColor),
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    // Header with close button
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      decoration: BoxDecoration(
+                        color: mutedBackground,
+                        borderRadius: const BorderRadius.only(
+                          topLeft: Radius.circular(borderRadiusMedium),
+                          topRight: Radius.circular(borderRadiusMedium),
                         ),
-                        onTap: () {
-                           _onItemCheckedChange(item.value, !isSelected);
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            'Chọn ${widget.label}',
+                            style: body.copyWith(fontWeight: FontWeight.w600),
+                          ),
+                          IconButton(
+                            onPressed: _toggleDropdown,
+                            icon: const Icon(Icons.close, size: 20),
+                            padding: EdgeInsets.zero,
+                            constraints: const BoxConstraints(),
+                          ),
+                        ],
+                      ),
+                    ),
+                    // Items list
+                    Flexible(
+                      child: ListView.builder(
+                        padding: EdgeInsets.zero,
+                        itemCount: widget.items.length,
+                        itemBuilder: (context, index) {
+                          final item = widget.items[index];
+                          final isSelected = _currentSelectedValues.contains(item.value);
+                          return ListTile(
+                            title: Text(item.label, style: body),
+                            leading: Checkbox(
+                              value: isSelected,
+                              onChanged: (bool? checked) {
+                                _onItemCheckedChange(item.value, checked ?? false);
+                              },
+                              activeColor: primaryBlue,
+                            ),
+                            onTap: () {
+                               _onItemCheckedChange(item.value, !isSelected);
+                            },
+                          );
                         },
-                      );
-                    },
-                  ),
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ),
@@ -144,7 +169,7 @@ class _MultiSelectDropdownState<T> extends State<MultiSelectDropdown<T>> {
     // Inform the parent widget about the change
     widget.onSelectionChanged(newSelectedValues);
   }
-  
+
   String _getDisplayText() {
     if (_currentSelectedValues.isEmpty) {
       return widget.hint;
@@ -155,31 +180,45 @@ class _MultiSelectDropdownState<T> extends State<MultiSelectDropdown<T>> {
 
   @override
   Widget build(BuildContext context) {
-    return CompositedTransformTarget(
-      link: _layerLink,
-      child: GestureDetector(
-        onTap: _toggleDropdown,
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 12.0),
-          decoration: ShapeDecoration(
-            shape: RoundedRectangleBorder(
-              side: const BorderSide(color: borderColor),
-              borderRadius: BorderRadius.circular(borderRadiusMedium),
-            ),
-            color: mutedBackground,
-          ),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: <Widget>[
-              Text(_getDisplayText(), style: body),
-              Icon(
-                _isDropdownOpen ? Icons.arrow_drop_up : Icons.arrow_drop_down,
-                color: textSecondary,
+    return NotificationListener<ScrollNotification>(
+      onNotification: (notification) {
+        // Close dropdown when scrolling
+        if (_isDropdownOpen) {
+          _toggleDropdown();
+        }
+        return false; // Allow scroll to continue
+      },
+      child: CompositedTransformTarget(
+        link: _layerLink,
+        child: GestureDetector(
+          onTap: _toggleDropdown,
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 12.0),
+            decoration: ShapeDecoration(
+              shape: RoundedRectangleBorder(
+                side: const BorderSide(color: borderColor),
+                borderRadius: BorderRadius.circular(borderRadiusMedium),
               ),
-            ],
+              color: mutedBackground,
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: <Widget>[
+                Text(_getDisplayText(), style: body),
+                Icon(
+                  _isDropdownOpen ? Icons.arrow_drop_up : Icons.arrow_drop_down,
+                  color: textSecondary,
+                ),
+              ],
+            ),
           ),
         ),
       ),
     );
+  }
+
+  @override
+  void dispose() {
+    super.dispose();
   }
 } 

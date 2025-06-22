@@ -1,13 +1,72 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../models/product.dart';
+import '../models/product_category.dart';
+import '../services/product_category_service.dart';
+import '../services/product_category_relation_service.dart';
+import '../widgets/common/design_system.dart';
+import '../screens/products/product_detail_screen.dart';
 
-class ProductCardItem extends StatelessWidget {
+class ProductCardItem extends StatefulWidget {
   final Product product;
-  final VoidCallback? onEdit;
-  final VoidCallback? onDelete;
+  final bool isSelected;
+  final ValueChanged<bool?> onSelectionChanged;
   final VoidCallback? onTap;
-  const ProductCardItem({super.key, required this.product, this.onEdit, this.onDelete, this.onTap});
+
+  const ProductCardItem({
+    Key? key,
+    required this.product,
+    required this.isSelected,
+    required this.onSelectionChanged,
+    this.onTap,
+  }) : super(key: key);
+
+  @override
+  State<ProductCardItem> createState() => _ProductCardItemState();
+}
+
+class _ProductCardItemState extends State<ProductCardItem> {
+  final ProductCategoryService _categoryService = ProductCategoryService();
+  final ProductCategoryRelationService _productCategoryService = ProductCategoryRelationService();
+  List<String> _categoryNames = [];
+  bool _loadingCategories = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadCategories();
+  }
+
+  Future<void> _loadCategories() async {
+    try {
+      final categoryIds = await _productCategoryService.getCategoryIdsForProduct(widget.product.id);
+      final categories = await _categoryService.getCategories().first;
+      
+      final categoryNames = <String>[];
+      for (final categoryId in categoryIds) {
+        final category = categories.firstWhere(
+          (c) => c.id == categoryId,
+          orElse: () => ProductCategory(id: '', name: 'Unknown'),
+        );
+        if (category.name.isNotEmpty) {
+          categoryNames.add(category.name);
+        }
+      }
+      
+      if (mounted) {
+        setState(() {
+          _categoryNames = categoryNames;
+          _loadingCategories = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _loadingCategories = false;
+        });
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -21,7 +80,7 @@ class ProductCardItem extends StatelessWidget {
       margin: const EdgeInsets.symmetric(vertical: 8),
       child: InkWell(
         borderRadius: BorderRadius.circular(12),
-        onTap: onTap,
+        onTap: widget.onTap,
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 18),
           child: Row(
@@ -32,11 +91,11 @@ class ProductCardItem extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(product.internalName, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
-                    if (product.tradeName.isNotEmpty)
+                    Text(widget.product.internalName, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+                    if (widget.product.tradeName.isNotEmpty)
                       Padding(
                         padding: const EdgeInsets.only(top: 2),
-                        child: Text(product.tradeName, style: const TextStyle(color: Colors.black87), semanticsLabel: 'Tên thương mại'),
+                        child: Text(widget.product.tradeName, style: const TextStyle(color: Colors.black87), semanticsLabel: 'Tên thương mại'),
                       ),
                     // Ô nội dung chi tiết
                     Container(
@@ -50,25 +109,25 @@ class ProductCardItem extends StatelessWidget {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          if ((product.barcode ?? '').isNotEmpty)
-                            Text('Mã vạch: ${product.barcode}', style: const TextStyle(fontSize: 13, color: Colors.black54)),
-                          if ((product.sku ?? '').isNotEmpty)
-                            Text('SKU: ${product.sku}', style: const TextStyle(fontSize: 13, color: Colors.black54)),
-                          if (product.unit.isNotEmpty)
-                            Text('Đơn vị: ${product.unit}', style: const TextStyle(fontSize: 13, color: Colors.black54)),
-                          if (product.description.isNotEmpty)
-                            Text('Mô tả: ${product.description}', style: const TextStyle(fontSize: 13, color: Colors.black54)),
-                          if (product.usage.isNotEmpty)
-                            Text('Công dụng: ${product.usage}', style: const TextStyle(fontSize: 13, color: Colors.black54)),
-                          if (product.ingredients.isNotEmpty)
-                            Text('Thành phần: ${product.ingredients}', style: const TextStyle(fontSize: 13, color: Colors.black54)),
-                          if (product.notes.isNotEmpty)
-                            Text('Ghi chú: ${product.notes}', style: const TextStyle(fontSize: 13, color: Colors.black54)),
-                          Text('Giá nhập: ${NumberFormat.currency(locale: 'vi_VN', symbol: '₫').format(product.costPrice)}', style: const TextStyle(fontSize: 13, color: Colors.black54)),
-                          Text('Giá bán: ${NumberFormat.currency(locale: 'vi_VN', symbol: '₫').format(product.salePrice)}', style: const TextStyle(fontSize: 13, color: Colors.blue, fontWeight: FontWeight.bold)),
-                          //Text('Trạng thái: ${product.status == 'active' ? 'Còn bán' : 'Ngừng bán'}', style: TextStyle(fontSize: 13, color: product.status == 'active' ? Colors.green : Colors.red, fontWeight: FontWeight.w600)),
-                          Text('Ngày tạo: ${product.createdAt != null ? DateFormat('dd/MM/yyyy HH:mm').format(product.createdAt) : '-'}', style: const TextStyle(fontSize: 12, color: Colors.grey)),
-                          Text('Ngày cập nhật: ${product.updatedAt != null ? DateFormat('dd/MM/yyyy HH:mm').format(product.updatedAt) : '-'}', style: const TextStyle(fontSize: 12, color: Colors.grey)),
+                          if ((widget.product.barcode ?? '').isNotEmpty)
+                            Text('Mã vạch: ${widget.product.barcode}', style: const TextStyle(fontSize: 13, color: Colors.black54)),
+                          if ((widget.product.sku ?? '').isNotEmpty)
+                            Text('SKU: ${widget.product.sku}', style: const TextStyle(fontSize: 13, color: Colors.black54)),
+                          if (widget.product.unit.isNotEmpty)
+                            Text('Đơn vị: ${widget.product.unit}', style: const TextStyle(fontSize: 13, color: Colors.black54)),
+                          if (widget.product.description.isNotEmpty)
+                            Text('Mô tả: ${widget.product.description}', style: const TextStyle(fontSize: 13, color: Colors.black54)),
+                          if (widget.product.usage.isNotEmpty)
+                            Text('Công dụng: ${widget.product.usage}', style: const TextStyle(fontSize: 13, color: Colors.black54)),
+                          if (widget.product.ingredients.isNotEmpty)
+                            Text('Thành phần: ${widget.product.ingredients}', style: const TextStyle(fontSize: 13, color: Colors.black54)),
+                          if (widget.product.notes.isNotEmpty)
+                            Text('Ghi chú: ${widget.product.notes}', style: const TextStyle(fontSize: 13, color: Colors.black54)),
+                          Text('Giá nhập: ${NumberFormat.currency(locale: 'vi_VN', symbol: '₫').format(widget.product.costPrice)}', style: const TextStyle(fontSize: 13, color: Colors.black54)),
+                          Text('Giá bán: ${NumberFormat.currency(locale: 'vi_VN', symbol: '₫').format(widget.product.salePrice)}', style: const TextStyle(fontSize: 13, color: Colors.blue, fontWeight: FontWeight.bold)),
+                          //Text('Trạng thái: ${widget.product.status == 'active' ? 'Còn bán' : 'Ngừng bán'}', style: TextStyle(fontSize: 13, color: widget.product.status == 'active' ? Colors.green : Colors.red, fontWeight: FontWeight.w600)),
+                          Text('Ngày tạo: ${widget.product.createdAt != null ? DateFormat('dd/MM/yyyy HH:mm').format(widget.product.createdAt) : '-'}', style: const TextStyle(fontSize: 12, color: Colors.grey)),
+                          Text('Ngày cập nhật: ${widget.product.updatedAt != null ? DateFormat('dd/MM/yyyy HH:mm').format(widget.product.updatedAt) : '-'}', style: const TextStyle(fontSize: 12, color: Colors.grey)),
                         ],
                       ),
                     ),
@@ -77,13 +136,13 @@ class ProductCardItem extends StatelessWidget {
                       spacing: 8,
                       runSpacing: 4,
                       children: [
-                        if (product.categoryIds.isNotEmpty)
+                        if (_categoryNames.isNotEmpty)
                           Chip(
-                            label: Text(product.categoryIds.join(', '), style: const TextStyle(fontSize: 13)),
+                            label: Text(_categoryNames.join(', '), style: const TextStyle(fontSize: 13)),
                             backgroundColor: Colors.grey[100],
                             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                           ),
-                        ...product.tags.map((tag) => Chip(
+                        ...widget.product.tags.map((tag) => Chip(
                               label: Text(tag, style: const TextStyle(fontSize: 13)),
                               backgroundColor: Colors.grey[100],
                               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
@@ -100,23 +159,25 @@ class ProductCardItem extends StatelessWidget {
                   Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      if (onDelete != null)
-                        IconButton(
-                          icon: const Icon(Icons.delete, color: Colors.redAccent),
-                          tooltip: 'Xóa sản phẩm',
-                          onPressed: onDelete,
-                        ),
-                      if (onEdit != null)
-                        IconButton(
-                          icon: const Icon(Icons.edit, color: Colors.grey),
-                          tooltip: 'Sửa sản phẩm',
-                          onPressed: onEdit,
-                        ),
+                      IconButton(
+                        icon: const Icon(Icons.delete, color: Colors.redAccent),
+                        tooltip: 'Xóa sản phẩm',
+                        onPressed: () {
+                          // Handle delete action
+                        },
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.edit, color: Colors.grey),
+                        tooltip: 'Sửa sản phẩm',
+                        onPressed: () {
+                          // Handle edit action
+                        },
+                      ),
                     ],
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    NumberFormat.currency(locale: 'vi_VN', symbol: '₫').format(product.salePrice),
+                    NumberFormat.currency(locale: 'vi_VN', symbol: '₫').format(widget.product.salePrice),
                     style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.blue, fontSize: 18),
                   ),
                   const SizedBox(height: 8),
@@ -124,8 +185,8 @@ class ProductCardItem extends StatelessWidget {
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Text('Số lượng: ', style: const TextStyle(fontWeight: FontWeight.w500)),
-                      Text('${product.stockSystem}', style: const TextStyle(fontWeight: FontWeight.bold)),
-                      if ((product.stockSystem ?? 0) < 60)
+                      Text('${widget.product.stockSystem}', style: const TextStyle(fontWeight: FontWeight.bold)),
+                      if ((widget.product.stockSystem ?? 0) < 60)
                         Container(
                           margin: const EdgeInsets.only(left: 8),
                           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),

@@ -10,6 +10,7 @@ import '../../models/company.dart';
 import '../../services/company_service.dart';
 import '../../services/product_company_service.dart';
 import '../../widgets/custom/multi_select_dropdown.dart';
+import '../../widgets/custom/category_dropdown.dart';
 
 class AddProductScreen extends StatefulWidget {
   final VoidCallback? onBack;
@@ -132,15 +133,39 @@ class _AddProductScreenState extends State<AddProductScreen> {
         'usage': _usageController.text.trim(),
         'ingredients': _ingredientsController.text.trim(),
         'notes': _notesController.text.trim(),
-        'category_ids': _selectedCategories,
         'status': _isActive ? 'active' : 'inactive',
         'created_at': FieldValue.serverTimestamp(),
         'updated_at': FieldValue.serverTimestamp(),
       };
       final productData = Product.normalizeProductData(rawData);
       
-      // Lưu sản phẩm
+      // Lưu sản phẩm (KHÔNG có category_ids)
       final docRef = await FirebaseFirestore.instance.collection('products').add(productData);
+      
+      // Lưu mối quan hệ Product-Category với hierarchy (Approach 2)
+      if (_selectedCategories.isNotEmpty) {
+        // Lấy tất cả category IDs (bao gồm cả parent categories)
+        final allCategoryIds = await _getAllCategoryIdsForProduct(_selectedCategories);
+        
+        // Lưu tất cả mối quan hệ vào product_categories collection
+        final batch = FirebaseFirestore.instance.batch();
+        for (final categoryId in allCategoryIds) {
+          final relationDocRef = FirebaseFirestore.instance.collection('product_categories').doc();
+          batch.set(relationDocRef, {
+            'product_id': docRef.id,
+            'category_id': categoryId,
+            'created_at': FieldValue.serverTimestamp(),
+            'updated_at': FieldValue.serverTimestamp(),
+          });
+        }
+        await batch.commit();
+        
+        print('=== APPROACH 2: Đã lưu hierarchy ===');
+        print('Product ID: ${docRef.id}');
+        print('Selected categories: $_selectedCategories');
+        print('All category IDs (including parents): $allCategoryIds');
+        print('Total relationships created: ${allCategoryIds.length}');
+      }
       
       // Lưu mối quan hệ Product-Company vào bảng trung gian
       if (_selectedCompanyIds.isNotEmpty) {
@@ -148,12 +173,15 @@ class _AddProductScreenState extends State<AddProductScreen> {
       }
       
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Đã thêm sản phẩm mới!')));
+        // Hiển thị popup thông báo thành công theo styleguide
+        _showPopupNotification('Đã thêm sản phẩm mới thành công!', Icons.check_circle);
+        
         if (widget.onBack != null) widget.onBack!();
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Lỗi: $e')));
+        // Hiển thị popup thông báo lỗi theo styleguide
+        _showPopupNotification('Lỗi: $e', Icons.error_outline);
       }
     }
   }
@@ -182,6 +210,31 @@ class _AddProductScreenState extends State<AddProductScreen> {
       _notesController.text = 'Ghi chú sản phẩm mẫu';
       _selectedCompanyIds = _allCompanies.isNotEmpty ? [_allCompanies.first.id] : [];
     });
+  }
+
+  Future<void> _createSampleCategories() async {
+    try {
+      final sampleCategories = [
+        ProductCategory(id: '', name: 'Kháng sinh', description: 'Thuốc kháng sinh'),
+        ProductCategory(id: '', name: 'Vitamin', description: 'Vitamin và khoáng chất'),
+        ProductCategory(id: '', name: 'Thuốc giảm đau', description: 'Thuốc giảm đau, hạ sốt'),
+        ProductCategory(id: '', name: 'Thuốc khác', description: 'Các loại thuốc khác'),
+      ];
+
+      for (final category in sampleCategories) {
+        await _categoryService.addCategory(category);
+      }
+
+      if (mounted) {
+        // Hiển thị popup thông báo thành công theo styleguide
+        _showPopupNotification('Đã tạo danh mục mẫu thành công!', Icons.check_circle);
+      }
+    } catch (e) {
+      if (mounted) {
+        // Hiển thị popup thông báo lỗi theo styleguide
+        _showPopupNotification('Lỗi: $e', Icons.error_outline);
+      }
+    }
   }
 
   Widget _buildProductInfoSection({required bool isMobile}) {
@@ -265,18 +318,15 @@ class _AddProductScreenState extends State<AddProductScreen> {
               child: DesignSystemFormField(
                 label: 'Danh mục',
                 required: true,
-                input: StreamBuilder<List<ProductCategory>>(
-                  stream: _categoryService.getCategories(),
-                  builder: (context, snapshot) {
-                    final categories = snapshot.data ?? [];
-                    return DropdownButtonFormField<String>(
-                      value: _selectedCategories.isNotEmpty ? _selectedCategories.first : null,
-                      items: categories.map((cat) => DropdownMenuItem(value: cat.name, child: Text(cat.name))).toList(),
-                      onChanged: (v) => setState(() => _selectedCategories = v != null ? [v] : []),
-                      decoration: designSystemInputDecoration(label: '', fillColor: mutedBackground),
-                      hint: const Text('Chọn danh mục'),
-                    );
+                input: CategoryDropdownButton(
+                  selectedCategoryIds: _selectedCategories,
+                  onChanged: (categories) {
+                    setState(() {
+                      _selectedCategories = categories;
+                    });
                   },
+                  hint: 'Chọn danh mục',
+                  isMultiSelect: true,
                 ),
               ),
             ),
@@ -592,6 +642,138 @@ class _AddProductScreenState extends State<AddProductScreen> {
     );
   }
 
+  // Helper method để lấy tất cả parent category IDs
+  Future<List<String>> _getAllParentCategoryIds(String categoryId) async {
+    List<String> parentIds = [];
+    String? currentId = categoryId;
+    
+    while (currentId != null && currentId.isNotEmpty) {
+      final doc = await FirebaseFirestore.instance.collection('categories').doc(currentId).get();
+      if (doc.exists) {
+        final data = doc.data()!;
+        final parentId = data['parentId'] as String?;
+        if (parentId != null && parentId.isNotEmpty) {
+          parentIds.add(parentId);
+          currentId = parentId;
+        } else {
+          break;
+        }
+      } else {
+        break;
+      }
+    }
+    
+    return parentIds;
+  }
+
+  // Helper method để lấy tất cả category IDs (bao gồm cả parent) cho một sản phẩm
+  Future<List<String>> _getAllCategoryIdsForProduct(List<String> selectedCategoryIds) async {
+    Set<String> allCategoryIds = {};
+    
+    for (final categoryId in selectedCategoryIds) {
+      // Thêm category hiện tại
+      allCategoryIds.add(categoryId);
+      
+      // Thêm tất cả parent categories
+      final parentIds = await _getAllParentCategoryIds(categoryId);
+      allCategoryIds.addAll(parentIds);
+    }
+    
+    return allCategoryIds.toList();
+  }
+
+  // Debug method để hiển thị thông tin hierarchy
+  Future<void> _debugCategoryHierarchy() async {
+    if (_selectedCategories.isEmpty) {
+      print('Không có category nào được chọn');
+      return;
+    }
+    
+    print('=== DEBUG CATEGORY HIERARCHY ===');
+    print('Selected categories: $_selectedCategories');
+    
+    for (final categoryId in _selectedCategories) {
+      final parentIds = await _getAllParentCategoryIds(categoryId);
+      print('Category $categoryId -> Parent IDs: $parentIds');
+    }
+    
+    final allCategoryIds = await _getAllCategoryIdsForProduct(_selectedCategories);
+    print('All category IDs (including parents): $allCategoryIds');
+    print('=== END DEBUG ===');
+  }
+
+  // Helper method để hiển thị popup thông báo
+  void _showPopupNotification(String message, IconData icon) {
+    if (!mounted) return;
+    
+    OverlayEntry? entry;
+    entry = OverlayEntry(
+      builder: (_) => DesignSystemSnackbar(
+        message: message,
+        icon: icon,
+        onDismissed: () => entry?.remove(),
+      ),
+    );
+    Overlay.of(context).insert(entry);
+  }
+
+  // Test method để tạo category mới với Materialized Path
+  Future<void> _testCreateCategoryWithPath() async {
+    try {
+      print('=== TEST CREATE CATEGORY WITH PATH ===');
+      
+      // Tạo root category
+      final rootCategory = ProductCategory(
+        id: '',
+        name: 'Thuốc',
+        description: 'Danh mục thuốc chính',
+        parentId: null,
+      );
+      
+      await _categoryService.addCategory(rootCategory);
+      print('✅ Đã tạo root category: Thuốc');
+      
+      // Lấy root category ID
+      final categories = await _categoryService.getCategories().first;
+      final rootCat = categories.firstWhere((c) => c.name == 'Thuốc');
+      
+      // Tạo child category
+      final childCategory = ProductCategory(
+        id: '',
+        name: 'Vitamin',
+        description: 'Vitamin và khoáng chất',
+        parentId: rootCat.id,
+      );
+      
+      await _categoryService.addCategory(childCategory);
+      print('✅ Đã tạo child category: Vitamin (parent: ${rootCat.name})');
+      
+      // Lấy child category ID
+      final updatedCategories = await _categoryService.getCategories().first;
+      final vitaminCat = updatedCategories.firstWhere((c) => c.name == 'Vitamin');
+      
+      print('📊 Category info:');
+      print('   - ID: ${vitaminCat.id}');
+      print('   - Name: ${vitaminCat.name}');
+      print('   - Parent ID: ${vitaminCat.parentId}');
+      print('   - Path: ${vitaminCat.path}');
+      print('   - Path Array: ${vitaminCat.pathArray}');
+      print('   - Level: ${vitaminCat.level}');
+      
+      if (mounted) {
+        // Hiển thị popup thông báo thành công theo styleguide
+        _showPopupNotification('✅ Đã tạo category test thành công!', Icons.check_circle);
+      }
+      
+    } catch (e) {
+      print('❌ Lỗi test: $e');
+      if (mounted) {
+        // Hiển thị popup thông báo lỗi theo styleguide
+        _showPopupNotification('Lỗi: $e', Icons.error_outline);
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -640,6 +822,36 @@ class _AddProductScreenState extends State<AddProductScreen> {
                           onPressed: _fillSampleData,
                           icon: const Icon(Icons.bolt),
                           label: const Text('Dữ liệu mẫu'),
+                          style: secondaryButtonStyle,
+                        ),
+                      ),
+                      // Debug button để test hierarchy logic
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 4.0),
+                        child: OutlinedButton.icon(
+                          onPressed: _debugCategoryHierarchy,
+                          icon: const Icon(Icons.bug_report),
+                          label: const Text('Debug'),
+                          style: secondaryButtonStyle,
+                        ),
+                      ),
+                      // Test button để tạo category mới với Materialized Path
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 4.0),
+                        child: OutlinedButton.icon(
+                          onPressed: _testCreateCategoryWithPath,
+                          icon: const Icon(Icons.category),
+                          label: const Text('Test Category'),
+                          style: secondaryButtonStyle,
+                        ),
+                      ),
+                      // Demo button để test popup notification
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 4.0),
+                        child: OutlinedButton.icon(
+                          onPressed: () => _showPopupNotification('Đây là demo popup notification!', Icons.info_outline),
+                          icon: const Icon(Icons.notifications),
+                          label: const Text('Test Popup'),
                           style: secondaryButtonStyle,
                         ),
                       ),

@@ -155,9 +155,11 @@ class _ProductListScreenState extends State<ProductListScreen> {
   ];
 
   List<String> getCategoriesFromProducts(List<Product> products) {
-    final set = products.expand((p) => p.categoryIds).where((c) => c.isNotEmpty).toSet();
-    final list = set.toList()..sort();
-    return ['Tất cả', ...list];
+    // TODO: Implement with new category relation service
+    // final set = products.expand((p) => p.categoryIds).where((c) => c.isNotEmpty).toSet();
+    // final list = set.toList()..sort();
+    // return ['Tất cả', ...list];
+    return ['Tất cả']; // Tạm thời return empty list
   }
 
   List<String> get allTags => ['kháng sinh', 'phổ rộng', 'vitamin', 'bổ sung', 'NSAID', 'giảm đau', 'quinolone'];
@@ -176,9 +178,11 @@ class _ProductListScreenState extends State<ProductListScreen> {
 
       // Lọc theo danh mục
       if (selectedCategory != 'Tất cả') {
-        if (!product.categoryIds.contains(selectedCategory)) {
-        return false;
-      }
+        // TODO: Implement with new category relation service
+        // if (!product.categoryIds.contains(selectedCategory)) {
+        //   return false;
+        // }
+        return true; // Tạm thời return true
       }
       
       // Lọc theo khoảng giá
@@ -518,7 +522,9 @@ class _ProductListScreenState extends State<ProductListScreen> {
       sheet.appendRow([
         excel.TextCellValue(p.internalName),
         excel.TextCellValue(p.tradeName),
-        excel.TextCellValue(p.categoryIds.join(', ')),
+        // TODO: Implement with new category relation service
+        // excel.TextCellValue(p.categoryIds.join(', ')),
+        excel.TextCellValue(''), // Tạm thời empty string
         excel.TextCellValue(p.barcode ?? ''),
         excel.TextCellValue(p.sku ?? ''),
         excel.TextCellValue(p.unit),
