@@ -24,6 +24,10 @@ import '../screens/company_detail_screen.dart';
 import '../models/company.dart';
 import '../screens/product_category_detail_screen.dart';
 import '../models/product_category.dart';
+import '../screens/customers/customer_list_screen.dart';
+import '../screens/customers/add_customer_screen.dart';
+import '../screens/customers/customer_detail_screen.dart';
+import '../models/customer.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 // Định nghĩa enum cho các trang
@@ -47,7 +51,10 @@ enum MainPage {
   companies, 
   addCompany, 
   companyDetail,
-  productCategoryDetail 
+  productCategoryDetail,
+  customers,
+  addCustomer,
+  customerDetail
 }
 
 class MainLayout extends StatefulWidget {
@@ -66,6 +73,7 @@ class MainLayoutState extends State<MainLayout> {
   Product? _selectedProduct;
   Company? _selectedCompany;
   ProductCategory? _selectedCategory;
+  Customer? _selectedCustomer;
   bool isFilterSidebarOpen = false;
 
   // Filter state
@@ -190,12 +198,22 @@ class MainLayoutState extends State<MainLayout> {
       if (page != MainPage.productCategoryDetail) {
         _selectedCategory = null;
       }
+      if (page != MainPage.customerDetail) {
+        _selectedCustomer = null;
+      }
       
       // Auto-open product submenu when navigating to product-related pages
       if (page == MainPage.productList || 
           page == MainPage.addProduct ||
           page == MainPage.addProductCategory) {
         _openMenus['product'] = true;
+      }
+      
+      // Auto-open customer submenu when navigating to customer-related pages
+      if (page == MainPage.customers || 
+          page == MainPage.addCustomer ||
+          page == MainPage.customerDetail) {
+        _openMenus['customer'] = true;
       }
     });
   }
@@ -587,6 +605,26 @@ class MainLayoutState extends State<MainLayout> {
           category: _selectedCategory!,
           onBack: () => onSidebarTap(MainPage.productCategory),
         );
+      case MainPage.customers:
+        return CustomerListScreen(
+          onAddCustomer: () => onSidebarTap(MainPage.addCustomer),
+          onCustomerTap: (customer) {
+            setState(() {
+              _selectedCustomer = customer;
+              _previousPage = _currentPage;
+              _currentPage = MainPage.customerDetail;
+            });
+          },
+        );
+      case MainPage.addCustomer:
+        return AddCustomerScreen(
+          onSuccess: () => onSidebarTap(MainPage.customers),
+        );
+      case MainPage.customerDetail:
+        return CustomerDetailScreen(
+          customerId: _selectedCustomer?.id ?? '',
+          onSuccess: () => onSidebarTap(MainPage.customers),
+        );
       default:
         return const DashboardScreen();
     }
@@ -800,36 +838,28 @@ class _SidebarState extends State<_Sidebar> {
             //   height: 40,
             // ),
           // Khách hàng
-          // _sidebarParentItem(
-          //   icon: Icons.dashboard,
-          //   label: 'Khách hàng',
-          //   open: _openMenus['customer']!,
-          //   selected: false,
-          //   onTap: () => setState(() => _openMenus['customer'] = !_openMenus['customer']!),
-          // ),
-          // if (_openMenus['customer']!)
-          //   _submenuIndent(
-          //     Column(
-          //       crossAxisAlignment: CrossAxisAlignment.start,
-          //       children: [
-          //         _SidebarItem(
-          //           icon: Icons.list,
-          //           label: 'Danh sách khách hàng',
-          //           selected: false,
-          //           isOpen: widget.isOpen,
-          //           onTap: () {},
-          //         ),
-          //         _SidebarItem(
-          //           icon: Icons.person,
-          //           label: 'Nhóm khách hàng',
-          //           selected: false,
-          //           isOpen: widget.isOpen,
-          //           onTap: () {},
-          //         ),
-          //       ],
-          //     ),
-          //     height: 80,
-          //   ),
+          _sidebarParentItem(
+            icon: const Icon(Icons.dashboard, size: 16),
+            label: 'Khách hàng',
+            open: widget.openMenus['customer']!,
+            selected: false,
+            onTap: () => widget.onMenuToggle('customer', !widget.openMenus['customer']!),
+          ),
+          if (widget.openMenus['customer']!)
+            _submenuIndent(
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _SidebarItem(
+                    icon: const Icon(Icons.list, size: 16),
+                    label: 'Danh sách khách hàng',
+                    selected: widget.currentPage == MainPage.customers,
+                    isOpen: widget.isOpen,
+                    onTap: () => widget.onItemTap(MainPage.customers),
+                  ),
+                ],
+              ),
+            ),
           // _SidebarItem(
           //   icon: Icons.dashboard,
           //   label: 'Nhóm khách hàng',

@@ -6,6 +6,9 @@ import 'screens/product_list_screen.dart';
 import 'screens/products/add_product_screen.dart';
 import 'screens/invoice_import_screen.dart';
 import 'screens/invoice_import_list_screen.dart';
+import 'screens/customers/customer_list_screen.dart';
+import 'screens/customers/add_customer_screen.dart';
+import 'screens/customers/customer_detail_screen.dart';
 import 'widgets/main_layout.dart';
 import 'widgets/common/design_system.dart';
 
@@ -35,6 +38,12 @@ class MyApp extends StatelessWidget {
         '/addProduct': (context) => const AddProductScreen(),
         '/invoice-imports': (context) => const InvoiceImportListScreen(),
         '/invoice-import': (context) => const InvoiceImportScreen(),
+        '/customers': (context) => CustomerListScreen(),
+        '/customers/add': (context) => AddCustomerScreen(),
+        '/customers/detail': (context) {
+          final args = ModalRoute.of(context)!.settings.arguments as Map<String, dynamic>;
+          return CustomerDetailScreen(customerId: args['id']);
+        },
       },
     );
   }
