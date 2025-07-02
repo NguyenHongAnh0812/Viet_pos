@@ -2,12 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../models/product.dart';
 import '../../models/product_category.dart';
+import 'package:intl/intl.dart';
 
 /// VET-POS Flutter Style Guide
 /// Based on the VET-POS web design system with consistent naming conventions
 
 // ===================== COLORS =====================
-const Color primaryBlue = Color(0xFF3A6FF8); // --primary
+const Color primaryBlue = Color(0xFF22C55E); // --primary
 const Color secondaryGreen = Color(0xFF67C687); // --secondary
 const Color warningOrange = Color(0xFFFFB547); // --warning
 const Color destructiveRed = Color(0xFFFF5A5F); // --destructive
@@ -50,6 +51,7 @@ const double space24 = 24.0;
 const double space32 = 32.0;
 const double space48 = 48.0;
 const double space64 = 64.0;
+const double spaceMobile = 12.0; // Spacing cho mobile
 
 // Component specific spacing
 const double cardPadding = 24.0;
@@ -1118,11 +1120,30 @@ BoxDecoration sidebarItemActiveDecoration = BoxDecoration(
 const String currencySymbol = '₫';
 const String currencyLocale = 'vi_VN';
 
+// Format tiền chuẩn: 1,500,000 ₫
 String formatCurrency(double amount) {
   return '${amount.toStringAsFixed(0).replaceAllMapped(
     RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
     (Match m) => '${m[1]},',
   )} $currencySymbol';
+}
+
+// Format tiền compact: 1.5M ₫ (cho số lớn)
+String formatCurrencyCompact(double amount) {
+  if (amount >= 1000000) {
+    final millions = amount / 1000000;
+    return '${millions.toStringAsFixed(millions.truncateToDouble() == millions ? 0 : 1)}M $currencySymbol';
+  } else if (amount >= 1000) {
+    final thousands = amount / 1000;
+    return '${thousands.toStringAsFixed(thousands.truncateToDouble() == thousands ? 0 : 0)}K $currencySymbol';
+  } else {
+    return formatCurrency(amount);
+  }
+}
+
+// Hàm helper để tạo NumberFormat instance
+NumberFormat getCurrencyFormatter() {
+  return NumberFormat.currency(locale: 'vi_VN', symbol: '₫', decimalDigits: 0);
 }
 
 // ===================== RESPONSIVE UTILITIES =====================

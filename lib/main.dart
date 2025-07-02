@@ -11,6 +11,7 @@ import 'screens/customers/add_customer_screen.dart';
 import 'screens/customers/customer_detail_screen.dart';
 import 'widgets/main_layout.dart';
 import 'widgets/common/design_system.dart';
+import 'screens/orders/order_create_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -44,6 +45,7 @@ class MyApp extends StatelessWidget {
           final args = ModalRoute.of(context)!.settings.arguments as Map<String, dynamic>;
           return CustomerDetailScreen(customerId: args['id']);
         },
+        '/orders/create': (context) => const OrderCreateScreen(),
       },
     );
   }

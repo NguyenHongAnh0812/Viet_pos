@@ -88,8 +88,8 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
     _skuController.text = p.sku ?? '';
     _unitController.text = p.unit;
     _quantityController.text = p.stockSystem.toString();
-    _costPriceController.text = NumberFormat('#,###', 'vi_VN').format(p.costPrice.round());
-    _sellPriceController.text = NumberFormat('#,###', 'vi_VN').format(p.salePrice.round());
+          _costPriceController.text = formatCurrency(p.costPrice);
+      _sellPriceController.text = formatCurrency(p.salePrice);
     _descriptionController.text = p.description;
     _usageController.text = p.usage;
     _ingredientsController.text = p.ingredients;
@@ -228,9 +228,8 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
       await _productCompanyService.updateProductCompanies(widget.product.id, _selectedCompanyIds);
       
       // Format lại giá sau khi lưu
-      final numberFormat = NumberFormat('#,###', 'vi_VN');
-      _costPriceController.text = numberFormat.format(costPrice.round());
-      _sellPriceController.text = numberFormat.format(salePrice.round());
+      _costPriceController.text = formatCurrency(costPrice);
+      _sellPriceController.text = formatCurrency(salePrice);
       
       if (mounted) {
         OverlayEntry? entry;
@@ -503,11 +502,10 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                       final cleanValue = val.replaceAll(RegExp(r'[^0-9]'), '');
                       print('Debug - Cleaned value: $cleanValue');
                       
-                      final numberFormat = NumberFormat('#,###', 'vi_VN');
                       final value = int.tryParse(cleanValue) ?? 0;
                       print('Debug - Parsed value: $value');
                       
-                      final formatted = numberFormat.format(value);
+                      final formatted = formatCurrency(value.toDouble());
                       print('Debug - Formatted value: $formatted');
                       
                       if (val != formatted) {
@@ -520,9 +518,8 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                     },
                     onEditingComplete: () {
                       final cleanValue = _costPriceController.text.replaceAll(RegExp(r'[^0-9]'), '');
-                      final numberFormat = NumberFormat('#,###', 'vi_VN');
                       final value = int.tryParse(cleanValue) ?? 0;
-                      final formatted = numberFormat.format(value);
+                      final formatted = formatCurrency(value.toDouble());
                       _costPriceController.value = TextEditingValue(
                         text: formatted,
                         selection: TextSelection.collapsed(offset: formatted.length),
@@ -554,11 +551,10 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                         final cleanValue = val.replaceAll(RegExp(r'[^0-9]'), '');
                         print('Debug - Cleaned sale price: $cleanValue');
                         
-                        final numberFormat = NumberFormat('#,###', 'vi_VN');
                         final value = int.tryParse(cleanValue) ?? 0;
                         print('Debug - Parsed sale price: $value');
                         
-                        final formatted = numberFormat.format(value);
+                        final formatted = formatCurrency(value.toDouble());
                         print('Debug - Formatted sale price: $formatted');
                         
                         if (val != formatted) {
@@ -572,9 +568,8 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                     onEditingComplete: () {
                       if (!_autoCalculatePrice) {
                         final cleanValue = _sellPriceController.text.replaceAll(RegExp(r'[^0-9]'), '');
-                        final numberFormat = NumberFormat('#,###', 'vi_VN');
                         final value = int.tryParse(cleanValue) ?? 0;
-                        final formatted = numberFormat.format(value);
+                        final formatted = formatCurrency(value.toDouble());
                         _sellPriceController.value = TextEditingValue(
                           text: formatted,
                           selection: TextSelection.collapsed(offset: formatted.length),
@@ -652,7 +647,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
       final salePrice = costPrice * (1 + profitMargin / 100);
       print('Debug - Calculated sale price: $salePrice');
       
-      final formattedPrice = NumberFormat('#,###', 'vi_VN').format(salePrice.round());
+      final formattedPrice = formatCurrency(salePrice);
       print('Debug - Formatted sale price: $formattedPrice');
       
       _sellPriceController.value = TextEditingValue(

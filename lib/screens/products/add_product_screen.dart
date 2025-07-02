@@ -102,7 +102,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
     final profitMargin = double.tryParse(_profitMarginController.text) ?? _defaultProfitMargin;
     if (costPrice > 0) {
       final salePrice = costPrice * (1 + profitMargin / 100);
-      final formattedPrice = NumberFormat('#,###', 'vi_VN').format(salePrice.round());
+      final formattedPrice = formatCurrency(salePrice);
       _sellPriceController.value = TextEditingValue(
         text: formattedPrice,
         selection: TextSelection.collapsed(offset: formattedPrice.length),
@@ -200,9 +200,8 @@ class _AddProductScreenState extends State<AddProductScreen> {
       _tagsController.clear();
       
       // Format giá mẫu với định dạng Việt Nam
-      final numberFormat = NumberFormat('#,###', 'vi_VN');
-      _costPriceController.text = numberFormat.format(100000);
-      _sellPriceController.text = numberFormat.format(120000);
+      _costPriceController.text = formatCurrency(100000);
+      _sellPriceController.text = formatCurrency(120000);
       
       _profitMarginController.text = '20';
       _quantityController.text = '50';
@@ -468,10 +467,9 @@ class _AddProductScreenState extends State<AddProductScreen> {
                       // Xóa tất cả dấu phẩy và chấm, chỉ giữ lại số
                       final cleanValue = val.replaceAll(RegExp(r'[^0-9]'), '');
                       
-                      final numberFormat = NumberFormat('#,###', 'vi_VN');
                       final value = int.tryParse(cleanValue) ?? 0;
                       
-                      final formatted = numberFormat.format(value);
+                      final formatted = formatCurrency(value.toDouble());
                       
                       if (val != formatted) {
                         _costPriceController.value = TextEditingValue(
@@ -483,9 +481,8 @@ class _AddProductScreenState extends State<AddProductScreen> {
                     },
                     onEditingComplete: () {
                       final cleanValue = _costPriceController.text.replaceAll(RegExp(r'[^0-9]'), '');
-                      final numberFormat = NumberFormat('#,###', 'vi_VN');
                       final value = int.tryParse(cleanValue) ?? 0;
-                      final formatted = numberFormat.format(value);
+                      final formatted = formatCurrency(value.toDouble());
                       _costPriceController.value = TextEditingValue(
                         text: formatted,
                         selection: TextSelection.collapsed(offset: formatted.length),
@@ -517,10 +514,9 @@ class _AddProductScreenState extends State<AddProductScreen> {
                         // Xóa tất cả dấu phẩy và chấm, chỉ giữ lại số
                         final cleanValue = val.replaceAll(RegExp(r'[^0-9]'), '');
                         
-                        final numberFormat = NumberFormat('#,###', 'vi_VN');
                         final value = int.tryParse(cleanValue) ?? 0;
                         
-                        final formatted = numberFormat.format(value);
+                        final formatted = formatCurrency(value.toDouble());
                         
                         if (val != formatted) {
                           _sellPriceController.value = TextEditingValue(
@@ -533,9 +529,8 @@ class _AddProductScreenState extends State<AddProductScreen> {
                     onEditingComplete: () {
                       if (!_autoCalculatePrice) {
                         final cleanValue = _sellPriceController.text.replaceAll(RegExp(r'[^0-9]'), '');
-                        final numberFormat = NumberFormat('#,###', 'vi_VN');
                         final value = int.tryParse(cleanValue) ?? 0;
-                        final formatted = numberFormat.format(value);
+                        final formatted = formatCurrency(value.toDouble());
                         _sellPriceController.value = TextEditingValue(
                           text: formatted,
                           selection: TextSelection.collapsed(offset: formatted.length),

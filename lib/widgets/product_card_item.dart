@@ -123,8 +123,8 @@ class _ProductCardItemState extends State<ProductCardItem> {
                             Text('Thành phần: ${widget.product.ingredients}', style: const TextStyle(fontSize: 13, color: Colors.black54)),
                           if (widget.product.notes.isNotEmpty)
                             Text('Ghi chú: ${widget.product.notes}', style: const TextStyle(fontSize: 13, color: Colors.black54)),
-                          Text('Giá nhập: ${NumberFormat.currency(locale: 'vi_VN', symbol: '₫').format(widget.product.costPrice)}', style: const TextStyle(fontSize: 13, color: Colors.black54)),
-                          Text('Giá bán: ${NumberFormat.currency(locale: 'vi_VN', symbol: '₫').format(widget.product.salePrice)}', style: const TextStyle(fontSize: 13, color: Colors.blue, fontWeight: FontWeight.bold)),
+                          Text('Giá nhập: ${formatCurrency(widget.product.costPrice)}', style: const TextStyle(fontSize: 13, color: Colors.black54)),
+                          Text('Giá bán: ${formatCurrency(widget.product.salePrice)}', style: const TextStyle(fontSize: 13, color: Colors.blue, fontWeight: FontWeight.bold)),
                           //Text('Trạng thái: ${widget.product.status == 'active' ? 'Còn bán' : 'Ngừng bán'}', style: TextStyle(fontSize: 13, color: widget.product.status == 'active' ? Colors.green : Colors.red, fontWeight: FontWeight.w600)),
                           Text('Ngày tạo: ${widget.product.createdAt != null ? DateFormat('dd/MM/yyyy HH:mm').format(widget.product.createdAt) : '-'}', style: const TextStyle(fontSize: 12, color: Colors.grey)),
                           Text('Ngày cập nhật: ${widget.product.updatedAt != null ? DateFormat('dd/MM/yyyy HH:mm').format(widget.product.updatedAt) : '-'}', style: const TextStyle(fontSize: 12, color: Colors.grey)),
@@ -177,7 +177,7 @@ class _ProductCardItemState extends State<ProductCardItem> {
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    NumberFormat.currency(locale: 'vi_VN', symbol: '₫').format(widget.product.salePrice),
+                    formatCurrency(widget.product.salePrice),
                     style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.blue, fontSize: 18),
                   ),
                   const SizedBox(height: 8),

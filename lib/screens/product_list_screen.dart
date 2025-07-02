@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import '../models/product.dart';
 import '../services/product_service.dart';
-import 'package:intl/intl.dart' show NumberFormat;
+
 import '../widgets/main_layout.dart';
 import 'products/product_detail_screen.dart';
 import 'package:file_picker/file_picker.dart';
@@ -653,7 +653,6 @@ class _ProductListScreenState extends State<ProductListScreen> {
     print('\n=== DEBUG: Building ProductListScreen ===');
     
     final isMobile = MediaQuery.of(context).size.width < 600;
-    final numberFormat = NumberFormat('#,###', 'vi_VN');
     
     return Scaffold(
       backgroundColor: appBackground,
@@ -1233,7 +1232,7 @@ class _ProductListScreenState extends State<ProductListScreen> {
                                                             flex: 2,
                                                             child: Align(
                                                               alignment: Alignment.center,
-                                                              child: Text('${NumberFormat.currency(locale: 'vi_VN', symbol: '₫').format(product.costPrice)}', style: body),
+                                                              child: Text(formatCurrency(product.costPrice), style: body),
                                                             ),
                                                           ),
                                                           Expanded(
