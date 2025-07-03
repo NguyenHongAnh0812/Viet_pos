@@ -9,7 +9,9 @@ import 'package:intl/intl.dart';
 import 'package:flutter/services.dart';
 import '../../models/company.dart';
 import '../../services/company_service.dart';
+import '../../services/product_company_service.dart';
 import '../../widgets/custom/multi_select_dropdown.dart';
+import '../../widgets/custom/category_dropdown.dart';
 
 class ProductDetailScreen extends StatefulWidget {
   final Product product;
@@ -45,37 +47,16 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
   bool _isActive = false;
   final _categoryService = ProductCategoryService();
   final _companyService = CompanyService();
+  final _productCompanyService = ProductCompanyService();
   List<String> _selectedCategories = [];
-  List<String> _selectedSupplierIds = [];
+  List<String> _selectedCompanyIds = [];
   List<Company> _allCompanies = [];
   bool _companiesLoading = true;
 
   @override
   void initState() {
     super.initState();
-    final p = widget.product;
-    _nameController.text = p.internalName;
-    _commonNameController.text = p.tradeName;
-    _barcodeController.text = p.barcode ?? '';
-    _skuController.text = p.sku ?? '';
-    _unitController.text = p.unit;
-    _quantityController.text = p.stockSystem.toString();
-    
-    // Format giá với dấu phẩy
-    final numberFormat = NumberFormat('#,###', 'vi_VN');
-    _costPriceController.text = numberFormat.format(p.costPrice.round());
-    _sellPriceController.text = numberFormat.format(p.salePrice.round());
-    
-    _tagsController.text = p.tags.join(', ');
-    _descriptionController.text = p.description;
-    _usageController.text = p.usage;
-    _ingredientsController.text = p.ingredients;
-    _notesController.text = p.notes;
-    _tags = List.from(p.tags);
-    _isActive = p.status == 'active';
-    _selectedCategories = List.from(p.categoryIds);
-    _selectedSupplierIds = List.from(p.supplierIds);
-    _profitMarginController.text = p.grossProfit.toString();
+    _initializeData();
     _loadCompanies();
   }
 
@@ -99,12 +80,35 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
     super.dispose();
   }
 
+  void _initializeData() {
+    final p = widget.product;
+    _nameController.text = p.internalName;
+    _commonNameController.text = p.tradeName;
+    _barcodeController.text = p.barcode ?? '';
+    _skuController.text = p.sku ?? '';
+    _unitController.text = p.unit;
+    _quantityController.text = p.stockSystem.toString();
+          _costPriceController.text = formatCurrency(p.costPrice);
+      _sellPriceController.text = formatCurrency(p.salePrice);
+    _descriptionController.text = p.description;
+    _usageController.text = p.usage;
+    _ingredientsController.text = p.ingredients;
+    _notesController.text = p.notes;
+    _tags = List.from(p.tags);
+    _selectedCategories = []; // Tạm thời empty list
+    _isActive = p.status == 'active';
+    _profitMarginController.text = _defaultProfitMargin.toStringAsFixed(0);
+  }
+
   Future<void> _loadCompanies() async {
     setState(() => _companiesLoading = true);
     final companies = await _companyService.getCompanies().first;
+    final companyIds = await _productCompanyService.getCompanyIdsForProduct(widget.product.id);
+    
     if (mounted) {
       setState(() {
         _allCompanies = companies;
+        _selectedCompanyIds = companyIds;
         _companiesLoading = false;
       });
     }
@@ -188,7 +192,6 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
         'ingredients': _ingredientsController.text.trim(),
         'notes': _notesController.text.trim(),
         'category_ids': _selectedCategories,
-        'supplier_ids': _selectedSupplierIds,
         'status': _isActive ? 'active' : 'inactive',
         'updated_at': FieldValue.serverTimestamp(),
       };
@@ -214,16 +217,19 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
       print('ingredients: \'${_ingredientsController.text}\'');
       print('notes: \'${_notesController.text}\'');
       print('category_ids: $_selectedCategories');
-      print('supplier_ids: $_selectedSupplierIds');
+      print('company_ids: $_selectedCompanyIds');
       print('status: ${_isActive ? 'active' : 'inactive'}');
       print('--- END LOG ---');
 
+      // Lưu thông tin sản phẩm
       await FirebaseFirestore.instance.collection('products').doc(widget.product.id).update(normalizedData);
       
+      // Cập nhật mối quan hệ Product-Company trong bảng trung gian
+      await _productCompanyService.updateProductCompanies(widget.product.id, _selectedCompanyIds);
+      
       // Format lại giá sau khi lưu
-      final numberFormat = NumberFormat('#,###', 'vi_VN');
-      _costPriceController.text = numberFormat.format(costPrice.round());
-      _sellPriceController.text = numberFormat.format(salePrice.round());
+      _costPriceController.text = formatCurrency(costPrice);
+      _sellPriceController.text = formatCurrency(salePrice);
       
       if (mounted) {
         OverlayEntry? entry;
@@ -333,16 +339,15 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
               child: DesignSystemFormField(
                 label: 'Danh mục',
                 required: true,
-                input: StreamBuilder<List<ProductCategory>>(
-                  stream: _categoryService.getCategories(),
-                  builder: (context, snapshot) {
-                    final categories = snapshot.data ?? [];
-                    return ShopifyMultiSelectDropdown(
-                      items: categories.map((cat) => cat.name).toList(),
-                      selectedValues: _selectedCategories,
-                      onChanged: (selected) => setState(() => _selectedCategories = selected),
-                    );
+                input: CategoryDropdownButton(
+                  selectedCategoryIds: _selectedCategories,
+                  onChanged: (categories) {
+                    setState(() {
+                      _selectedCategories = categories;
+                    });
                   },
+                  hint: 'Chọn danh mục',
+                  isMultiSelect: true,
                 ),
               ),
             ),
@@ -350,19 +355,19 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
         ),
         const SizedBox(height: 12),
         DesignSystemFormField(
-          label: 'Nhà cung cấp',
+          label: 'Company',
           input: _companiesLoading 
             ? const Center(child: CircularProgressIndicator())
             : MultiSelectDropdown<String>(
-                label: 'Nhà cung cấp',
+                label: 'Company',
                 items: _allCompanies.map((c) => MultiSelectItem(value: c.id, label: c.name)).toList(),
-                initialSelectedValues: _selectedSupplierIds,
+                initialSelectedValues: _selectedCompanyIds,
                 onSelectionChanged: (values) {
                   setState(() {
-                    _selectedSupplierIds = values;
+                    _selectedCompanyIds = values;
                   });
                 },
-                hint: 'Chọn nhà cung cấp',
+                hint: 'Chọn công ty',
               ),
         ),
         const SizedBox(height: 12),
@@ -497,11 +502,10 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                       final cleanValue = val.replaceAll(RegExp(r'[^0-9]'), '');
                       print('Debug - Cleaned value: $cleanValue');
                       
-                      final numberFormat = NumberFormat('#,###', 'vi_VN');
                       final value = int.tryParse(cleanValue) ?? 0;
                       print('Debug - Parsed value: $value');
                       
-                      final formatted = numberFormat.format(value);
+                      final formatted = formatCurrency(value.toDouble());
                       print('Debug - Formatted value: $formatted');
                       
                       if (val != formatted) {
@@ -514,9 +518,8 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                     },
                     onEditingComplete: () {
                       final cleanValue = _costPriceController.text.replaceAll(RegExp(r'[^0-9]'), '');
-                      final numberFormat = NumberFormat('#,###', 'vi_VN');
                       final value = int.tryParse(cleanValue) ?? 0;
-                      final formatted = numberFormat.format(value);
+                      final formatted = formatCurrency(value.toDouble());
                       _costPriceController.value = TextEditingValue(
                         text: formatted,
                         selection: TextSelection.collapsed(offset: formatted.length),
@@ -548,11 +551,10 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                         final cleanValue = val.replaceAll(RegExp(r'[^0-9]'), '');
                         print('Debug - Cleaned sale price: $cleanValue');
                         
-                        final numberFormat = NumberFormat('#,###', 'vi_VN');
                         final value = int.tryParse(cleanValue) ?? 0;
                         print('Debug - Parsed sale price: $value');
                         
-                        final formatted = numberFormat.format(value);
+                        final formatted = formatCurrency(value.toDouble());
                         print('Debug - Formatted sale price: $formatted');
                         
                         if (val != formatted) {
@@ -566,9 +568,8 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                     onEditingComplete: () {
                       if (!_autoCalculatePrice) {
                         final cleanValue = _sellPriceController.text.replaceAll(RegExp(r'[^0-9]'), '');
-                        final numberFormat = NumberFormat('#,###', 'vi_VN');
                         final value = int.tryParse(cleanValue) ?? 0;
-                        final formatted = numberFormat.format(value);
+                        final formatted = formatCurrency(value.toDouble());
                         _sellPriceController.value = TextEditingValue(
                           text: formatted,
                           selection: TextSelection.collapsed(offset: formatted.length),
@@ -646,7 +647,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
       final salePrice = costPrice * (1 + profitMargin / 100);
       print('Debug - Calculated sale price: $salePrice');
       
-      final formattedPrice = NumberFormat('#,###', 'vi_VN').format(salePrice.round());
+      final formattedPrice = formatCurrency(salePrice);
       print('Debug - Formatted sale price: $formattedPrice');
       
       _sellPriceController.value = TextEditingValue(

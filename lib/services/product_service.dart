@@ -1,9 +1,11 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/product.dart';
+import 'product_company_service.dart';
 
 class ProductService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final String _collection = 'products';
+  final ProductCompanyService _productCompanyService = ProductCompanyService();
 
   // Thêm sản phẩm mới
   Future<String> addProduct(Product product) async {
@@ -37,7 +39,7 @@ class ProductService {
         throw 'Tên danh pháp đã tồn tại';
       }
 
-      // Thêm sản phẩm mới
+      // Thêm sản phẩm mới (không xử lý category_ids)
       final docRef = await _firestore.collection(_collection).add(Product.normalizeProductData(product.toMap()));
       return docRef.id;
     } catch (e) {
@@ -128,6 +130,10 @@ class ProductService {
   // Xóa sản phẩm
   Future<void> deleteProduct(String id) async {
     try {
+      // Xóa tất cả mối quan hệ Product-Company trước
+      await _productCompanyService.deleteProductCompanies(id);
+      
+      // Sau đó xóa sản phẩm
       await _firestore.collection(_collection).doc(id).delete();
     } catch (e) {
       throw 'Lỗi khi xóa sản phẩm: $e';

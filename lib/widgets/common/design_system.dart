@@ -1,11 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import '../../models/product.dart';
+import '../../models/product_category.dart';
+import 'package:intl/intl.dart';
 
 /// VET-POS Flutter Style Guide
 /// Based on the VET-POS web design system with consistent naming conventions
 
 // ===================== COLORS =====================
-const Color primaryBlue = Color(0xFF3A6FF8); // --primary
+const Color primaryBlue = Color(0xFF22C55E); // --primary
 const Color secondaryGreen = Color(0xFF67C687); // --secondary
 const Color warningOrange = Color(0xFFFFB547); // --warning
 const Color destructiveRed = Color(0xFFFF5A5F); // --destructive
@@ -48,6 +51,7 @@ const double space24 = 24.0;
 const double space32 = 32.0;
 const double space48 = 48.0;
 const double space64 = 64.0;
+const double spaceMobile = 12.0; // Spacing cho mobile
 
 // Component specific spacing
 const double cardPadding = 24.0;
@@ -1116,11 +1120,30 @@ BoxDecoration sidebarItemActiveDecoration = BoxDecoration(
 const String currencySymbol = '₫';
 const String currencyLocale = 'vi_VN';
 
+// Format tiền chuẩn: 1,500,000 ₫
 String formatCurrency(double amount) {
   return '${amount.toStringAsFixed(0).replaceAllMapped(
     RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
     (Match m) => '${m[1]},',
   )} $currencySymbol';
+}
+
+// Format tiền compact: 1.5M ₫ (cho số lớn)
+String formatCurrencyCompact(double amount) {
+  if (amount >= 1000000) {
+    final millions = amount / 1000000;
+    return '${millions.toStringAsFixed(millions.truncateToDouble() == millions ? 0 : 1)}M $currencySymbol';
+  } else if (amount >= 1000) {
+    final thousands = amount / 1000;
+    return '${thousands.toStringAsFixed(thousands.truncateToDouble() == thousands ? 0 : 0)}K $currencySymbol';
+  } else {
+    return formatCurrency(amount);
+  }
+}
+
+// Hàm helper để tạo NumberFormat instance
+NumberFormat getCurrencyFormatter() {
+  return NumberFormat.currency(locale: 'vi_VN', symbol: '₫', decimalDigits: 0);
 }
 
 // ===================== RESPONSIVE UTILITIES =====================
@@ -1984,4 +2007,434 @@ Widget designSystemRangeSlider({
       onChanged: onChanged,
     ),
   );
+}
+
+// ===== TABLE DESIGN SYSTEM =====
+
+/// Table Design System for consistent data presentation
+/// 
+/// Tables are used to display structured data in rows and columns.
+/// This system provides consistent styling for table containers, headers, and rows.
+class TableDesignSystem {
+  // Table Container Styles
+  static BoxDecoration tableContainerDecoration = BoxDecoration(
+    color: Colors.white,
+    borderRadius: BorderRadius.circular(8),
+    border: Border.all(color: borderColor),
+  );
+
+  // Table Header Styles
+  static BoxDecoration tableHeaderDecoration = BoxDecoration(
+    border: Border(bottom: BorderSide(color: borderColor)),
+  );
+
+  static EdgeInsets tableHeaderPadding = const EdgeInsets.symmetric(horizontal: 24, vertical: 16);
+
+  static TextStyle tableHeaderTextStyle = const TextStyle(
+    fontWeight: FontWeight.w600,
+    fontSize: 14,
+    color: textSecondary,
+  );
+
+  // Table Row Styles
+  static EdgeInsets tableRowPadding = const EdgeInsets.symmetric(horizontal: 24, vertical: 16);
+
+  static BoxDecoration tableRowDecoration = BoxDecoration(
+    border: Border(bottom: BorderSide(color: borderColor.withOpacity(0.5))),
+  );
+
+  static TextStyle tableRowTextStyle = const TextStyle(
+    fontWeight: FontWeight.w600,
+    fontSize: 14,
+  );
+
+  static TextStyle tableRowSubtitleStyle = TextStyle(
+    fontSize: 13,
+    color: Colors.grey[600],
+  );
+
+  // Table Loading State
+  static Widget tableLoadingState = const Center(
+    child: Padding(
+      padding: EdgeInsets.all(24),
+      child: CircularProgressIndicator(),
+    ),
+  );
+
+  // Table Empty State
+  static Widget tableEmptyState(String message) => Center(
+    child: Padding(
+      padding: const EdgeInsets.all(24),
+      child: Text(message),
+    ),
+  );
+
+  // Table Error State
+  static Widget tableErrorState(String error) => Center(
+    child: Padding(
+      padding: const EdgeInsets.all(24),
+      child: Text('Error: $error'),
+    ),
+  );
+}
+
+/// Standard table container widget
+class StandardTableContainer extends StatelessWidget {
+  final Widget child;
+  final EdgeInsets? padding;
+
+  const StandardTableContainer({
+    super.key,
+    required this.child,
+    this.padding,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: TableDesignSystem.tableContainerDecoration,
+      padding: padding,
+      child: child,
+    );
+  }
+}
+
+/// Standard table header widget
+class StandardTableHeader extends StatelessWidget {
+  final List<Widget> children;
+  final EdgeInsets? padding;
+
+  const StandardTableHeader({
+    super.key,
+    required this.children,
+    this.padding,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: padding ?? TableDesignSystem.tableHeaderPadding,
+      decoration: TableDesignSystem.tableHeaderDecoration,
+      child: Row(children: children),
+    );
+  }
+}
+
+/// Standard table row widget
+class StandardTableRow extends StatelessWidget {
+  final List<Widget> children;
+  final EdgeInsets? padding;
+  final VoidCallback? onTap;
+  final bool isSelectable;
+
+  const StandardTableRow({
+    super.key,
+    required this.children,
+    this.padding,
+    this.onTap,
+    this.isSelectable = true,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final rowContent = Container(
+      padding: padding ?? TableDesignSystem.tableRowPadding,
+      decoration: TableDesignSystem.tableRowDecoration,
+      child: Row(children: children),
+    );
+
+    if (!isSelectable || onTap == null) {
+      return rowContent;
+    }
+
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        child: rowContent,
+      ),
+    );
+  }
+}
+
+/// Table column with flexible width
+class TableColumn extends StatelessWidget {
+  final Widget child;
+  final int flex;
+  final CrossAxisAlignment alignment;
+  final EdgeInsets? padding;
+
+  const TableColumn({
+    super.key,
+    required this.child,
+    this.flex = 1,
+    this.alignment = CrossAxisAlignment.start,
+    this.padding,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Expanded(
+      flex: flex,
+      child: Container(
+        padding: padding,
+        child: child,
+      ),
+    );
+  }
+}
+
+/// Table column with fixed width
+class TableColumnFixed extends StatelessWidget {
+  final Widget child;
+  final double width;
+  final CrossAxisAlignment alignment;
+  final EdgeInsets? padding;
+
+  const TableColumnFixed({
+    super.key,
+    required this.child,
+    required this.width,
+    this.alignment = CrossAxisAlignment.start,
+    this.padding,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: width,
+      child: Container(
+        padding: padding,
+        child: child,
+      ),
+    );
+  }
+}
+
+// ===== SUBPAGE STYLEGUIDE =====
+
+/// Example: How to use Table Design System
+/// 
+/// This example shows how to create a product list table using the design system
+class ExampleProductTable extends StatelessWidget {
+  final List<Product> products;
+  final Function(Product)? onProductTap;
+  final Function(Product)? onEdit;
+  final Function(Product)? onDelete;
+
+  const ExampleProductTable({
+    super.key,
+    required this.products,
+    this.onProductTap,
+    this.onEdit,
+    this.onDelete,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    if (products.isEmpty) {
+      return StandardTableContainer(
+        child: TableDesignSystem.tableEmptyState('No products available'),
+      );
+    }
+
+    return StandardTableContainer(
+      child: Column(
+        children: [
+          StandardTableHeader(
+            children: [
+              TableColumn(
+                flex: 3,
+                child: Text('Product Name', style: TableDesignSystem.tableHeaderTextStyle),
+              ),
+              TableColumn(
+                flex: 1,
+                child: Text('Stock', style: TableDesignSystem.tableHeaderTextStyle),
+              ),
+              TableColumn(
+                flex: 1,
+                child: Text('Price', style: TableDesignSystem.tableHeaderTextStyle),
+              ),
+              if (onEdit != null || onDelete != null)
+                TableColumnFixed(
+                  width: 100,
+                  child: Text('Actions', style: TableDesignSystem.tableHeaderTextStyle),
+                ),
+            ],
+          ),
+          ...products.map((product) => StandardTableRow(
+            onTap: onProductTap != null ? () => onProductTap!(product) : null,
+            children: [
+              TableColumn(
+                flex: 3,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(product.internalName ?? '', style: TableDesignSystem.tableRowTextStyle),
+                    Text(product.tradeName ?? '', style: TableDesignSystem.tableRowSubtitleStyle),
+                  ],
+                ),
+              ),
+              TableColumn(
+                flex: 1,
+                child: Text((product.stockSystem ?? 0).toString(), style: TableDesignSystem.tableRowTextStyle),
+              ),
+              TableColumn(
+                flex: 1,
+                child: Text('\$${product.salePrice ?? 0}', style: TableDesignSystem.tableRowTextStyle),
+              ),
+              if (onEdit != null || onDelete != null)
+                TableColumnFixed(
+                  width: 100,
+                  child: Row(
+                    children: [
+                      if (onEdit != null)
+                        IconButton(
+                          icon: const Icon(Icons.edit, size: 20),
+                          onPressed: () => onEdit!(product),
+                        ),
+                      if (onDelete != null)
+                        IconButton(
+                          icon: const Icon(Icons.delete, size: 20, color: Colors.red),
+                          onPressed: () => onDelete!(product),
+                        ),
+                    ],
+                  ),
+                ),
+            ],
+          )),
+        ],
+      ),
+    );
+  }
+}
+
+/// Example: Hierarchical category table
+class ExampleCategoryTreeTable extends StatelessWidget {
+  final List<ProductCategory> categories;
+  final Function(ProductCategory)? onCategoryTap;
+  final Set<String> expandedCategories;
+  final Function(String) onToggleExpand;
+  final Map<String, int> categoryProductCounts; // Map category ID to product count
+
+  const ExampleCategoryTreeTable({
+    super.key,
+    required this.categories,
+    this.onCategoryTap,
+    required this.expandedCategories,
+    required this.onToggleExpand,
+    required this.categoryProductCounts,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    if (categories.isEmpty) {
+      return StandardTableContainer(
+        child: TableDesignSystem.tableEmptyState('No categories available'),
+      );
+    }
+
+    return StandardTableContainer(
+      child: Column(
+        children: [
+          StandardTableHeader(
+            children: [
+              TableColumn(
+                flex: 3,
+                child: Text('Category Name', style: TableDesignSystem.tableHeaderTextStyle),
+              ),
+              TableColumnFixed(
+                width: 120,
+                child: Text('Products', style: TableDesignSystem.tableHeaderTextStyle),
+              ),
+            ],
+          ),
+          ...buildCategoryTree(categories, level: 0),
+        ],
+      ),
+    );
+  }
+
+  List<Widget> buildCategoryTree(List<ProductCategory> categories, {int level = 0}) {
+    return categories.map((category) {
+      // Check if this category has children by looking for categories with this as parent
+      final hasChildren = categories.any((c) => c.parentId == category.id);
+      final isExpanded = expandedCategories.contains(category.id);
+      final isChild = level > 0;
+
+      return Column(
+        children: [
+          StandardTableRow(
+            onTap: () {
+              if (hasChildren) {
+                onToggleExpand(category.id);
+              } else if (onCategoryTap != null) {
+                onCategoryTap!(category);
+              }
+            },
+            children: [
+              TableColumn(
+                flex: 3,
+                child: Row(
+                  children: [
+                    SizedBox(width: level * 32), // Indentation
+                    SizedBox(
+                      width: 28,
+                      child: Center(
+                        child: hasChildren && !isChild
+                          ? AnimatedRotation(
+                              duration: const Duration(milliseconds: 200),
+                              turns: isExpanded ? 0.25 : 0,
+                              child: Icon(
+                                Icons.keyboard_arrow_right,
+                                size: 20,
+                                color: Colors.grey[600],
+                              ),
+                            )
+                          : isChild
+                            ? Container(
+                                width: 6,
+                                height: 6,
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  color: Colors.grey[600],
+                                ),
+                              )
+                            : null,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(category.name, style: TableDesignSystem.tableRowTextStyle),
+                          if (category.description.isNotEmpty)
+                            Text(category.description, style: TableDesignSystem.tableRowSubtitleStyle),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              TableColumnFixed(
+                width: 120,
+                child: Text(
+                  categoryProductCounts[category.id]?.toString() ?? '0',
+                  style: TableDesignSystem.tableRowTextStyle,
+                  textAlign: TextAlign.center,
+                ),
+              ),
+            ],
+          ),
+          if (hasChildren && isExpanded) ...[
+            ...buildCategoryTree(
+              categories.where((c) => c.parentId == category.id).toList(), 
+              level: level + 1
+            ),
+          ],
+        ],
+      );
+    }).toList();
+  }
 }

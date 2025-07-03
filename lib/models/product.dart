@@ -4,7 +4,6 @@ class Product {
   final String id;
   final String internalName; // internal_name
   final String tradeName;    // trade_name
-  final List<String> categoryIds;   // category_ids - hỗ trợ N-N
   final String? barcode;
   final String? sku;
   final String unit;
@@ -23,13 +22,11 @@ class Product {
   final String? discontinueReason; // discontinue_reason
   final DateTime createdAt;  // created_at
   final DateTime updatedAt;  // updated_at
-  final List<String> supplierIds; // Thêm trường này
 
   Product({
     required this.id,
     this.internalName = '',
     this.tradeName = '',
-    this.categoryIds = const [],
     this.barcode,
     this.sku,
     this.unit = '',
@@ -48,14 +45,12 @@ class Product {
     this.discontinueReason,
     required this.createdAt,
     required this.updatedAt,
-    this.supplierIds = const [], // Thêm vào constructor
   });
 
   Map<String, dynamic> toMap() {
     return {
       'internal_name': internalName,
       'trade_name': tradeName,
-      'category_ids': categoryIds,
       'barcode': barcode,
       'sku': sku,
       'unit': unit,
@@ -74,7 +69,6 @@ class Product {
       'discontinue_reason': discontinueReason,
       'created_at': createdAt,
       'updated_at': updatedAt,
-      'supplier_ids': supplierIds, // Thêm vào toMap
     };
   }
 
@@ -98,23 +92,10 @@ class Product {
       }
     } catch (e) {}
     
-    // Xử lý category_ids - có thể là List<String> hoặc List<dynamic>
-    List<String> categoryIds = [];
-    if (map['category_ids'] != null) {
-      if (map['category_ids'] is List) {
-        categoryIds = List<String>.from(map['category_ids']);
-      } else if (map['category_ids'] is List<dynamic>) {
-        categoryIds = List<String>.from(map['category_ids'].map((e) => e.toString()));
-      } else {
-        categoryIds = [map['category_ids'].toString()];
-      }
-    }
-    
     return Product(
       id: id,
       internalName: map['internal_name'] ?? '',
       tradeName: map['trade_name'] ?? '',
-      categoryIds: categoryIds,
       barcode: map['barcode'],
       sku: map['sku'],
       unit: map['unit'] ?? '',
@@ -133,7 +114,6 @@ class Product {
       discontinueReason: map['discontinue_reason'],
       createdAt: createdAt ?? DateTime.now(),
       updatedAt: updatedAt ?? DateTime.now(),
-      supplierIds: List<String>.from(map['supplier_ids'] ?? []), // Thêm vào factory
     );
   }
 
@@ -146,7 +126,6 @@ class Product {
     String? id,
     String? internalName,
     String? tradeName,
-    List<String>? categoryIds,
     String? barcode,
     String? sku,
     String? unit,
@@ -165,13 +144,11 @@ class Product {
     String? discontinueReason,
     DateTime? createdAt,
     DateTime? updatedAt,
-    List<String>? supplierIds, // Thêm vào copyWith
   }) {
     return Product(
       id: id ?? this.id,
       internalName: internalName ?? this.internalName,
       tradeName: tradeName ?? this.tradeName,
-      categoryIds: categoryIds ?? this.categoryIds,
       barcode: barcode ?? this.barcode,
       sku: sku ?? this.sku,
       unit: unit ?? this.unit,
@@ -190,61 +167,31 @@ class Product {
       discontinueReason: discontinueReason ?? this.discontinueReason,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
-      supplierIds: supplierIds ?? this.supplierIds, // Thêm vào copyWith
     );
   }
 
   static Map<String, dynamic> normalizeProductData(Map<String, dynamic> raw) {
-    // Xử lý category_ids - đảm bảo luôn là List<String>
-    List<String> categoryIds = [];
-    final rawCategoryIds = raw['category_ids'] ?? raw['categoryIds'];
-    if (rawCategoryIds != null) {
-      if (rawCategoryIds is List) {
-        categoryIds = List<String>.from(rawCategoryIds);
-      } else if (rawCategoryIds is List<dynamic>) {
-        categoryIds = List<String>.from(rawCategoryIds.map((e) => e.toString()));
-      } else {
-        categoryIds = [rawCategoryIds.toString()];
-      }
-    }
-    
     return {
       'internal_name': raw['internal_name'] ?? raw['internalName'] ?? '',
       'trade_name': raw['trade_name'] ?? raw['tradeName'] ?? '',
-      'category_ids': categoryIds,
       'barcode': raw['barcode'],
       'sku': raw['sku'],
       'unit': raw['unit'] ?? '',
-      'tags': raw['tags'] is String ? (raw['tags'] as String).split(',').map((e) => e.trim()).toList() : (raw['tags'] ?? []),
+      'tags': List<String>.from(raw['tags'] ?? []),
       'description': raw['description'] ?? '',
       'usage': raw['usage'] ?? '',
       'ingredients': raw['ingredients'] ?? '',
       'notes': raw['notes'] ?? '',
       'stock_system': raw['stock_system'] ?? raw['stockSystem'] ?? 0,
       'stock_invoice': raw['stock_invoice'] ?? raw['stockInvoice'] ?? 0,
-      'cost_price': raw['cost_price'] ?? raw['costPrice'] ?? 0.0,
-      'sale_price': raw['sale_price'] ?? raw['salePrice'] ?? 0.0,
-      'gross_profit': raw['gross_profit'] ?? raw['grossProfit'] ?? 0.0,
+      'cost_price': raw['cost_price'] ?? raw['costPrice'] ?? 0,
+      'sale_price': raw['sale_price'] ?? raw['salePrice'] ?? 0,
+      'gross_profit': raw['gross_profit'] ?? raw['grossProfit'] ?? 0,
       'auto_price': raw['auto_price'] ?? raw['autoPrice'] ?? false,
       'status': raw['status'] ?? 'active',
       'discontinue_reason': raw['discontinue_reason'] ?? raw['discontinueReason'],
-      'created_at': raw['created_at'] ?? raw['createdAt'],
-      'updated_at': raw['updated_at'] ?? raw['updatedAt'],
-      'supplier_ids': raw['supplier_ids'] ?? [], // Thêm vào hàm normalize
+      'created_at': raw['created_at'] ?? raw['createdAt'] ?? FieldValue.serverTimestamp(),
+      'updated_at': raw['updated_at'] ?? raw['updatedAt'] ?? FieldValue.serverTimestamp(),
     };
-  }
-
-  // Helper methods để tương thích ngược
-  String get categoryId => categoryIds.isNotEmpty ? categoryIds.first : '';
-  String get categoryDisplay => categoryIds.join(', ');
-  
-  // Kiểm tra xem sản phẩm có thuộc danh mục nào không
-  bool hasCategory(String categoryName) {
-    return categoryIds.contains(categoryName);
-  }
-  
-  // Kiểm tra xem sản phẩm có thuộc bất kỳ danh mục nào trong list không
-  bool hasAnyCategory(List<String> categoryNames) {
-    return categoryIds.any((id) => categoryNames.contains(id));
   }
 } 

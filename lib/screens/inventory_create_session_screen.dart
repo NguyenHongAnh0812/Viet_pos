@@ -68,9 +68,10 @@ class _InventoryCreateSessionScreenState extends State<InventoryCreateSessionScr
     return _selectedProducts.length;
   }
 
-  int getProductCountByCategory(List<Product> products, String? category) {
-    if (category == null) return 0;
-    return products.where((p) => p.categoryIds.contains(category)).length;
+  int getProductCountByCategory(String category) {
+    // TODO: Implement with new category relation service
+    // return products.where((p) => p.categoryIds.contains(category)).length;
+    return 0; // Tạm thời return 0
   }
 
   @override
@@ -248,7 +249,9 @@ class _InventoryCreateSessionScreenState extends State<InventoryCreateSessionScr
                 stream: _productService.getProducts(),
                 builder: (context, snapshot) {
                   final products = snapshot.data ?? [];
-                  final categories = products.expand((p) => p.categoryIds).toSet().toList()..sort();
+                  // TODO: Implement with new category relation service
+                  // final categories = products.expand((p) => p.categoryIds).toSet().toList()..sort();
+                  final categories = <String>[]; // Tạm thời empty list
                   return Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -352,7 +355,7 @@ class _InventoryCreateSessionScreenState extends State<InventoryCreateSessionScr
                           color: appBackground,
                           borderRadius: BorderRadius.circular(8),
                         ),
-                        child: Text('Tổng số sản phẩm sẽ kiểm kê: ${_selectMode == 0 ? products.length : _selectMode == 1 ? getProductCountByCategory(products, _selectedCategory) : _selectedProducts.length}', style: bodyLarge.copyWith(color: textPrimary)),
+                        child: Text('Tổng số sản phẩm sẽ kiểm kê: ${_selectMode == 0 ? products.length : _selectMode == 1 ? getProductCountByCategory(_selectedCategory!) : _selectedProducts.length}', style: bodyLarge.copyWith(color: textPrimary)),
                       ),
                     ],
                   );
@@ -382,7 +385,10 @@ class _InventoryCreateSessionScreenState extends State<InventoryCreateSessionScr
                     if (_selectMode == 0) {
                       selectedProducts = products;
                     } else if (_selectMode == 1) {
-                      selectedProducts = products.where((p) => p.categoryIds.contains(_selectedCategory)).toList();
+                      selectedProducts = products.where((p) =>
+                      // TODO: Implement with new category relation service
+                      // p.categoryIds.contains(_selectedCategory)).toList();
+                      true).toList(); // Tạm thời select all products
                     } else {
                       selectedProducts = products.where((p) => _selectedProducts.contains(p.id)).toList();
                     }

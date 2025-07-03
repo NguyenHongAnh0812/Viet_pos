@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../models/product.dart';
+import 'common/design_system.dart';
 
 class ProductListCard extends StatelessWidget {
   final Product product;
@@ -11,7 +12,6 @@ class ProductListCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final numberFormat = NumberFormat('#,###', 'vi_VN');
     return GestureDetector(
       onTap: onTap,
       child: Card(
@@ -71,7 +71,7 @@ class ProductListCard extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      '${numberFormat.format(product.salePrice)}đ',
+                      formatCurrency(product.salePrice),
                       style: const TextStyle(color: Colors.blue, fontWeight: FontWeight.bold, fontSize: 20),
                       textAlign: TextAlign.left,
                     ),

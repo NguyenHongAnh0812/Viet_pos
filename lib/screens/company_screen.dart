@@ -52,7 +52,7 @@ class _CompanyScreenState extends State<CompanyScreen> {
       setState(() {
         _filteredCompanies = _allCompanies;
       });
-    } else {
+            } else {
       final lowercaseQuery = query.toLowerCase();
       setState(() {
         _filteredCompanies = _allCompanies.where((company) {
@@ -68,27 +68,27 @@ class _CompanyScreenState extends State<CompanyScreen> {
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.all(24.0),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
           // Header
-          Row(
+            Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
+              children: [
               Text('Danh sách công ty', style: h2),
-              ElevatedButton.icon(
+                ElevatedButton.icon(
                 onPressed: () {
                   context
                       .findAncestorStateOfType<MainLayoutState>()
                       ?.onSidebarTap(MainPage.addCompany);
                 },
-                icon: const Icon(Icons.add),
+                  icon: const Icon(Icons.add),
                 label: const Text('Thêm công ty'),
-                style: primaryButtonStyle,
-              ),
-            ],
-          ),
-          const SizedBox(height: 24),
+                  style: primaryButtonStyle,
+                ),
+              ],
+            ),
+            const SizedBox(height: 24),
 
           // Search bar
           SizedBox(
@@ -104,7 +104,7 @@ class _CompanyScreenState extends State<CompanyScreen> {
           const SizedBox(height: 24),
 
           // Company List
-          Expanded(
+            Expanded(
             child: Container(
               decoration: BoxDecoration(
                 color: Colors.white,
@@ -123,7 +123,7 @@ class _CompanyScreenState extends State<CompanyScreen> {
                               BorderSide(color: Color(0xFFE0E0E0), width: 1.5)),
                     ),
                     child: const Row(
-                      children: [
+                          children: [
                         Expanded(
                             flex: 3,
                             child: Text('Tên công ty', style: tableHeaderStyle)),
@@ -148,8 +148,8 @@ class _CompanyScreenState extends State<CompanyScreen> {
                         Expanded(
                             flex: 2,
                             child: Text('Trạng thái', style: tableHeaderStyle)),
-                      ],
-                    ),
+                          ],
+                        ),
                   ),
                   // Table Body
                   Expanded(
@@ -159,7 +159,7 @@ class _CompanyScreenState extends State<CompanyScreen> {
                             ? Center(
                                 child: Column(
                                   mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
+                          children: [
                                     Icon(Icons.business,
                                         size: 64, color: Colors.grey.shade400),
                                     const SizedBox(height: 16),
@@ -179,20 +179,20 @@ class _CompanyScreenState extends State<CompanyScreen> {
                                 itemBuilder: (context, index) {
                                   final company = _filteredCompanies[index];
                                   return _buildCompanyRow(company);
-                                },
+                              },
                               ),
                   ),
                 ],
               ),
             ),
-          ),
-        ],
-      ),
-    );
+                            ),
+                          ],
+                        ),
+                      );
   }
 
   Widget _buildCompanyRow(Company company) {
-    final bool isActive = company.status == 'Hoạt động';
+    final bool isActive = company.status == 'active' || company.status.isEmpty;
     final statusColor =
         isActive ? const Color(0xFF28A745) : const Color(0xFF6C757D);
     final statusBgColor = isActive
@@ -228,7 +228,7 @@ class _CompanyScreenState extends State<CompanyScreen> {
             const SizedBox(width: 16),
             Expanded(
                 flex: 2,
-                child: Text(company.contactPerson ?? '',
+                child: Text(company.mainContact ?? '',
                     style: const TextStyle(
                         fontSize: 14, color: Color(0xFF212529)))),
             const SizedBox(width: 16),
@@ -250,7 +250,7 @@ class _CompanyScreenState extends State<CompanyScreen> {
                     borderRadius: BorderRadius.circular(100),
                   ),
                   child: Text(
-                    company.status,
+                    (company.status == 'active' || company.status.isEmpty) ? 'Đang hoạt động' : 'Ngừng hoạt động',
                     style: TextStyle(
                         fontSize: 13,
                         color: statusColor,

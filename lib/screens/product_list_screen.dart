@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import '../models/product.dart';
 import '../services/product_service.dart';
-import 'package:intl/intl.dart' show NumberFormat;
+
 import '../widgets/main_layout.dart';
 import 'products/product_detail_screen.dart';
 import 'package:file_picker/file_picker.dart';
@@ -155,9 +155,11 @@ class _ProductListScreenState extends State<ProductListScreen> {
   ];
 
   List<String> getCategoriesFromProducts(List<Product> products) {
-    final set = products.expand((p) => p.categoryIds).where((c) => c.isNotEmpty).toSet();
-    final list = set.toList()..sort();
-    return ['Tất cả', ...list];
+    // TODO: Implement with new category relation service
+    // final set = products.expand((p) => p.categoryIds).where((c) => c.isNotEmpty).toSet();
+    // final list = set.toList()..sort();
+    // return ['Tất cả', ...list];
+    return ['Tất cả']; // Tạm thời return empty list
   }
 
   List<String> get allTags => ['kháng sinh', 'phổ rộng', 'vitamin', 'bổ sung', 'NSAID', 'giảm đau', 'quinolone'];
@@ -176,9 +178,11 @@ class _ProductListScreenState extends State<ProductListScreen> {
 
       // Lọc theo danh mục
       if (selectedCategory != 'Tất cả') {
-        if (!product.categoryIds.contains(selectedCategory)) {
-        return false;
-      }
+        // TODO: Implement with new category relation service
+        // if (!product.categoryIds.contains(selectedCategory)) {
+        //   return false;
+        // }
+        return true; // Tạm thời return true
       }
       
       // Lọc theo khoảng giá
@@ -518,7 +522,9 @@ class _ProductListScreenState extends State<ProductListScreen> {
       sheet.appendRow([
         excel.TextCellValue(p.internalName),
         excel.TextCellValue(p.tradeName),
-        excel.TextCellValue(p.categoryIds.join(', ')),
+        // TODO: Implement with new category relation service
+        // excel.TextCellValue(p.categoryIds.join(', ')),
+        excel.TextCellValue(''), // Tạm thời empty string
         excel.TextCellValue(p.barcode ?? ''),
         excel.TextCellValue(p.sku ?? ''),
         excel.TextCellValue(p.unit),
@@ -647,7 +653,6 @@ class _ProductListScreenState extends State<ProductListScreen> {
     print('\n=== DEBUG: Building ProductListScreen ===');
     
     final isMobile = MediaQuery.of(context).size.width < 600;
-    final numberFormat = NumberFormat('#,###', 'vi_VN');
     
     return Scaffold(
       backgroundColor: appBackground,
@@ -661,126 +666,18 @@ class _ProductListScreenState extends State<ProductListScreen> {
               Padding(
                 padding: const EdgeInsets.all(16),
                 child: isMobile
-                    ? Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
+                    ? Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        crossAxisAlignment: CrossAxisAlignment.center,
                         children: [
                           Text(
                             'Danh sách sản phẩm',
-                            style: MediaQuery.of(context).size.width < 600 ? h1Mobile : h2,
+                            style: h1Mobile,
                           ),
-                          const SizedBox(height: 12),
-                          Row(
-                            children: [
-                              ElevatedButton.icon(
-                                onPressed: () => widget.onNavigate?.call(MainPage.addProduct),
-                                icon: const Icon(Icons.add),
-                                label: const Text('Thêm sản phẩm'),
-                                style: primaryButtonStyle,
-                              ),
-                              const SizedBox(width: 8),
-                              ValueListenableBuilder<Set<String>>(
-                                valueListenable: selectedProductIds,
-                                builder: (context, selected, _) {
-                                  if (selected.isEmpty) return const SizedBox.shrink();
-                                  return Row(
-                                    children: [
-                                      OutlinedButton.icon(
-                                        onPressed: () async {
-                                          final confirmed = await showDialog<bool>(
-                                            context: context,
-                                            builder: (context) => AlertDialog(
-                                              title: const Text('Xác nhận xóa'),
-                                              content: Text('Bạn có chắc chắn muốn xóa ${selected.length} sản phẩm đã chọn?'),
-                                              actions: [
-                                                TextButton(
-                                                  onPressed: () => Navigator.pop(context, false),
-                                                  child: const Text('Hủy'),
-                                                ),
-                                                TextButton(
-                                                  onPressed: () => Navigator.pop(context, true),
-                                                  child: const Text('Xóa', style: TextStyle(color: Colors.red)),
-                                                ),
-                                              ],
-                                            ),
-                                          );
-                                          if (confirmed == true) {
-                                            try {
-                                              final batch = FirebaseFirestore.instance.batch();
-                                              for (final id in selected) {
-                                                final docRef = FirebaseFirestore.instance.collection('products').doc(id);
-                                                batch.delete(docRef);
-                                              }
-                                              await batch.commit();
-                                              selectedProductIds.value = {};
-                                              if (mounted) {
-                                                OverlayEntry? entry;
-                                                entry = OverlayEntry(
-                                                  builder: (_) => DesignSystemSnackbar(
-                                                    message: 'Đã xóa ${selected.length} sản phẩm thành công',
-                                                    icon: Icons.check_circle,
-                                                    onDismissed: () => entry?.remove(),
-                                                  ),
-                                                );
-                                                Overlay.of(context).insert(entry);
-                                              }
-                                            } catch (e) {
-                                              if (mounted) {
-                                                OverlayEntry? entry;
-                                                entry = OverlayEntry(
-                                                  builder: (_) => DesignSystemSnackbar(
-                                                    message: 'Lỗi khi xóa sản phẩm: $e',
-                                                    icon: Icons.error,
-                                                    onDismissed: () => entry?.remove(),
-                                                  ),
-                                                );
-                                                Overlay.of(context).insert(entry);
-                                              }
-                                            }
-                                          }
-                                        },
-                                        icon: const Icon(Icons.delete_outline, color: Colors.red),
-                                        label: Text('Xóa ${selected.length} sản phẩm', style: const TextStyle(color: Colors.red)),
-                                        style: OutlinedButton.styleFrom(
-                                          foregroundColor: Colors.red,
-                                          side: const BorderSide(color: Colors.red),
-                                        ),
-                                      ),
-                                    ],
-                                  );
-                                },
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 8),
-                          Row(
-                            children: [
-                              OutlinedButton.icon(
-                                onPressed: _importProductsFromExcel,
-                                icon: const Icon(Icons.upload_file),
-                                label: const Text('Import'),
-                                style: secondaryButtonStyle,
-                              ),
-                              const SizedBox(width: 8),
-                              StreamBuilder<List<Product>>(
-                                stream: _productService.getProducts(),
-                                builder: (context, snapshot) {
-                                  final products = snapshot.data ?? [];
-                                  return OutlinedButton.icon(
-                                    onPressed: () => _exportProductsToExcel(products),
-                                    icon: const Icon(Icons.download),
-                                    label: const Text('Export'),
-                                    style: secondaryButtonStyle,
-                                  );
-                                },
-                              ),
-                              const SizedBox(width: 8),
-                              ElevatedButton.icon(
-                                onPressed: () => widget.onNavigate?.call(MainPage.addProduct),
-                                icon: const Icon(Icons.add),
-                                label: const Text('Thêm sản phẩm'),
-                                style: primaryButtonStyle,
-                              ),
-                            ],
+                          IconButton(
+                            icon: const Icon(Icons.add, size: 28, color: Colors.green),
+                            tooltip: 'Thêm sản phẩm',
+                            onPressed: () => widget.onNavigate?.call(MainPage.addProduct),
                           ),
                         ],
                       )
@@ -901,7 +798,7 @@ class _ProductListScreenState extends State<ProductListScreen> {
                     children: [
                       // Search Bar
                       Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                        padding: isMobile ? const EdgeInsets.symmetric(horizontal: 15) : const EdgeInsets.symmetric(horizontal: 16.0),
                         child: Stack(
                           alignment: Alignment.centerRight,
                           children: [
@@ -936,7 +833,7 @@ class _ProductListScreenState extends State<ProductListScreen> {
                       const SizedBox(height: 16.0),
                       // Product List and Filter/Sort Row together in StreamBuilder
                       Padding(
-                        padding: const EdgeInsets.only(left: 16.0, right: 16.0, bottom: 80.0),
+                        padding: isMobile ? const EdgeInsets.symmetric(horizontal: 15, vertical: 0) : const EdgeInsets.only(left: 16.0, right: 16.0, bottom: 80.0),
                         child: StreamBuilder<List<Product>>(
                           stream: _productService.getProducts(),
                           builder: (context, snapshot) {
@@ -1045,7 +942,7 @@ class _ProductListScreenState extends State<ProductListScreen> {
                                 Container(
                                   decoration: BoxDecoration(
                                     color: Colors.white,
-                                    borderRadius: BorderRadius.circular(12),
+                                    borderRadius: BorderRadius.circular(8),
                                     border: Border.all(color: Colors.grey.shade200, width: 1.5),
                                   ),
                                   child: Column(
@@ -1056,8 +953,8 @@ class _ProductListScreenState extends State<ProductListScreen> {
                                           decoration: BoxDecoration(
                                             color: Colors.white,
                                             borderRadius: const BorderRadius.only(
-                                              topLeft: Radius.circular(12),
-                                              topRight: Radius.circular(12),
+                                              topLeft: Radius.circular(8),
+                                              topRight: Radius.circular(8),
                                             ),
                                             border: const Border(
                                               bottom: BorderSide(color: Color(0xFFE0E0E0), width: 1),
@@ -1227,7 +1124,7 @@ class _ProductListScreenState extends State<ProductListScreen> {
                                                             flex: 2,
                                                             child: Align(
                                                               alignment: Alignment.center,
-                                                              child: Text('${NumberFormat.currency(locale: 'vi_VN', symbol: '₫').format(product.costPrice)}', style: body),
+                                                              child: Text(formatCurrency(product.costPrice), style: body),
                                                             ),
                                                           ),
                                                           Expanded(

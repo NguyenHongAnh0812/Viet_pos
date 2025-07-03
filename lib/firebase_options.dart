@@ -41,13 +41,13 @@ class DefaultFirebaseOptions {
   }
 
   static const FirebaseOptions web = FirebaseOptions(
-      apiKey: "AIzaSyC8uly3qG-uZNf4ujzomkDAs_TXmDc2CBg",
-      authDomain: "vet-pos-prod.firebaseapp.com",
-      projectId: "vet-pos-prod",
-      storageBucket: "vet-pos-prod.firebasestorage.app",
-      messagingSenderId: "342929701524",
-      appId: "1:342929701524:web:5ed16e5f878c9f17c55281",
-      measurementId: "G-WTQVL7HQBZ"
+      apiKey: "AIzaSyA1gxPqELZZYiC86M3Bqz506X7TRYjeJSQ",
+      authDomain: "viet-pos-db.firebaseapp.com",
+      projectId: "viet-pos-db",
+      storageBucket: "viet-pos-db.firebasestorage.app",
+      messagingSenderId: "588886544003",
+      appId: "1:588886544003:web:9a36b08e73f92846c2d5b6",
+      measurementId: "G-22K571YCDL"
   );
 
   static const FirebaseOptions android = FirebaseOptions(

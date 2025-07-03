@@ -61,191 +61,238 @@ class _InventoryScreenState extends State<InventoryScreen> with SingleTickerProv
           width: double.infinity,
           constraints: const BoxConstraints(maxWidth: 1400),
           child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 24),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
+            padding: MediaQuery.of(context).size.width < 600 ? const EdgeInsets.symmetric(horizontal: 15) : const EdgeInsets.symmetric(horizontal: 32, vertical: 24),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('Kiểm kê kho', style: h1),
-                const Spacer(),
-                ElevatedButton.icon(
-                  onPressed: () async {
-                    final snapshot = await FirebaseFirestore.instance
-                        .collection('inventory_sessions')
-                        .where('status', isEqualTo: 'Đang kiểm kê')
-                        .limit(1)
-                        .get();
-                    if (snapshot.docs.isNotEmpty) {
-                      showDialog(
-                        context: context,
-                        builder: (context) => AlertDialog(
-                          title: const Text('Thông báo'),
-                          content: const Text('Hiện tại đã có một phiên kiểm kê đang diễn ra. Vui lòng hoàn tất trước khi tạo phiên mới.'),
-                          actions: [
-                            TextButton(
-                              onPressed: () => Navigator.pop(context),
-                              child: const Text('Đóng'),
-                            ),
-                          ],
-                        ),
-                      );
-                    } else {
-                    final mainLayoutState = context.findAncestorStateOfType<MainLayoutState>();
-                    if (mainLayoutState != null) {
-                      mainLayoutState.onSidebarTap(MainPage.inventoryCreateSession);
-                      }
-                    }
-                  },
-                  icon: const Icon(Icons.add),
-                  label: const Text('Tạo phiên kiểm kê'),
-                  style: primaryButtonStyle,
+                Row(
+                  children: [
+                    Text('Kiểm kê kho', style: h1),
+                    const Spacer(),
+                    Builder(
+                      builder: (context) {
+                        final isMobile = MediaQuery.of(context).size.width < 600;
+                        return isMobile
+                            ? IconButton(
+                                icon: const Icon(Icons.add, size: 28, color: Colors.green),
+                                tooltip: 'Tạo phiên kiểm kê',
+                                onPressed: () async {
+                                  final snapshot = await FirebaseFirestore.instance
+                                      .collection('inventory_sessions')
+                                      .where('status', isEqualTo: 'Đang kiểm kê')
+                                      .limit(1)
+                                      .get();
+                                  if (snapshot.docs.isNotEmpty) {
+                                    showDialog(
+                                      context: context,
+                                      builder: (context) => AlertDialog(
+                                        title: const Text('Thông báo'),
+                                        content: const Text('Hiện tại đã có một phiên kiểm kê đang diễn ra. Vui lòng hoàn tất trước khi tạo phiên mới.'),
+                                        actions: [
+                                          TextButton(
+                                            onPressed: () => Navigator.pop(context),
+                                            child: const Text('Đóng'),
+                                          ),
+                                        ],
+                                      ),
+                                    );
+                                  } else {
+                                    final mainLayoutState = context.findAncestorStateOfType<MainLayoutState>();
+                                    if (mainLayoutState != null) {
+                                      mainLayoutState.onSidebarTap(MainPage.inventoryCreateSession);
+                                    }
+                                  }
+                                },
+                              )
+                            : ElevatedButton.icon(
+                                onPressed: () async {
+                                  final snapshot = await FirebaseFirestore.instance
+                                      .collection('inventory_sessions')
+                                      .where('status', isEqualTo: 'Đang kiểm kê')
+                                      .limit(1)
+                                      .get();
+                                  if (snapshot.docs.isNotEmpty) {
+                                    showDialog(
+                                      context: context,
+                                      builder: (context) => AlertDialog(
+                                        title: const Text('Thông báo'),
+                                        content: const Text('Hiện tại đã có một phiên kiểm kê đang diễn ra. Vui lòng hoàn tất trước khi tạo phiên mới.'),
+                                        actions: [
+                                          TextButton(
+                                            onPressed: () => Navigator.pop(context),
+                                            child: const Text('Đóng'),
+                                          ),
+                                        ],
+                                      ),
+                                    );
+                                  } else {
+                                    final mainLayoutState = context.findAncestorStateOfType<MainLayoutState>();
+                                    if (mainLayoutState != null) {
+                                      mainLayoutState.onSidebarTap(MainPage.inventoryCreateSession);
+                                    }
+                                  }
+                                },
+                                icon: const Icon(Icons.add),
+                                label: const Text('Tạo phiên kiểm kê'),
+                                style: primaryButtonStyle,
+                              );
+                      },
+                    ),
+                  ],
                 ),
+                const SizedBox(height: space24),
+                Row(
+                    children: [
+                      Expanded(
+                      child: TextField(
+                        controller: _searchController,
+                        onChanged: (_) => setState(() {}),
+                        style: bodyLarge.copyWith(color: textPrimary),
+                        decoration: InputDecoration(
+                          hintText: 'Tìm kiếm phiên kiểm kê...',
+                          hintStyle: bodyLarge.copyWith(color: textSecondary),
+                          prefixIcon: const Icon(Icons.search, color: textSecondary),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8),
+                            borderSide: const BorderSide(color: borderColor),
+                          ),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8),
+                            borderSide: const BorderSide(color: borderColor),
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8),
+                            borderSide: const BorderSide(color: primaryBlue, width: 1.5),
+                          ),
+                          isDense: true,
+                          filled: true,
+                          fillColor: Colors.transparent,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: space16),
+                    SizedBox(
+                      width: 200,
+                      child: ShopifyDropdown<String>(
+                        items: const [
+                          'Tất cả trạng thái',
+                          'Nháp',
+                          'Đang kiểm kê',
+                          'Đã hoàn tất',
+                          'Đã cập nhật kho',
+                        ],
+                        value: _selectedStatus,
+                        getLabel: (v) => v,
+                        onChanged: (v) {
+                          if (v != null) setState(() => _selectedStatus = v);
+                        },
+                        hint: 'Chọn trạng thái',
+                        backgroundColor: Colors.transparent,
+                      ),
+                    ),
               ],
             ),
-            const SizedBox(height: space24),
-            Row(
-                children: [
-                  Expanded(
-                  child: TextField(
-                    controller: _searchController,
-                    onChanged: (_) => setState(() {}),
-                    style: bodyLarge.copyWith(color: textPrimary),
-                    decoration: InputDecoration(
-                      hintText: 'Tìm kiếm phiên kiểm kê...',
-                      hintStyle: bodyLarge.copyWith(color: textSecondary),
-                      prefixIcon: const Icon(Icons.search, color: textSecondary),
-                      border: OutlineInputBorder(
+                const SizedBox(height: space24),
+                StreamBuilder<List<InventorySession>>(
+                  stream: _inventoryService.getAllSessions(),
+                  builder: (context, snapshot) {
+                    final isMobile = MediaQuery.of(context).size.width < 700;
+                    final sessions = snapshot.data ?? [];
+                    final filtered = sessions.where((session) {
+                      final matchesStatus = _selectedStatus == 'Tất cả trạng thái' || session.status == _selectedStatus;
+                      final search = _searchController.text.trim().toLowerCase();
+                      final matchesSearch = search.isEmpty ||
+                        session.note.toLowerCase().contains(search) ||
+                        session.createdBy.toLowerCase().contains(search);
+                      return matchesStatus && matchesSearch;
+                    }).toList();
+                    if (isMobile) {
+                      return Column(
+                        children: [
+                          for (final session in filtered)
+                            _buildMobileInventoryCard(context, session),
+                        ],
+                      );
+                    }
+                    // Desktop/tablet giữ nguyên bảng
+                    return Container(
+                      decoration: BoxDecoration(
+                        color: cardBackground,
                         borderRadius: BorderRadius.circular(8),
-                        borderSide: const BorderSide(color: borderColor),
+                        border: Border.all(color: borderColor),
                       ),
-                      enabledBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(8),
-                        borderSide: const BorderSide(color: borderColor),
-                      ),
-                      focusedBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(8),
-                        borderSide: const BorderSide(color: primaryBlue, width: 1.5),
-                      ),
-                      isDense: true,
-                      filled: true,
-                      fillColor: Colors.transparent,
-                    ),
-                  ),
-                ),
-                const SizedBox(width: space16),
-                SizedBox(
-                  width: 200,
-                  child: ShopifyDropdown<String>(
-                    items: const [
-                      'Tất cả trạng thái',
-                      'Nháp',
-                      'Đang kiểm kê',
-                      'Đã hoàn tất',
-                      'Đã cập nhật kho',
-                    ],
-                    value: _selectedStatus,
-                    getLabel: (v) => v,
-                    onChanged: (v) {
-                      if (v != null) setState(() => _selectedStatus = v);
-                    },
-                    hint: 'Chọn trạng thái',
-                    backgroundColor: Colors.transparent,
-                  ),
-                ),
-          ],
-        ),
-            const SizedBox(height: space24),
-            StreamBuilder<List<InventorySession>>(
-              stream: _inventoryService.getAllSessions(),
-          builder: (context, snapshot) {
-                final sessions = snapshot.data ?? [];
-                final filtered = sessions.where((session) {
-                  final matchesStatus = _selectedStatus == 'Tất cả trạng thái' || session.status == _selectedStatus;
-                  final search = _searchController.text.trim().toLowerCase();
-                  final matchesSearch = search.isEmpty ||
-                    session.note.toLowerCase().contains(search) ||
-                    session.createdBy.toLowerCase().contains(search);
-                  return matchesStatus && matchesSearch;
-                }).toList();
-                return Container(
-                  decoration: BoxDecoration(
-                    color: cardBackground,
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: borderColor),
-                  ),
-                  child: Column(
-                    children: [
-                      // Header row
-                      Container(
-                        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
-                        decoration: const BoxDecoration(
-                          border: Border(
-                            bottom: BorderSide(color: Color(0xFFE5E7EB), width: 1),
-                          ),
-                        ),
-                        child: Row(
-                          children: const [
-                            Expanded(flex: 3, child: Text('Tên phiên kiểm kê', style: TextStyle(color: textMuted, fontWeight: FontWeight.bold))),
-                            Expanded(flex: 2, child: Text('Ngày tạo', textAlign: TextAlign.center, style: TextStyle(color: textMuted, fontWeight: FontWeight.bold))),
-                            Expanded(flex: 2, child: Text('Trạng thái', textAlign: TextAlign.center, style: TextStyle(color: textMuted, fontWeight: FontWeight.bold))),
-                            Expanded(flex: 2, child: Text('Số sản phẩm', textAlign: TextAlign.center, style: TextStyle(color: textMuted, fontWeight: FontWeight.bold))),
-                            Expanded(flex: 2, child: Text('Số sản phẩm lệch', textAlign: TextAlign.center, style: TextStyle(color: textMuted, fontWeight: FontWeight.bold))),
-                          ],
-                        ),
-                      ),
-                      for (int i = 0; i < filtered.length; i++)
-                        GestureDetector(
-                          onTap: () {
-                            final mainLayoutState = context.findAncestorStateOfType<MainLayoutState>();
-                            if (mainLayoutState != null) {
-                              mainLayoutState.openInventoryDetail(filtered[i].id);
-                            }
-                          },
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 16),
-                            decoration: BoxDecoration(
-                              color: Colors.transparent,
-                              border: i < filtered.length - 1
-                                  ? const Border(bottom: BorderSide(color: Color(0xFFE5E7EB), width: 1))
-                                  : null,
+                      child: Column(
+                        children: [
+                          // Header row
+                          Container(
+                            padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+                            decoration: const BoxDecoration(
+                              border: Border(
+                                bottom: BorderSide(color: Color(0xFFE5E7EB), width: 1),
+                              ),
                             ),
-                              child: Row(
-                                children: [
-                                // Tên phiên kiểm kê
-                                  Expanded(
-                                    flex: 3,
-                                    child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
-                                      children: [
-                                      Text(filtered[i].note.isNotEmpty ? filtered[i].note : 'Phiên kiểm kê', style: body.copyWith(color: textPrimary, fontWeight: FontWeight.bold)),
-                                      if (filtered[i].note.isNotEmpty)
-                                        Text(filtered[i].note, style: body.copyWith(color: textSecondary)),
-                                    ],
-                                  ),
+                            child: Row(
+                              children: const [
+                                Expanded(flex: 3, child: Text('Tên phiên kiểm kê', style: TextStyle(color: textMuted, fontWeight: FontWeight.bold))),
+                                Expanded(flex: 2, child: Text('Ngày tạo', textAlign: TextAlign.center, style: TextStyle(color: textMuted, fontWeight: FontWeight.bold))),
+                                Expanded(flex: 2, child: Text('Trạng thái', textAlign: TextAlign.center, style: TextStyle(color: textMuted, fontWeight: FontWeight.bold))),
+                                Expanded(flex: 2, child: Text('Số sản phẩm', textAlign: TextAlign.center, style: TextStyle(color: textMuted, fontWeight: FontWeight.bold))),
+                                Expanded(flex: 2, child: Text('Số sản phẩm lệch', textAlign: TextAlign.center, style: TextStyle(color: textMuted, fontWeight: FontWeight.bold))),
+                              ],
+                            ),
+                          ),
+                          for (int i = 0; i < filtered.length; i++)
+                            GestureDetector(
+                              onTap: () {
+                                final mainLayoutState = context.findAncestorStateOfType<MainLayoutState>();
+                                if (mainLayoutState != null) {
+                                  mainLayoutState.openInventoryDetail(filtered[i].id);
+                                }
+                              },
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 16),
+                                decoration: BoxDecoration(
+                                  color: Colors.transparent,
+                                  border: i < filtered.length - 1
+                                      ? const Border(bottom: BorderSide(color: Color(0xFFE5E7EB), width: 1))
+                                      : null,
                                 ),
-                                // Ngày tạo
-                                Expanded(
-                                  flex: 2,
-                                  child: Text('${filtered[i].createdAt.day}/${filtered[i].createdAt.month}/${filtered[i].createdAt.year}', textAlign: TextAlign.center, style: body.copyWith(color: textPrimary)),
-                                ),
-                                // Trạng thái
-                                Expanded(
-                                  flex: 2,
-                                  child: Center(
-                                    child: DesignSystemBadge(
-                                      text: filtered[i].status,
-                                      variant: filtered[i].status == 'Đã cập nhật kho'
-                                          ? BadgeVariant.secondary
-                                          : filtered[i].status == 'Đã hoàn tất'
-                                              ? BadgeVariant.warning
-                                              : BadgeVariant.defaultVariant,
+                                child: Row(
+                                  children: [
+                                    // Tên phiên kiểm kê
+                                    Expanded(
+                                      flex: 3,
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          Text(filtered[i].note.isNotEmpty ? filtered[i].note : 'Phiên kiểm kê', style: body.copyWith(color: textPrimary, fontWeight: FontWeight.bold)),
+                                          if (filtered[i].note.isNotEmpty)
+                                            Text(filtered[i].note, style: body.copyWith(color: textSecondary)),
+                                        ],
+                                      ),
                                     ),
-                                  ),
-                                ),
-                                // Số sản phẩm
-                                Expanded(
-                                  flex: 2,
+                                    // Ngày tạo
+                                    Expanded(
+                                      flex: 2,
+                                      child: Text('${filtered[i].createdAt.day}/${filtered[i].createdAt.month}/${filtered[i].createdAt.year}', textAlign: TextAlign.center, style: body.copyWith(color: textPrimary)),
+                                    ),
+                                    // Trạng thái
+                                    Expanded(
+                                      flex: 2,
+                                      child: Center(
+                                        child: DesignSystemBadge(
+                                          text: filtered[i].status,
+                                          variant: filtered[i].status == 'Đã cập nhật kho'
+                                              ? BadgeVariant.secondary
+                                              : filtered[i].status == 'Đã hoàn tất'
+                                                  ? BadgeVariant.warning
+                                                  : BadgeVariant.defaultVariant,
+                                        ),
+                                      ),
+                                    ),
+                                    // Số sản phẩm
+                                    Expanded(
+                                      flex: 2,
                                       child: FutureBuilder<QuerySnapshot>(
                                         future: FirebaseFirestore.instance
                                             .collection('inventory_items')
@@ -256,14 +303,13 @@ class _InventoryScreenState extends State<InventoryScreen> with SingleTickerProv
                                             return Text('...', textAlign: TextAlign.center, style: body.copyWith(color: textPrimary));
                                           }
                                           final items = snapshot.data!.docs;
-                                          final diffCount = items.where((doc) => (doc['diff'] ?? 0) != 0).length;
                                           return Text('${items.length}', textAlign: TextAlign.center, style: body.copyWith(color: textPrimary));
                                         },
                                       ),
-                                ),
-                                // Số sản phẩm lệch
-                                  Expanded(
-                                  flex: 2,
+                                    ),
+                                    // Số sản phẩm lệch
+                                    Expanded(
+                                      flex: 2,
                                       child: FutureBuilder<QuerySnapshot>(
                                         future: FirebaseFirestore.instance
                                             .collection('inventory_items')
@@ -277,25 +323,25 @@ class _InventoryScreenState extends State<InventoryScreen> with SingleTickerProv
                                           final diffCount = items.where((doc) => (doc['diff'] ?? 0) != 0).length;
                                           return Text(
                                             '$diffCount',
-                                    textAlign: TextAlign.center,
-                                    style: body.copyWith(
+                                            textAlign: TextAlign.center,
+                                            style: body.copyWith(
                                               color: diffCount > 0 ? warningOrange : textPrimary,
-                                      fontWeight: FontWeight.bold,
-                                    ),
+                                              fontWeight: FontWeight.bold,
+                                            ),
                                           );
                                         },
-                                              ),
-                                            ),
-                                          ],
-                                        ),
                                       ),
                                     ),
-                    ],
-                  ),
-                );
-              },
-            ),
-          ],
+                                  ],
+                                ),
+                              ),
+                            ),
+                        ],
+                      ),
+                    );
+                  },
+                ),
+      ],
             ),
           ),
         ),
@@ -364,7 +410,7 @@ class _InventoryScreenState extends State<InventoryScreen> with SingleTickerProv
                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                     decoration: BoxDecoration(
                       color: Colors.orange[50],
-                      borderRadius: BorderRadius.circular(6),
+                      borderRadius: BorderRadius.circular(8),
                     ),
                     child: const Text('Chưa kiểm kê', style: TextStyle(color: Colors.orange, fontWeight: FontWeight.w500, fontSize: 12)),
                   ),
@@ -383,7 +429,7 @@ class _InventoryScreenState extends State<InventoryScreen> with SingleTickerProv
               textAlign: TextAlign.center,
               decoration: InputDecoration(
                 hintText: '',
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(6)),
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
                 isDense: true,
                 contentPadding: const EdgeInsets.symmetric(vertical: 8, horizontal: 8),
               ),
@@ -571,5 +617,89 @@ class _InventoryScreenState extends State<InventoryScreen> with SingleTickerProv
       _qtyControllers[key]!.text = value;
       _qtyControllers[key]!.selection = TextSelection.collapsed(offset: value.length);
     }
+  }
+
+  Widget _buildMobileInventoryCard(BuildContext context, InventorySession session) {
+    // Xác định icon và màu trạng thái
+    IconData statusIcon;
+    Color statusColor;
+    switch (session.status.toLowerCase()) {
+      case 'đã hoàn tất':
+      case 'hoàn tất':
+        statusIcon = Icons.check_circle;
+        statusColor = Colors.green;
+        break;
+      case 'đã cập nhật kho':
+      case 'cảnh báo':
+        statusIcon = Icons.error_outline;
+        statusColor = Colors.orange;
+        break;
+      default:
+        statusIcon = Icons.access_time;
+        statusColor = Colors.blue;
+        break;
+    }
+    final diffCount = session.products.where((p) => p.diff != 0).length;
+    return GestureDetector(
+      onTap: () {
+        final mainLayoutState = context.findAncestorStateOfType<MainLayoutState>();
+        if (mainLayoutState != null) {
+          mainLayoutState.openInventoryDetail(session.id);
+        }
+      },
+      child: Container(
+        margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 0),
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(12),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.04),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  child: Text(
+                    session.note.isNotEmpty ? session.note : 'Phiên kiểm kê',
+                    style: body.copyWith(color: textPrimary, fontWeight: FontWeight.bold, fontSize: 16),
+                  ),
+                ),
+                Icon(statusIcon, color: statusColor, size: 20),
+              ],
+            ),
+            const SizedBox(height: 6),
+            Text('Ngày kiểm kê: ${session.createdAt.day}/${session.createdAt.month}/${session.createdAt.year}', style: body.copyWith(color: textSecondary, fontSize: 13)),
+            if (session.note.isNotEmpty)
+              Text('Ghi chú: ${session.note}', style: body.copyWith(color: textSecondary, fontSize: 13)),
+            const SizedBox(height: 10),
+            Row(
+              children: [
+                Text('Sản phẩm: ', style: body.copyWith(color: textSecondary, fontSize: 14)),
+                Text('${session.products.length}', style: body.copyWith(fontWeight: FontWeight.bold, fontSize: 15)),
+                const Spacer(),
+                Text('Lệch: ', style: body.copyWith(color: textSecondary, fontSize: 14)),
+                Text(
+                  '$diffCount',
+                  style: body.copyWith(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 15,
+                    color: diffCount > 0 ? warningOrange : textSecondary,
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
   }
 } 
