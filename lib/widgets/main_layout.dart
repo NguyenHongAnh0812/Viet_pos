@@ -492,35 +492,55 @@ class MainLayoutState extends State<MainLayout> {
               children: [
                 _NavItem(
                   icon: SvgPicture.asset(
-                    'assets/icons/tag_icon.svg', 
+                    'assets/icons/new_icon/overview.svg', 
                     width: 20,
                     height: 20,
-                    color: Colors.green,
+                    color: _currentPage == MainPage.dashboard ? Colors.green : Colors.grey
                   ),
                   label: 'Tổng quan',
                   selected: _currentPage == MainPage.dashboard,
                   onTap: () => _onNavTap(0),
                 ),
                 _NavItem(
-                  icon: Icon(Icons.inventory_2, color: _currentPage == MainPage.productList ? Colors.green : Colors.grey, size: 28),
+                  icon: SvgPicture.asset(
+                    'assets/icons/new_icon/product.svg', 
+                    width: 20,
+                    height: 20,
+                    color: _currentPage == MainPage.productList ? Colors.green : Colors.grey
+                  ),
                   label: 'Hàng hoá',
                   selected: _currentPage == MainPage.productList,
                   onTap: () => _onNavTap(1),
                 ),
                 _NavItem(
-                  icon: Icon(Icons.shopping_cart, color: _currentPage == MainPage.orderCreate ? Colors.green : Colors.grey, size: 28),
+                  icon: SvgPicture.asset(
+                    'assets/icons/new_icon/sell.svg', 
+                    width: 20,
+                    height: 20,
+                    color: _currentPage == MainPage.orderCreate ? Colors.green : Colors.grey
+                  ),
                   label: 'Bán hàng',
                   selected: _currentPage == MainPage.orderCreate,
                   onTap: () => _onNavTap(2),
                 ),
                 _NavItem(
-                  icon: Icon(Icons.people, color: _currentPage == MainPage.companies ? Colors.green : Colors.grey, size: 28),
+                  icon: SvgPicture.asset(
+                    'assets/icons/new_icon/companies.svg', 
+                    width: 20,
+                    height: 20,
+                    color: _currentPage == MainPage.companies ? Colors.green : Colors.grey
+                  ),
                   label: 'Nhà cung cấp',
                   selected: _currentPage == MainPage.companies,
                   onTap: () => _onNavTap(3),
                 ),
                 _NavItem(
-                  icon: Icon(Icons.more_horiz, color: _currentPage == MainPage.settings ? Colors.green : Colors.grey, size: 28),
+                  icon: SvgPicture.asset(
+                    'assets/icons/new_icon/other.svg', 
+                    width: 20,
+                    height: 20,
+                    color: _currentPage == MainPage.settings ? Colors.green : Colors.grey
+                  ),
                   label: 'Thêm',
                   selected: _currentPage == MainPage.settings,
                   onTap: () => _onNavTap(4),
