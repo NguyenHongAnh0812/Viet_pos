@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import '../models/company.dart';
-import '../services/company_service.dart';
-import '../widgets/common/design_system.dart';
+import '../../models/company.dart';
+import '../../services/company_service.dart';
+import '../../widgets/common/design_system.dart';
 
 class AddCompanyScreen extends StatefulWidget {
   final VoidCallback? onBack;

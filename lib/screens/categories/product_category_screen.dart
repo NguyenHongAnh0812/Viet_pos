@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
-import '../widgets/main_layout.dart';
-import '../models/product_category.dart';
-import '../models/product.dart';
-import '../services/product_category_service.dart';
-import '../services/product_service.dart';
+import '../../widgets/main_layout.dart';
+import '../../models/product_category.dart';
+import '../../models/product.dart';
+import '../../services/product_category_service.dart';
+import '../../services/product_service.dart';
 import 'add_product_category_screen.dart';
-import '../widgets/common/design_system.dart';
+import '../../widgets/common/design_system.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'product_category_detail_screen.dart';
 

@@ -1,14 +1,14 @@
 import 'package:flutter/material.dart';
-import '../widgets/common/design_system.dart';
-import '../services/product_service.dart';
-import '../models/product.dart';
-import '../services/inventory_service.dart';
+import '../../widgets/common/design_system.dart';
+import '../../services/product_service.dart';
+import '../../models/product.dart';
+import '../../services/inventory_service.dart';
 import 'inventory_detail_screen.dart';
-import '../models/inventory_session.dart';
-import '../services/inventory_item_service.dart';
+import '../../models/inventory_session.dart';
+import '../../services/inventory_item_service.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import '../widgets/main_layout.dart';
+import '../../widgets/main_layout.dart';
 
 class InventoryCreateSessionScreen extends StatefulWidget {
   const InventoryCreateSessionScreen({Key? key}) : super(key: key);
