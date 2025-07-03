@@ -48,7 +48,7 @@ class _LoginScreenState extends State<LoginScreen> {
       body: Center(
         child: SingleChildScrollView(
           child: Padding(
-            padding: const EdgeInsets.all(24.0),
+            padding: MediaQuery.of(context).size.width < 600 ? const EdgeInsets.symmetric(horizontal: 15) : const EdgeInsets.symmetric(horizontal: 32),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
@@ -58,7 +58,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   padding: const EdgeInsets.all(32),
                   decoration: BoxDecoration(
                     color: cardBackground,
-                    borderRadius: BorderRadius.circular(borderRadiusLarge),
+                    borderRadius: BorderRadius.circular(8),
                     boxShadow: [
                       BoxShadow(
                         color: Colors.black.withOpacity(0.05),
@@ -153,7 +153,7 @@ class _LoginScreenState extends State<LoginScreen> {
                           padding: const EdgeInsets.all(12),
                           decoration: BoxDecoration(
                             color: destructiveRed.withOpacity(0.1),
-                            borderRadius: BorderRadius.circular(borderRadiusMedium),
+                            borderRadius: BorderRadius.circular(8),
                           ),
                           child: Row(
                             children: [

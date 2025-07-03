@@ -57,9 +57,7 @@ class _AddCompanyScreenState extends State<AddCompanyScreen> {
     return Scaffold(
       backgroundColor: appBackground,
       body: Padding(
-        padding: EdgeInsets.symmetric(
-          horizontal: MediaQuery.of(context).size.width * 0.1, // 10% padding mỗi bên = 80% content
-        ),
+        padding: MediaQuery.of(context).size.width < 600 ? const EdgeInsets.symmetric(horizontal: 15) : const EdgeInsets.all(24),
         child: Column(
           children: [
             // Custom header
@@ -205,7 +203,7 @@ class _AddCompanyScreenState extends State<AddCompanyScreen> {
                    decoration: BoxDecoration(
                      color: Colors.transparent,
                      border: Border.all(color: borderColor),
-                     borderRadius: BorderRadius.circular(16),
+                     borderRadius: BorderRadius.circular(8),
                    ),
                    child: Row(
                      mainAxisSize: MainAxisSize.min,
