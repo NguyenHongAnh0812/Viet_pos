@@ -6,6 +6,14 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:flutter_slidable/flutter_slidable.dart';
 import '../../screens/customers/add_customer_screen.dart';
 import '../../screens/customers/customer_detail_screen.dart';
+import '../../models/product.dart';
+import '../../models/customer.dart';
+import '../../models/order.dart';
+import '../../models/order_item.dart';
+import '../../models/payment.dart';
+import '../../services/product_service.dart';
+import '../../services/customer_service.dart';
+import '../../services/order_service.dart';
 
 class OrderCreateScreen extends StatefulWidget {
   const OrderCreateScreen({Key? key}) : super(key: key);
@@ -16,43 +24,81 @@ class OrderCreateScreen extends StatefulWidget {
 
 class _OrderCreateScreenState extends State<OrderCreateScreen> {
   final TextEditingController _searchController = TextEditingController();
-  final List<_Product> _allProducts = [
-    _Product(name: 'Vitamin tổng hợp cho mèo', price: 200000, stock: 15),
-    _Product(name: 'Kháng sinh Amoxicillin', price: 120000, stock: 8),
-    _Product(name: 'Sữa tắm cho chó', price: 90000, stock: 22),
-    _Product(name: 'Thuốc nhỏ tai', price: 50000, stock: 5),
-  ];
-  List<_Product> _searchResults = [];
-  List<_CartItem> _cart = [];
-
-  // Khách hàng
+  
+  // Services
+  final ProductService _productService = ProductService();
+  final CustomerService _customerService = CustomerService();
+  final OrderService _orderService = OrderService();
+  
+  // Real data
+  List<Product> _allProducts = [];
+  List<Product> _searchResults = [];
+  List<OrderItem> _cart = [];
+  List<Customer> _allCustomers = [];
+  
+  // Customer selection
+  Customer? selectedCustomer;
   bool isRetailCustomer = true;
   final TextEditingController _customerController = TextEditingController();
-  _CustomerInfo? _selectedCustomer;
+  List<Customer> _customerSearchResults = [];
 
-  // Thanh toán
+  // Payment
   String paymentMethod = 'Chuyển khoản';
 
-  List<String> _mockCustomers = [
-    'Nguyễn Văn A',
-    'Trần Thị B',
-    'Lê Văn C',
-    'Phạm Thị D',
-    'Ngô Văn E',
-  ];
-  List<String> _customerSearchResults = [];
-
-  // 1. Thêm biến quản lý OverlayEntry và GlobalKey cho TextField
+  // UI management
   final GlobalKey _searchFieldKey = GlobalKey();
   OverlayEntry? _searchOverlay;
-
-  // Thêm biến selectedDemoCustomer và truyền vào _CustomerSection
-  CustomerDemo? selectedDemoCustomer;
+  
+  // Loading states
+  bool _productsLoading = true;
+  bool _customersLoading = true;
 
   @override
   void initState() {
     super.initState();
     _searchController.addListener(_onSearchChanged);
+    _loadData();
+  }
+
+  Future<void> _loadData() async {
+    await Future.wait([
+      _loadProducts(),
+      _loadCustomers(),
+    ]);
+  }
+
+  Future<void> _loadProducts() async {
+    try {
+      final products = await _productService.getProducts().first;
+      if (mounted) {
+        setState(() {
+          _allProducts = products;
+          _productsLoading = false;
+        });
+      }
+    } catch (e) {
+      print('Error loading products: $e');
+      if (mounted) {
+        setState(() => _productsLoading = false);
+      }
+    }
+  }
+
+  Future<void> _loadCustomers() async {
+    try {
+      final customers = await _customerService.getCustomers().first;
+      if (mounted) {
+        setState(() {
+          _allCustomers = customers;
+          _customersLoading = false;
+        });
+      }
+    } catch (e) {
+      print('Error loading customers: $e');
+      if (mounted) {
+        setState(() => _customersLoading = false);
+      }
+    }
   }
 
   void _onSearchChanged() {
@@ -63,7 +109,8 @@ class _OrderCreateScreenState extends State<OrderCreateScreen> {
         _removeSearchOverlay();
       } else {
         _searchResults = _allProducts
-            .where((p) => p.name.toLowerCase().contains(query))
+            .where((p) => p.tradeName.toLowerCase().contains(query) || 
+                         p.internalName.toLowerCase().contains(query))
             .toList();
         if (_searchResults.isNotEmpty) {
           _showSearchOverlay();
@@ -80,18 +127,33 @@ class _OrderCreateScreenState extends State<OrderCreateScreen> {
       if (query.isEmpty) {
         _customerSearchResults = [];
       } else {
-        _customerSearchResults = _mockCustomers.where((c) => c.toLowerCase().contains(query)).toList();
+        _customerSearchResults = _allCustomers
+            .where((c) => c.name.toLowerCase().contains(query) || 
+                         c.phone.contains(query))
+            .toList();
       }
     });
   }
 
-  void _addToCart(_Product product) {
+  void _addToCart(Product product) {
     setState(() {
-      final idx = _cart.indexWhere((item) => item.product.name == product.name);
+      final idx = _cart.indexWhere((item) => item.productId == product.id);
       if (idx == -1) {
-        _cart.add(_CartItem(product: product, quantity: 1));
+        final orderItem = OrderItem.createFromProduct(
+          orderId: '', // Sẽ được set khi tạo order
+          productId: product.id,
+          productName: product.tradeName.isNotEmpty ? product.tradeName : product.internalName,
+          price: product.salePrice,
+          quantity: 1,
+        );
+        _cart.add(orderItem);
       } else {
-        _cart[idx].quantity++;
+        // Tăng số lượng
+        final item = _cart[idx];
+        _cart[idx] = item.copyWith(
+          quantity: item.quantity + 1,
+          totalPrice: item.finalPrice * (item.quantity + 1),
+        );
       }
       _searchController.clear();
       _searchResults = [];
@@ -107,11 +169,15 @@ class _OrderCreateScreenState extends State<OrderCreateScreen> {
   void _changeQuantity(int index, int delta) {
     setState(() {
       final item = _cart[index];
-      item.quantity = (item.quantity + delta).clamp(1, item.product.stock);
+      final newQuantity = (item.quantity + delta).clamp(1, 999); // Giới hạn stock
+      _cart[index] = item.copyWith(
+        quantity: newQuantity,
+        totalPrice: item.finalPrice * newQuantity,
+      );
     });
   }
 
-  int get _total => _cart.fold(0, (sum, item) => sum + item.product.price * item.quantity);
+  double get _total => _cart.fold(0, (sum, item) => sum + item.totalPrice);
 
   @override
   void dispose() {
@@ -174,6 +240,7 @@ class _OrderCreateScreenState extends State<OrderCreateScreen> {
                     separatorBuilder: (_, __) => const Divider(height: 1, color: Color(0xFFE5E7EB)),
                     itemBuilder: (context, index) {
                       final product = _searchResults[index];
+                      final productName = product.tradeName.isNotEmpty ? product.tradeName : product.internalName;
                       return InkWell(
                         onTap: () {
                           _addToCart(product);
@@ -187,16 +254,16 @@ class _OrderCreateScreenState extends State<OrderCreateScreen> {
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    Text(product.name, style: const TextStyle(fontWeight: FontWeight.w600)),
+                                    Text(productName, style: const TextStyle(fontWeight: FontWeight.w600)),
                                     const SizedBox(height: 2),
                                     Text(
-                                      _formatCurrency(product.price),
+                                      _formatCurrency(product.salePrice.toInt()),
                                       style: const TextStyle(color: Colors.green, fontSize: 13, fontWeight: FontWeight.w500),
                                     ),
                                   ],
                                 ),
                               ),
-                              Text('Kho: ${product.stock}', style: const TextStyle(color: Color(0xFF9CA3AF), fontSize: 13)),
+                              Text('Kho: ${product.stockSystem}', style: const TextStyle(color: Color(0xFF9CA3AF), fontSize: 13)),
                             ],
                           ),
                         ),
@@ -215,7 +282,7 @@ class _OrderCreateScreenState extends State<OrderCreateScreen> {
 
   // 1. Thêm hàm mở modal tìm kiếm sản phẩm
   void _openProductSearchModal() async {
-    final selected = await showModalBottomSheet<_Product>(
+    final selected = await showModalBottomSheet<Product>(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.grey[200],
@@ -244,11 +311,10 @@ class _OrderCreateScreenState extends State<OrderCreateScreen> {
                     showBack: _cart.isNotEmpty,
                   ),
                   _CustomerSection(
-                    customer: _selectedCustomer,
-                    selectedDemoCustomer: selectedDemoCustomer,
+                    customer: selectedCustomer,
                     onSelectCustomer: (customer) {
                       setState(() {
-                        selectedDemoCustomer = customer;
+                        selectedCustomer = customer;
                       });
                     },
                   ),
@@ -268,12 +334,20 @@ class _OrderCreateScreenState extends State<OrderCreateScreen> {
                           return _CartItemWidget(
                             item: item,
                             onRemove: () => setState(() => _cart.removeAt(index)),
-                            onIncrease: () => setState(() => item.quantity = (item.quantity + 1).clamp(1, item.product.stock)),
-                            onDecrease: () => setState(() => item.quantity = (item.quantity - 1).clamp(1, item.product.stock)),
+                            onIncrease: () => _changeQuantity(index, 1),
+                            onDecrease: () => _changeQuantity(index, -1),
                             onDiscountChanged: (discountAmount, isPercentage) {
                               setState(() {
-                                item.discountAmount = discountAmount;
-                                item.isPercentageDiscount = isPercentage;
+                                _cart[index] = item.copyWith(
+                                  discountAmount: discountAmount.toDouble(),
+                                  isPercentageDiscount: isPercentage,
+                                  finalPrice: isPercentage 
+                                    ? item.price - (item.price * discountAmount / 100)
+                                    : item.price - discountAmount,
+                                  totalPrice: (isPercentage 
+                                    ? item.price - (item.price * discountAmount / 100)
+                                    : item.price - discountAmount) * item.quantity,
+                                );
                               });
                             },
                           );
@@ -289,10 +363,10 @@ class _OrderCreateScreenState extends State<OrderCreateScreen> {
       ),
       bottomNavigationBar: _cart.isNotEmpty
           ? _OrderBottomBar(
-              total: _cart.fold(0, (sum, item) => sum + item.totalPrice),
+              total: _cart.fold(0.0, (sum, item) => sum + item.totalPrice).toInt(),
               qty: _cart.fold(0, (sum, item) => sum + item.quantity),
               onContinue: () {
-                if (selectedDemoCustomer == null) {
+                if (selectedCustomer == null) {
                   showDialog(
                     context: context,
                     builder: (context) => AlertDialog(
@@ -311,7 +385,9 @@ class _OrderCreateScreenState extends State<OrderCreateScreen> {
                     context,
                     MaterialPageRoute(
                       builder: (_) => OrderPaymentScreen(
-                        total: _cart.fold(0, (sum, item) => sum + item.totalPrice),
+                        total: _cart.fold(0.0, (sum, item) => sum + item.totalPrice).toInt(),
+                        cart: List<OrderItem>.from(_cart),
+                        customer: selectedCustomer!,
                       ),
                     ),
                   );
@@ -388,15 +464,14 @@ class _OrderHeader extends StatelessWidget {
 }
 
 class _CustomerSection extends StatelessWidget {
-  final _CustomerInfo? customer;
-  final CustomerDemo? selectedDemoCustomer;
-  final Function(CustomerDemo?)? onSelectCustomer;
-  const _CustomerSection({this.customer, this.selectedDemoCustomer, this.onSelectCustomer});
+  final Customer? customer;
+  final Function(Customer?)? onSelectCustomer;
+  const _CustomerSection({this.customer, this.onSelectCustomer});
   @override
   Widget build(BuildContext context) {
-    // Nếu đã chọn khách demo hoặc khách lẻ
-    if (selectedDemoCustomer != null) {
-      final c = selectedDemoCustomer!;
+    // Nếu đã chọn khách hàng
+    if (customer != null) {
+      final c = customer!;
       return Padding(
         padding: const EdgeInsets.fromLTRB(12, 12, 12, 16), // tăng bottom
         child: InkWell(
@@ -407,7 +482,7 @@ class _CustomerSection extends StatelessWidget {
               MaterialPageRoute(builder: (_) => CustomerPickerScreen(selectedCustomer: c)),
             );
             if (onSelectCustomer != null) {
-              onSelectCustomer!(result is CustomerDemo ? result : null);
+              onSelectCustomer!(result is Customer ? result : null);
             }
           },
           child: Container(
@@ -442,7 +517,7 @@ class _CustomerSection extends StatelessWidget {
             MaterialPageRoute(builder: (_) => const CustomerPickerScreen()),
           );
           if (onSelectCustomer != null) {
-            onSelectCustomer!(result is CustomerDemo ? result : null);
+            onSelectCustomer!(result is Customer ? result : null);
           }
         },
         child: Container(
@@ -515,11 +590,11 @@ const String _cartSvg = '''
 ''';
 
 class _CartItemWidget extends StatelessWidget {
-  final _CartItem item;
+  final OrderItem item;
   final VoidCallback onRemove;
   final VoidCallback onIncrease;
   final VoidCallback onDecrease;
-  final Function(int discountAmount, bool isPercentage) onDiscountChanged;
+  final Function(double discountAmount, bool isPercentage) onDiscountChanged;
   const _CartItemWidget({
     required this.item, 
     required this.onRemove, 
@@ -583,18 +658,18 @@ class _CartItemWidget extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(item.product.name, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15)),
+                      Text(item.productName, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15)),
                       const SizedBox(height: 2),
                       Row(
                         children: [
                           Text(
-                            _formatCurrency(item.finalPrice) + '/đơn vị',
+                            _formatCurrency(item.finalPrice.toInt()) + '/đơn vị',
                             style: const TextStyle(color: Color(0xFF16A34A), fontSize: 13, fontWeight: FontWeight.w500),
                           ),
                           if (item.discountAmount > 0) ...[
                             const SizedBox(width: 6),
                             Text(
-                              _formatCurrency(item.product.price) + '/đơn vị',
+                              _formatCurrency(item.price.toInt()) + '/đơn vị',
                               style: const TextStyle(
                                 color: Color(0xFF9CA3AF),
                                 fontSize: 13,
@@ -661,7 +736,7 @@ class _CartItemWidget extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.end,
               children: [
                 Text(
-                  _formatCurrency(item.totalPrice),
+                  _formatCurrency(item.totalPrice.toInt()),
                   style: const TextStyle(color: Color(0xFF16A34A), fontWeight: FontWeight.bold, fontSize: 15),
                 ),
               ],
@@ -676,7 +751,7 @@ class _CartItemWidget extends StatelessWidget {
     showDialog(
       context: context,
       builder: (context) => _DiscountDialog(
-        originalPrice: item.product.price,
+        originalPrice: item.price.toInt(),
         onDiscountChanged: onDiscountChanged,
       ),
     );
@@ -685,7 +760,7 @@ class _CartItemWidget extends StatelessWidget {
 
 class _DiscountDialog extends StatefulWidget {
   final int originalPrice;
-  final Function(int discountAmount, bool isPercentage) onDiscountChanged;
+  final Function(double discountAmount, bool isPercentage) onDiscountChanged;
   
   const _DiscountDialog({
     required this.originalPrice,
@@ -699,7 +774,7 @@ class _DiscountDialog extends StatefulWidget {
 class _DiscountDialogState extends State<_DiscountDialog> {
   final TextEditingController _discountController = TextEditingController();
   bool _isPercentage = false;
-  int _discountAmount = 0;
+  double _discountAmount = 0;
 
   @override
   void initState() {
@@ -709,34 +784,34 @@ class _DiscountDialogState extends State<_DiscountDialog> {
 
   void _onDiscountChanged() {
     String value = _discountController.text.replaceAll('.', '').replaceAll('đ', '');
-    int intValue = int.tryParse(value) ?? 0;
+    double doubleValue = double.tryParse(value) ?? 0;
     if (_isPercentage) {
-      if (intValue > 100) intValue = 100;
+      if (doubleValue > 100) doubleValue = 100;
       _discountController.value = TextEditingValue(
-        text: intValue.toString(),
-        selection: TextSelection.collapsed(offset: intValue.toString().length),
+        text: doubleValue.toString(),
+        selection: TextSelection.collapsed(offset: doubleValue.toString().length),
       );
     } else {
       // Định dạng tiền tệ khi nhập số tiền
-      String formatted = _formatCurrency(intValue);
+      String formatted = _formatCurrency(doubleValue);
       _discountController.value = TextEditingValue(
         text: formatted,
         selection: TextSelection.collapsed(offset: formatted.length - 1),
       );
     }
     setState(() {
-      _discountAmount = intValue;
+      _discountAmount = doubleValue;
     });
   }
 
-  String _formatCurrency(int amount) {
+  String _formatCurrency(double amount) {
     final s = amount.toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (m) => '${m[1]}.');
     return '$sđ';
   }
 
-  int get _finalPrice {
+  double get _finalPrice {
     if (_isPercentage) {
-      return widget.originalPrice - (widget.originalPrice * _discountAmount ~/ 100);
+      return widget.originalPrice - (widget.originalPrice * _discountAmount / 100);
     } else {
       return widget.originalPrice - _discountAmount;
     }
@@ -945,7 +1020,7 @@ String _formatCurrency(int amount) {
 class _CartItem {
   final _Product product;
   int quantity;
-  int discountAmount;
+  double discountAmount;
   bool isPercentageDiscount;
   _CartItem({
     required this.product, 
@@ -954,15 +1029,15 @@ class _CartItem {
     this.isPercentageDiscount = false,
   });
   
-  int get finalPrice {
+  double get finalPrice {
     if (isPercentageDiscount) {
-      return product.price - (product.price * discountAmount ~/ 100);
+      return product.price - (product.price * discountAmount / 100);
     } else {
       return product.price - discountAmount;
     }
   }
   
-  int get totalPrice => finalPrice * quantity;
+  double get totalPrice => finalPrice * quantity;
 }
 class _Product {
   final String name;
@@ -1207,7 +1282,7 @@ class _CustomerDetailDialogState extends State<CustomerDetailDialog> {
 
 // 2. Tạo widget modal tìm kiếm sản phẩm
 class _ProductSearchModal extends StatefulWidget {
-  final List<_Product> allProducts;
+  final List<Product> allProducts;
   const _ProductSearchModal({Key? key, required this.allProducts}) : super(key: key);
 
   @override
@@ -1216,7 +1291,7 @@ class _ProductSearchModal extends StatefulWidget {
 
 class _ProductSearchModalState extends State<_ProductSearchModal> {
   final TextEditingController _controller = TextEditingController();
-  List<_Product> _results = [];
+  List<Product> _results = [];
 
   @override
   void initState() {
@@ -1230,7 +1305,10 @@ class _ProductSearchModalState extends State<_ProductSearchModal> {
       if (query.isEmpty) {
         _results = [];
       } else {
-        _results = widget.allProducts.where((p) => p.name.toLowerCase().contains(query)).toList();
+        _results = widget.allProducts.where((p) => 
+          p.tradeName.toLowerCase().contains(query) || 
+          p.internalName.toLowerCase().contains(query)
+        ).toList();
       }
     });
   }
@@ -1282,6 +1360,7 @@ class _ProductSearchModalState extends State<_ProductSearchModal> {
                 separatorBuilder: (_, __) => const Divider(height: 1, color: Color(0xFFE5E7EB)),
                 itemBuilder: (context, index) {
                   final product = _results[index];
+                  final productName = product.tradeName.isNotEmpty ? product.tradeName : product.internalName;
                   return InkWell(
                     onTap: () {
                       Navigator.of(context).pop(product);
@@ -1294,16 +1373,16 @@ class _ProductSearchModalState extends State<_ProductSearchModal> {
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Text(product.name, style: const TextStyle(fontWeight: FontWeight.w600)),
+                                Text(productName, style: const TextStyle(fontWeight: FontWeight.w600)),
                                 const SizedBox(height: 2),
                                 Text(
-                                  _formatCurrency(product.price),
+                                  _formatCurrency(product.salePrice.toInt()),
                                   style: const TextStyle(color: Colors.green, fontSize: 13, fontWeight: FontWeight.w500),
                                 ),
                               ],
                             ),
                           ),
-                          Text('Kho: ${product.stock}', style: const TextStyle(color: Color(0xFF9CA3AF), fontSize: 13)),
+                          Text('Kho: ${product.stockSystem}', style: const TextStyle(color: Color(0xFF9CA3AF), fontSize: 13)),
                         ],
                       ),
                     ),
@@ -1328,7 +1407,7 @@ class CustomerDemo {
 }
 
 class CustomerPickerScreen extends StatefulWidget {
-  final CustomerDemo? selectedCustomer;
+  final Customer? selectedCustomer;
   const CustomerPickerScreen({Key? key, this.selectedCustomer}) : super(key: key);
 
   @override
@@ -1337,33 +1416,35 @@ class CustomerPickerScreen extends StatefulWidget {
 
 class _CustomerPickerScreenState extends State<CustomerPickerScreen> {
   final TextEditingController _searchController = TextEditingController();
-  late List<CustomerDemo> _allCustomers;
-  List<CustomerDemo> _filteredCustomers = [];
+  final CustomerService _customerService = CustomerService();
+  List<Customer> _allCustomers = [];
+  List<Customer> _filteredCustomers = [];
   String _searchQuery = '';
+  bool _loading = true;
 
   @override
   void initState() {
     super.initState();
-    _allCustomers = [
-      CustomerDemo(name: 'Anh Nguyễn Văn An', phone: '0987888027', company: 'Công ty TNHH ABC'),
-      CustomerDemo(name: 'Anh Đặng Quang Hải', phone: '0935295184', pendingInvoices: 1),
-      CustomerDemo(name: 'Chị Tạ Thu Mai', phone: '0929255833'),
-      CustomerDemo(name: 'Anh Phan Văn Nam', phone: '0970671202', company: 'Công ty TNHH GHI'),
-      CustomerDemo(name: 'Chị Lưu Thị Oanh', phone: '0979335303'),
-      CustomerDemo(name: 'Anh Cao Minh Phúc', phone: '0984642028'),
-      CustomerDemo(name: 'Anh Võ Văn Rồng', phone: '0947191017', company: 'Công ty TNHH ABC'),
-      CustomerDemo(name: 'Anh Nguyễn Văn An 2', phone: '0989821552', company: 'Công ty TNHH XYZ'),
-      CustomerDemo(name: 'Anh Đặng Quang Hải 2', phone: '0908040458'),
-      CustomerDemo(name: 'Chị Tạ Thu Mai 2', phone: '0936430149'),
-      CustomerDemo(name: 'Anh Phan Văn Nam 2', phone: '0961811018', company: 'Công ty TNHH ABC'),
-      CustomerDemo(name: 'Chị Lưu Thị Oanh 2', phone: '0946608872'),
-      CustomerDemo(name: 'Anh Cao Minh Phúc 2', phone: '0998871366'),
-      CustomerDemo(name: 'Anh Nguyễn Văn An 3', phone: '0991160345', company: 'Công ty TNHH DEF', pendingInvoices: 3),
-      CustomerDemo(name: 'Anh Đặng Quang Hải 3', phone: '0919897526'),
-      CustomerDemo(name: 'Anh Ngô Văn Inh 3', phone: '0910014555', company: 'Công ty TNHH ABC', pendingInvoices: 2),
-    ];
-    _filteredCustomers = _allCustomers;
+    _loadCustomers();
     _searchController.addListener(_onSearchChanged);
+  }
+
+  Future<void> _loadCustomers() async {
+    try {
+      final customers = await _customerService.getCustomers().first;
+      if (mounted) {
+        setState(() {
+          _allCustomers = customers;
+          _filteredCustomers = customers;
+          _loading = false;
+        });
+      }
+    } catch (e) {
+      print('Error loading customers: $e');
+      if (mounted) {
+        setState(() => _loading = false);
+      }
+    }
   }
 
   void _onSearchChanged() {
@@ -1371,9 +1452,12 @@ class _CustomerPickerScreenState extends State<CustomerPickerScreen> {
     setState(() {
       _searchQuery = query;
       if (query.isEmpty) {
-        _filteredCustomers = [];
+        _filteredCustomers = _allCustomers;
       } else {
-        _filteredCustomers = _allCustomers.where((c) => c.name.toLowerCase().contains(query) || c.phone.contains(query)).toList();
+        _filteredCustomers = _allCustomers.where((c) => 
+          c.name.toLowerCase().contains(query) || 
+          c.phone.contains(query)
+        ).toList();
       }
     });
   }
@@ -1430,7 +1514,13 @@ class _CustomerPickerScreenState extends State<CustomerPickerScreen> {
                   Expanded(
                     child: OutlinedButton.icon(
                       onPressed: () {
-                        Navigator.pop(context, CustomerDemo(name: 'Khách lẻ', phone: ''));
+                        // Tạo customer retail
+                        final retailCustomer = Customer(
+                          id: 'retail',
+                          name: 'Khách lẻ',
+                          phone: '',
+                        );
+                        Navigator.pop(context, retailCustomer);
                       },
                       icon: const Icon(Icons.person_outline, color: Colors.black),
                       label: const Text('Khách lẻ', style: TextStyle(fontWeight: FontWeight.w600, color: Colors.black)),
@@ -1476,7 +1566,7 @@ class _CustomerPickerScreenState extends State<CustomerPickerScreen> {
                       builder: (_) => AddCustomerScreen(
                         // Truyền thông tin khách hàng sang form
                         key: UniqueKey(),
-                        // Ví dụ: initialName: selected.name, initialPhone: selected.phone, initialCompany: selected.company, ...
+                        // Ví dụ: initialName: selected.name, initialPhone: selected.phone, initialCompany: selected.companyId, ...
                       ),
                     ),
                   );
@@ -1500,15 +1590,16 @@ class _CustomerPickerScreenState extends State<CustomerPickerScreen> {
                               '${selected.name} - ${selected.phone}',
                               style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15),
                             ),
-                            if (selected.company != null)
+                            if (selected.companyId != null)
                               Padding(
                                 padding: const EdgeInsets.only(top: 2),
-                                child: Text(selected.company!, style: const TextStyle(fontSize: 13, color: Colors.black87)),
+                                child: Text('Công ty: ${selected.companyId}', style: const TextStyle(fontSize: 13, color: Colors.black87)),
                               ),
-                            Padding(
-                              padding: const EdgeInsets.only(top: 2),
-                              child: Text('791 Đường ABC, Quận 12, TP.HCM', style: const TextStyle(fontSize: 13, color: Colors.black87)),
-                            ),
+                            if (selected.address != null)
+                              Padding(
+                                padding: const EdgeInsets.only(top: 2),
+                                child: Text(selected.address!, style: const TextStyle(fontSize: 13, color: Colors.black87)),
+                              ),
                           ],
                         ),
                       ),
@@ -1551,21 +1642,15 @@ class _CustomerPickerScreenState extends State<CustomerPickerScreen> {
                               const Icon(Icons.chevron_right, color: Colors.grey, size: 18),
                             ],
                           ),
-                          if (c.company != null)
+                          if (c.companyId != null)
                             Padding(
                               padding: const EdgeInsets.only(left: 24, top: 2),
-                              child: Text(c.company!, style: const TextStyle(fontSize: 13, color: Colors.black54)),
+                              child: Text('Công ty: ${c.companyId}', style: const TextStyle(fontSize: 13, color: Colors.black54)),
                             ),
-                          if (c.pendingInvoices > 0)
+                          if (c.address != null)
                             Padding(
                               padding: const EdgeInsets.only(left: 24, top: 2),
-                              child: Row(
-                                children: [
-                                  const Icon(Icons.receipt_long, size: 14, color: Colors.red),
-                                  const SizedBox(width: 4),
-                                  Text('Hóa đơn chờ thanh toán (${c.pendingInvoices})', style: const TextStyle(fontSize: 13, color: Colors.red)),
-                                ],
-                              ),
+                              child: Text(c.address!, style: const TextStyle(fontSize: 13, color: Colors.black54)),
                             ),
                         ],
                       ),
@@ -1583,14 +1668,14 @@ class _CustomerPickerScreenState extends State<CustomerPickerScreen> {
 
 // Block Chi tiết đơn hàng
 class OrderDetailSummary extends StatelessWidget {
-  final List<_CartItem> cart;
+  final List<OrderItem> cart;
   const OrderDetailSummary({required this.cart});
   @override
   Widget build(BuildContext context) {
     int totalQty = cart.fold(0, (sum, item) => sum + item.quantity);
-    int totalAmount = cart.fold(0, (sum, item) => sum + item.product.price * item.quantity);
-    int totalDiscount = cart.fold(0, (sum, item) => sum + (item.product.price - item.finalPrice) * item.quantity);
-    int totalPay = cart.fold(0, (sum, item) => sum + item.totalPrice);
+    double totalAmount = cart.fold(0.0, (sum, item) => sum + item.price * item.quantity);
+    double totalDiscount = cart.fold(0.0, (sum, item) => sum + (item.price - item.finalPrice) * item.quantity);
+    double totalPay = cart.fold(0.0, (sum, item) => sum + item.totalPrice);
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
       padding: const EdgeInsets.all(20),
@@ -1620,21 +1705,21 @@ class OrderDetailSummary extends StatelessWidget {
           Row(
             children: [
               const Expanded(child: Text('Tổng tiền hàng')),
-              Text(_formatCurrency(totalAmount)),
+              Text(_formatCurrency(totalAmount.toInt())),
             ],
           ),
           const SizedBox(height: 8),
           Row(
             children: [
               const Expanded(child: Text('Tổng chiết khấu')),
-              Text('-' + _formatCurrency(totalDiscount)),
+              Text('-' + _formatCurrency(totalDiscount.toInt())),
             ],
           ),
           const SizedBox(height: 8),
           Row(
             children: [
               const Expanded(child: Text('Tổng thanh toán')),
-              Text(_formatCurrency(totalPay), style: const TextStyle(fontWeight: FontWeight.bold)),
+              Text(_formatCurrency(totalPay.toInt()), style: const TextStyle(fontWeight: FontWeight.bold)),
             ],
           ),
         ],
@@ -1645,7 +1730,9 @@ class OrderDetailSummary extends StatelessWidget {
 
 class OrderPaymentScreen extends StatefulWidget {
   final int total;
-  const OrderPaymentScreen({Key? key, required this.total}) : super(key: key);
+  final List<OrderItem> cart;
+  final Customer customer;
+  const OrderPaymentScreen({Key? key, required this.total, required this.cart, required this.customer}) : super(key: key);
   @override
   State<OrderPaymentScreen> createState() => _OrderPaymentScreenState();
 }
@@ -1654,6 +1741,7 @@ class _OrderPaymentScreenState extends State<OrderPaymentScreen> {
   int selectedPercent = 100;
   String? paymentMethod;
   final List<int> percents = [30, 50, 80, 100];
+  bool _loading = false;
 
   int get selectedAmount {
     return ((widget.total * selectedPercent / 100).round() / 1000).round() * 1000;
@@ -1662,6 +1750,88 @@ class _OrderPaymentScreenState extends State<OrderPaymentScreen> {
   String _formatCurrency(int amount) {
     final s = amount.toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (m) => '${m[1]}.');
     return '$sđ';
+  }
+
+  Future<void> _handlePayment() async {
+    if (paymentMethod == null) return;
+    setState(() => _loading = true);
+    try {
+      // 1. Tạo orderCode
+      final orderService = OrderService();
+      final orderCode = await orderService.generateOrderCode();
+      
+      // 2. Tính toán tổng tiền, chiết khấu, ...
+      final totalAmount = widget.cart.fold(0.0, (sum, item) => sum + item.price * item.quantity);
+      final discountAmount = widget.cart.fold(0.0, (sum, item) => sum + (item.price - item.finalPrice) * item.quantity);
+      final finalAmount = widget.cart.fold(0.0, (sum, item) => sum + item.totalPrice);
+      
+      // 3. Tạo Order object
+      final order = Order(
+        id: '',
+        customerId: widget.customer.id,
+        orderCode: orderCode,
+        orderType: 'retail',
+        createdBy: '', // TODO: lấy user hiện tại nếu có
+        createdAt: DateTime.now(),
+        updatedAt: DateTime.now(),
+        totalAmount: totalAmount,
+        discountAmount: discountAmount,
+        finalAmount: finalAmount,
+        paymentStatus: selectedAmount >= finalAmount ? 'paid' : 'partial',
+        status: 'active',
+        note: null,
+        customerName: widget.customer.name,
+        customerPhone: widget.customer.phone,
+      );
+      
+      // 4. Tạo Payment object
+      final payment = Payment.create(
+        orderId: '',
+        amount: selectedAmount.toDouble(),
+        method: paymentMethod!,
+        status: 'completed',
+      );
+      
+      // 5. Lưu order
+      final orderId = await orderService.createOrder(
+        order: order,
+        items: widget.cart,
+        payment: payment,
+      );
+      
+      setState(() => _loading = false);
+      // 6. Chuyển sang màn hình xác nhận/thành công
+      if (mounted) {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+            builder: (_) => OrderPaymentConfirmScreen(
+              amount: selectedAmount,
+              paymentMethod: paymentMethod!,
+              order: order,
+              customer: widget.customer,
+              orderItems: widget.cart,
+              payment: payment,
+            ),
+          ),
+        );
+      }
+    } catch (e) {
+      setState(() => _loading = false);
+      showDialog(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text('Lỗi'),
+          content: Text('Không thể lưu đơn hàng: $e'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Đóng'),
+            ),
+          ],
+        ),
+      );
+    }
   }
 
   @override
@@ -1674,175 +1844,198 @@ class _OrderPaymentScreenState extends State<OrderPaymentScreen> {
         centerTitle: true,
       ),
       backgroundColor: const Color(0xFFF6F7F8),
-      body: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      body: Stack(
         children: [
-          Padding(
-            padding: const EdgeInsets.all(16),
-            child: Container(
-              width: double.infinity,
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(12),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.04),
-                    blurRadius: 8,
-                    offset: const Offset(0, 2),
-                  ),
-                ],
-              ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  const Text('Tổng đơn hàng', style: TextStyle(fontWeight: FontWeight.w600)),
-                  Text(_formatCurrency(widget.total), style: const TextStyle(color: Color(0xFF16A34A), fontWeight: FontWeight.bold, fontSize: 18)),
-                ],
-              ),
-            ),
-          ),
-          const Padding(
-            padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            child: Text('Chọn số tiền thanh toán', style: TextStyle(fontWeight: FontWeight.w600)),
-          ),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
+          SingleChildScrollView(
             child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Row(
-                  children: [
-                    Expanded(
-                      child: Container(
-                        margin: const EdgeInsets.only(right: 8, bottom: 12),
-                        child: OutlinedButton(
-                          onPressed: () => setState(() => selectedPercent = percents[0]),
-                          style: OutlinedButton.styleFrom(
-                            side: BorderSide(color: selectedPercent == percents[0] ? const Color(0xFF16A34A) : const Color(0xFFE0E0E0)),
-                            backgroundColor: selectedPercent == percents[0] ? const Color(0xFFE8F5E9) : Colors.white,
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                            padding: const EdgeInsets.symmetric(vertical: 16),
-                          ),
-                          child: Column(
-                            children: [
-                              Text('${percents[0]}%', style: TextStyle(fontWeight: FontWeight.bold, color: selectedPercent == percents[0] ? const Color(0xFF16A34A) : Colors.black)),
-                              const SizedBox(height: 2),
-                              Text('~${_formatCurrency(((widget.total * percents[0] / 100).round() / 1000).round() * 1000)}', style: TextStyle(fontSize: 13, color: selectedPercent == percents[0] ? const Color(0xFF16A34A) : Colors.black54)),
-                            ],
-                          ),
+                // Tổng đơn hàng
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 20, 16, 0),
+                  child: Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(14),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.04),
+                          blurRadius: 8,
+                          offset: const Offset(0, 2),
                         ),
-                      ),
+                      ],
                     ),
-                    Expanded(
-                      child: Container(
-                        margin: const EdgeInsets.only(left: 8, bottom: 12),
-                        child: OutlinedButton(
-                          onPressed: () => setState(() => selectedPercent = percents[1]),
-                          style: OutlinedButton.styleFrom(
-                            side: BorderSide(color: selectedPercent == percents[1] ? const Color(0xFF16A34A) : const Color(0xFFE0E0E0)),
-                            backgroundColor: selectedPercent == percents[1] ? const Color(0xFFE8F5E9) : Colors.white,
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                            padding: const EdgeInsets.symmetric(vertical: 16),
-                          ),
-                          child: Column(
-                            children: [
-                              Text('${percents[1]}%', style: TextStyle(fontWeight: FontWeight.bold, color: selectedPercent == percents[1] ? const Color(0xFF16A34A) : Colors.black)),
-                              const SizedBox(height: 2),
-                              Text('~${_formatCurrency(((widget.total * percents[1] / 100).round() / 1000).round() * 1000)}', style: TextStyle(fontSize: 13, color: selectedPercent == percents[1] ? const Color(0xFF16A34A) : Colors.black54)),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-                Row(
-                  children: [
-                    Expanded(
-                      child: Container(
-                        margin: const EdgeInsets.only(right: 8),
-                        child: OutlinedButton(
-                          onPressed: () => setState(() => selectedPercent = percents[2]),
-                          style: OutlinedButton.styleFrom(
-                            side: BorderSide(color: selectedPercent == percents[2] ? const Color(0xFF16A34A) : const Color(0xFFE0E0E0)),
-                            backgroundColor: selectedPercent == percents[2] ? const Color(0xFFE8F5E9) : Colors.white,
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                            padding: const EdgeInsets.symmetric(vertical: 16),
-                          ),
-                          child: Column(
-                            children: [
-                              Text('${percents[2]}%', style: TextStyle(fontWeight: FontWeight.bold, color: selectedPercent == percents[2] ? const Color(0xFF16A34A) : Colors.black)),
-                              const SizedBox(height: 2),
-                              Text('~${_formatCurrency(((widget.total * percents[2] / 100).round() / 1000).round() * 1000)}', style: TextStyle(fontSize: 13, color: selectedPercent == percents[2] ? const Color(0xFF16A34A) : Colors.black54)),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ),
-                    Expanded(
-                      child: Container(
-                        margin: const EdgeInsets.only(left: 8),
-                        child: OutlinedButton(
-                          onPressed: () => setState(() => selectedPercent = percents[3]),
-                          style: OutlinedButton.styleFrom(
-                            side: BorderSide(color: selectedPercent == percents[3] ? const Color(0xFF16A34A) : const Color(0xFFE0E0E0)),
-                            backgroundColor: selectedPercent == percents[3] ? const Color(0xFFE8F5E9) : Colors.white,
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                            padding: const EdgeInsets.symmetric(vertical: 16),
-                          ),
-                          child: Column(
-                            children: [
-                              Text('${percents[3]}%', style: TextStyle(fontWeight: FontWeight.bold, color: selectedPercent == percents[3] ? const Color(0xFF16A34A) : Colors.black)),
-                              const SizedBox(height: 2),
-                              Text('~${_formatCurrency(((widget.total * percents[3] / 100).round() / 1000).round() * 1000)}', style: TextStyle(fontSize: 13, color: selectedPercent == percents[3] ? const Color(0xFF16A34A) : Colors.black54)),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-          const Padding(
-            padding: EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-            child: Text('Chọn phương thức thanh toán', style: TextStyle(fontWeight: FontWeight.w600)),
-          ),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: Row(
-              children: [
-                Expanded(
-                  child: OutlinedButton.icon(
-                    onPressed: () => setState(() => paymentMethod = 'Tiền mặt'),
-                    icon: Icon(Icons.attach_money, color: paymentMethod == 'Tiền mặt' ? const Color(0xFF16A34A) : Colors.black),
-                    label: Text('Tiền mặt', style: TextStyle(fontWeight: FontWeight.bold, color: paymentMethod == 'Tiền mặt' ? const Color(0xFF16A34A) : Colors.black)),
-                    style: OutlinedButton.styleFrom(
-                      side: BorderSide(color: paymentMethod == 'Tiền mặt' ? const Color(0xFF16A34A) : const Color(0xFFE0E0E0)),
-                      backgroundColor: paymentMethod == 'Tiền mặt' ? const Color(0xFFE8F5E9) : Colors.white,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                      padding: const EdgeInsets.symmetric(vertical: 16),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Text('Tổng đơn hàng', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 16)),
+                        Text(_formatCurrency(widget.total), style: const TextStyle(color: Color(0xFF16A34A), fontWeight: FontWeight.bold, fontSize: 20)),
+                      ],
                     ),
                   ),
                 ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: OutlinedButton.icon(
-                    onPressed: () => setState(() => paymentMethod = 'Chuyển khoản'),
-                    icon: Icon(Icons.account_balance, color: paymentMethod == 'Chuyển khoản' ? const Color(0xFF16A34A) : Colors.black),
-                    label: Text('Chuyển khoản', style: TextStyle(fontWeight: FontWeight.bold, color: paymentMethod == 'Chuyển khoản' ? const Color(0xFF16A34A) : Colors.black)),
-                    style: OutlinedButton.styleFrom(
-                      side: BorderSide(color: paymentMethod == 'Chuyển khoản' ? const Color(0xFF16A34A) : const Color(0xFFE0E0E0)),
-                      backgroundColor: paymentMethod == 'Chuyển khoản' ? const Color(0xFFE8F5E9) : Colors.white,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                      padding: const EdgeInsets.symmetric(vertical: 16),
+                // Chọn số tiền thanh toán
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 18, 16, 0),
+                  child: Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 18),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text('Chọn số tiền thanh toán', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 15)),
+                        const SizedBox(height: 14),
+                        Column(
+                          children: [
+                            Row(
+                              children: [
+                                for (int i = 0; i < 2; i++)
+                                  Expanded(
+                                    child: Container(
+                                      margin: EdgeInsets.only(left: i == 0 ? 0 : 8, bottom: 8),
+                                      child: OutlinedButton(
+                                        onPressed: () => setState(() => selectedPercent = percents[i]),
+                                        style: OutlinedButton.styleFrom(
+                                          side: BorderSide(color: selectedPercent == percents[i] ? const Color(0xFF16A34A) : const Color(0xFFE0E0E0), width: 1.5),
+                                          backgroundColor: selectedPercent == percents[i] ? const Color(0xFFE8F5E9) : Colors.white,
+                                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                          padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 0),
+                                        ),
+                                        child: Column(
+                                          children: [
+                                            Text(
+                                              '${percents[i]}%',
+                                              style: TextStyle(
+                                                fontWeight: FontWeight.bold,
+                                                color: selectedPercent == percents[i] ? const Color(0xFF16A34A) : Colors.black,
+                                                fontSize: 16,
+                                              ),
+                                            ),
+                                            const SizedBox(height: 2),
+                                            Text(
+                                              '~${_formatCurrency(((widget.total * percents[i] / 100).round() / 1000).round() * 1000)}',
+                                              style: TextStyle(
+                                                fontSize: 13,
+                                                color: selectedPercent == percents[i] ? const Color(0xFF16A34A) : const Color(0xFF9CA3AF),
+                                                fontWeight: FontWeight.w500,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                              ],
+                            ),
+                            Row(
+                              children: [
+                                for (int i = 2; i < 4; i++)
+                                  Expanded(
+                                    child: Container(
+                                      margin: EdgeInsets.only(left: i == 2 ? 0 : 8),
+                                      child: OutlinedButton(
+                                        onPressed: () => setState(() => selectedPercent = percents[i]),
+                                        style: OutlinedButton.styleFrom(
+                                          side: BorderSide(color: selectedPercent == percents[i] ? const Color(0xFF16A34A) : const Color(0xFFE0E0E0), width: 1.5),
+                                          backgroundColor: selectedPercent == percents[i] ? const Color(0xFFE8F5E9) : Colors.white,
+                                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                          padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 0),
+                                        ),
+                                        child: Column(
+                                          children: [
+                                            Text(
+                                              '${percents[i]}%',
+                                              style: TextStyle(
+                                                fontWeight: FontWeight.bold,
+                                                color: selectedPercent == percents[i] ? const Color(0xFF16A34A) : Colors.black,
+                                                fontSize: 16,
+                                              ),
+                                            ),
+                                            const SizedBox(height: 2),
+                                            Text(
+                                              '~${_formatCurrency(((widget.total * percents[i] / 100).round() / 1000).round() * 1000)}',
+                                              style: TextStyle(
+                                                fontSize: 13,
+                                                color: selectedPercent == percents[i] ? const Color(0xFF16A34A) : const Color(0xFF9CA3AF),
+                                                fontWeight: FontWeight.w500,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ],
                     ),
                   ),
                 ),
+                // Chọn phương thức thanh toán
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 18, 16, 0),
+                  child: Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 18),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text('Chọn phương thức thanh toán', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 15)),
+                        const SizedBox(height: 14),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: OutlinedButton(
+                                onPressed: () => setState(() => paymentMethod = 'Tiền mặt'),
+                                style: OutlinedButton.styleFrom(
+                                  side: BorderSide(color: paymentMethod == 'Tiền mặt' ? const Color(0xFF16A34A) : const Color(0xFFE0E0E0), width: 1.5),
+                                  backgroundColor: paymentMethod == 'Tiền mặt' ? const Color(0xFFE8F5E9) : Colors.white,
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                  padding: const EdgeInsets.symmetric(vertical: 16),
+                                ),
+                                child: Text('Tiền mặt', style: TextStyle(fontWeight: FontWeight.bold, color: paymentMethod == 'Tiền mặt' ? const Color(0xFF16A34A) : Colors.black, fontSize: 16)),
+                              ),
+                            ),
+                            const SizedBox(width: 16),
+                            Expanded(
+                              child: OutlinedButton(
+                                onPressed: () => setState(() => paymentMethod = 'Chuyển khoản'),
+                                style: OutlinedButton.styleFrom(
+                                  side: BorderSide(color: paymentMethod == 'Chuyển khoản' ? const Color(0xFF16A34A) : const Color(0xFFE0E0E0), width: 1.5),
+                                  backgroundColor: paymentMethod == 'Chuyển khoản' ? const Color(0xFFE8F5E9) : Colors.white,
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                  padding: const EdgeInsets.symmetric(vertical: 16),
+                                ),
+                                child: Text('Chuyển khoản', style: TextStyle(fontWeight: FontWeight.bold, color: paymentMethod == 'Chuyển khoản' ? const Color(0xFF16A34A) : Colors.black, fontSize: 16)),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 24),
               ],
             ),
           ),
+          if (_loading)
+            Container(
+              color: Colors.black.withOpacity(0.2),
+              child: const Center(child: CircularProgressIndicator()),
+            ),
         ],
       ),
       bottomNavigationBar: Container(
@@ -1852,17 +2045,7 @@ class _OrderPaymentScreenState extends State<OrderPaymentScreen> {
           width: double.infinity,
           height: 44,
           child: ElevatedButton(
-            onPressed: paymentMethod == null ? null : () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => OrderPaymentConfirmScreen(
-                    amount: selectedAmount,
-                    paymentMethod: paymentMethod!,
-                  ),
-                ),
-              );
-            },
+            onPressed: paymentMethod == null ? null : _handlePayment,
             style: ElevatedButton.styleFrom(
               backgroundColor: paymentMethod == null ? const Color(0xFFBFEAD2) : const Color(0xFF16A34A),
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
@@ -1879,7 +2062,20 @@ class _OrderPaymentScreenState extends State<OrderPaymentScreen> {
 class OrderPaymentConfirmScreen extends StatelessWidget {
   final int amount;
   final String paymentMethod;
-  const OrderPaymentConfirmScreen({Key? key, required this.amount, required this.paymentMethod}) : super(key: key);
+  final Order order;
+  final Customer customer;
+  final List<OrderItem> orderItems;
+  final Payment payment;
+  
+  const OrderPaymentConfirmScreen({
+    Key? key, 
+    required this.amount, 
+    required this.paymentMethod,
+    required this.order,
+    required this.customer,
+    required this.orderItems,
+    required this.payment,
+  }) : super(key: key);
   String _formatCurrency(int amount) {
     final s = amount.toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (m) => '${m[1]}.');
     return '$sđ';
@@ -1948,7 +2144,12 @@ class OrderPaymentConfirmScreen extends StatelessWidget {
             onPressed: () {
               Navigator.pushAndRemoveUntil(
                 context,
-                MaterialPageRoute(builder: (_) => const OrderInvoiceScreen()),
+                MaterialPageRoute(builder: (_) => OrderInvoiceScreen(
+                  order: order,
+                  customer: customer,
+                  orderItems: orderItems,
+                  payment: payment,
+                )),
                 (route) => false,
               );
             },
@@ -1966,28 +2167,46 @@ class OrderPaymentConfirmScreen extends StatelessWidget {
 }
 
 class OrderInvoiceScreen extends StatelessWidget {
-  const OrderInvoiceScreen({Key? key}) : super(key: key);
+  final Order order;
+  final Customer customer;
+  final List<OrderItem> orderItems;
+  final Payment payment;
+  
+  const OrderInvoiceScreen({
+    Key? key, 
+    required this.order, 
+    required this.customer, 
+    required this.orderItems, 
+    required this.payment
+  }) : super(key: key);
+  
   String _formatCurrency(int amount) {
     final s = amount.toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (m) => '${m[1]}.');
     return '$sđ';
   }
-  Widget _orderItem(String name, int qty, int price) {
+  
+  String _formatCurrencyDouble(double amount) {
+    final s = amount.toInt().toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (m) => '${m[1]}.');
+    return '$sđ';
+  }
+  
+  Widget _orderItem(OrderItem item) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.symmetric(vertical: 8),
       child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(name, style: const TextStyle(fontWeight: FontWeight.w500)),
-                Text('1 x ${_formatCurrency(price)}', style: const TextStyle(color: Colors.black54, fontSize: 13)),
+                Text(item.productName, style: const TextStyle(fontWeight: FontWeight.w600)),
+                const SizedBox(height: 2),
+                Text('${item.quantity} x ${_formatCurrencyDouble(item.price)}', style: const TextStyle(color: Color(0xFF9CA3AF), fontSize: 13)),
               ],
             ),
           ),
-          Text(_formatCurrency(price), style: const TextStyle(fontWeight: FontWeight.w600)),
+          Text(_formatCurrencyDouble(item.totalPrice), style: const TextStyle(fontWeight: FontWeight.w600)),
         ],
       ),
     );
@@ -1995,302 +2214,322 @@ class OrderInvoiceScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        backgroundColor: Colors.white,
-        elevation: 0,
-        title: const Text('Hóa đơn', style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
-        centerTitle: true,
-        actions: [
-          Row(
-            children: [
-              Container(
-                margin: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
-                decoration: BoxDecoration(
-                  border: Border.all(color: Color(0xFFE5E7EB)),
-                  borderRadius: BorderRadius.circular(8),
-                  color: Colors.white,
-                ),
-                child: IconButton(
-                  icon: const Icon(Icons.share_outlined, color: Colors.black),
-                  onPressed: () {},
-                  splashRadius: 22,
-                ),
-              ),
-              Container(
-                margin: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
-                decoration: BoxDecoration(
-                  border: Border.all(color: Color(0xFFE5E7EB)),
-                  borderRadius: BorderRadius.circular(8),
-                  color: Colors.white,
-                ),
-                child: IconButton(
-                  icon: const Icon(Icons.download_outlined, color: Colors.black),
-                  onPressed: () {},
-                  splashRadius: 22,
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
       backgroundColor: const Color(0xFFF6F7F8),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+      body: SafeArea(
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            // Thông tin cửa hàng
-            Container(
-              padding: const EdgeInsets.symmetric(vertical: 20),
-              margin: const EdgeInsets.only(bottom: 16),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(14),
-                border: Border.all(color: Color(0xFFE5E7EB)),
-              ),
-              child: Column(
-                children: [
-                  Container(
-                    width: 56,
-                    height: 56,
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFE8F5E9),
-                      borderRadius: BorderRadius.circular(28),
+            // Custom heading
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 0, vertical: 0),
+              child: Container(
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(12),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.04),
+                      blurRadius: 8,
+                      offset: const Offset(0, 2),
                     ),
-                    child: const Icon(Icons.inventory_2, color: Color(0xFF16A34A), size: 32),
-                  ),
-                  const SizedBox(height: 8),
-                  const Text('VetPharm', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
-                  const Text('Nhà thuốc thú y', style: TextStyle(color: Colors.black54)),
-                  const SizedBox(height: 16),
-                  // Line phân cách giống các block khác, có padding 2 bên
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    child: const Divider(height: 1, color: Color(0xFFE5E7EB)),
-                  ),
-                  // Mã hóa đơn và ngày tạo (căn đều 2 bên, label trái, value phải)
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                    child: Column(
-                      children: [
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: const [
-                            Text('Mã hóa đơn:', style: TextStyle(color: Color(0xFF6B7280), fontSize: 14)),
-                            Text('#1751428257965', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
-                          ],
+                  ],
+                ),
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+                child: Row(
+                  children: [
+                    IconButton(
+                      icon: const Icon(Icons.arrow_back, color: Colors.black),
+                      onPressed: () => Navigator.pop(context),
+                    ),
+                    Expanded(
+                      child: Center(
+                        child: Text(
+                          'Hóa đơn #${order.orderCode}',
+                          style: const TextStyle(
+                            fontWeight: FontWeight.w600,
+                            fontSize: 18,
+                            color: Color(0xFF222B45),
+                          ),
+                          overflow: TextOverflow.ellipsis,
                         ),
-                        SizedBox(height: 2),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: const [
-                            Text('Ngày tạo:', style: TextStyle(color: Color(0xFF6B7280), fontSize: 14)),
-                            Text('02/07/2025 - 10:50', style: TextStyle(fontSize: 15)),
-                          ],
-                        ),
-                      ],
+                      ),
                     ),
-                  ),
-                ],
+                    const SizedBox(width: 48), // Để cân đối với IconButton bên trái
+                  ],
+                ),
               ),
             ),
-            // Thông tin khách hàng
-            Container(
-              padding: const EdgeInsets.all(16),
-              margin: const EdgeInsets.only(bottom: 16),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(14),
-                border: Border.all(color: Color(0xFFE5E7EB)),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: const [
-                      Icon(Icons.person_outline, size: 18, color: Color(0xFF16A34A)),
-                      SizedBox(width: 6),
-                      Text('Thông tin khách hàng', style: TextStyle(fontWeight: FontWeight.bold)),
-                    ],
-                  ),
-                  const SizedBox(height: 10),
-                  const Divider(height: 1, color: Color(0xFFE5E7EB)),
-                  const SizedBox(height: 10),
-                  const Text.rich(
-                    TextSpan(children: [
-                      TextSpan(text: 'Tên: ', style: TextStyle(fontWeight: FontWeight.bold)),
-                      TextSpan(text: 'Nguyễn Văn An'),
-                    ]),
-                  ),
-                  const Text.rich(
-                    TextSpan(children: [
-                      TextSpan(text: 'SĐT: ', style: TextStyle(fontWeight: FontWeight.bold)),
-                      TextSpan(text: '0978513848'),
-                    ]),
-                  ),
-                  const Text.rich(
-                    TextSpan(children: [
-                      TextSpan(text: 'Địa chỉ: ', style: TextStyle(fontWeight: FontWeight.bold)),
-                      TextSpan(text: '95 Đường ABC, Quận 9, TP.HCM'),
-                    ]),
-                  ),
-                ],
-              ),
-            ),
-            // Chi tiết đơn hàng (style lại từng item, line giữa các item)
-            Container(
-              padding: const EdgeInsets.all(16),
-              margin: const EdgeInsets.only(bottom: 16),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(14),
-                border: Border.all(color: Color(0xFFE5E7EB)),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: const [
-                      Icon(Icons.receipt_long, size: 18, color: Color(0xFF16A34A)),
-                      SizedBox(width: 6),
-                      Text('Chi tiết đơn hàng', style: TextStyle(fontWeight: FontWeight.bold)),
-                    ],
-                  ),
-                  const SizedBox(height: 10),
-                  const Divider(height: 1, color: Color(0xFFE5E7EB)),
-                  _orderItemStyled('Thuốc tẩy giun cho chó Bayer Drontal Plus', 1, 275702),
-                  const Divider(height: 1, color: Color(0xFFE5E7EB)),
-                  _orderItemStyled('Thuốc nhỏ mắt thú cưng AntiSeptic Eye Drop', 1, 443226),
-                  const Divider(height: 1, color: Color(0xFFE5E7EB)),
-                  _orderItemStyled('Pate cho mèo Whiskas vị cá ngừ', 1, 308960),
-                  const Divider(height: 1, color: Color(0xFFE5E7EB)),
-                  _orderItemStyled('Calcium bổ sung canxi cho chó con', 1, 186008),
-                ],
-              ),
-            ),
-            // Thông tin thanh toán (bỏ hết line, chỉ có line trên dòng Số tiền đã thanh toán)
-            Container(
-              padding: const EdgeInsets.all(16),
-              margin: const EdgeInsets.only(bottom: 16),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(14),
-                border: Border.all(color: Color(0xFFE5E7EB)),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: const [
-                      Icon(Icons.credit_card, size: 18, color: Color(0xFF16A34A)),
-                      SizedBox(width: 6),
-                      Text('Thông tin thanh toán', style: TextStyle(fontWeight: FontWeight.bold)),
-                    ],
-                  ),
-                  const SizedBox(height: 10),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: const [
-                      Text('Phương thức:'),
-                      Text('Chuyển Khoản', style: TextStyle(fontWeight: FontWeight.w600)),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      const Text('Tổng tiền hàng:'),
-                      Text(_formatCurrency(1233896)),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: const [
-                      Text('Tổng chiết khấu:'),
-                      Text('-20.000đ'),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      const Text('Đã thanh toán:'),
-                      Text(_formatCurrency(1210000)),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      const Text('Còn lại:'),
-                      Text(_formatCurrency(3896)),
-                    ],
-                  ),
-                  const SizedBox(height: 10),
-                  const Divider(height: 1, color: Color(0xFFE5E7EB)),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 8.0),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: const [
-                        Text('Số tiền đã thanh toán:', style: TextStyle(fontWeight: FontWeight.bold)),
-                        Text('1.210.000đ', style: TextStyle(color: Color(0xFF16A34A), fontWeight: FontWeight.bold, fontSize: 18)),
-                      ],
+            const SizedBox(height: 4),
+            Expanded(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    // Thông tin cửa hàng
+                    Container(
+                      padding: const EdgeInsets.symmetric(vertical: 20),
+                      margin: const EdgeInsets.only(bottom: 16),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(14),
+                        border: Border.all(color: Color(0xFFE5E7EB)),
+                      ),
+                      child: Column(
+                        children: [
+                          Container(
+                            width: 56,
+                            height: 56,
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFE8F5E9),
+                              borderRadius: BorderRadius.circular(28),
+                            ),
+                            child: const Icon(Icons.inventory_2, color: Color(0xFF16A34A), size: 32),
+                          ),
+                          const SizedBox(height: 8),
+                          const Text('VetPharm', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+                          const Text('Nhà thuốc thú y', style: TextStyle(color: Colors.black54)),
+                          const SizedBox(height: 16),
+                          // Line phân cách giống các block khác, có padding 2 bên
+                          Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 16),
+                            child: const Divider(height: 1, color: Color(0xFFE5E7EB)),
+                          ),
+                          // Mã hóa đơn và ngày tạo (căn đều 2 bên, label trái, value phải)
+                          Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                            child: Column(
+                              children: [
+                          
+                                const SizedBox(height: 2),
+                                Row(
+                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    const Text('Ngày tạo:', style: TextStyle(color: Color(0xFF6B7280), fontSize: 14)),
+                                    Text('${order.createdAt.day.toString().padLeft(2, '0')}/${order.createdAt.month.toString().padLeft(2, '0')}/${order.createdAt.year} - ${order.createdAt.hour.toString().padLeft(2, '0')}:${order.createdAt.minute.toString().padLeft(2, '0')}', style: const TextStyle(fontSize: 15)),
+                                  ],
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
+                    // Thông tin khách hàng
+                    Container(
+                      padding: const EdgeInsets.all(16),
+                      margin: const EdgeInsets.only(bottom: 16),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(14),
+                        border: Border.all(color: Color(0xFFE5E7EB)),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: const [
+                              Icon(Icons.person_outline, size: 18, color: Color(0xFF16A34A)),
+                              SizedBox(width: 6),
+                              Text('Thông tin khách hàng', style: TextStyle(fontWeight: FontWeight.bold)),
+                            ],
+                          ),
+                          const SizedBox(height: 10),
+                          const Divider(height: 1, color: Color(0xFFE5E7EB)),
+                          const SizedBox(height: 10),
+                          Text.rich(
+                            TextSpan(children: [
+                              const TextSpan(text: 'Tên: ', style: TextStyle(fontWeight: FontWeight.bold)),
+                              TextSpan(text: customer.name),
+                            ]),
+                          ),
+                          Text.rich(
+                            TextSpan(children: [
+                              const TextSpan(text: 'SĐT: ', style: TextStyle(fontWeight: FontWeight.bold)),
+                              TextSpan(text: customer.phone),
+                            ]),
+                          ),
+                          if (customer.address != null)
+                            Text.rich(
+                              TextSpan(children: [
+                                const TextSpan(text: 'Địa chỉ: ', style: TextStyle(fontWeight: FontWeight.bold)),
+                                TextSpan(text: customer.address!),
+                              ]),
+                            ),
+                        ],
+                      ),
+                    ),
+                    // Chi tiết đơn hàng (style lại từng item, line giữa các item)
+                    Container(
+                      padding: const EdgeInsets.all(16),
+                      margin: const EdgeInsets.only(bottom: 16),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(14),
+                        border: Border.all(color: Color(0xFFE5E7EB)),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: const [
+                              Icon(Icons.receipt_long, size: 18, color: Color(0xFF16A34A)),
+                              SizedBox(width: 6),
+                              Text('Chi tiết đơn hàng', style: TextStyle(fontWeight: FontWeight.bold)),
+                            ],
+                          ),
+                          const SizedBox(height: 10),
+                          const Divider(height: 1, color: Color(0xFFE5E7EB)),
+                          ...orderItems.map((item) => Column(
+                            children: [
+                              _orderItem(item),
+                              if (item != orderItems.last) const Divider(height: 1, color: Color(0xFFE5E7EB)),
+                            ],
+                          )).toList(),
+                        ],
+                      ),
+                    ),
+                    // Thông tin thanh toán (bỏ hết line, chỉ có line trên dòng Số tiền đã thanh toán)
+                    Container(
+                      padding: const EdgeInsets.all(16),
+                      margin: const EdgeInsets.only(bottom: 16),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(14),
+                        border: Border.all(color: Color(0xFFE5E7EB)),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: const [
+                              Icon(Icons.credit_card, size: 18, color: Color(0xFF16A34A)),
+                              SizedBox(width: 6),
+                              Text('Thông tin thanh toán', style: TextStyle(fontWeight: FontWeight.bold)),
+                            ],
+                          ),
+                          const SizedBox(height: 10),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              const Text('Phương thức:'),
+                              Text(payment.method, style: const TextStyle(fontWeight: FontWeight.w600)),
+                            ],
+                          ),
+                          const SizedBox(height: 8),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              const Text('Tổng tiền hàng:'),
+                              Text(_formatCurrencyDouble(order.totalAmount)),
+                            ],
+                          ),
+                          const SizedBox(height: 8),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              const Text('Tổng chiết khấu:'),
+                              Text('-${_formatCurrencyDouble(order.discountAmount)}'),
+                            ],
+                          ),
+                          const SizedBox(height: 8),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              const Text('Đã thanh toán:'),
+                              Text(_formatCurrencyDouble(payment.amount)),
+                            ],
+                          ),
+                          const SizedBox(height: 8),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              const Text('Còn lại:'),
+                              Text(_formatCurrencyDouble(order.finalAmount - payment.amount)),
+                            ],
+                          ),
+                          const SizedBox(height: 10),
+                          const Divider(height: 1, color: Color(0xFFE5E7EB)),
+                          Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 8.0),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                const Text('Số tiền đã thanh toán:', style: TextStyle(fontWeight: FontWeight.bold)),
+                                Text(_formatCurrencyDouble(payment.amount), style: const TextStyle(color: Color(0xFF16A34A), fontWeight: FontWeight.bold, fontSize: 18)),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    // Sau block Thông tin thanh toán, thêm 2 nút chia sẻ/in
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(4, 16, 4, 0),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: OutlinedButton.icon(
+                              onPressed: () {},
+                              icon: const Icon(Icons.share_outlined, color: Color(0xFF222B45)),
+                              label: const Text('Chia sẻ', style: TextStyle(fontWeight: FontWeight.w600, color: Color(0xFF222B45))),
+                              style: OutlinedButton.styleFrom(
+                                side: const BorderSide(color: Color(0xFFE0E0E0)),
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                                padding: const EdgeInsets.symmetric(vertical: 14),
+                                backgroundColor: Colors.white,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: OutlinedButton.icon(
+                              onPressed: () {},
+                              icon: const Icon(Icons.print_outlined, color: Color(0xFF222B45)),
+                              label: const Text('In', style: TextStyle(fontWeight: FontWeight.w600, color: Color(0xFF222B45))),
+                              style: OutlinedButton.styleFrom(
+                                side: const BorderSide(color: Color(0xFFE0E0E0)),
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                                padding: const EdgeInsets.symmetric(vertical: 14),
+                                backgroundColor: Colors.white,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            // Nút tạo đơn hàng mới vẫn ở dưới cùng
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
+              child: SizedBox(
+                width: double.infinity,
+                height: 48,
+                child: ElevatedButton(
+                  onPressed: () {
+                    Navigator.pushAndRemoveUntil(
+                      context,
+                      MaterialPageRoute(builder: (_) => const OrderCreateScreen()),
+                      (route) => false,
+                    );
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF16A34A),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                    elevation: 0,
                   ),
-                ],
+                  child: const Text('Tạo đơn hàng mới', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 16)),
+                ),
               ),
             ),
           ],
         ),
       ),
-      bottomNavigationBar: Container(
-        color: Colors.transparent,
-        padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
-        child: SizedBox(
-          width: double.infinity,
-          height: 44,
-          child: ElevatedButton(
-            onPressed: () {
-              Navigator.pushAndRemoveUntil(
-                context,
-                MaterialPageRoute(builder: (_) => const OrderCreateScreen()),
-                (route) => false,
-              );
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF16A34A),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-              elevation: 0,
-            ),
-            child: const Text('Tạo đơn hàng mới', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 16)),
-          ),
-        ),
-      ),
+      // Xóa AppBar và bottomNavigationBar cũ
     );
   }
 }
 
-// Thêm hàm helper style cho item
-Widget _orderItemStyled(String name, int qty, int price) {
-  return Padding(
-    padding: const EdgeInsets.symmetric(vertical: 8),
-    child: Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(name, style: const TextStyle(fontWeight: FontWeight.w600)),
-              const SizedBox(height: 2),
-              Text('1 x ${_formatCurrency(price)}', style: const TextStyle(color: Color(0xFF9CA3AF), fontSize: 13)),
-            ],
-          ),
-        ),
-        Text(_formatCurrency(price), style: const TextStyle(fontWeight: FontWeight.w600)),
-      ],
-    ),
-  );
-} 
+ 

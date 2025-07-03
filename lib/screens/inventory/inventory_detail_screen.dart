@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
-import '../models/inventory_session.dart';
-import '../widgets/common/design_system.dart';
-import '../services/inventory_item_service.dart';
+import '../../models/inventory_session.dart';
+import '../../widgets/common/design_system.dart';
+import '../../services/inventory_item_service.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import '../widgets/main_layout.dart';
+import '../../widgets/main_layout.dart';
 import 'package:flutter/services.dart';
-import '../services/product_service.dart';
-import '../models/product.dart';
+import '../../services/product_service.dart';
+import '../../models/product.dart';
 
 class InventoryDetailScreen extends StatefulWidget {
   final String sessionId;

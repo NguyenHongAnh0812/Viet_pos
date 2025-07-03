@@ -1,9 +1,8 @@
 import 'package:flutter/material.dart';
-import '../models/product.dart';
-import '../services/product_service.dart';
-
-import '../widgets/main_layout.dart';
-import 'products/product_detail_screen.dart';
+import '../../models/product.dart';
+import '../../services/product_service.dart';
+import '../../widgets/main_layout.dart';
+import 'product_detail_screen.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:excel/excel.dart' as excel;
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -11,9 +10,9 @@ import 'package:csv/csv.dart';
 import 'dart:convert';
 import 'dart:math' show min;
 import 'dart:html' as html;
-import '../widgets/product_card_item.dart';
-import '../widgets/product_list_card.dart';
-import '../widgets/common/design_system.dart';
+import '../../widgets/product_card_item.dart';
+import '../../widgets/product_list_card.dart';
+import '../../widgets/common/design_system.dart';
 import 'package:intl/intl.dart';
 import 'dart:ui' as ui;
 

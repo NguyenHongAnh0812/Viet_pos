@@ -1,15 +1,15 @@
 import 'package:flutter/material.dart';
-import '../services/inventory_service.dart';
-import '../models/inventory_session.dart';
-import '../services/product_category_service.dart';
-import '../models/product_category.dart';
-import '../services/product_service.dart';
-import '../models/product.dart';
+import '../../services/inventory_service.dart';
+import '../../models/inventory_session.dart';
+import '../../services/product_category_service.dart';
+import '../../models/product_category.dart';
+import '../../services/product_service.dart';
+import '../../models/product.dart';
 import 'inventory_history_screen.dart';
-import '../widgets/common/design_system.dart';
+import '../../widgets/common/design_system.dart';
 import 'inventory_create_session_screen.dart';
 import 'inventory_detail_screen.dart';
-import '../widgets/main_layout.dart';
+import '../../widgets/main_layout.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 class InventoryScreen extends StatefulWidget {

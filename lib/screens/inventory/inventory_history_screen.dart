@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import '../services/inventory_service.dart';
-import '../models/inventory_session.dart';
+import '../../services/inventory_service.dart';
+import '../../models/inventory_session.dart';
 import 'package:intl/intl.dart';
-import '../widgets/common/design_system.dart';
+import '../../widgets/common/design_system.dart';
 
 class InventoryHistoryScreen extends StatefulWidget {
   final VoidCallback? onBack;

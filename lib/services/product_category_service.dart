@@ -1,7 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/product_category.dart';
 import '../models/product.dart';
-import '../screens/product_category_detail_screen.dart'; // Import ProductCondition
+import '../screens/categories/product_category_detail_screen.dart'; // Import ProductCondition
 import './product_service.dart';
 
 class ProductCategoryService {

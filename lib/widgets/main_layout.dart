@@ -1,28 +1,24 @@
 import 'package:flutter/material.dart';
-import '../screens/product_list_screen.dart';
-import '../screens/product_category_screen.dart';
+import '../screens/products/product_list_screen.dart';
+import '../screens/categories/product_category_screen.dart';
 import '../screens/products/add_product_screen.dart';
 import '../screens/products/product_detail_screen.dart';
-import '../models/product.dart';
-import '../screens/low_stock_products_screen.dart';
-import '../screens/add_product_category_screen.dart';
-import '../screens/inventory_screen.dart';
-import '../screens/inventory_history_screen.dart';
+import '../screens/products/low_stock_products_screen.dart';
+import '../screens/categories/add_product_category_screen.dart';
+import '../screens/inventory/inventory_screen.dart';
+import '../screens/inventory/inventory_history_screen.dart';
+import '../screens/inventory/inventory_detail_screen.dart';
+import '../screens/inventory/inventory_create_session_screen.dart';
+import '../screens/companies/company_screen.dart';
+import '../screens/companies/add_company_screen.dart';
+import '../screens/companies/company_detail_screen.dart';
+import '../screens/categories/product_category_detail_screen.dart';
 import 'common/design_system.dart';
 import '../screens/style_guide_screen.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import '../services/product_service.dart';
 import '../screens/invoice_import_list_screen.dart';
 import '../screens/invoice_import_screen.dart';
-import '../screens/inventory_detail_screen.dart';
-import '../screens/inventory_create_session_screen.dart';
-import '../screens/company_screen.dart';
-import '../screens/settings_screen.dart';
-import '../screens/add_company_screen.dart';
-import '../screens/company_detail_screen.dart';
-import '../models/company.dart';
-import '../screens/product_category_detail_screen.dart';
-import '../models/product_category.dart';
 import '../screens/customers/customer_list_screen.dart';
 import '../screens/customers/add_customer_screen.dart';
 import '../screens/customers/customer_detail_screen.dart';
@@ -30,6 +26,10 @@ import '../models/customer.dart';
 import '../screens/orders/order_create_screen.dart' hide Product;
 import 'package:google_fonts/google_fonts.dart';
 import '../screens/dashboard/dashboard_modern_screen.dart';
+import '../models/product.dart';
+import '../models/company.dart';
+import '../models/product_category.dart';
+import '../screens/settings_screen.dart';
 
 // Định nghĩa enum cho các trang
 enum MainPage { 
@@ -56,7 +56,8 @@ enum MainPage {
   customers,
   addCustomer,
   customerDetail,
-  orderCreate
+  orderCreate,
+  moreDashboard
 }
 
 class MainLayout extends StatefulWidget {
@@ -299,75 +300,6 @@ class MainLayoutState extends State<MainLayout> {
     });
   }
 
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      body: Column(
-        children: [
-          _Header(onMenuPressed: _toggleSidebar),
-          Expanded(child: _buildMainContent()),
-        ],
-      ),
-      bottomNavigationBar: Container(
-        decoration: BoxDecoration(
-          color: Colors.white,
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.04),
-              blurRadius: 8,
-              offset: Offset(0, -2),
-            ),
-          ],
-        ),
-        child: SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(vertical: 8),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceAround,
-              children: [
-                _NavItem(
-                  icon: SvgPicture.asset(
-                    'assets/icons/tag_icon.svg', 
-                    width: 20,
-                    height: 20,
-                    color: Colors.green,
-                  ),
-                  label: 'Tổng quan',
-                  selected: _currentPage == MainPage.dashboard,
-                  onTap: () => _onNavTap(0),
-                ),
-                _NavItem(
-                  icon: Icon(Icons.inventory_2, color: _currentPage == MainPage.productList ? Colors.green : Colors.grey, size: 28),
-                  label: 'Hàng hoá',
-                  selected: _currentPage == MainPage.productList,
-                  onTap: () => _onNavTap(1),
-                ),
-                _NavItem(
-                  icon: Icon(Icons.shopping_cart, color: _currentPage == MainPage.orderCreate ? Colors.green : Colors.grey, size: 28),
-                  label: 'Bán hàng',
-                  selected: _currentPage == MainPage.orderCreate,
-                  onTap: () => _onNavTap(2),
-                ),
-                _NavItem(
-                  icon: Icon(Icons.people, color: _currentPage == MainPage.companies ? Colors.green : Colors.grey, size: 28),
-                  label: 'Nhà cung cấp',
-                  selected: _currentPage == MainPage.companies,
-                  onTap: () => _onNavTap(3),
-                ),
-                _NavItem(
-                  icon: Icon(Icons.more_horiz, color: _currentPage == MainPage.settings ? Colors.green : Colors.grey, size: 28),
-                  label: 'Thêm',
-                  selected: _currentPage == MainPage.settings,
-                  onTap: () => _onNavTap(4),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
   Widget _buildMainContent() {
     switch (_currentPage) {
       case MainPage.dashboard:
@@ -388,8 +320,8 @@ class MainLayoutState extends State<MainLayout> {
         );
       case MainPage.productCategory:
         return ProductCategoryScreen(
-           onNavigate: onSidebarTap,
-           onCategorySelected: _openCategoryDetail,
+          onNavigate: onSidebarTap,
+          onCategorySelected: _openCategoryDetail,
         );
       case MainPage.addProduct:
         return AddProductScreen(
@@ -422,7 +354,7 @@ class MainLayoutState extends State<MainLayout> {
           },
         );
       case MainPage.report:
-        return Center(child: Text('Báo cáo (chưa cài đặt)'));
+        return const Center(child: Text('Báo cáo (chưa cài đặt)'));
       case MainPage.settings:
         return SettingsScreen(
           onBack: () {
@@ -502,6 +434,8 @@ class MainLayoutState extends State<MainLayout> {
         );
       case MainPage.orderCreate:
         return OrderCreateScreen();
+      case MainPage.moreDashboard:
+        return MoreDashboardScreen(onNavigate: onSidebarTap);
       default:
         return const DashboardModernScreen();
     }
@@ -524,126 +458,407 @@ class MainLayoutState extends State<MainLayout> {
           onSidebarTap(MainPage.companies);
           break;
         case 4:
-          showModalBottomSheet(
-            context: context,
-            isScrollControlled: true,
-            backgroundColor: Colors.transparent,
-            builder: (context) => Container(
-              height: MediaQuery.of(context).size.height * 0.95,
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: const BorderRadius.only(
-                  topLeft: Radius.circular(24),
-                  topRight: Radius.circular(24),
-                ),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.08),
-                    blurRadius: 16,
-                    offset: const Offset(0, -4),
-                  ),
-                ],
-              ),
-              child: SafeArea(
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 20),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.max,
-                    children: [
-                      Container(
-                        width: 40,
-                        height: 4,
-                        margin: const EdgeInsets.only(bottom: 24),
-                        decoration: BoxDecoration(
-                          color: Colors.grey[300],
-                          borderRadius: BorderRadius.circular(2),
-                        ),
-                      ),
-                      Expanded(
-                        child: GridView.count(
-                          crossAxisCount: 2,
-                          mainAxisSpacing: 18,
-                          crossAxisSpacing: 18,
-                          childAspectRatio: 1.35,
-                          physics: const BouncingScrollPhysics(),
-                          padding: EdgeInsets.zero,
-                          children: [
-                            _QuickAccessGridButton(
-                              icon: Icons.inventory_2,
-                              label: 'Danh sách sản phẩm',
-                              onTap: () {
-                                Navigator.pop(context);
-                                onSidebarTap(MainPage.productList);
-                              },
-                            ),
-                            _QuickAccessGridButton(
-                              icon: Icons.add_box,
-                              label: 'Thêm sản phẩm',
-                              onTap: () {
-                                Navigator.pop(context);
-                                onSidebarTap(MainPage.addProduct);
-                              },
-                            ),
-                            _QuickAccessGridButton(
-                              icon: Icons.inventory,
-                              label: 'Kiểm kê kho',
-                              onTap: () {
-                                Navigator.pop(context);
-                                onSidebarTap(MainPage.inventory);
-                              },
-                            ),
-                            _QuickAccessGridButton(
-                              icon: Icons.business,
-                              label: 'Nhà cung cấp',
-                              onTap: () {
-                                Navigator.pop(context);
-                                onSidebarTap(MainPage.companies);
-                              },
-                            ),
-                            _QuickAccessGridButton(
-                              icon: Icons.people,
-                              label: 'Người dùng',
-                              onTap: () {
-                                Navigator.pop(context);
-                                onSidebarTap(MainPage.customers);
-                              },
-                            ),
-                            _QuickAccessGridButton(
-                              icon: Icons.settings,
-                              label: 'Cài đặt',
-                              onTap: () {
-                                Navigator.pop(context);
-                                onSidebarTap(MainPage.settings);
-                              },
-                            ),
-                            _QuickAccessGridButton(
-                              icon: Icons.file_upload,
-                              label: 'Import hóa đơn',
-                              onTap: () {
-                                Navigator.pop(context);
-                                onSidebarTap(MainPage.invoiceImportList);
-                              },
-                            ),
-                            _QuickAccessGridButton(
-                              icon: Icons.palette,
-                              label: 'Style Guide',
-                              onTap: () {
-                                Navigator.pop(context);
-                                onSidebarTap(MainPage.styleGuide);
-                              },
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-          );
+          _currentPage = MainPage.moreDashboard;
           break;
       }
     });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: Column(
+        children: [
+          _Header(onMenuPressed: _toggleSidebar),
+          Expanded(child: _buildMainContent()),
+        ],
+      ),
+      bottomNavigationBar: Container(
+        decoration: BoxDecoration(
+          color: Colors.white,
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.04),
+              blurRadius: 8,
+              offset: Offset(0, -2),
+            ),
+          ],
+        ),
+        child: SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 8),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceAround,
+              children: [
+                _NavItem(
+                  icon: SvgPicture.asset(
+                    'assets/icons/tag_icon.svg', 
+                    width: 20,
+                    height: 20,
+                    color: Colors.green,
+                  ),
+                  label: 'Tổng quan',
+                  selected: _currentPage == MainPage.dashboard,
+                  onTap: () => _onNavTap(0),
+                ),
+                _NavItem(
+                  icon: Icon(Icons.inventory_2, color: _currentPage == MainPage.productList ? Colors.green : Colors.grey, size: 28),
+                  label: 'Hàng hoá',
+                  selected: _currentPage == MainPage.productList,
+                  onTap: () => _onNavTap(1),
+                ),
+                _NavItem(
+                  icon: Icon(Icons.shopping_cart, color: _currentPage == MainPage.orderCreate ? Colors.green : Colors.grey, size: 28),
+                  label: 'Bán hàng',
+                  selected: _currentPage == MainPage.orderCreate,
+                  onTap: () => _onNavTap(2),
+                ),
+                _NavItem(
+                  icon: Icon(Icons.people, color: _currentPage == MainPage.companies ? Colors.green : Colors.grey, size: 28),
+                  label: 'Nhà cung cấp',
+                  selected: _currentPage == MainPage.companies,
+                  onTap: () => _onNavTap(3),
+                ),
+                _NavItem(
+                  icon: Icon(Icons.more_horiz, color: _currentPage == MainPage.settings ? Colors.green : Colors.grey, size: 28),
+                  label: 'Thêm',
+                  selected: _currentPage == MainPage.settings,
+                  onTap: () => _onNavTap(4),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _StoreInfoBlock extends StatelessWidget {
+  final String storeName;
+  final String role;
+  final VoidCallback onEdit;
+  final VoidCallback onInfo;
+  const _StoreInfoBlock({required this.storeName, required this.role, required this.onEdit, required this.onInfo});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 0, top: 2),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(8),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.03),
+            blurRadius: 6,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(storeName, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 16, color: Color(0xFF222B45))),
+                    const SizedBox(height: 2),
+                    Text(role, style: const TextStyle(fontSize: 13, color: Color(0xFF6B7280))),
+                  ],
+                ),
+              ),
+              IconButton(
+                icon: const Icon(Icons.edit, size: 18, color: Color(0xFF6B7280)),
+                onPressed: onEdit,
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints(),
+                splashRadius: 20,
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          GestureDetector(
+            onTap: onInfo,
+            child: Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 14),
+              decoration: BoxDecoration(
+                color: const Color(0xFFF3F6FA),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Row(
+                children: const [
+                  Text('Thông tin cửa hàng', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14, color: Color(0xFF222B45))),
+                  Spacer(),
+                  Icon(Icons.chevron_right, color: Color(0xFFB0B4BA), size: 22),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _MoreDashboardItem extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final VoidCallback onTap;
+  const _MoreDashboardItem({required this.icon, required this.label, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Container(
+            width: 48,
+            height: 48,
+            decoration: BoxDecoration(
+              color: const Color(0xFFF9FAFB),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Icon(icon, color: const Color(0xFF16A34A), size: 28),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            label,
+            style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: Color(0xFF222B45)),
+            textAlign: TextAlign.center,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _SettingsListItem extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final VoidCallback onTap;
+  final bool isDestructive;
+  const _SettingsListItem({required this.icon, required this.label, required this.onTap, this.isDestructive = false});
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        child: Row(
+          children: [
+            Icon(icon, color: isDestructive ? Colors.red : const Color(0xFF16A34A), size: 22),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Text(
+                label,
+                style: TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w500,
+                  color: isDestructive ? Colors.red : const Color(0xFF222B45),
+                ),
+              ),
+            ),
+            Icon(Icons.chevron_right, color: isDestructive ? Colors.red : Colors.grey, size: 22),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class MoreDashboardScreen extends StatelessWidget {
+  final void Function(MainPage) onNavigate;
+  const MoreDashboardScreen({required this.onNavigate});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: const Color(0xFFF9FAFB),
+      body: SafeArea(
+        child: SingleChildScrollView(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 12),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _StoreInfoBlock(
+                  storeName: 'Cửa hàng ABC',
+                  role: 'Nhân viên kho',
+                  onEdit: () {/* TODO: Sửa thông tin cửa hàng */},
+                  onInfo: () {/* TODO: Xem thông tin cửa hàng */},
+                ),
+                const SizedBox(height: 10),
+                _MoreDashboardSheetContent(onNavigate: onNavigate),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _MoreDashboardSheetContent extends StatelessWidget {
+  final void Function(MainPage) onNavigate;
+  const _MoreDashboardSheetContent({required this.onNavigate});
+
+  Widget _buildGroup(String title, List<_MoreDashboardItem> items) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 18),
+      padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.03),
+            blurRadius: 6,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(title, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15, color: Color(0xFF222B45))),
+          const SizedBox(height: 14),
+          GridView.count(
+            crossAxisCount: 3,
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            mainAxisSpacing: 12,
+            crossAxisSpacing: 8,
+            childAspectRatio: 0.95,
+            children: items,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSettingsBlock({required String title, required List<_SettingsListItem> items}) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 18),
+      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 0),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.03),
+            blurRadius: 6,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+            child: Text(title, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14, color: Color(0xFF222B45))),
+          ),
+          ...items,
+        ],
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _buildGroup('Giao dịch', [
+          _MoreDashboardItem(icon: Icons.shopping_cart, label: 'Tạo đơn', onTap: () { onNavigate(MainPage.orderCreate); }),
+          _MoreDashboardItem(icon: Icons.receipt_long, label: 'Hóa đơn', onTap: () {/* TODO: navigate to invoice list */}),
+          _MoreDashboardItem(icon: Icons.store, label: 'Cửa hàng', onTap: () {/* TODO: navigate to store info */}),
+        ]),
+        const SizedBox(height: 10),
+        _buildGroup('Hàng hoá', [
+          _MoreDashboardItem(icon: Icons.inventory_2, label: 'Hàng hoá', onTap: () { onNavigate(MainPage.productList); }),
+          _MoreDashboardItem(icon: Icons.category, label: 'Danh mục', onTap: () { onNavigate(MainPage.productCategory); }),
+          _MoreDashboardItem(icon: Icons.upload, label: 'Xuất kho', onTap: () {/* TODO: navigate to export stock */}),
+          _MoreDashboardItem(icon: Icons.download, label: 'Nhập kho', onTap: () {/* TODO: navigate to import stock */}),
+          _MoreDashboardItem(icon: Icons.inventory, label: 'Tồn kho', onTap: () { onNavigate(MainPage.inventory); }),
+          _MoreDashboardItem(icon: Icons.compare_arrows, label: 'Chuyển kho', onTap: () {/* TODO: navigate to transfer stock */}),
+        ]),
+        const SizedBox(height: 10),
+        _buildGroup('Bán online', [
+          _MoreDashboardItem(icon: Icons.shopping_bag, label: 'Đơn online', onTap: () {/* TODO: navigate to online orders */}),
+          _MoreDashboardItem(icon: Icons.verified, label: 'Đối soát', onTap: () {/* TODO: navigate to reconciliation */}),
+        ]),
+        const SizedBox(height: 10),
+        _buildGroup('Đối tác', [
+          _MoreDashboardItem(icon: Icons.people, label: 'Khách hàng', onTap: () { onNavigate(MainPage.customers); }),
+          _MoreDashboardItem(icon: Icons.business, label: 'Nhà cung cấp', onTap: () { onNavigate(MainPage.companies); }),
+        ]),
+        const SizedBox(height: 10),
+        _buildGroup('Giao hàng', [
+          _MoreDashboardItem(icon: Icons.local_shipping, label: 'Lịch sử GH', onTap: () {/* TODO: navigate to delivery history */}),
+          _MoreDashboardItem(icon: Icons.pending_actions, label: 'Đơn chờ GH', onTap: () {/* TODO: navigate to pending delivery */}),
+          _MoreDashboardItem(icon: Icons.cancel, label: 'Thất bại', onTap: () {/* TODO: navigate to failed delivery */}),
+        ]),
+        const SizedBox(height: 10),
+        _buildGroup('Nhân viên', [
+          _MoreDashboardItem(icon: Icons.badge, label: 'Bảng lương', onTap: () {/* TODO: navigate to payroll */}),
+          _MoreDashboardItem(icon: Icons.calendar_month, label: 'Lịch làm', onTap: () {/* TODO: navigate to work calendar */}),
+          _MoreDashboardItem(icon: Icons.check_circle, label: 'Chấm công', onTap: () {/* TODO: navigate to attendance */}),
+          _MoreDashboardItem(icon: Icons.card_giftcard, label: 'Thưởng', onTap: () {/* TODO: navigate to bonus */}),
+          _MoreDashboardItem(icon: Icons.warning, label: 'Phạt', onTap: () {/* TODO: navigate to penalty */}),
+        ]),
+        const SizedBox(height: 10),
+        _buildGroup('Báo cáo', [
+          _MoreDashboardItem(icon: Icons.bar_chart, label: 'Doanh thu', onTap: () {/* TODO: navigate to revenue report */}),
+          _MoreDashboardItem(icon: Icons.inventory, label: 'Hàng tồn', onTap: () {/* TODO: navigate to stock report */}),
+        ]),
+        const SizedBox(height: 10),
+        _buildGroup('Tài chính', [
+          _MoreDashboardItem(icon: Icons.payments, label: 'Thanh toán', onTap: () {/* TODO: navigate to payment */}),
+          _MoreDashboardItem(icon: Icons.history, label: 'Lịch sử', onTap: () {/* TODO: navigate to payment history */}),
+        ]),
+        const SizedBox(height: 10),
+        // Các block cài đặt
+        _buildSettingsBlock(
+          title: 'CÀI ĐẶT CHUNG',
+          items: [
+            _SettingsListItem(icon: Icons.store, label: 'Thiết lập cửa hàng', onTap: () {/* TODO */}),
+            _SettingsListItem(icon: Icons.devices, label: 'Ứng dụng & thiết bị', onTap: () {/* TODO */}),
+            _SettingsListItem(icon: Icons.group, label: 'Quản lý người dùng', onTap: () {/* TODO */}),
+          ],
+        ),
+        _buildSettingsBlock(
+          title: 'HỖ TRỢ',
+          items: [
+            _SettingsListItem(icon: Icons.help_outline, label: 'Hướng dẫn sử dụng', onTap: () {/* TODO */}),
+            _SettingsListItem(icon: Icons.chat, label: 'Chat với KiotViet', onTap: () {/* TODO */}),
+            _SettingsListItem(icon: Icons.phone, label: 'Gọi tổng đài 19006522', onTap: () {/* TODO */}),
+            _SettingsListItem(icon: Icons.support_agent, label: 'Chuyên viên hỗ trợ qua Zalo', onTap: () {/* TODO */}),
+            _SettingsListItem(icon: Icons.smart_toy, label: 'Gọi trợ lý ảo AI free', onTap: () {/* TODO */}),
+          ],
+        ),
+        _buildSettingsBlock(
+          title: 'KHÁC',
+          items: [
+            _SettingsListItem(icon: Icons.language, label: 'Ngôn ngữ', onTap: () {/* TODO */}),
+            _SettingsListItem(icon: Icons.description, label: 'Điều khoản sử dụng', onTap: () {/* TODO */}),
+            _SettingsListItem(icon: Icons.logout, label: 'Đăng xuất', onTap: () {/* TODO: logout */}, isDestructive: true),
+          ],
+        ),
+      ],
+    );
   }
 }
 
@@ -662,384 +877,7 @@ class _Header extends StatelessWidget {
       child: Row(
         children: [
           // Ẩn hoàn toàn header
-          // const SizedBox(width: 8),
-          // const Text(
-          //   'VET-POS',
-          //   style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20),
-          // ),
         ],
-      ),
-    );
-  }
-}
-
-class _Sidebar extends StatefulWidget {
-  final bool isOpen;
-  final MainPage currentPage;
-  final Function(MainPage) onItemTap;
-  final Map<String, bool> openMenus;
-  final Function(String, bool) onMenuToggle;
-  const _Sidebar({
-    this.isOpen = true, 
-    required this.currentPage, 
-    required this.onItemTap,
-    required this.openMenus,
-    required this.onMenuToggle,
-  });
-
-  @override
-  State<_Sidebar> createState() => _SidebarState();
-}
-
-class _SidebarState extends State<_Sidebar> {
-  Widget _sidebarParentItem({
-    required Widget icon,
-    required String label,
-    required bool open,
-    required VoidCallback onTap,
-    bool selected = false,
-  }) {
-    return _SidebarParentItemWidget(
-      icon: icon,
-      label: label,
-      open: open,
-      onTap: onTap,
-      selected: selected,
-    );
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: widget.isOpen ? 290 : 70,
-      decoration: BoxDecoration(
-        color: Colors.white,
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.04),
-            blurRadius: 12,
-            offset: Offset(2, 0),
-          ),
-        ],
-      ),
-      child: ListView(
-        padding: const EdgeInsets.symmetric(vertical: 8),
-        children: [
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 16),
-            child: Row(
-              children: [
-                SvgPicture.asset(
-                  'assets/icons/tag_icon.svg',
-                  width: 20,
-                  height: 20,
-                  color: primaryBlue,
-                ),
-                const SizedBox(width: 8),
-                Text(
-                  'VET-POS',
-                  style: TextStyle(
-                    fontWeight: FontWeight.w700,
-                    fontSize: 18,
-                    color: Color(0xFF1F2937),
-                  ),
-                ),
-              ],
-            ),
-          ),
-
-          _SidebarItem(
-            icon: SvgPicture.asset('assets/icons/databoard.svg', width: 16, height: 16),    
-            label: 'Dashboard',
-            selected: widget.currentPage == MainPage.dashboard,
-            isOpen: widget.isOpen,
-            onTap: () => widget.onItemTap(MainPage.dashboard),
-          ),
-
-          _sidebarParentItem(
-            icon: SvgPicture.asset('assets/icons/products.svg', width: 16, height: 16),
-            label: 'Sản phẩm',
-            open: widget.openMenus['product']!,
-            selected: false,
-            onTap: () => widget.onMenuToggle('product', !widget.openMenus['product']!),
-          ),
-          if (widget.openMenus['product']!)
-            _submenuIndent(
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _SidebarItem(
-                    icon: SvgPicture.asset('assets/icons/products.svg', width: 16, height: 16),
-                    label: 'Tất cả sản phẩm',
-                    selected: widget.currentPage == MainPage.productList,
-                    isOpen: widget.isOpen,
-                    onTap: () => widget.onItemTap(MainPage.productList),
-                  ),
-                  _SidebarItem(
-                    icon: SvgPicture.asset('assets/icons/list_products.svg', width: 16, height: 16),
-                    label: 'Danh mục sản phẩm',
-                    selected: widget.currentPage == MainPage.productCategory,
-                    isOpen: widget.isOpen,
-                    onTap: () => widget.onItemTap(MainPage.productCategory),
-                  ),
-                ],
-              ),
-            ),
-
-          _SidebarItem(
-            icon: const Icon(Icons.business_outlined, size: 16),
-            label: 'Nhà cung cấp',
-            selected: widget.currentPage == MainPage.companies,
-            isOpen: widget.isOpen,
-            onTap: () => widget.onItemTap(MainPage.companies),
-          ),
-
-          _sidebarParentItem(
-            icon: const Icon(Icons.shopping_cart_outlined, size: 16),
-            label: 'Đơn hàng',
-            open: widget.openMenus['order']!,
-            selected: false,
-            onTap: () => widget.onMenuToggle('order', !widget.openMenus['order']!),
-          ),
-          if (widget.openMenus['order']!)
-            _submenuIndent(
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _SidebarItem(
-                    icon: const Icon(Icons.add_shopping_cart, size: 16),
-                    label: 'Tạo đơn hàng',
-                    selected: widget.currentPage == MainPage.orderCreate,
-                    isOpen: widget.isOpen,
-                    onTap: () => widget.onItemTap(MainPage.orderCreate),
-                  ),
-                ],
-              ),
-            ),
-
-          _sidebarParentItem(
-            icon: const Icon(Icons.people_outline, size: 16),
-            label: 'Khách hàng',
-            open: widget.openMenus['customer']!,
-            selected: false,
-            onTap: () => widget.onMenuToggle('customer', !widget.openMenus['customer']!),
-          ),
-          if (widget.openMenus['customer']!)
-            _submenuIndent(
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _SidebarItem(
-                    icon: const Icon(Icons.list, size: 16),
-                    label: 'Danh sách khách hàng',
-                    selected: widget.currentPage == MainPage.customers,
-                    isOpen: widget.isOpen,
-                    onTap: () => widget.onItemTap(MainPage.customers),
-                  ),
-                ],
-              ),
-            ),
-
-          _SidebarItem(
-            icon: SvgPicture.asset('assets/icons/inventory.svg', width: 16, height: 16),
-            label: 'Kiểm kê kho',
-            selected: widget.currentPage == MainPage.inventory,
-            isOpen: widget.isOpen,
-            onTap: () => widget.onItemTap(MainPage.inventory),
-          ),
-
-          _SidebarItem(
-            icon: SvgPicture.asset('assets/icons/order.svg', width: 16, height: 16),
-            label: 'Import Hóa đơn',
-            selected: widget.currentPage == MainPage.invoiceImportList,
-            isOpen: widget.isOpen,
-            onTap: () => widget.onItemTap(MainPage.invoiceImportList),
-          ),
-
-          _SidebarItem(
-            icon: Icon(Icons.palette, size: 16),
-            label: 'Style Guide',
-            selected: widget.currentPage == MainPage.styleGuide,
-            isOpen: widget.isOpen,
-            onTap: () => widget.onItemTap(MainPage.styleGuide),
-          ),
-
-          _SidebarItem(
-            icon: Icon(Icons.settings_outlined, size: 16),
-            label: 'Cài đặt',
-            selected: widget.currentPage == MainPage.settings,
-            isOpen: widget.isOpen,
-            onTap: () => widget.onItemTap(MainPage.settings),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _submenuIndent(Widget child, {double height = 0}) => Row(
-    crossAxisAlignment: CrossAxisAlignment.start,
-    children: [
-      Container(
-        width: 16,
-        margin: const EdgeInsets.only(left: 8, right: 0),
-        child: CustomPaint(
-          size: Size(1, height),
-          painter: _SidebarLinePainter(),
-        ),
-      ),
-      Expanded(
-        child: Padding(
-          padding: const EdgeInsets.only(left: 4),
-          child: child,
-        ),
-      ),
-    ],
-  );
-}
-
-class _SidebarLinePainter extends CustomPainter {
-  @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = borderColor
-      ..strokeWidth = 1.2;
-    canvas.drawLine(Offset(size.width / 2, 0), Offset(size.width / 2, size.height), paint);
-  }
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
-}
-
-class _SidebarItem extends StatefulWidget {
-  final Widget icon;
-  final String label;
-  final bool selected;
-  final bool isOpen;
-  final VoidCallback? onTap;
-  const _SidebarItem({
-    required this.icon,
-    required this.label,
-    this.selected = false,
-    this.isOpen = true,
-    this.onTap,
-  });
-
-  @override
-  State<_SidebarItem> createState() => _SidebarItemState();
-}
-
-class _SidebarItemState extends State<_SidebarItem> {
-  bool _isHovering = false;
-
-  @override
-  Widget build(BuildContext context) {
-    final bool showHighlight = widget.selected;
-    final bool showHover = _isHovering && !widget.selected;
-
-    return MouseRegion(
-      onEnter: (_) => setState(() => _isHovering = true),
-      onExit: (_) => setState(() => _isHovering = false),
-      child: GestureDetector(
-        onTap: widget.onTap,
-        child: Container(
-          height: 40,
-          margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-          decoration: BoxDecoration(
-            color: showHighlight ? primaryBlue : (showHover ? primaryBlue.withOpacity(0.1) : Colors.transparent),
-            borderRadius: BorderRadius.circular(8),
-          ),
-          child: Row(
-            children: [
-              const SizedBox(width: 12),
-              widget.icon,
-              if (widget.isOpen) ...[
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Text(
-                    widget.label,
-                    style: TextStyle(
-                      color: showHighlight ? Colors.white : (showHover ? primaryBlue : Colors.black87),
-                      fontWeight: showHighlight ? FontWeight.w600 : FontWeight.w500,
-                      fontSize: 14,
-                    ),
-                  ),
-                ),
-              ],
-              const SizedBox(width: 12),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _SidebarParentItemWidget extends StatefulWidget {
-  final Widget icon;
-  final String label;
-  final bool open;
-  final VoidCallback onTap;
-  final bool selected;
-
-  const _SidebarParentItemWidget({
-    required this.icon,
-    required this.label,
-    required this.open,
-    required this.onTap,
-    this.selected = false,
-  });
-
-  @override
-  State<_SidebarParentItemWidget> createState() => _SidebarParentItemWidgetState();
-}
-
-class _SidebarParentItemWidgetState extends State<_SidebarParentItemWidget> {
-  bool _isHovering = false;
-
-  @override
-  Widget build(BuildContext context) {
-    final bool showHighlight = widget.selected;
-    final bool showHover = _isHovering && !widget.selected;
-
-    return MouseRegion(
-      onEnter: (_) => setState(() => _isHovering = true),
-      onExit: (_) => setState(() => _isHovering = false),
-      child: GestureDetector(
-        onTap: widget.onTap,
-        child: Container(
-          height: 40,
-          margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-          decoration: BoxDecoration(
-            color: showHighlight ? primaryBlue : (showHover ? primaryBlue.withOpacity(0.1) : Colors.transparent),
-            borderRadius: BorderRadius.circular(8),
-          ),
-          child: Row(
-            children: [
-              const SizedBox(width: 12),
-              widget.icon,
-              const SizedBox(width: 12),
-              Expanded(
-                child: Text(
-                  widget.label,
-                  style: TextStyle(
-                    color: showHighlight ? Colors.white : (showHover ? primaryBlue : Colors.black87),
-                    fontWeight: showHighlight ? FontWeight.w600 : FontWeight.w500,
-                    fontSize: 14,
-                  ),
-                ),
-              ),
-              AnimatedRotation(
-                turns: widget.open ? 0.25 : 0,
-                duration: const Duration(milliseconds: 200),
-                child: Icon(
-                  Icons.chevron_right,
-                  size: 16,
-                  color: showHighlight ? Colors.white : (showHover ? primaryBlue : Colors.black54),
-                ),
-              ),
-              const SizedBox(width: 12),
-            ],
-          ),
-        ),
       ),
     );
   }
@@ -1050,13 +888,7 @@ class _NavItem extends StatelessWidget {
   final String label;
   final bool selected;
   final VoidCallback onTap;
-
-  const _NavItem({
-    required this.icon,
-    required this.label,
-    required this.selected,
-    required this.onTap,
-  });
+  const _NavItem({required this.icon, required this.label, required this.selected, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
@@ -1065,251 +897,17 @@ class _NavItem extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Container(
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              color: selected ? primaryBlue : Colors.transparent,
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: icon,
-          ),
-          const SizedBox(height: 4),
+          icon,
+          const SizedBox(height: 2),
           Text(
             label,
             style: TextStyle(
-              fontSize: 10,
-              color: selected ? primaryBlue : Colors.black54,
-              fontWeight: selected ? FontWeight.w600 : FontWeight.w500,
+              fontSize: 12,
+              fontWeight: FontWeight.w500,
+              color: selected ? const Color(0xFF16A34A) : Colors.grey,
             ),
           ),
         ],
-      ),
-    );
-  }
-}
-
-class _NavCenterButton extends StatelessWidget {
-  final Widget icon;
-  final String label;
-  final VoidCallback onTap;
-
-  const _NavCenterButton({
-    required this.icon,
-    required this.label,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Container(
-            width: 48,
-            height: 48,
-            decoration: BoxDecoration(
-              color: primaryBlue,
-              borderRadius: BorderRadius.circular(24),
-              boxShadow: [
-                BoxShadow(
-                  color: primaryBlue.withOpacity(0.3),
-                  blurRadius: 8,
-                  offset: Offset(0, 4),
-                ),
-              ],
-            ),
-            child: icon,
-          ),
-          const SizedBox(height: 4),
-          Text(
-            label,
-            style: TextStyle(
-              fontSize: 10,
-              color: primaryBlue,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class FilterSidebarContent extends StatelessWidget {
-  final VoidCallback onClose;
-  final List<String> categories;
-  final List<String> tags;
-  final String selectedCategory;
-  final RangeValues priceRange;
-  final RangeValues stockRange;
-  final String status;
-  final Set<String> selectedTags;
-  final Function(String, RangeValues, RangeValues, String, Set<String>) onApply;
-  final VoidCallback onReset;
-
-  const FilterSidebarContent({
-    required this.onClose,
-    required this.categories,
-    required this.tags,
-    required this.selectedCategory,
-    required this.priceRange,
-    required this.stockRange,
-    required this.status,
-    required this.selectedTags,
-    required this.onApply,
-    required this.onReset,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                'Bộ lọc',
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              IconButton(
-                icon: Icon(Icons.close),
-                onPressed: onClose,
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          Text(
-            'Danh mục',
-            style: TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-          const SizedBox(height: 8),
-          // Category filter implementation would go here
-          const SizedBox(height: 24),
-          Row(
-            children: [
-              Expanded(
-                child: ElevatedButton(
-                  onPressed: () {
-                    onApply(selectedCategory, priceRange, stockRange, status, selectedTags);
-                  },
-                  child: Text('Áp dụng'),
-                ),
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: OutlinedButton(
-                  onPressed: onReset,
-                  child: Text('Đặt lại'),
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-// Widget nút truy cập nhanh
-class _QuickAccessButton extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final VoidCallback onTap;
-  const _QuickAccessButton({required this.icon, required this.label, required this.onTap});
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 6),
-      child: ElevatedButton.icon(
-        icon: Icon(icon, size: 22),
-        label: Text(label, style: const TextStyle(fontWeight: FontWeight.w600)),
-        style: ElevatedButton.styleFrom(
-          minimumSize: const Size.fromHeight(44),
-          backgroundColor: Colors.white,
-          foregroundColor: Colors.black,
-          elevation: 0,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10), side: const BorderSide(color: Color(0xFFE0E0E0))),
-          alignment: Alignment.centerLeft,
-          padding: const EdgeInsets.symmetric(horizontal: 16),
-        ),
-        onPressed: onTap,
-      ),
-    );
-  }
-}
-
-class _QuickAccessGridButton extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final VoidCallback onTap;
-
-  const _QuickAccessGridButton({
-    required this.icon,
-    required this.label,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(16),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.06),
-              blurRadius: 10,
-              offset: Offset(0, 2),
-            ),
-          ],
-        ),
-        margin: const EdgeInsets.all(2),
-        padding: const EdgeInsets.symmetric(vertical: 18, horizontal: 8),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Container(
-              width: 44,
-              height: 44,
-              decoration: BoxDecoration(
-                color: primaryBlue.withOpacity(0.10),
-                shape: BoxShape.circle,
-              ),
-              child: Center(
-                child: Icon(
-                  icon,
-                  size: 24,
-                  color: primaryBlue,
-                ),
-              ),
-            ),
-            const SizedBox(height: 12),
-            Text(
-              label,
-              style: TextStyle(
-                fontSize: 14,
-                color: primaryBlue,
-                fontWeight: FontWeight.w600,
-              ),
-              textAlign: TextAlign.center,
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-            ),
-          ],
-        ),
       ),
     );
   }

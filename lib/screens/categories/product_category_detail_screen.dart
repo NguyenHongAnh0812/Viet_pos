@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import '../models/product_category.dart';
-import '../models/product.dart';
-import '../services/product_category_service.dart';
-import '../services/product_service.dart';
-import '../widgets/common/design_system.dart';
+import '../../models/product_category.dart';
+import '../../models/product.dart';
+import '../../services/product_category_service.dart';
+import '../../services/product_service.dart';
+import '../../widgets/common/design_system.dart';
 
 // --- Enums and Classes copied from add_product_category_screen.dart ---
 enum ProductField { salePrice, costPrice, tags, stockSystem }

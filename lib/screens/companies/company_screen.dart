@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import '../models/company.dart';
-import '../services/company_service.dart';
-import '../widgets/common/design_system.dart';
-import '../widgets/main_layout.dart';
+import '../../models/company.dart';
+import '../../services/company_service.dart';
+import '../../widgets/common/design_system.dart';
+import '../../widgets/main_layout.dart';
 
 class CompanyScreen extends StatefulWidget {
   final Function(Company) onCompanySelected;
