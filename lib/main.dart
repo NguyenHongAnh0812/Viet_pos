@@ -31,7 +31,7 @@ class MyApp extends StatelessWidget {
       title: 'VET-POS',
       debugShowCheckedModeBanner: false,
       theme: lightTheme,
-      home: const LoginScreen(),
+      home: const MainLayout(),
       routes: {
         '/login': (context) => const LoginScreen(),
         '/main': (context) => const MainLayout(),
