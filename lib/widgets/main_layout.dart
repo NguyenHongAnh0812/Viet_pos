@@ -326,7 +326,12 @@ class MainLayoutState extends State<MainLayout> {
               mainAxisAlignment: MainAxisAlignment.spaceAround,
               children: [
                 _NavItem(
-                  icon: Icon(Icons.description, color: _currentPage == MainPage.dashboard ? Colors.green : Colors.grey, size: 28),
+                  icon: SvgPicture.asset(
+                    'assets/icons/tag_icon.svg', 
+                    width: 20,
+                    height: 20,
+                    color: Colors.green,
+                  ),
                   label: 'Tổng quan',
                   selected: _currentPage == MainPage.dashboard,
                   onTap: () => _onNavTap(0),
@@ -519,7 +524,123 @@ class MainLayoutState extends State<MainLayout> {
           onSidebarTap(MainPage.companies);
           break;
         case 4:
-          onSidebarTap(MainPage.settings);
+          showModalBottomSheet(
+            context: context,
+            isScrollControlled: true,
+            backgroundColor: Colors.transparent,
+            builder: (context) => Container(
+              height: MediaQuery.of(context).size.height * 0.95,
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: const BorderRadius.only(
+                  topLeft: Radius.circular(24),
+                  topRight: Radius.circular(24),
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.08),
+                    blurRadius: 16,
+                    offset: const Offset(0, -4),
+                  ),
+                ],
+              ),
+              child: SafeArea(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 20),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.max,
+                    children: [
+                      Container(
+                        width: 40,
+                        height: 4,
+                        margin: const EdgeInsets.only(bottom: 24),
+                        decoration: BoxDecoration(
+                          color: Colors.grey[300],
+                          borderRadius: BorderRadius.circular(2),
+                        ),
+                      ),
+                      Expanded(
+                        child: GridView.count(
+                          crossAxisCount: 2,
+                          mainAxisSpacing: 18,
+                          crossAxisSpacing: 18,
+                          childAspectRatio: 1.35,
+                          physics: const BouncingScrollPhysics(),
+                          padding: EdgeInsets.zero,
+                          children: [
+                            _QuickAccessGridButton(
+                              icon: Icons.inventory_2,
+                              label: 'Danh sách sản phẩm',
+                              onTap: () {
+                                Navigator.pop(context);
+                                onSidebarTap(MainPage.productList);
+                              },
+                            ),
+                            _QuickAccessGridButton(
+                              icon: Icons.add_box,
+                              label: 'Thêm sản phẩm',
+                              onTap: () {
+                                Navigator.pop(context);
+                                onSidebarTap(MainPage.addProduct);
+                              },
+                            ),
+                            _QuickAccessGridButton(
+                              icon: Icons.inventory,
+                              label: 'Kiểm kê kho',
+                              onTap: () {
+                                Navigator.pop(context);
+                                onSidebarTap(MainPage.inventory);
+                              },
+                            ),
+                            _QuickAccessGridButton(
+                              icon: Icons.business,
+                              label: 'Nhà cung cấp',
+                              onTap: () {
+                                Navigator.pop(context);
+                                onSidebarTap(MainPage.companies);
+                              },
+                            ),
+                            _QuickAccessGridButton(
+                              icon: Icons.people,
+                              label: 'Người dùng',
+                              onTap: () {
+                                Navigator.pop(context);
+                                onSidebarTap(MainPage.customers);
+                              },
+                            ),
+                            _QuickAccessGridButton(
+                              icon: Icons.settings,
+                              label: 'Cài đặt',
+                              onTap: () {
+                                Navigator.pop(context);
+                                onSidebarTap(MainPage.settings);
+                              },
+                            ),
+                            _QuickAccessGridButton(
+                              icon: Icons.file_upload,
+                              label: 'Import hóa đơn',
+                              onTap: () {
+                                Navigator.pop(context);
+                                onSidebarTap(MainPage.invoiceImportList);
+                              },
+                            ),
+                            _QuickAccessGridButton(
+                              icon: Icons.palette,
+                              label: 'Style Guide',
+                              onTap: () {
+                                Navigator.pop(context);
+                                onSidebarTap(MainPage.styleGuide);
+                              },
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          );
           break;
       }
     });
@@ -1095,6 +1216,100 @@ class FilterSidebarContent extends StatelessWidget {
             ],
           ),
         ],
+      ),
+    );
+  }
+}
+
+// Widget nút truy cập nhanh
+class _QuickAccessButton extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final VoidCallback onTap;
+  const _QuickAccessButton({required this.icon, required this.label, required this.onTap});
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 6),
+      child: ElevatedButton.icon(
+        icon: Icon(icon, size: 22),
+        label: Text(label, style: const TextStyle(fontWeight: FontWeight.w600)),
+        style: ElevatedButton.styleFrom(
+          minimumSize: const Size.fromHeight(44),
+          backgroundColor: Colors.white,
+          foregroundColor: Colors.black,
+          elevation: 0,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10), side: const BorderSide(color: Color(0xFFE0E0E0))),
+          alignment: Alignment.centerLeft,
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+        ),
+        onPressed: onTap,
+      ),
+    );
+  }
+}
+
+class _QuickAccessGridButton extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final VoidCallback onTap;
+
+  const _QuickAccessGridButton({
+    required this.icon,
+    required this.label,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.06),
+              blurRadius: 10,
+              offset: Offset(0, 2),
+            ),
+          ],
+        ),
+        margin: const EdgeInsets.all(2),
+        padding: const EdgeInsets.symmetric(vertical: 18, horizontal: 8),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              width: 44,
+              height: 44,
+              decoration: BoxDecoration(
+                color: primaryBlue.withOpacity(0.10),
+                shape: BoxShape.circle,
+              ),
+              child: Center(
+                child: Icon(
+                  icon,
+                  size: 24,
+                  color: primaryBlue,
+                ),
+              ),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 14,
+                color: primaryBlue,
+                fontWeight: FontWeight.w600,
+              ),
+              textAlign: TextAlign.center,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ],
+        ),
       ),
     );
   }
