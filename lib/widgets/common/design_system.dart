@@ -14,8 +14,9 @@ const Color warningOrange = Color(0xFFFFB547); // --warning
 const Color destructiveRed = Color(0xFFFF5A5F); // --destructive
 const Color borderColor = Color(0xFFE5E7EB); // --border
 
-const Color appBackground = Color(0xFFF7F9FC); // --background (changed to white)
-const Color cardBackground = Color(0xFFFFFFFF); // --card
+const Color appBackground = Color(0xFFF0FDF4); // --background
+const Color cardBackground = Color(0xFFFFFFFF);
+const Color homePageBackground = Color(0xF0FDF4FF); // --card
 const Color textPrimary = Color(0xFF1E1E1E); // --foreground
 const Color textSecondary = Color(0xFF71717A); // --muted-foreground
 const Color textMuted = Color(0xFF71717A); // --muted-foreground
@@ -283,21 +284,6 @@ Card designSystemFormCard({required Widget child, String? title, EdgeInsetsGeome
       ],
     ),
   ),
-);
-
-// Box decoration for manual card styling
-BoxDecoration cardDecoration = BoxDecoration(
-  color: cardBackground,
-  borderRadius: BorderRadius.circular(borderRadiusMedium),
-  boxShadow: const [
-    BoxShadow(
-      color: Color(0x0A000000),
-      offset: Offset(0, 1),
-      blurRadius: 3,
-      spreadRadius: 0,
-    ),
-  ],
-  border: Border.all(color: borderColor, width: 1),
 );
 
 // ===================== INPUT =====================
@@ -815,20 +801,6 @@ Future<T?> showDesignSystemAlert<T>({
   );
 }
 
-// Dialog decoration for manual styling
-BoxDecoration dialogDecoration = BoxDecoration(
-  color: cardBackground,
-  borderRadius: BorderRadius.circular(borderRadiusLarge),
-  boxShadow: const [
-    BoxShadow(
-      color: Color(0x1A000000),
-      offset: Offset(0, 8),
-      blurRadius: 24,
-      spreadRadius: 0,
-    ),
-  ],
-);
-
 // Bottom sheet modal
 Future<T?> showDesignSystemBottomSheet<T>({
   required BuildContext context,
@@ -1239,18 +1211,6 @@ List<Widget> _withGap(List<Widget> children, double gap) {
     result.add(children[i]);
     if (i < children.length - 1) {
       result.add(SizedBox(width: gap));
-    }
-  }
-  return result;
-}
-
-List<Widget> _withVerticalGap(List<Widget> children, double gap) {
-  if (children.isEmpty) return [];
-  final List<Widget> result = [];
-  for (int i = 0; i < children.length; i++) {
-    result.add(children[i]);
-    if (i < children.length - 1) {
-      result.add(SizedBox(height: gap));
     }
   }
   return result;

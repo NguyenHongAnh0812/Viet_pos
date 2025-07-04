@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import '../../widgets/common/design_system_update.dart';
 import '../../widgets/common/design_system.dart';
 import 'package:intl/intl.dart';
 import 'package:flutter_svg/flutter_svg.dart';

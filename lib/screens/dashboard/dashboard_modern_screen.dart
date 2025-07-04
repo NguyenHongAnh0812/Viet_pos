@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
-import '../../widgets/common/design_system_update.dart';
+import 'package:flutter_svg/flutter_svg.dart';
+import '../../widgets/common/design_system.dart';
 
 class DashboardModernScreen extends StatelessWidget {
   const DashboardModernScreen({Key? key}) : super(key: key);
@@ -7,163 +8,197 @@ class DashboardModernScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppDesignSystem.secondaryColor,
-      body: Column(
-        children: [
-          // Header logo block
-          Container(
-            width: double.infinity,
-            color: Colors.white,
-            padding: const EdgeInsets.symmetric(vertical: 28),
-            child: Center(
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Container(
-                    width: 40,
-                    height: 40,
-                    decoration: BoxDecoration(
-                      color: AppDesignSystem.primaryColor.withOpacity(0.1),
-                      shape: BoxShape.circle,
-                    ),
-                    child: const Center(
-                      child: Icon(Icons.favorite, color: AppDesignSystem.primaryColor, size: 28),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text('VetPharm', style: AppDesignSystem.headingLg.copyWith(color: AppDesignSystem.primaryColor)),
-                      Text('Nhà thuốc thú y', style: AppDesignSystem.textSm.copyWith(color: AppDesignSystem.primaryColor.withOpacity(0.7))),
-                    ],
-                  ),
-                ],
-              ),
-            ),
+      backgroundColor: Colors.transparent,
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              Color(0xFFF0FDF4), // #f0fdf4
+              Color(0xFFEFF6FF), // #eff6ff
+            ],
           ),
-          // Main content scrollable
-          Expanded(
-            child: Center(
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 484),
-                child: SingleChildScrollView(
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 32.0),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        // Welcome
-                        Text('Chào mừng bạn trở lại!', style: AppDesignSystem.headingLg),
-                        const SizedBox(height: 4),
-                        Text('Quản lý nhà thuốc thú y một cách hiệu quả', style: AppDesignSystem.textBase.copyWith(color: AppDesignSystem.mutedForegroundColor)),
-                        const SizedBox(height: 32),
-                        // Quick Stats
-                        Container(
-                          width: double.infinity,
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(16),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black.withOpacity(0.04),
-                                blurRadius: 8,
-                                offset: Offset(0, 2),
-                              ),
-                            ],
-                          ),
-                          padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 20),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text('Thống kê nhanh hôm nay', style: AppDesignSystem.textBase.copyWith(fontWeight: FontWeight.bold)),
-                              const SizedBox(height: 20),
-                              Row(
-                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                children: [
-                                  _StatItem(value: '12', label: 'Đơn hàng', color: AppDesignSystem.successColor),
-                                  _StatItem(value: '2.4M', label: 'Doanh thu', color: AppDesignSystem.infoColor, isBold: true),
-                                  _StatItem(value: '156', label: 'Sản phẩm', color: AppDesignSystem.warningColor),
-                                ],
-                              ),
-                            ],
-                          ),
-                        ),
-                        const SizedBox(height: 24),
-                        // Quick Actions
-                        Container(
-                          width: double.infinity,
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(16),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black.withOpacity(0.04),
-                                blurRadius: 8,
-                                offset: Offset(0, 2),
-                              ),
-                            ],
-                          ),
-                          padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 20),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text('Thao tác nhanh', style: AppDesignSystem.textLg.copyWith(fontWeight: FontWeight.bold)),
-                              const SizedBox(height: 16),
-                              Row(
-                                children: [
-                                  // Tìm sản phẩm
-                                  Expanded(
-                                    child: SizedBox(
-                                      height: 44,
-                                      child: OutlinedButton.icon(
-                                        style: OutlinedButton.styleFrom(
-                                          foregroundColor: AppDesignSystem.foregroundColor,
-                                          side: const BorderSide(color: AppDesignSystem.borderColor),
-                                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                                          backgroundColor: Colors.white,
-                                          textStyle: AppDesignSystem.textBase,
-                                        ),
-                                        onPressed: () {},
-                                        icon: const Icon(Icons.search, size: 20),
-                                        label: const Text('Tìm sản phẩm'),
-                                      ),
-                                    ),
-                                  ),
-                                  const SizedBox(width: 12),
-                                  // Quét mã
-                                  Expanded(
-                                    child: SizedBox(
-                                      height: 44,
-                                      child: OutlinedButton.icon(
-                                        style: OutlinedButton.styleFrom(
-                                          foregroundColor: AppDesignSystem.foregroundColor,
-                                          side: const BorderSide(color: AppDesignSystem.borderColor),
-                                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                                          backgroundColor: Colors.white,
-                                          textStyle: AppDesignSystem.textBase,
-                                        ),
-                                        onPressed: () {},
-                                        icon: const Icon(Icons.qr_code_scanner, size: 20),
-                                        label: const Text('Quét mã'),
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ],
-                          ),
-                        ),
-                        const SizedBox(height: 80),
-                      ],
+        ),
+        child: Column(
+          children: [
+            // Header logo block
+            SafeArea(
+              top: true,
+              bottom: false,
+              child: Container(
+                width: double.infinity,
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.08),
+                      blurRadius: 12,
+                      offset: Offset(0, 4),
                     ),
+                  ],
+                ),
+                padding: const EdgeInsets.symmetric(vertical: 18),
+                child: Center(
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Container(
+                        width: 40,
+                        height: 40,
+                        decoration: BoxDecoration(
+                          color: primaryBlue,
+                          shape: BoxShape.circle,
+                        ),
+                        child: Center(
+                          child: SvgPicture.asset(
+                            'assets/icons/new_icon/favorite.svg',
+                            width: 28,
+                            height: 28,
+                            colorFilter: ColorFilter.mode(appBackground, BlendMode.srcIn),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text('VetPharm', style: responsiveTextStyle(context, h1, h1Mobile).copyWith(color: textPrimary)),
+                          Text('Nhà thuốc thú y', style: responsiveTextStyle(context, bodySmall.copyWith(color: primaryBlue), smallMobile.copyWith(color: primaryBlue))),
+                        ],
+                      ),
+                    ],
                   ),
                 ),
               ),
             ),
-          ),
-        ],
+            // Main content scrollable
+            Expanded(
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 484),
+                  child: SingleChildScrollView(
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          // Welcome
+                          Text('Chào mừng bạn trở lại!', style: responsiveTextStyle(context, h1, h1Mobile)),
+                          const SizedBox(height: 4),
+                          Text('Quản lý nhà thuốc thú y một cách hiệu quả', style: responsiveTextStyle(context, body, bodyMobile).copyWith(color: textSecondary)),
+                          const SizedBox(height: 32),
+                          // Quick Stats
+                          Container(
+                            width: double.infinity,
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(16),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black.withOpacity(0.04),
+                                  blurRadius: 8,
+                                  offset: Offset(0, 2),
+                                ),
+                              ],
+                            ),
+                            padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 20),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text('Thống kê nhanh hôm nay', style: responsiveTextStyle(context, body, bodyMobile).copyWith(fontWeight: FontWeight.bold)),
+                                const SizedBox(height: 20),
+                                Row(
+                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    _StatItem(value: '12', label: 'Đơn hàng', color: successGreen),
+                                    _StatItem(value: '2.4M', label: 'Doanh thu', color: infoBlue, isBold: true),
+                                    _StatItem(value: '156', label: 'Sản phẩm', color: warningOrange),
+                                  ],
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(height: 24),
+                          // Quick Actions
+                          Container(
+                            width: double.infinity,
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(16),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black.withOpacity(0.04),
+                                  blurRadius: 8,
+                                  offset: Offset(0, 2),
+                                ),
+                              ],
+                            ),
+                            padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 20),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text('Thao tác nhanh', style: responsiveTextStyle(context, h3, h3Mobile).copyWith(fontWeight: FontWeight.bold)),
+                                const SizedBox(height: 16),
+                                Row(
+                                  children: [
+                                    // Tìm sản phẩm
+                                    Expanded(
+                                      child: SizedBox(
+                                        height: 44,
+                                        child: OutlinedButton.icon(
+                                          style: OutlinedButton.styleFrom(
+                                            foregroundColor: textPrimary,
+                                            side: const BorderSide(color: borderColor),
+                                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                                            backgroundColor: Colors.white,
+                                            textStyle: responsiveTextStyle(context, body, bodyMobile),
+                                          ),
+                                          onPressed: () {},
+                                          icon: const Icon(Icons.search, size: 20),
+                                          label: Text(
+                                            'Tìm sản phẩm',
+                                            style: responsiveTextStyle(context, labelLarge, labelSmall),
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                    const SizedBox(width: 12),
+                                    // Quét mã
+                                    Expanded(
+                                      child: SizedBox(
+                                      height: 44,
+                                        child: OutlinedButton.icon(
+                                          style: OutlinedButton.styleFrom(
+                                            foregroundColor: textPrimary,
+                                            side: const BorderSide(color: borderColor),
+                                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                                            backgroundColor: Colors.white,
+                                            textStyle: responsiveTextStyle(context, body, bodyMobile),
+                                          ),
+                                          onPressed: () {},
+                                          icon: const Icon(Icons.qr_code_scanner, size: 20),
+                                          label: Text(
+                                            'Quét mã',
+                                            style: responsiveTextStyle(context, labelLarge, labelSmall),
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(height: 80),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+          ],
+        ),
       ),
       // bottomNavigationBar: Center(
       //   child: ConstrainedBox(
@@ -188,7 +223,7 @@ class _StatItem extends StatelessWidget {
       children: [
         Text(
           value,
-          style: AppDesignSystem.headingLg.copyWith(
+          style: responsiveTextStyle(context, h1, h1Mobile).copyWith(
             color: color,
             fontWeight: isBold ? FontWeight.bold : FontWeight.w700,
             fontSize: 24,
@@ -197,7 +232,7 @@ class _StatItem extends StatelessWidget {
         const SizedBox(height: 4),
         Text(
           label,
-          style: AppDesignSystem.textSm.copyWith(color: AppDesignSystem.mutedForegroundColor),
+          style: responsiveTextStyle(context, bodySmall, smallMobile).copyWith(color: textSecondary),
         ),
       ],
     );
@@ -247,9 +282,12 @@ class _NavItem extends StatelessWidget {
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Icon(icon, color: selected ? AppDesignSystem.primaryColor : AppDesignSystem.mutedForegroundColor),
+        Icon(icon, color: selected ? primaryBlue : textSecondary),
         const SizedBox(height: 2),
-        Text(label, style: AppDesignSystem.textXs.copyWith(color: selected ? AppDesignSystem.primaryColor : AppDesignSystem.mutedForegroundColor)),
+        Text(
+          label,
+          style: responsiveTextStyle(context, labelSmall, captionMobile).copyWith(color: selected ? primaryBlue : textSecondary),
+        ),
       ],
     );
   }
