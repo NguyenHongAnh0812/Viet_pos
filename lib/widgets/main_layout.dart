@@ -543,10 +543,10 @@ class MainLayoutState extends State<MainLayout> {
                     'assets/icons/new_icon/other.svg', 
                     width: 20,
                     height: 20,
-                    color: _currentPage == MainPage.settings ? Colors.green : Colors.grey
+                    color: _currentPage == MainPage.moreDashboard ? Colors.green : Colors.grey
                   ),
                   label: 'Thêm',
-                  selected: _currentPage == MainPage.settings,
+                  selected: _currentPage == MainPage.moreDashboard,
                   onTap: () => _onNavTap(4),
                   ),
                 ],
@@ -591,9 +591,9 @@ class _StoreInfoBlock extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(storeName, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 16, color: Color(0xFF222B45))),
+                    Text(storeName, style: responsiveTextStyle(context, h4, h3Mobile)),
                     const SizedBox(height: 2),
-                    Text(role, style: const TextStyle(fontSize: 13, color: Color(0xFF6B7280))),
+                    Text(role, style: responsiveTextStyle(context, labelMedium.copyWith(color: textSecondary), labelSmall.copyWith(color: textSecondary))),
                 ],
               ),
             ),
@@ -617,10 +617,10 @@ class _StoreInfoBlock extends StatelessWidget {
                 borderRadius: BorderRadius.circular(10),
               ),
               child: Row(
-                children: const [
-                  Text('Thông tin cửa hàng', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14, color: Color(0xFF222B45))),
-                  Spacer(),
-                  Icon(Icons.chevron_right, color: Color(0xFFB0B4BA), size: 22),
+                children: [
+                  Text('Thông tin cửa hàng', style: responsiveTextStyle(context, labelLarge.copyWith(fontWeight: FontWeight.w600), labelMedium.copyWith(fontWeight: FontWeight.w600))),
+                  const Spacer(),
+                  const Icon(Icons.chevron_right, color: Color(0xFFB0B4BA), size: 22),
                 ],
               ),
         ),
@@ -656,7 +656,11 @@ class _MoreDashboardItem extends StatelessWidget {
           const SizedBox(height: 8),
           Text(
             label,
-            style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: Color(0xFF222B45)),
+            style: responsiveTextStyle(
+              context,
+              labelMedium.copyWith(color: textPrimary),
+              labelSmall.copyWith(color: textPrimary),
+            ),
             textAlign: TextAlign.center,
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
@@ -687,10 +691,16 @@ class _SettingsListItem extends StatelessWidget {
               Expanded(
                 child: Text(
                 label,
-                  style: TextStyle(
-                  fontSize: 15,
-                  fontWeight: FontWeight.w500,
-                  color: isDestructive ? Colors.red : const Color(0xFF222B45),
+                  style: responsiveTextStyle(
+                    context,
+                    labelLarge.copyWith(
+                      fontWeight: FontWeight.w500,
+                      color: isDestructive ? Colors.red : textPrimary,
+                    ),
+                    labelMedium.copyWith(
+                      fontWeight: FontWeight.w500,
+                      color: isDestructive ? Colors.red : textPrimary,
+                    ),
                   ),
                 ),
               ),
@@ -756,7 +766,16 @@ class _MoreDashboardSheetContent extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(title, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15, color: Color(0xFF222B45))),
+          Builder(
+            builder: (context) => Text(
+              title,
+              style: responsiveTextStyle(
+                context,
+                h4.copyWith(fontWeight: FontWeight.w700),
+                h3Mobile.copyWith(fontWeight: FontWeight.w700),
+              ),
+            ),
+          ),
           const SizedBox(height: 14),
           GridView.count(
             crossAxisCount: 3,
@@ -792,7 +811,16 @@ class _MoreDashboardSheetContent extends StatelessWidget {
         children: [
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-            child: Text(title, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14, color: Color(0xFF222B45))),
+            child: Builder(
+              builder: (context) => Text(
+                title,
+                style: responsiveTextStyle(
+                  context,
+                  h4.copyWith(fontWeight: FontWeight.w700),
+                  h3Mobile.copyWith(fontWeight: FontWeight.w700),
+                ),
+              ),
+            ),
           ),
           ...items,
         ],
@@ -927,10 +955,10 @@ class _NavItem extends StatelessWidget {
           const SizedBox(height: 2),
           Text(
             label,
-            style: TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.w500,
-              color: selected ? const Color(0xFF16A34A) : Colors.grey,
+            style: responsiveTextStyle(
+              context,
+              labelMedium.copyWith(color: selected ? const Color(0xFF16A34A) : Colors.grey),
+              labelSmall.copyWith(color: selected ? const Color(0xFF16A34A) : Colors.grey),
             ),
           ),
         ],
