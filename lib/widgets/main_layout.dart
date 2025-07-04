@@ -30,6 +30,7 @@ import '../models/product.dart';
 import '../models/company.dart';
 import '../models/product_category.dart';
 import '../screens/settings_screen.dart';
+import '../screens/example_standard_screen.dart';
 
 // Định nghĩa enum cho các trang
 enum MainPage { 
@@ -57,7 +58,8 @@ enum MainPage {
   addCustomer,
   customerDetail,
   orderCreate,
-  moreDashboard
+  moreDashboard,
+  demoLayout,
 }
 
 class MainLayout extends StatefulWidget {
@@ -320,8 +322,8 @@ class MainLayoutState extends State<MainLayout> {
         );
       case MainPage.productCategory:
         return ProductCategoryScreen(
-          onNavigate: onSidebarTap,
-          onCategorySelected: _openCategoryDetail,
+           onNavigate: onSidebarTap,
+           onCategorySelected: _openCategoryDetail,
         );
       case MainPage.addProduct:
         return AddProductScreen(
@@ -436,6 +438,8 @@ class MainLayoutState extends State<MainLayout> {
         return OrderCreateScreen();
       case MainPage.moreDashboard:
         return MoreDashboardScreen(onNavigate: onSidebarTap);
+      case MainPage.demoLayout:
+        return const ExampleStandardScreen();
       default:
         return const DashboardModernScreen();
     }
@@ -462,7 +466,7 @@ class MainLayoutState extends State<MainLayout> {
           break;
       }
     });
-  }
+}
 
   @override
   Widget build(BuildContext context) {
@@ -474,27 +478,27 @@ class MainLayoutState extends State<MainLayout> {
         ],
       ),
       bottomNavigationBar: Container(
-        decoration: BoxDecoration(
-          color: Colors.white,
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.04),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.04),
               blurRadius: 8,
               offset: Offset(0, -2),
-            ),
-          ],
-        ),
+          ),
+        ],
+      ),
         child: SafeArea(
           child: Padding(
-            padding: const EdgeInsets.symmetric(vertical: 8),
+        padding: const EdgeInsets.symmetric(vertical: 8),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceAround,
               children: [
                 _NavItem(
                   icon: SvgPicture.asset(
                     'assets/icons/new_icon/overview.svg', 
-                    width: 20,
-                    height: 20,
+                  width: 20,
+                  height: 20,
                     color: _currentPage == MainPage.dashboard ? Colors.green : Colors.grey
                   ),
                   label: 'Tổng quan',
@@ -544,10 +548,10 @@ class MainLayoutState extends State<MainLayout> {
                   label: 'Thêm',
                   selected: _currentPage == MainPage.settings,
                   onTap: () => _onNavTap(4),
-                ),
-              ],
+                  ),
+                ],
+              ),
             ),
-          ),
         ),
       ),
     );
@@ -574,12 +578,12 @@ class _StoreInfoBlock extends StatelessWidget {
             color: Colors.black.withOpacity(0.03),
             blurRadius: 6,
             offset: const Offset(0, 2),
-          ),
-        ],
-      ),
+                  ),
+                ],
+              ),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -590,9 +594,9 @@ class _StoreInfoBlock extends StatelessWidget {
                     Text(storeName, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 16, color: Color(0xFF222B45))),
                     const SizedBox(height: 2),
                     Text(role, style: const TextStyle(fontSize: 13, color: Color(0xFF6B7280))),
-                  ],
-                ),
+                ],
               ),
+            ),
               IconButton(
                 icon: const Icon(Icons.edit, size: 18, color: Color(0xFF6B7280)),
                 onPressed: onEdit,
@@ -619,9 +623,9 @@ class _StoreInfoBlock extends StatelessWidget {
                   Icon(Icons.chevron_right, color: Color(0xFFB0B4BA), size: 22),
                 ],
               ),
-            ),
-          ),
-        ],
+        ),
+      ),
+    ],
       ),
     );
   }
@@ -643,10 +647,10 @@ class _MoreDashboardItem extends StatelessWidget {
           Container(
             width: 48,
             height: 48,
-            decoration: BoxDecoration(
+          decoration: BoxDecoration(
               color: const Color(0xFFF9FAFB),
-              borderRadius: BorderRadius.circular(8),
-            ),
+            borderRadius: BorderRadius.circular(8),
+          ),
             child: Icon(icon, color: const Color(0xFF16A34A), size: 28),
           ),
           const SizedBox(height: 8),
@@ -674,22 +678,22 @@ class _SettingsListItem extends StatelessWidget {
   Widget build(BuildContext context) {
     return InkWell(
       onTap: onTap,
-      child: Container(
+        child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-        child: Row(
-          children: [
+          child: Row(
+            children: [
             Icon(icon, color: isDestructive ? Colors.red : const Color(0xFF16A34A), size: 22),
             const SizedBox(width: 16),
-            Expanded(
-              child: Text(
+              Expanded(
+                child: Text(
                 label,
-                style: TextStyle(
+                  style: TextStyle(
                   fontSize: 15,
                   fontWeight: FontWeight.w500,
                   color: isDestructive ? Colors.red : const Color(0xFF222B45),
+                  ),
                 ),
               ),
-            ),
             Icon(Icons.chevron_right, color: isDestructive ? Colors.red : Colors.grey, size: 22),
           ],
         ),
@@ -710,9 +714,9 @@ class MoreDashboardScreen extends StatelessWidget {
         child: SingleChildScrollView(
           child: Padding(
             padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 12),
-            child: Column(
+      child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
+        children: [
                 _StoreInfoBlock(
                   storeName: 'Cửa hàng ABC',
                   role: 'Nhân viên kho',
@@ -772,17 +776,17 @@ class _MoreDashboardSheetContent extends StatelessWidget {
     return Container(
       margin: const EdgeInsets.only(bottom: 18),
       padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 0),
-      decoration: BoxDecoration(
+            decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
+              boxShadow: [
+                BoxShadow(
             color: Colors.black.withOpacity(0.03),
             blurRadius: 6,
             offset: const Offset(0, 2),
-          ),
-        ],
-      ),
+                ),
+              ],
+            ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -874,6 +878,8 @@ class _MoreDashboardSheetContent extends StatelessWidget {
           items: [
             _SettingsListItem(icon: Icons.language, label: 'Ngôn ngữ', onTap: () {/* TODO */}),
             _SettingsListItem(icon: Icons.description, label: 'Điều khoản sử dụng', onTap: () {/* TODO */}),
+            _SettingsListItem(icon: Icons.style, label: 'Style Guide', onTap: () { onNavigate(MainPage.styleGuide); }),
+            _SettingsListItem(icon: Icons.screen_share, label: 'Demo Layout', onTap: () { onNavigate(MainPage.demoLayout); }),
             _SettingsListItem(icon: Icons.logout, label: 'Đăng xuất', onTap: () {/* TODO: logout */}, isDestructive: true),
           ],
         ),

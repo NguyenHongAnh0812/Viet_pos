@@ -66,197 +66,113 @@ class _CompanyScreenState extends State<CompanyScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.all(24.0),
+    return Scaffold(
+      backgroundColor: appBackground,
+      floatingActionButton: FloatingActionButton(
+        backgroundColor: primaryBlue,
+        elevation: 8,
+        onPressed: () {
+          context.findAncestorStateOfType<MainLayoutState>()?.onSidebarTap(MainPage.addCompany);
+        },
+        child: const Icon(Icons.add, color: Colors.white, size: 32),
+      ),
+      body: SafeArea(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-          // Header
-            Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-              Text('Danh sách công ty', style: h2),
-                ElevatedButton.icon(
-                onPressed: () {
-                  context
-                      .findAncestorStateOfType<MainLayoutState>()
-                      ?.onSidebarTap(MainPage.addCompany);
-                },
-                  icon: const Icon(Icons.add),
-                label: const Text('Thêm công ty'),
-                  style: primaryButtonStyle,
-                ),
-              ],
-            ),
-            const SizedBox(height: 24),
-
-          // Search bar
-          SizedBox(
-            width: 400,
-            child: TextField(
-              controller: _searchController,
-              onChanged: _filterCompanies,
-              decoration: searchInputDecoration(
-                  hint: 'Tìm kiếm theo tên, mã số thuế, email...'),
-              style: const TextStyle(fontSize: 14),
-            ),
-          ),
-          const SizedBox(height: 24),
-
-          // Company List
-            Expanded(
-            child: Container(
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: Colors.grey.shade200, width: 1.5),
-              ),
-              child: Column(
+            // Heading
+            Container(
+              color: Colors.white,
+              padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 12),
+              child: Row(
                 children: [
-                  // Table Header
-                  Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
-                    decoration: const BoxDecoration(
-                      border: Border(
-                          bottom:
-                              BorderSide(color: Color(0xFFE0E0E0), width: 1.5)),
-                    ),
-                    child: const Row(
-                          children: [
-                        Expanded(
-                            flex: 3,
-                            child: Text('Tên công ty', style: tableHeaderStyle)),
-                        SizedBox(width: 16),
-                        Expanded(
-                            flex: 2,
-                            child: Text('Mã số thuế', style: tableHeaderStyle)),
-                        SizedBox(width: 16),
-                        Expanded(
-                            flex: 2,
-                            child: Text('Email', style: tableHeaderStyle)),
-                        SizedBox(width: 16),
-                        Expanded(
-                            flex: 2,
-                            child: Text('Người liên hệ chính',
-                                style: tableHeaderStyle)),
-                        SizedBox(width: 16),
-                        Expanded(
-                            flex: 2,
-                            child: Text('Website', style: tableHeaderStyle)),
-                        SizedBox(width: 16),
-                        Expanded(
-                            flex: 2,
-                            child: Text('Trạng thái', style: tableHeaderStyle)),
-                          ],
-                        ),
+                  IconButton(
+                    icon: const Icon(Icons.arrow_back, color: textPrimary),
+                    onPressed: () => Navigator.pop(context),
                   ),
-                  // Table Body
                   Expanded(
-                    child: _isLoading
-                        ? const Center(child: CircularProgressIndicator())
-                        : _filteredCompanies.isEmpty
-                            ? Center(
-                                child: Column(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                                    Icon(Icons.business,
-                                        size: 64, color: Colors.grey.shade400),
-                                    const SizedBox(height: 16),
-                                    Text(
-                                      _searchController.text.trim().isEmpty
-                                          ? 'Chưa có công ty nào'
-                                          : 'Không tìm thấy công ty phù hợp',
-                                      style: TextStyle(
-                                          fontSize: 16,
-                                          color: Colors.grey.shade600),
-                                    ),
-                                  ],
-                                ),
-                              )
-                            : ListView.builder(
-                                itemCount: _filteredCompanies.length,
-                                itemBuilder: (context, index) {
-                                  final company = _filteredCompanies[index];
-                                  return _buildCompanyRow(company);
-                              },
-                              ),
+                    child: Text('Danh sách nhà cung cấp', style: h2Mobile),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.search, color: textPrimary),
+                    onPressed: () {
+                      // TODO: Hiển thị popup tìm kiếm
+                    },
                   ),
                 ],
               ),
             ),
+            Container(
+              height: 1,
+              color: borderColor,
+            ),
+            // Body
+            Expanded(
+              child: Container(
+                color: appBackground,
+                padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 15),
+                width: double.infinity,
+                child: _isLoading
+                    ? const Center(child: CircularProgressIndicator())
+                    : _filteredCompanies.isEmpty
+                        ? Center(
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(Icons.business, size: 64, color: Colors.grey),
+                                const SizedBox(height: 16),
+                                Text(
+                                  _searchController.text.trim().isEmpty
+                                      ? 'Chưa có nhà cung cấp nào'
+                                      : 'Không tìm thấy nhà cung cấp phù hợp',
+                                  style: bodyMobile,
+                                ),
+                              ],
                             ),
-                          ],
-                        ),
-                      );
-  }
-
-  Widget _buildCompanyRow(Company company) {
-    final bool isActive = company.status == 'active' || company.status.isEmpty;
-    final statusColor =
-        isActive ? const Color(0xFF28A745) : const Color(0xFF6C757D);
-    final statusBgColor = isActive
-        ? const Color(0xFF28A745).withOpacity(0.1)
-        : const Color(0xFF6C757D).withOpacity(0.1);
-
-    return InkWell(
-      onTap: () => widget.onCompanySelected(company),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
-        decoration: const BoxDecoration(
-          border: Border(bottom: BorderSide(color: Color(0xFFE0E0E0), width: 1)),
-        ),
-        child: Row(
-          children: [
-            Expanded(
-                flex: 3,
-                child: Text(company.name,
-                    style: const TextStyle(
-                        fontSize: 14, color: Color(0xFF212529)))),
-            const SizedBox(width: 16),
-            Expanded(
-                flex: 2,
-                child: Text(company.taxCode ?? '',
-                    style: const TextStyle(
-                        fontSize: 14, color: Color(0xFF212529)))),
-            const SizedBox(width: 16),
-            Expanded(
-                flex: 2,
-                child: Text(company.email ?? '',
-                    style: const TextStyle(
-                        fontSize: 14, color: Color(0xFF212529)))),
-            const SizedBox(width: 16),
-            Expanded(
-                flex: 2,
-                child: Text(company.mainContact ?? '',
-                    style: const TextStyle(
-                        fontSize: 14, color: Color(0xFF212529)))),
-            const SizedBox(width: 16),
-            Expanded(
-                flex: 2,
-                child: Text(company.website ?? '',
-                    style: const TextStyle(
-                        fontSize: 14, color: Color(0xFF007BFF)))),
-            const SizedBox(width: 16),
-            Expanded(
-              flex: 2,
-              child: Align(
-                alignment: Alignment.centerLeft,
-                child: Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                  decoration: BoxDecoration(
-                    color: statusBgColor,
-                    borderRadius: BorderRadius.circular(100),
-                  ),
-                  child: Text(
-                    (company.status == 'active' || company.status.isEmpty) ? 'Đang hoạt động' : 'Ngừng hoạt động',
-                    style: TextStyle(
-                        fontSize: 13,
-                        color: statusColor,
-                        fontWeight: FontWeight.w500),
-                  ),
-                ),
+                          )
+                        : ListView.separated(
+                            itemCount: _filteredCompanies.length,
+                            separatorBuilder: (_, __) => const SizedBox(height: 12),
+                            itemBuilder: (context, index) {
+                              final company = _filteredCompanies[index];
+                              return GestureDetector(
+                                onTap: () => widget.onCompanySelected(company),
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 16),
+                                  decoration: BoxDecoration(
+                                    color: Colors.white,
+                                    borderRadius: BorderRadius.circular(10),
+                                    border: Border.all(color: borderColor),
+                                  ),
+                                  child: Row(
+                                    children: [
+                                      Expanded(
+                                        child: Column(
+                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                          children: [
+                                            Text(company.name, style: h3Mobile),
+                                            const SizedBox(height: 4),
+                                            if (company.email != null && company.email!.isNotEmpty)
+                                              Text(company.email!, style: smallMobile),
+                                            if (company.taxCode != null && company.taxCode!.isNotEmpty)
+                                              Text('MST: ${company.taxCode}', style: smallMobile),
+                                            if (company.mainContact != null && company.mainContact!.isNotEmpty)
+                                              Text('Liên hệ: ${company.mainContact}', style: smallMobile),
+                                          ],
+                                        ),
+                                      ),
+                                      DesignSystemBadge(
+                                        text: company.status == 'active' || company.status.isEmpty ? 'Hoạt động' : 'Ngừng',
+                                        variant: company.status == 'active' || company.status.isEmpty ? BadgeVariant.secondary : BadgeVariant.outline,
+                                      ),
+                                      const SizedBox(width: 8),
+                                      Icon(Icons.chevron_right, color: textSecondary, size: 20),
+                                    ],
+                                  ),
+                                ),
+                              );
+                            },
+                          ),
               ),
             ),
           ],

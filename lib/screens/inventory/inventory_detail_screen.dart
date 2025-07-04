@@ -255,280 +255,281 @@ class _InventoryDetailScreenState extends State<InventoryDetailScreen> {
     final diffCount = _items.where((i) => (i['diff'] ?? 0) != 0).length;
     final totalProducts = _items.length;
     return Scaffold(
-      backgroundColor: const Color(0xFFF7F8FA),
+      backgroundColor: appBackground,
       body: SafeArea(
-        child: Center(
-          child: Container(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Heading
+            Container(
+              color: Colors.white,
+              padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 12),
+              child: Row(
+                children: [
+                  IconButton(
+                    icon: const Icon(Icons.arrow_back_ios_new, color: Color(0xFF222B45)),
+                    onPressed: () {
+                      final mainLayoutState = context.findAncestorStateOfType<MainLayoutState>();
+                      if (mainLayoutState != null) {
+                        mainLayoutState.onSidebarTap(MainPage.inventory);
+                      }
+                    },
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    'Chi tiết kiểm kê',
+                    style: h2Mobile,
+                  ),
+                ],
+              ),
+            ),
+            Container(
+              height: 1,
+              color: borderColor,
+            ),
+            // Body
+            Expanded(
+              child: Container(
+                color: appBackground,
+                padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 15),
+                width: double.infinity,
+                child: _buildBody(context, isMobile, session, diffCount, totalProducts),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildBody(BuildContext context, bool isMobile, Map<String, dynamic> session, int diffCount, int totalProducts) {
+    return SingleChildScrollView(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Header
+          Container(
             width: double.infinity,
-            constraints: const BoxConstraints(maxWidth: 1400),
-            child: Column(
-              children: [
-                // Heading with back arrow
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
-                  color: const Color(0xFFF7F8FA),
-                  child: Row(
+            padding: isMobile ? const EdgeInsets.symmetric(horizontal: 15, vertical: 12) : const EdgeInsets.all(24),
+            margin: const EdgeInsets.only(bottom: 24),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(8),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.05),
+                  blurRadius: 10,
+                  offset: const Offset(0, 2),
+                ),
+              ],
+            ),
+            child: isMobile
+                ? Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      IconButton(
-                        icon: const Icon(Icons.arrow_back_ios_new, color: Color(0xFF222B45)),
-                        onPressed: () {
-                          final mainLayoutState = context.findAncestorStateOfType<MainLayoutState>();
-                          if (mainLayoutState != null) {
-                            mainLayoutState.onSidebarTap(MainPage.inventory);
-                          }
-                        },
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              session['name']?.isNotEmpty == true ? session['name'] : 'Kiểm kê kho',
+                              style: h2.copyWith(fontWeight: FontWeight.bold, color: textPrimary, fontSize: 18),
+                            ),
+                          ),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                            decoration: BoxDecoration(
+                              border: Border.all(color: primaryBlue),
+                              borderRadius: BorderRadius.circular(8),
+                              color: Colors.white,
+                            ),
+                            child: Text(
+                              displayStatus,
+                              style: body.copyWith(color: primaryBlue, fontWeight: FontWeight.bold, fontSize: 13),
+                            ),
+                          ),
+                        ],
                       ),
-                      const SizedBox(width: 8),
-                      const Text(
-                        'Chi tiết kiểm kê',
-                        style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 24,
-                          color: Color(0xFF222B45),
+                      const SizedBox(height: 10),
+                      _infoRowMobile('Ngày kiểm kê', (() {
+                        final createdAt = session['created_at'];
+                        if (createdAt is Timestamp) {
+                          return createdAt.toDate().toString().split(' ')[0];
+                        } else if (createdAt is DateTime) {
+                          return createdAt.toString().split(' ')[0];
+                        } else if (createdAt != null) {
+                          return DateTime.tryParse(createdAt.toString())?.toString().split(' ')[0] ?? '';
+                        } else {
+                          return '';
+                        }
+                      })()),
+                      _infoRowMobile('Cập nhật kho', displayStatus),
+                      _infoRowMobile('Người kiểm kê', _userInfo?['name'] ?? session['created_by'] ?? ''),
+                      if (_userInfo?['email'] != null)
+                        _infoRowMobile('Email', _userInfo?['email'] ?? ''),
+                      _infoRowMobile('Số sản phẩm', '$totalProducts'),
+                      _infoRowMobile('Số sản phẩm lệch', '$diffCount', color: diffCount > 0 ? warningOrange : textSecondary),
+                      if ((session['note'] ?? '').toString().isNotEmpty)
+                        _infoRowMobile('Ghi chú', session['note'] ?? ''),
+                    ],
+                  )
+                : Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(
+                        flex: 2,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text('Ngày kiểm kê', style: body.copyWith(color: textSecondary)),
+                            const SizedBox(height: 4),
+                            (() {
+                              final createdAt = session['created_at'];
+                              if (createdAt is Timestamp) {
+                                return Text(createdAt.toDate().toString().split(' ')[0], style: body.copyWith(fontWeight: FontWeight.bold, color: textPrimary));
+                              } else if (createdAt is DateTime) {
+                                return Text(createdAt.toString().split(' ')[0], style: body.copyWith(fontWeight: FontWeight.bold, color: textPrimary));
+                              } else if (createdAt != null) {
+                                return Text(DateTime.tryParse(createdAt.toString())?.toString().split(' ')[0] ?? '', style: body.copyWith(fontWeight: FontWeight.bold, color: textPrimary));
+                              } else {
+                                return Text('', style: body);
+                              }
+                            })(),
+                            const SizedBox(height: 16),
+                            Text('Cập nhật kho', style: body.copyWith(fontWeight: FontWeight.w500, color: textPrimary)),
+                            const SizedBox(height: 4),
+                            Text(displayStatus, style: body.copyWith(fontWeight: FontWeight.w500, color: textPrimary)),
+                            const SizedBox(height: 16),
+                            Text('Ghi chú', style: body.copyWith(color: textSecondary)),
+                            const SizedBox(height: 4),
+                            Text(session['note'] ?? '', style: body.copyWith(fontWeight: FontWeight.w500, color: textPrimary)),
+                          ],
+                        ),
+                      ),
+                      Expanded(
+                        flex: 2,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text('Người kiểm kê', style: body.copyWith(color: textSecondary)),
+                            const SizedBox(height: 4),
+                            Text(_userInfo?['name'] ?? session['created_by'] ?? '', style: body.copyWith(fontWeight: FontWeight.bold, color: textPrimary)),
+                            if (_userInfo?['email'] != null)
+                              Text(_userInfo?['email'] ?? '', style: body.copyWith(color: textSecondary)),
+                          ],
+                        ),
+                      ),
+                      Expanded(
+                        flex: 1,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text('Số sản phẩm', style: body.copyWith(color: textSecondary)),
+                            const SizedBox(height: 4),
+                            Text('$totalProducts', style: body.copyWith(fontWeight: FontWeight.w500, color: textPrimary)),
+                          ],
+                        ),
+                      ),
+                      Expanded(
+                        flex: 1,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text('Số sản phẩm lệch', style: body.copyWith(color: textSecondary)),
+                            const SizedBox(height: 4),
+                            Text('$diffCount', style: body.copyWith(fontWeight: FontWeight.bold, color: diffCount > 0 ? warningOrange : textSecondary)),
+                          ],
                         ),
                       ),
                     ],
                   ),
-                ),
-                Expanded(
-                  child: SingleChildScrollView(
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 24),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          // Header
-                          Container(
-                            width: double.infinity,
-                            padding: isMobile ? const EdgeInsets.symmetric(horizontal: 15, vertical: 12) : const EdgeInsets.all(24),
-                            margin: const EdgeInsets.only(bottom: 24),
-                            decoration: BoxDecoration(
-                              color: Colors.white,
-                              borderRadius: BorderRadius.circular(8),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: Colors.black.withOpacity(0.05),
-                                  blurRadius: 10,
-                                  offset: const Offset(0, 2),
-                                ),
-                              ],
-                            ),
-                            child: isMobile
-                                ? Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      Row(
-                                        children: [
-                                          Expanded(
-                                            child: Text(
-                                              session['name']?.isNotEmpty == true ? session['name'] : 'Kiểm kê kho',
-                                              style: h2.copyWith(fontWeight: FontWeight.bold, color: textPrimary, fontSize: 18),
-                                            ),
-                                          ),
-                                          Container(
-                                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                                            decoration: BoxDecoration(
-                                              border: Border.all(color: primaryBlue),
-                                              borderRadius: BorderRadius.circular(8),
-                                              color: Colors.white,
-                                            ),
-                                            child: Text(
-                                              displayStatus,
-                                              style: body.copyWith(color: primaryBlue, fontWeight: FontWeight.bold, fontSize: 13),
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                      const SizedBox(height: 10),
-                                      _infoRowMobile('Ngày kiểm kê', (() {
-                                        final createdAt = session['created_at'];
-                                        if (createdAt is Timestamp) {
-                                          return createdAt.toDate().toString().split(' ')[0];
-                                        } else if (createdAt is DateTime) {
-                                          return createdAt.toString().split(' ')[0];
-                                        } else if (createdAt != null) {
-                                          return DateTime.tryParse(createdAt.toString())?.toString().split(' ')[0] ?? '';
-                                        } else {
-                                          return '';
-                                        }
-                                      })()),
-                                      _infoRowMobile('Cập nhật kho', displayStatus),
-                                      _infoRowMobile('Người kiểm kê', _userInfo?['name'] ?? session['created_by'] ?? ''),
-                                      if (_userInfo?['email'] != null)
-                                        _infoRowMobile('Email', _userInfo?['email'] ?? ''),
-                                      _infoRowMobile('Số sản phẩm', '$totalProducts'),
-                                      _infoRowMobile('Số sản phẩm lệch', '$diffCount', color: diffCount > 0 ? warningOrange : textSecondary),
-                                      if ((session['note'] ?? '').toString().isNotEmpty)
-                                        _infoRowMobile('Ghi chú', session['note'] ?? ''),
-                                    ],
-                                  )
-                                : Row(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      Expanded(
-                                        flex: 2,
-                                        child: Column(
-                                          crossAxisAlignment: CrossAxisAlignment.start,
-                                          children: [
-                                            Text('Ngày kiểm kê', style: body.copyWith(color: textSecondary)),
-                                            const SizedBox(height: 4),
-                                            (() {
-                                              final createdAt = session['created_at'];
-                                              if (createdAt is Timestamp) {
-                                                return Text(createdAt.toDate().toString().split(' ')[0], style: body.copyWith(fontWeight: FontWeight.bold, color: textPrimary));
-                                              } else if (createdAt is DateTime) {
-                                                return Text(createdAt.toString().split(' ')[0], style: body.copyWith(fontWeight: FontWeight.bold, color: textPrimary));
-                                              } else if (createdAt != null) {
-                                                return Text(DateTime.tryParse(createdAt.toString())?.toString().split(' ')[0] ?? '', style: body.copyWith(fontWeight: FontWeight.bold, color: textPrimary));
-                                              } else {
-                                                return Text('', style: body);
-                                              }
-                                            })(),
-                                            const SizedBox(height: 16),
-                                            Text('Cập nhật kho', style: body.copyWith(fontWeight: FontWeight.w500, color: textPrimary)),
-                                            const SizedBox(height: 4),
-                                            Text(displayStatus, style: body.copyWith(fontWeight: FontWeight.w500, color: textPrimary)),
-                                            const SizedBox(height: 16),
-                                            Text('Ghi chú', style: body.copyWith(color: textSecondary)),
-                                            const SizedBox(height: 4),
-                                            Text(session['note'] ?? '', style: body.copyWith(fontWeight: FontWeight.w500, color: textPrimary)),
-                                          ],
-                                        ),
-                                      ),
-                                      Expanded(
-                                        flex: 2,
-                                        child: Column(
-                                          crossAxisAlignment: CrossAxisAlignment.start,
-                                          children: [
-                                            Text('Người kiểm kê', style: body.copyWith(color: textSecondary)),
-                                            const SizedBox(height: 4),
-                                            Text(_userInfo?['name'] ?? session['created_by'] ?? '', style: body.copyWith(fontWeight: FontWeight.bold, color: textPrimary)),
-                                            if (_userInfo?['email'] != null)
-                                              Text(_userInfo?['email'] ?? '', style: body.copyWith(color: textSecondary)),
-                                          ],
-                                        ),
-                                      ),
-                                      Expanded(
-                                        flex: 1,
-                                        child: Column(
-                                          crossAxisAlignment: CrossAxisAlignment.start,
-                                          children: [
-                                            Text('Số sản phẩm', style: body.copyWith(color: textSecondary)),
-                                            const SizedBox(height: 4),
-                                            Text('$totalProducts', style: body.copyWith(fontWeight: FontWeight.w500, color: textPrimary)),
-                                          ],
-                                        ),
-                                      ),
-                                      Expanded(
-                                        flex: 1,
-                                        child: Column(
-                                          crossAxisAlignment: CrossAxisAlignment.start,
-                                          children: [
-                                            Text('Số sản phẩm lệch', style: body.copyWith(color: textSecondary)),
-                                            const SizedBox(height: 4),
-                                            Text('$diffCount', style: body.copyWith(fontWeight: FontWeight.bold, color: diffCount > 0 ? warningOrange : textSecondary)),
-                                          ],
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                          ),
-                          // Search and action buttons
-                          Row(
-                            children: [
-                              Expanded(
-                                child: TextField(
-                                  controller: _searchController,
-                                  onChanged: (v) => setState(() => _searchText = v),
-                                  decoration: InputDecoration(
-                                    hintText: 'Tìm kiếm sản phẩm...',
-                                    prefixIcon: const Icon(Icons.search, color: textSecondary),
-                                    border: OutlineInputBorder(
-                                      borderRadius: BorderRadius.circular(8),
-                                      borderSide: const BorderSide(color: borderColor),
-                                    ),
-                                    enabledBorder: OutlineInputBorder(
-                                      borderRadius: BorderRadius.circular(8),
-                                      borderSide: const BorderSide(color: borderColor),
-                                    ),
-                                    focusedBorder: OutlineInputBorder(
-                                      borderRadius: BorderRadius.circular(8),
-                                      borderSide: const BorderSide(color: primaryBlue, width: 1.5),
-                                    ),
-                                    filled: true,
-                                    isDense: true,
-                                     fillColor: Colors.transparent,
-                                  ),
-                                ),
-                              ),
-                              const SizedBox(width: 16),
-                              if (!isCompleted && !isUpdated) ...[
-                                const SizedBox(width: 16),
-                                ElevatedButton(
-                                      onPressed: _completeLoading
-                                          ? null
-                                          : () async {
-                                              final confirmed = await showDesignSystemDialog<bool>(
-                                                context: context,
-                                                title: 'Xác nhận hoàn tất phiên kiểm kê',
-                                                content: Text('Sau khi hoàn tất, bạn không thể thay đổi số liệu kiểm kê.', style: body),
-                                                icon: Icons.check_circle,
-                                                iconColor: Colors.green,
-                                                  actions: [
-                                                    TextButton(
-                                                      onPressed: () => Navigator.pop(context, false),
-                                                      child: const Text('Hủy'),
-                                                    ),
-                                                    ElevatedButton(
-                                                      onPressed: () => Navigator.pop(context, true),
-                                                    style: primaryButtonStyle,
-                                                      child: const Text('Xác nhận'),
-                                                    ),
-                                                  ],
-                                              );
-                                              if (confirmed == true) {
-                                                _confirmCompleteInventory();
-                                              }
-                                            },
-                                  style: primaryButtonStyle,
-                                  child: _completeLoading
-                                      ? SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                                      : const Text('Hoàn tất kiểm kê'),
-                                ),
-                              ] else if (isCompleted && !isUpdated) ...[
-                                ElevatedButton(
-                                  onPressed: _updateStockLoading ? null : _updateStock,
-                                  style: primaryButtonStyle,
-                                  child: _updateStockLoading
-                                      ? SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                                      : const Text('Cập nhật tồn kho'),
-                                ),
-                              ]
-                            ],
-                          ),
-                          const SizedBox(height: 16),
-                          // Table header
-                
-                          // Product list
-                          isMobile
-                            ? Column(
-                                children: [
-                                  for (final item in filteredItems)
-                                    _buildMobileProductCard(context, item),
-                                ],
-                              )
-                            : _buildProductTable(context, isMobile),
-                          const SizedBox(height: 24),
-                        ],
-                      ),
+          ),
+          // Search and action buttons
+          Row(
+            children: [
+              Expanded(
+                child: TextField(
+                  controller: _searchController,
+                  onChanged: (v) => setState(() => _searchText = v),
+                  decoration: InputDecoration(
+                    hintText: 'Tìm kiếm sản phẩm...',
+                    prefixIcon: const Icon(Icons.search, color: textSecondary),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                      borderSide: const BorderSide(color: borderColor),
                     ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                      borderSide: const BorderSide(color: borderColor),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                      borderSide: const BorderSide(color: primaryBlue, width: 1.5),
+                    ),
+                    filled: true,
+                    isDense: true,
+                     fillColor: Colors.transparent,
                   ),
                 ),
-              ],
-            ),
+              ),
+              const SizedBox(width: 16),
+              if (!isCompleted && !isUpdated) ...[
+                const SizedBox(width: 16),
+                ElevatedButton(
+                      onPressed: _completeLoading
+                          ? null
+                          : () async {
+                              final confirmed = await showDesignSystemDialog<bool>(
+                                context: context,
+                                title: 'Xác nhận hoàn tất phiên kiểm kê',
+                                content: Text('Sau khi hoàn tất, bạn không thể thay đổi số liệu kiểm kê.', style: body),
+                                icon: Icons.check_circle,
+                                iconColor: Colors.green,
+                                  actions: [
+                                    TextButton(
+                                      onPressed: () => Navigator.pop(context, false),
+                                      child: const Text('Hủy'),
+                                    ),
+                                    ElevatedButton(
+                                      onPressed: () => Navigator.pop(context, true),
+                                    style: primaryButtonStyle,
+                                      child: const Text('Xác nhận'),
+                                    ),
+                                  ],
+                              );
+                              if (confirmed == true) {
+                                _confirmCompleteInventory();
+                              }
+                            },
+                      style: primaryButtonStyle,
+                      child: _completeLoading
+                          ? SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                          : const Text('Hoàn tất kiểm kê'),
+                    ),
+              ] else if (isCompleted && !isUpdated) ...[
+                ElevatedButton(
+                  onPressed: _updateStockLoading ? null : _updateStock,
+                  style: primaryButtonStyle,
+                  child: _updateStockLoading
+                      ? SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                      : const Text('Cập nhật tồn kho'),
+                ),
+              ]
+            ],
           ),
-        ),
+          const SizedBox(height: 16),
+          // Table header
+
+          // Product list
+          isMobile
+            ? Column(
+                children: [
+                  for (final item in filteredItems)
+                    _buildMobileProductCard(context, item),
+                ],
+              )
+            : _buildProductTable(context, isMobile),
+          const SizedBox(height: 24),
+        ],
       ),
     );
   }

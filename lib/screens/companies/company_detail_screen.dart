@@ -166,248 +166,165 @@ class _CompanyDetailScreenState extends State<CompanyDetailScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return SingleChildScrollView(
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 24.0, horizontal: 24.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _buildHeader(),
-            const SizedBox(height: 32),
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Expanded(
-                  flex: 2,
-                  child: _buildCompanyInfoForm(),
+    return Scaffold(
+      backgroundColor: appBackground,
+      body: SafeArea(
+        child: SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Heading
+              Container(
+                color: Colors.white,
+                padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 12),
+                child: Row(
+                  children: [
+                    IconButton(
+                      icon: const Icon(Icons.arrow_back, color: textPrimary),
+                      onPressed: widget.onBack,
+                    ),
+                    Expanded(
+                      child: Text('Chi tiết nhà cung cấp', style: h2Mobile),
+                    ),
+                  ],
                 ),
-                const SizedBox(width: 32),
-                Expanded(
-                  flex: 1,
-                  child: _buildLinkedContacts(),
+              ),
+              Container(
+                height: 1,
+                color: borderColor,
+              ),
+              // Body
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 15),
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: borderColor),
+                  ),
+                  padding: const EdgeInsets.all(15),
+                  child: Form(
+                    key: _formKey,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('Thông tin nhà cung cấp', style: h3Mobile),
+                        const SizedBox(height: 16),
+                        _buildField('Tên nhà cung cấp', _nameController, true),
+                        _buildField('Mã số thuế', _taxCodeController, false),
+                        _buildField('Email', _emailController, false),
+                        _buildField('Hotline', _hotlineController, false),
+                        _buildField('Liên hệ chính', _mainContactController, false),
+                        _buildField('Địa chỉ', _addressController, false),
+                        _buildStatusField(),
+                        _buildField('Ghi chú', _notesController, false, maxLines: 2),
+                        const SizedBox(height: 20),
+                        SizedBox(
+                          width: double.infinity,
+                          child: ElevatedButton(
+                            onPressed: _isSaving ? null : _saveChanges,
+                            style: primaryButtonStyle,
+                            child: _isSaving
+                                ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                                : const Text('Lưu thay đổi'),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
                 ),
-              ],
-            ),
-          ],
+              ),
+            ],
+          ),
         ),
       ),
     );
   }
 
-  Widget _buildHeader() {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Row(
-          children: [
-            IconButton(
-              icon: const Icon(Icons.arrow_back),
-              onPressed: widget.onBack,
-            ),
-            const SizedBox(width: 16),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(_nameController.text, style: h1),
-                if (_taxCodeController.text.isNotEmpty)
-                  Text(_taxCodeController.text, style: body.copyWith(color: textSecondary)),
-              ],
-            ),
-          ],
-        ),
-        ElevatedButton.icon(
-          onPressed: _isSaving ? null : _saveChanges,
-          icon: _isSaving 
-              ? Container(width: 18, height: 18, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-              : const Icon(Icons.save_outlined, size: 18),
-          label: const Text('Lưu thay đổi'),
-          style: primaryButtonStyle,
-        )
-      ],
-    );
-  }
-
-  Widget _buildCompanyInfoForm() {
-    return Container(
-      padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: borderColor),
-      ),
-      child: Form(
-        key: _formKey,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('Thông tin công ty', style: h3),
-            const SizedBox(height: 24),
-            _buildEditableField('Tên công ty', _nameController),
-            _buildEditableField('Mã số thuế', _taxCodeController),
-            _buildEditableField('Email', _emailController),
-            _buildEditableField('Địa chỉ', _addressController),
-            _buildEditableField('Hotline', _hotlineController),
-            _buildEditableField('Người liên hệ chính', _mainContactController),
-            _buildEditableField('Website', _websiteController),
-            _buildEditableField('Số tài khoản ngân hàng', _bankAccountController),
-            _buildEditableField('Tên ngân hàng', _bankNameController),
-            _buildEditableField('Điều khoản thanh toán', _paymentTermController),
-            _buildStatusDropdown(),
-            _buildClassificationCheckboxes(),
-            _buildTagsSection(),
-            _buildEditableField('Ghi chú', _notesController, maxLines: 3),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildEditableField(String label, TextEditingController controller, {int? maxLines = 1}) {
+  Widget _buildField(String label, TextEditingController controller, bool required, {int maxLines = 1}) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 16.0),
+      padding: const EdgeInsets.only(bottom: 12),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(label, style: labelLarge.copyWith(color: textThird)),
-          const SizedBox(height: 8),
+          Row(
+            children: [
+              Text(label, style: labelMedium.copyWith(fontWeight: FontWeight.w600)),
+              if (required) ...[
+                const SizedBox(width: 2),
+                const Text('*', style: TextStyle(color: destructiveRed, fontWeight: FontWeight.bold)),
+              ],
+            ],
+          ),
+          const SizedBox(height: 4),
           TextFormField(
             controller: controller,
+            style: bodyMobile,
             maxLines: maxLines,
-            decoration: designSystemInputDecoration(hint: ''),
-            style: body,
+            decoration: InputDecoration(
+              filled: true,
+              fillColor: appBackground,
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(8),
+                borderSide: const BorderSide(color: borderColor),
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(8),
+                borderSide: const BorderSide(color: borderColor),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(8),
+                borderSide: const BorderSide(color: primaryBlue, width: 1.5),
+              ),
+              contentPadding: const EdgeInsets.symmetric(vertical: 10, horizontal: 12),
+            ),
+            validator: required
+                ? (value) {
+                    if (value == null || value.trim().isEmpty) {
+                      return 'Vui lòng nhập $label';
+                    }
+                    return null;
+                  }
+                : null,
           ),
         ],
       ),
     );
   }
 
-  Widget _buildStatusDropdown() {
+  Widget _buildStatusField() {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 16.0),
+      padding: const EdgeInsets.only(bottom: 12),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Trạng thái', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: textSecondary)),
-          const SizedBox(height: 8),
-          ShopifyDropdown<String>(
-            items: const ['active', 'inactive'],
+          Text('Trạng thái', style: labelMedium.copyWith(fontWeight: FontWeight.w600)),
+          const SizedBox(height: 4),
+          DropdownButtonFormField<String>(
             value: _status,
-            getLabel: (s) => (s == 'active' || s.isEmpty) ? 'Đang hoạt động' : 'Ngừng hoạt động',
-            onChanged: (val) {
-              if (val != null) {
-                setState(() => _status = val);
-              }
-            },
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildClassificationCheckboxes() {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 16.0),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text('Phân loại', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: textSecondary)),
-          const SizedBox(height: 8),
-          Row(
-            children: [
-              Checkbox(value: _isSupplier, onChanged: (val) => setState(() => _isSupplier = val ?? false)),
-              const Text('Là nhà cung cấp'),
-              const SizedBox(width: 24),
-              Checkbox(value: _isCustomer, onChanged: (val) => setState(() => _isCustomer = val ?? false)),
-              const Text('Là khách hàng'),
+            items: const [
+              DropdownMenuItem(value: 'active', child: Text('Hoạt động')),
+              DropdownMenuItem(value: 'inactive', child: Text('Ngừng hoạt động')),
             ],
-          )
-        ],
-      ),
-    );
-  }
-
-  Widget _buildTagsSection() {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 16.0),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text('Tags', style: labelLarge.copyWith(color: textThird)),
-          const SizedBox(height: 8),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: _tags.map((tag) => Chip(
-              label: Text(tag),
-              onDeleted: () {
-                setState(() => _tags.remove(tag));
-              },
-              deleteIcon: const Icon(Icons.close, size: 16),
-            )).toList(),
-          ),
-          const SizedBox(height: 8),
-          Row(
-            children: [
-              Expanded(
-                child: TextField(
-                  controller: _tagsController,
-                  decoration: designSystemInputDecoration(hint: 'Thêm tag...'),
-                  onSubmitted: (val) => _addTag(),
-                ),
+            onChanged: (v) => setState(() => _status = v ?? 'active'),
+            decoration: InputDecoration(
+              filled: true,
+              fillColor: appBackground,
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(8),
+                borderSide: const BorderSide(color: borderColor),
               ),
-              const SizedBox(width: 8),
-              IconButton(
-                icon: const Icon(Icons.add),
-                onPressed: _addTag,
-                style: iconButtonStyle.copyWith(
-                  backgroundColor: MaterialStateProperty.all(primaryBlue),
-                  foregroundColor: MaterialStateProperty.all(Colors.white),
-                )
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(8),
+                borderSide: const BorderSide(color: borderColor),
               ),
-            ],
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(8),
+                borderSide: const BorderSide(color: primaryBlue, width: 1.5),
+              ),
+              contentPadding: const EdgeInsets.symmetric(vertical: 10, horizontal: 12),
+            ),
           ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildLinkedContacts() {
-    return Container(
-      padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: borderColor),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text('Khách hàng liên kết', style: h3),
-          const SizedBox(height: 24),
-          const Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text('Tên', style: TextStyle(fontWeight: FontWeight.bold)),
-              Text('SĐT', style: TextStyle(fontWeight: FontWeight.bold)),
-            ],
-          ),
-          const Divider(height: 24),
-          // Sample Data
-          const Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text('Nguyễn Văn A'),
-              Text('0901234567'),
-            ],
-          ),
-          const SizedBox(height: 16),
-          const Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text('Trần Thị B'),
-              Text('0987654321'),
-            ],
-          )
         ],
       ),
     );

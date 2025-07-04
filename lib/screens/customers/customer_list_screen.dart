@@ -21,97 +21,121 @@ class _CustomerListScreenState extends State<CustomerListScreen> {
   Widget build(BuildContext context) {
     final isMobile = MediaQuery.of(context).size.width < 768;
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Danh sách khách hàng'),
-        actions: [
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 8),
-            child: OutlinedButton.icon(
-              onPressed: _createDemoData,
-              icon: const Icon(Icons.data_usage, size: 16),
-              label: const Text('Demo Data'),
-              style: OutlinedButton.styleFrom(
-                foregroundColor: Colors.orange,
-                side: const BorderSide(color: Colors.orange),
-              ),
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: ElevatedButton.icon(
-              onPressed: widget.onAddCustomer,
-              icon: const Icon(Icons.add),
-              label: const Text('Thêm khách hàng'),
-            ),
-          ),
-        ],
+      backgroundColor: appBackground,
+      floatingActionButton: FloatingActionButton(
+        backgroundColor: primaryBlue,
+        elevation: 8,
+        onPressed: widget.onAddCustomer,
+        child: const Icon(Icons.add, color: Colors.white, size: 32),
       ),
-      body: StreamBuilder<List<Customer>>(
-        stream: _customerService.getCustomers(),
-        builder: (context, snapshot) {
-          if (snapshot.hasError) {
-            return Center(child: Text('Lỗi: ${snapshot.error}'));
-          }
-          if (!snapshot.hasData) {
-            return Center(child: CircularProgressIndicator());
-          }
-          final customers = snapshot.data!;
-          if (customers.isEmpty) {
-            return Padding(
-              padding: const EdgeInsets.all(24.0),
-              child: Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    const Text('Chưa có khách hàng nào.'),
-                    const SizedBox(height: 16),
-                    ElevatedButton.icon(
-                      onPressed: _createDemoData,
-                      icon: const Icon(Icons.data_usage),
-                      label: const Text('Tạo dữ liệu demo'),
-                    ),
-                  ],
-                ),
+      body: SafeArea(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Heading
+            Container(
+              color: Colors.white,
+              padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 12),
+              child: Row(
+                children: [
+                  IconButton(
+                    icon: const Icon(Icons.arrow_back, color: textPrimary),
+                    onPressed: () => Navigator.pop(context),
+                  ),
+                  Expanded(
+                    child: Text('Danh sách khách hàng', style: h2Mobile),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.search, color: textPrimary),
+                    onPressed: () {
+                      // TODO: Hiển thị popup tìm kiếm
+                    },
+                  ),
+                ],
               ),
-            );
-          }
-          return Padding(
-            padding: const EdgeInsets.all(24.0),
-            child: SingleChildScrollView(
-              child: StandardTableContainer(
-                child: Column(
-                  children: [
-                    StandardTableHeader(
-                      children: [
-                        TableColumn(flex: 2, child: Text('Tên', style: TableDesignSystem.tableHeaderTextStyle)),
-                        TableColumn(flex: 2, child: Text('Số điện thoại', style: TableDesignSystem.tableHeaderTextStyle)),
-                        TableColumn(flex: 2, child: Text('Email', style: TableDesignSystem.tableHeaderTextStyle)),
-                        TableColumn(flex: 2, child: Text('Công ty', style: TableDesignSystem.tableHeaderTextStyle)),
-                        TableColumnFixed(width: 100, child: Text('Trạng thái', style: TableDesignSystem.tableHeaderTextStyle)),
-                      ],
-                    ),
-                    ...customers.map((customer) => StandardTableRow(
-                      onTap: () => widget.onCustomerTap?.call(customer),
-                      children: [
-                        TableColumn(flex: 2, child: Text(customer.name, style: TableDesignSystem.tableRowTextStyle)),
-                        TableColumn(flex: 2, child: Text(customer.phone, style: TableDesignSystem.tableRowTextStyle)),
-                        TableColumn(flex: 2, child: Text(customer.email ?? '', style: TableDesignSystem.tableRowTextStyle)),
-                        TableColumn(flex: 2, child: Text(customer.companyId ?? '', style: TableDesignSystem.tableRowTextStyle)),
-                        TableColumnFixed(
-                          width: 100,
-                          child: DesignSystemBadge(
-                            text: 'Hoạt động',
-                            variant: BadgeVariant.secondary,
-                          ),
+            ),
+            Container(
+              height: 1,
+              color: borderColor,
+            ),
+            // Body
+            Expanded(
+              child: Container(
+                color: appBackground,
+                padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 15),
+                width: double.infinity,
+                child: StreamBuilder<List<Customer>>(
+                  stream: _customerService.getCustomers(),
+                  builder: (context, snapshot) {
+                    if (snapshot.hasError) {
+                      return Center(child: Text('Lỗi: {snapshot.error}'));
+                    }
+                    if (!snapshot.hasData) {
+                      return const Center(child: CircularProgressIndicator());
+                    }
+                    final customers = snapshot.data!;
+                    if (customers.isEmpty) {
+                      return Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Text('Chưa có khách hàng nào.', style: bodyMobile),
+                            const SizedBox(height: 16),
+                            ElevatedButton.icon(
+                              onPressed: _createDemoData,
+                              icon: const Icon(Icons.data_usage),
+                              label: const Text('Tạo dữ liệu demo'),
+                            ),
+                          ],
                         ),
-                      ],
-                    )),
-                  ],
+                      );
+                    }
+                    return ListView.separated(
+                      itemCount: customers.length,
+                      separatorBuilder: (_, __) => const SizedBox(height: 12),
+                      itemBuilder: (context, i) {
+                        final customer = customers[i];
+                        return GestureDetector(
+                          onTap: () => widget.onCustomerTap?.call(customer),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 16),
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(10),
+                              border: Border.all(color: borderColor),
+                            ),
+                            child: Row(
+                              children: [
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(customer.name, style: h3Mobile),
+                                      const SizedBox(height: 4),
+                                      Text(customer.phone, style: bodyMobile),
+                                      if (customer.email != null && customer.email!.isNotEmpty)
+                                        Text(customer.email!, style: smallMobile),
+                                    ],
+                                  ),
+                                ),
+                                DesignSystemBadge(
+                                  text: 'Hoạt động',
+                                  variant: BadgeVariant.secondary,
+                                ),
+                                const SizedBox(width: 8),
+                                Icon(Icons.chevron_right, color: textSecondary, size: 20),
+                              ],
+                            ),
+                          ),
+                        );
+                      },
+                    );
+                  },
                 ),
               ),
             ),
-          );
-        },
+          ],
+        ),
       ),
     );
   }
