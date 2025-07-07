@@ -1299,6 +1299,7 @@ class _MoreDashboardSheetContent extends StatelessWidget {
           items: [
             _SettingsListItem(icon: Icons.language, label: 'Ngôn ngữ', onTap: () {/* TODO */}),
             _SettingsListItem(icon: Icons.description, label: 'Điều khoản sử dụng', onTap: () {/* TODO */}),
+            _SettingsListItem(icon: Icons.file_upload, label: 'Import hóa đơn', onTap: () { onNavigate(MainPage.invoiceImportList); }),
             _SettingsListItem(icon: Icons.style, label: 'Style Guide', onTap: () { onNavigate(MainPage.styleGuide); }),
             _SettingsListItem(icon: Icons.screen_share, label: 'Demo Layout', onTap: () { onNavigate(MainPage.demoLayout); }),
             _SettingsListItem(icon: Icons.logout, label: 'Đăng xuất', onTap: () {/* TODO: logout */}, isDestructive: true),
