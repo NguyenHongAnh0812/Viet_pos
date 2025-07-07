@@ -551,12 +551,12 @@ class _EmptyCartIllustration extends StatelessWidget {
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           // SVG custom giỏ hàng trống
-          SizedBox(
-            width: 120,
-            height: 120,
-            child: SvgPicture.string(_cartSvg),
-          ),
-          const SizedBox(height: 24),
+          // SizedBox(
+          //   width: 120,
+          //   height: 120,
+          //   child: SvgPicture.string(_cartSvg),
+          // ),
+          // const SizedBox(height: 24),
           const Text(
             'Tìm kiếm sản phẩm để bắt đầu!',
             style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: Color(0xFF16A34A)),
