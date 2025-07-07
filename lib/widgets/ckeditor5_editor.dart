@@ -1,7 +1,7 @@
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 // ignore: avoid_web_libraries_in_flutter
-import 'dart:html' as html;
+// import 'dart:html' as html;
 // ignore: undefined_prefixed_name
 import 'dart:ui_web' as ui;
 // ignore: avoid_web_libraries_in_flutter
@@ -35,7 +35,7 @@ class CKEditor5Widget extends StatefulWidget {
 
 class _CKEditor5WidgetState extends State<CKEditor5Widget> {
   static bool _viewTypeRegistered = false;
-  html.IFrameElement? _iframeElement;
+  // html.IFrameElement? _iframeElement;
   double _currentHeight = 200;
   bool _isEditorReady = false;
   String _lastContent = '';
@@ -51,20 +51,20 @@ class _CKEditor5WidgetState extends State<CKEditor5Widget> {
       ui.platformViewRegistry.registerViewFactory(
         'ckeditor5-editor',
         (int viewId) {
-          _iframeElement = html.IFrameElement()
-            ..src = '/assets/ckeditor5_editor.html'
-            ..style.border = 'none'
-            ..style.width = '100%'
-            ..style.height = '${_currentHeight}px';
+          // _iframeElement = html.IFrameElement()
+          //   ..src = '/assets/ckeditor5_editor.html'
+          //   ..style.border = 'none'
+          //   ..style.width = '100%'
+          //   ..style.height = '${_currentHeight}px';
           
           // Listen for messages from iframe
-          html.window.addEventListener('message', (event) {
-            if (event is html.MessageEvent && event.data is Map) {
-              _handleMessage(event.data);
-            }
-          });
+          // html.window.addEventListener('message', (event) {
+          //   if (event is html.MessageEvent && event.data is Map) {
+          //     _handleMessage(event.data);
+          //   }
+          // });
           
-          return _iframeElement!;
+          return null; // Return null as _iframeElement is commented out
         },
       );
       _viewTypeRegistered = true;
@@ -122,14 +122,14 @@ class _CKEditor5WidgetState extends State<CKEditor5Widget> {
       });
       
       // Update iframe height
-      if (_iframeElement != null) {
-        _iframeElement!.style.height = '${_currentHeight}px';
-      }
+      // if (_iframeElement != null) {
+      //   _iframeElement!.style.height = '${_currentHeight}px';
+      // }
     }
   }
 
   void _setContent(String content) {
-    if (_isEditorReady && _iframeElement != null) {
+    if (_isEditorReady && false) { // _iframeElement is commented out
       try {
         // Call JavaScript function to set content
         js.context.callMethod('setCKContent', [content]);
@@ -140,7 +140,7 @@ class _CKEditor5WidgetState extends State<CKEditor5Widget> {
   }
 
   void _updateWordCount(String content) {
-    if (_isEditorReady && _iframeElement != null) {
+    if (_isEditorReady && false) { // _iframeElement is commented out
       try {
         final wordCount = js.context.callMethod('getWordCount') as int? ?? 0;
         if (wordCount != _wordCount) {
@@ -154,7 +154,7 @@ class _CKEditor5WidgetState extends State<CKEditor5Widget> {
   }
 
   void _focusEditor() {
-    if (_isEditorReady && _iframeElement != null) {
+    if (_isEditorReady && false) { // _iframeElement is commented out
       try {
         js.context.callMethod('focusEditor');
       } catch (e) {
@@ -164,7 +164,7 @@ class _CKEditor5WidgetState extends State<CKEditor5Widget> {
   }
 
   String _getContent() {
-    if (_isEditorReady && _iframeElement != null) {
+    if (_isEditorReady && false) { // _iframeElement is commented out
       try {
         return js.context.callMethod('getCKContent') as String? ?? '';
       } catch (e) {
