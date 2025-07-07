@@ -1205,12 +1205,12 @@ ThemeData get lightTheme => ThemeData(
     labelSmall: labelSmall,
   ),
   scaffoldBackgroundColor: appBackground,
-  cardTheme: CardTheme(
+  cardTheme: const CardThemeData(
     color: cardBackground,
     elevation: 0,
     shape: RoundedRectangleBorder(
-      borderRadius: BorderRadius.circular(borderRadiusMedium),
-      side: const BorderSide(color: borderColor),
+      borderRadius: BorderRadius.all(Radius.circular(borderRadiusMedium)),
+      side: BorderSide(color: borderColor),
     ),
     margin: EdgeInsets.zero,
   ),
