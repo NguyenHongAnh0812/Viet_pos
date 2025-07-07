@@ -9,7 +9,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:csv/csv.dart';
 import 'dart:convert';
 import 'dart:math' show min;
-import 'dart:html' as html;
+// import 'dart:html' as html;
 import '../../widgets/product_card_item.dart';
 import '../../widgets/product_list_card.dart';
 import '../../widgets/common/design_system.dart';
@@ -542,12 +542,12 @@ class _ProductListScreenState extends State<ProductListScreen> {
     }
     final fileBytes = excelFile.encode()!;
     final fileName = 'products_export_${DateTime.now().millisecondsSinceEpoch}.xlsx';
-    final blob = html.Blob([fileBytes], 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-    final url = html.Url.createObjectUrlFromBlob(blob);
-    final anchor = html.AnchorElement(href: url)
-      ..setAttribute('download', fileName)
-      ..click();
-    html.Url.revokeObjectUrl(url);
+    // final blob = html.Blob([fileBytes], 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    // final url = html.Url.createObjectUrlFromBlob(blob);
+    // final anchor = html.AnchorElement(href: url)
+    //   ..setAttribute('download', fileName)
+    //   ..click();
+    // html.Url.revokeObjectUrl(url);
     if (mounted) {
       OverlayEntry? entry;
       entry = OverlayEntry(

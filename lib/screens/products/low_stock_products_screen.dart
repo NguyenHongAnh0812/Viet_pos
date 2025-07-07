@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:excel/excel.dart' as ex;
-import 'dart:html' as html;
+// import 'dart:html' as html;
 import '../../models/product.dart';
 import '../../services/product_service.dart';
 import '../../widgets/product_list_card.dart';
@@ -55,12 +55,12 @@ class _LowStockProductsScreenState extends State<LowStockProductsScreen> {
       ]);
     }
     final fileBytes = excel.encode()!;
-    final blob = html.Blob([fileBytes], 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-    final url = html.Url.createObjectUrlFromBlob(blob);
-    final anchor = html.AnchorElement(href: url)
-      ..setAttribute('download', 'Danh sách sản phẩm sắp hết hàng.xlsx')
-      ..click();
-    html.Url.revokeObjectUrl(url);
+    // final blob = html.Blob([fileBytes], 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    // final url = html.Url.createObjectUrlFromBlob(blob);
+    // final anchor = html.AnchorElement(href: url)
+    //   ..setAttribute('download', 'Danh sách sản phẩm sắp hết hàng.xlsx')
+    //   ..click();
+    // html.Url.revokeObjectUrl(url);
     setState(() => _exporting = false);
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(

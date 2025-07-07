@@ -22,59 +22,82 @@ class DashboardModernScreen extends StatelessWidget {
         ),
         child: Column(
           children: [
-            // Header logo block
-            SafeArea(
-              top: true,
-              bottom: false,
-              child: Container(
-                width: double.infinity,
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.08),
-                      blurRadius: 12,
-                      offset: Offset(0, 4),
-                    ),
-                  ],
-                ),
-                padding: const EdgeInsets.symmetric(vertical: 18),
-                child: Center(
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.start,
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Container(
-                        width: 40,
-                        height: 40,
-                        decoration: BoxDecoration(
-                          color: primaryBlue,
-                          shape: BoxShape.circle,
-                        ),
-                        child: Center(
-                          child: SvgPicture.asset(
-                            'assets/icons/new_icon/favorite.svg',
-                            width: 28,
-                            height: 28,
-                            colorFilter: ColorFilter.mode(appBackground, BlendMode.srcIn),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
+            // HEADER: background phủ sát mép trên, nội dung tránh notch
+            Container(
+              width: double.infinity,
+              decoration: BoxDecoration(
+                color: Colors.white,
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.08),
+                    blurRadius: 12,
+                    offset: Offset(0, 4),
+                  ),
+                ],
+              ),
+              child: SafeArea(
+                bottom: false, // chỉ tránh notch phía trên
+                child: Padding(
+                  padding: const EdgeInsets.only(top: 0, bottom: 18),
+                  child: Center(
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 24),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          Text('VetPharm', style: responsiveTextStyle(context, h1, h1Mobile).copyWith(color: textPrimary)),
-                          Text('Nhà thuốc thú y', style: responsiveTextStyle(context, bodySmall.copyWith(color: primaryBlue), smallMobile.copyWith(color: primaryBlue))),
+                          Row(
+                            children: [
+                              Container(
+                                width: 40,
+                                height: 40,
+                                decoration: BoxDecoration(
+                                  color: primaryBlue,
+                                  shape: BoxShape.circle,
+                                ),
+                                child: Center(
+                                  child: SvgPicture.asset(
+                                    'assets/icons/new_icon/favorite.svg',
+                                    width: 28,
+                                    height: 28,
+                                    colorFilter: ColorFilter.mode(appBackground, BlendMode.srcIn),
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text('VetPharm', style: responsiveTextStyle(context, h1, h1Mobile).copyWith(color: textPrimary)),
+                                  Text('Nhà thuốc thú y', style: responsiveTextStyle(context, bodySmall.copyWith(color: primaryBlue), smallMobile.copyWith(color: primaryBlue))),
+                                ],
+                              ),
+                            ],
+                          ),
+                          Row(
+                            children: [
+                              IconButton(
+                                icon: const Icon(Icons.notifications_none, color: Colors.black87),
+                                onPressed: () {},
+                                tooltip: 'Thông báo',
+                              ),
+                              IconButton(
+                                icon: const Icon(Icons.logout, color: Colors.black87),
+                                onPressed: () {},
+                                tooltip: 'Đăng xuất',
+                              ),
+                            ],
+                          ),
                         ],
                       ),
-                    ],
+                    ),
                   ),
                 ),
               ),
             ),
-            // Main content scrollable
+            // MAIN CONTENT BÊN DƯỚI BỌC SafeArea
             Expanded(
+              child: SafeArea(
+                top: false, // Không cần tránh notch nữa
                 child: ConstrainedBox(
                   constraints: const BoxConstraints(maxWidth: 484),
                   child: SingleChildScrollView(
@@ -145,7 +168,7 @@ class DashboardModernScreen extends StatelessWidget {
                                     // Tìm sản phẩm
                                     Expanded(
                                       child: SizedBox(
-                                        height: 44,
+                                        height: 52,
                                         child: OutlinedButton.icon(
                                           style: OutlinedButton.styleFrom(
                                             foregroundColor: textPrimary,
@@ -153,12 +176,15 @@ class DashboardModernScreen extends StatelessWidget {
                                             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                                             backgroundColor: Colors.white,
                                             textStyle: responsiveTextStyle(context, body, bodyMobile),
+                                            minimumSize: const Size(0, 52),
+                                            padding: const EdgeInsets.symmetric(horizontal: 8),
                                           ),
                                           onPressed: () {},
                                           icon: const Icon(Icons.search, size: 20),
                                           label: Text(
                                             'Tìm sản phẩm',
                                             style: responsiveTextStyle(context, labelLarge, labelSmall),
+                                            overflow: TextOverflow.ellipsis,
                                           ),
                                         ),
                                       ),
@@ -167,7 +193,7 @@ class DashboardModernScreen extends StatelessWidget {
                                     // Quét mã
                                     Expanded(
                                       child: SizedBox(
-                                      height: 44,
+                                        height: 52,
                                         child: OutlinedButton.icon(
                                           style: OutlinedButton.styleFrom(
                                             foregroundColor: textPrimary,
@@ -175,12 +201,15 @@ class DashboardModernScreen extends StatelessWidget {
                                             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                                             backgroundColor: Colors.white,
                                             textStyle: responsiveTextStyle(context, body, bodyMobile),
+                                            minimumSize: const Size(0, 52),
+                                            padding: const EdgeInsets.symmetric(horizontal: 8),
                                           ),
                                           onPressed: () {},
                                           icon: const Icon(Icons.qr_code_scanner, size: 20),
                                           label: Text(
                                             'Quét mã',
                                             style: responsiveTextStyle(context, labelLarge, labelSmall),
+                                            overflow: TextOverflow.ellipsis,
                                           ),
                                         ),
                                       ),
@@ -197,6 +226,7 @@ class DashboardModernScreen extends StatelessWidget {
                   ),
                 ),
               ),
+            ),
           ],
         ),
       ),
