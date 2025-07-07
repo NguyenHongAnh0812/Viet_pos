@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/product_category.dart';
 import '../services/product_category_service.dart';
+import 'package:flutter/foundation.dart';
 
 class CategoryMigration {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
@@ -28,7 +29,7 @@ class CategoryMigration {
         if (category.path == null) {
           await _calculateAndUpdatePath(category);
           processedCount++;
-          print('Đã xử lý: ${category.name} (${processedCount}/${sortedCategories.length})');
+          print('Đã xử lý: ${category.name} ($processedCount/${sortedCategories.length})');
         } else {
           print('Bỏ qua (đã có path): ${category.name}');
         }

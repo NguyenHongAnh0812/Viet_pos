@@ -1,16 +1,18 @@
 import 'package:flutter/material.dart';
 import '../../services/inventory_service.dart';
-import '../../models/inventory_session.dart';
+
 import '../../services/product_category_service.dart';
-import '../../models/product_category.dart';
+
 import '../../services/product_service.dart';
+
 import '../../models/product.dart';
-import 'inventory_history_screen.dart';
-import '../../widgets/common/design_system.dart';
+import '../../models/inventory_session.dart';
+
 import 'inventory_create_session_screen.dart';
-import 'inventory_detail_screen.dart';
+
 import '../../widgets/main_layout.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import '../../widgets/common/design_system.dart';
 
 class InventoryScreen extends StatefulWidget {
   final VoidCallback? onBack;
@@ -23,11 +25,12 @@ class InventoryScreen extends StatefulWidget {
 
 class _InventoryScreenState extends State<InventoryScreen> with SingleTickerProviderStateMixin {
   int _tabIndex = 0;
+  final List<String> _tabs = ['Tất cả', 'Phiếu tạm', 'Đã kiểm kê', 'Đã cập nhật tồn kho'];
   final TextEditingController _searchController = TextEditingController();
   final TextEditingController _noteController = TextEditingController();
   final TextEditingController _barcodeController = TextEditingController();
   // TODO: Replace with real data/models
-  List<Map<String, dynamic>> _products = [
+  final List<Map<String, dynamic>> _products = [
     {'name': 'Amoxicillin 250mg', 'commonName': 'Amoxicillin', 'systemQty': 120, 'actualQty': null, 'checked': false},
     {'name': 'Enrofloxacin 50mg', 'commonName': 'Enrofloxacin', 'systemQty': 5, 'actualQty': null, 'checked': false},
     {'name': 'Meloxicam 1.5mg', 'commonName': 'Meloxicam', 'systemQty': 80, 'actualQty': null, 'checked': false},
@@ -35,29 +38,186 @@ class _InventoryScreenState extends State<InventoryScreen> with SingleTickerProv
     {'name': 'Vitamin B Complex', 'commonName': 'B Complex', 'systemQty': 45, 'actualQty': null, 'checked': false},
   ];
   bool _saving = false;
-  bool _showHistory = false;
-  bool _showFilter = false;
+  final bool _showHistory = false;
+  final bool _showFilter = false;
   String? _selectedCategory;
-  String _selectedStatus = 'Tất cả trạng thái';
+  final String _selectedStatus = 'Tất cả trạng thái';
   final List<String> _categoryOptions = ['Tất cả danh mục', 'Kháng sinh', 'Vitamin', 'Khác']; // TODO: lấy từ service thực tế
   final List<String> _statusOptions = ['Tất cả trạng thái', 'Chưa kiểm kê', 'Đã kiểm kê', 'Lệch số lượng'];
   final _inventoryService = InventoryService();
   final _categoryService = ProductCategoryService();
   final _productService = ProductService();
-  List<Map<String, dynamic>> _scannedProducts = [];
-  Map<String, String> _actualQtyMap = {};
+  final List<Map<String, dynamic>> _scannedProducts = [];
+  final Map<String, String> _actualQtyMap = {};
   // Thêm biến để bật/tắt tính năng đồng bộ số lượng thực tế
-  bool _syncStock = false;
-  Map<String, TextEditingController> _qtyControllers = {};
+  final bool _syncStock = false;
+  final Map<String, TextEditingController> _qtyControllers = {};
   // Thêm biến để theo dõi trạng thái đã lưu
-  Map<String, bool> _savedProducts = {};
+  final Map<String, bool> _savedProducts = {};
+  DateTime? _selectedDate;
+  int _selectedTimeFilter = 4; // 0: all, 1: today, 2: yesterday, 3: 7days, 4: this month, 5: last month, 6: custom
+  DateTimeRange? _customRange;
+  final List<String> _timeFilters = [
+    'Toàn thời gian',
+    'Hôm nay',
+    'Hôm qua',
+    '7 ngày qua',
+    'Tháng này',
+    'Tháng trước',
+    'Tuỳ chỉnh',
+  ];
+
+  void _showDatePicker() async {
+    final picked = await showModalBottomSheet<DateTime?>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) {
+        DateTime tempDate = _selectedDate ?? DateTime.now();
+        return AnimatedPadding(
+          duration: const Duration(milliseconds: 200),
+          padding: MediaQuery.of(context).viewInsets,
+          child: Container(
+            decoration: const BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+            ),
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Text('Chọn ngày', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+                const SizedBox(height: 16),
+                CalendarDatePicker(
+                  initialDate: tempDate,
+                  firstDate: DateTime(2020),
+                  lastDate: DateTime(2100),
+                  onDateChanged: (date) {
+                    tempDate = date;
+                  },
+                ),
+                const SizedBox(height: 16),
+                Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton(
+                        onPressed: () => Navigator.pop(context),
+                        child: const Text('Hủy'),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: ElevatedButton(
+                        onPressed: () => Navigator.pop(context, tempDate),
+                        style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF16A34A)),
+                        child: const Text('Chọn', style: TextStyle(color: Colors.white)),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+    if (picked != null) {
+      setState(() => _selectedDate = picked);
+    }
+  }
+
+  void _showTimeFilterPanel() async {
+    final selected = await showModalBottomSheet<int>(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (context) {
+        return LayoutBuilder(
+          builder: (context, constraints) {
+            return Container(
+              constraints: BoxConstraints(
+                maxHeight: MediaQuery.of(context).size.height * 0.8,
+              ),
+              margin: const EdgeInsets.all(24),
+              padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 20),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text('Lọc theo thời gian', style: TextStyle(color: Color(0xFF16A34A), fontWeight: FontWeight.bold, fontSize: 16)),
+                    const SizedBox(height: 16),
+                    ...List.generate(_timeFilters.length, (i) => ListTile(
+                      title: Text(_timeFilters[i], style: const TextStyle(fontSize: 15)),
+                      trailing: _selectedTimeFilter == i ? const Icon(Icons.check, color: Color(0xFF16A34A)) : null,
+                      onTap: () => Navigator.pop(context, i),
+                    )),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+    if (selected != null) {
+      if (selected == 6) {
+        // Tuỳ chỉnh: show date range picker
+        final now = DateTime.now();
+        final picked = await showDateRangePicker(
+          context: context,
+          firstDate: DateTime(now.year - 5),
+          lastDate: DateTime(now.year + 1),
+          initialDateRange: _customRange ?? DateTimeRange(start: now.subtract(const Duration(days: 7)), end: now),
+        );
+        if (picked != null) {
+          setState(() {
+            _selectedTimeFilter = selected;
+            _customRange = picked;
+          });
+        }
+      } else {
+        setState(() {
+          _selectedTimeFilter = selected;
+        });
+      }
+    }
+  }
+
+  bool _matchTimeFilter(DateTime date) {
+    final now = DateTime.now();
+    switch (_selectedTimeFilter) {
+      case 1: // Hôm nay
+        return date.year == now.year && date.month == now.month && date.day == now.day;
+      case 2: // Hôm qua
+        final yesterday = now.subtract(const Duration(days: 1));
+        return date.year == yesterday.year && date.month == yesterday.month && date.day == yesterday.day;
+      case 3: // 7 ngày qua
+        return date.isAfter(now.subtract(const Duration(days: 7))) && date.isBefore(now.add(const Duration(days: 1)));
+      case 4: // Tháng này
+        return date.year == now.year && date.month == now.month;
+      case 5: // Tháng trước
+        final lastMonth = DateTime(now.year, now.month - 1, 1);
+        return date.year == lastMonth.year && date.month == lastMonth.month;
+      case 6: // Tuỳ chỉnh
+        if (_customRange == null) return true;
+        return date.isAfter(_customRange!.start.subtract(const Duration(days: 1))) && date.isBefore(_customRange!.end.add(const Duration(days: 1)));
+      default:
+        return true;
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
+    final isMobile = MediaQuery.of(context).size.width < 700;
     return Scaffold(
       backgroundColor: appBackground,
       floatingActionButton: FloatingActionButton(
-        backgroundColor: primaryBlue,
+        backgroundColor: mainGreen,
         elevation: 8,
         onPressed: () {
           Navigator.push(
@@ -70,54 +230,124 @@ class _InventoryScreenState extends State<InventoryScreen> with SingleTickerProv
         child: const Icon(Icons.add, color: Colors.white, size: 32),
       ),
       body: SafeArea(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Heading
-            Container(
-              color: Colors.white,
-              padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 12),
-              child: Row(
-                children: [
-                  IconButton(
-                    icon: const Icon(Icons.arrow_back, color: textPrimary),
-                    onPressed: widget.onBack ?? () => Navigator.pop(context),
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text('Kiểm kho', style: h2Mobile),
-                  ),
-                  IconButton(
-                    icon: const Icon(Icons.search, color: textPrimary),
-                    onPressed: () {
-                      showModalBottomSheet(
-                        context: context,
-                        isScrollControlled: true,
-                        backgroundColor: Colors.transparent,
-                        builder: (context) => _InventorySearchSheet(),
-                      );
-                    },
-                  ),
-                ],
-              ),
-            ),
-            Container(
-              height: 1,
-              color: borderColor,
-            ),
-            // Body
-            Expanded(
-              child: Container(
-                color: appBackground,
-                padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 15),
-                width: double.infinity,
-                child: _buildBody(context),
-              ),
-            ),
-          ],
-        ),
+        child: isMobile ? _buildMobileLayout(context) : _buildDesktopLayout(context),
       ),
     );
+  }
+
+  Widget _buildMobileLayout(BuildContext context) {
+    return Column(
+      children: [
+        // AppBar xanh
+        Container(
+          color: const Color(0xFF16A34A),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+          child: Row(
+            children: [
+              IconButton(
+                icon: const Icon(Icons.arrow_back, color: Colors.white),
+                onPressed: widget.onBack,
+              ),
+              const SizedBox(width: 8),
+              const Expanded(
+                child: Text('Kiểm kê kho', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 20)),
+              ),
+              IconButton(
+                icon: const Icon(Icons.calendar_today, color: Colors.white),
+                onPressed: _showTimeFilterPanel,
+              ),
+            ],
+          ),
+        ),
+        // Search box
+        Container(
+          color: Colors.white,
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          child: TextField(
+            controller: _searchController,
+            decoration: InputDecoration(
+              hintText: 'Nhập tên phiếu kiểm kê để tìm kiếm',
+              prefixIcon: const Icon(Icons.search),
+              contentPadding: const EdgeInsets.symmetric(vertical: 0, horizontal: 12),
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+              filled: true,
+              fillColor: const Color(0xFFF6F7F8),
+            ),
+            onChanged: (v) => setState(() {}),
+          ),
+        ),
+        // Tab filter
+        Container(
+          color: Colors.white,
+          padding: const EdgeInsets.symmetric(horizontal: 0, vertical: 0),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.start,
+            children: List.generate(_tabs.length, (i) {
+              final selected = _tabIndex == i;
+              return GestureDetector(
+                onTap: () => setState(() => _tabIndex = i),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        _tabs[i],
+                        style: TextStyle(
+                          color: selected ? const Color(0xFF16A34A) : const Color(0xFF374151),
+                          fontWeight: selected ? FontWeight.w600 : FontWeight.normal,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      if (selected)
+                        Container(
+                          height: 2,
+                          width: 32,
+                          color: const Color(0xFF16A34A),
+                        )
+                      else
+                        const SizedBox(height: 2),
+                    ],
+                  ),
+                ),
+              );
+            }),
+          ),
+        ),
+        // Danh sách kiểm kê
+        Expanded(
+          child: StreamBuilder<List<InventorySession>>(
+            stream: _inventoryService.getAllSessions(),
+            builder: (context, snapshot) {
+              final sessions = (snapshot.data ?? [])
+                  .where((s) {
+                    final matchSearch = _searchController.text.isEmpty || s.note.toLowerCase().contains(_searchController.text.toLowerCase());
+                    final matchTime = _matchTimeFilter(s.createdAt);
+                    // Lọc theo tab
+                    if (_tabIndex == 1) return s.status == 'draft' && matchSearch && matchTime;
+                    if (_tabIndex == 2) return s.status == 'checked' && matchSearch && matchTime;
+                    if (_tabIndex == 3) return s.status == 'updated' && matchSearch && matchTime;
+                    return matchSearch && matchTime;
+                  })
+                  .toList();
+              if (sessions.isEmpty) {
+                return const Center(child: Text('Không có phiên kiểm kê nào.', style: TextStyle(color: Colors.black54)));
+              }
+              return ListView.separated(
+                padding: const EdgeInsets.all(16),
+                itemCount: sessions.length,
+                separatorBuilder: (_, __) => const SizedBox(height: 16),
+                itemBuilder: (context, i) => _buildMobileInventoryCard(context, sessions[i]),
+              );
+            },
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildDesktopLayout(BuildContext context) {
+    return _buildBody(context);
   }
 
   Widget _buildBody(BuildContext context) {
@@ -156,13 +386,11 @@ class _InventoryScreenState extends State<InventoryScreen> with SingleTickerProv
                     side: const BorderSide(color: borderColor),
                     padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 12),
                   ),
-                  onPressed: () {
-                    // TODO: show filter thời gian
-                  },
+                  onPressed: _showTimeFilterPanel,
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text('Tháng này', style: bodyLarge),
+                      Text(_timeFilters[_selectedTimeFilter], style: bodyLarge),
                       const Icon(Icons.expand_more, size: 20, color: textSecondary),
                     ],
                   ),
@@ -351,10 +579,10 @@ class _InventoryScreenState extends State<InventoryScreen> with SingleTickerProv
             'Chưa có sản phẩm nào để kiểm kê',
             style: Theme.of(context).textTheme.titleMedium?.copyWith(
                   color: Colors.grey,
-                                    ),
-                                  ),
-                                ],
-                              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -373,10 +601,10 @@ class _InventoryScreenState extends State<InventoryScreen> with SingleTickerProv
             'Chưa có sản phẩm nào được quét',
             style: Theme.of(context).textTheme.titleMedium?.copyWith(
                   color: Colors.grey,
-              ),
             ),
-          ],
-        ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -607,26 +835,20 @@ class _InventoryScreenState extends State<InventoryScreen> with SingleTickerProv
   }
 
   Widget _buildMobileInventoryCard(BuildContext context, InventorySession session) {
-    // Xác định icon và màu trạng thái
-    IconData statusIcon;
-    Color statusColor;
-    switch (session.status.toLowerCase()) {
-      case 'đã hoàn tất':
-      case 'hoàn tất':
-        statusIcon = Icons.check_circle;
-        statusColor = Colors.green;
-        break;
-      case 'đã cập nhật kho':
-      case 'cảnh báo':
-        statusIcon = Icons.error_outline;
-        statusColor = Colors.orange;
-        break;
-      default:
-        statusIcon = Icons.access_time;
-        statusColor = Colors.blue;
-        break;
+    // Xác định màu và text trạng thái
+    String chipText;
+    BadgeVariant badgeVariant;
+    if (session.status == 'updated') {
+      chipText = 'Đã cập nhật tồn kho';
+      badgeVariant = BadgeVariant.secondary;
+    } else if (session.status == 'checked') {
+      chipText = 'Đã kiểm kê';
+      badgeVariant = BadgeVariant.defaultVariant;
+    } else {
+      chipText = 'Phiếu tạm';
+      badgeVariant = BadgeVariant.outline;
     }
-    final diffCount = session.products.where((p) => p.diff != 0).length;
+    final percent = session.totalCount == 0 ? 0 : (session.checkedCount / session.totalCount * 100).round();
     return GestureDetector(
       onTap: () {
         final mainLayoutState = context.findAncestorStateOfType<MainLayoutState>();
@@ -635,67 +857,63 @@ class _InventoryScreenState extends State<InventoryScreen> with SingleTickerProv
         }
       },
       child: Container(
-        margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 0),
+        margin: const EdgeInsets.symmetric(vertical: 4, horizontal: 0),
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(12),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.04),
-              blurRadius: 8,
-              offset: const Offset(0, 2),
-            ),
-          ],
+          border: Border.all(color: const Color(0xFFE5E7EB)),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Expanded(
                   child: Text(
                     session.note.isNotEmpty ? session.note : 'Phiên kiểm kê',
-                    style: body.copyWith(color: textPrimary, fontWeight: FontWeight.bold, fontSize: 16),
+                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Color(0xFF222B45)),
                   ),
                 ),
-                Icon(statusIcon, color: statusColor, size: 20),
+                DesignSystemBadge(
+                  text: chipText,
+                  variant: badgeVariant,
+                ),
               ],
             ),
-            const SizedBox(height: 6),
-            Text('Ngày kiểm kê: ${session.createdAt.day}/${session.createdAt.month}/${session.createdAt.year}', style: body.copyWith(color: textSecondary, fontSize: 13)),
-            if (session.note.isNotEmpty)
-              Text('Ghi chú: ${session.note}', style: body.copyWith(color: textSecondary, fontSize: 13)),
-            const SizedBox(height: 10),
+            const SizedBox(height: 8),
             Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text.rich(
-                  TextSpan(
-                    text: 'Sản phẩm: ',
-                    style: body.copyWith(color: textPrimary, fontSize: 15),
-                    children: [
-                      TextSpan(
-                        text: session.products.length.toString(),
-                        style: const TextStyle(fontWeight: FontWeight.bold),
-                      ),
-                    ],
-                  ),
-                ),
-                Text.rich(
-                  TextSpan(
-                    text: 'Lệch: ',
-                    style: body.copyWith(color: textPrimary, fontSize: 15),
-                    children: [
-                      TextSpan(
-                        text: diffCount.toString(),
-                        style: const TextStyle(fontWeight: FontWeight.bold),
-                      ),
-                    ],
-                  ),
-                ),
+                const Icon(Icons.calendar_today, size: 16, color: Color(0xFF9CA3AF)),
+                const SizedBox(width: 4),
+                Text('Ngày tạo: ${session.createdAt.day}/${session.createdAt.month}/${session.createdAt.year}', style: const TextStyle(color: Color(0xFF6B7280), fontSize: 13)),
               ],
+            ),
+            const SizedBox(height: 4),
+            Row(
+              children: [
+                const Icon(Icons.person, size: 16, color: Color(0xFF9CA3AF)),
+                const SizedBox(width: 4),
+                Text('Người tạo: ${session.createdBy}', style: const TextStyle(color: Color(0xFF6B7280), fontSize: 13)),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                Text('Tiến độ: ', style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 13)),
+                Text('${session.checkedCount}/${session.totalCount} sản phẩm ', style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
+                Text('($percent%)', style: const TextStyle(color: Color(0xFF16A34A), fontWeight: FontWeight.w600, fontSize: 13)),
+              ],
+            ),
+            const SizedBox(height: 8),
+            ClipRRect(
+              borderRadius: BorderRadius.circular(6),
+              child: LinearProgressIndicator(
+                value: session.totalCount == 0 ? 0 : session.checkedCount / session.totalCount,
+                minHeight: 8,
+                backgroundColor: const Color(0xFFF3F4F6),
+                valueColor: AlwaysStoppedAnimation<Color>(mainGreen),
+              ),
             ),
           ],
         ),

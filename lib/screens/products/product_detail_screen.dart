@@ -1,17 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import '../../widgets/main_layout.dart';
-import '../../models/product.dart';
-import '../../models/product_category.dart';
+
 import '../../services/product_category_service.dart';
-import '../../widgets/common/design_system.dart';
-import 'package:intl/intl.dart';
+
 import 'package:flutter/services.dart';
 import '../../models/company.dart';
 import '../../services/company_service.dart';
 import '../../services/product_company_service.dart';
 import '../../widgets/custom/multi_select_dropdown.dart';
 import '../../widgets/custom/category_dropdown.dart';
+import '../../widgets/common/design_system.dart';
+import '../../models/product.dart';
+import '../../models/product_category.dart';
 
 class ProductDetailScreen extends StatefulWidget {
   final Product product;
@@ -159,11 +159,11 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
       final costPriceStr = _costPriceController.text.replaceAll(RegExp(r'[^0-9]'), '');
       final salePriceStr = _sellPriceController.text.replaceAll(RegExp(r'[^0-9]'), '');
       
-      print('Debug - Before saving:');
-      print('Cost price string: ${_costPriceController.text}');
-      print('Cost price cleaned: $costPriceStr');
-      print('Sale price string: ${_sellPriceController.text}');
-      print('Sale price cleaned: $salePriceStr');
+      debugPrint('Debug - Before saving:');
+      debugPrint('Cost price string: ${_costPriceController.text}');
+      debugPrint('Cost price cleaned: $costPriceStr');
+      debugPrint('Sale price string: ${_sellPriceController.text}');
+      debugPrint('Sale price cleaned: $salePriceStr');
       
       final costPrice = double.tryParse(costPriceStr) ?? 0.0;
       final salePrice = double.tryParse(salePriceStr) ?? 0.0;
@@ -171,10 +171,10 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
       // Tính gross profit
       final grossProfit = costPrice > 0 ? ((salePrice / costPrice - 1) * 100) : 0.0;
       
-      print('Debug - Parsed values:');
-      print('Cost price: $costPrice');
-      print('Sale price: $salePrice');
-      print('Gross profit: $grossProfit%');
+      debugPrint('Debug - Parsed values:');
+      debugPrint('Cost price: $costPrice');
+      debugPrint('Sale price: $salePrice');
+      debugPrint('Gross profit: $grossProfit%');
       
       final productData = {
         'internal_name': _nameController.text.trim(),
@@ -199,27 +199,27 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
       // Sử dụng normalizeProductData để đảm bảo dữ liệu đúng format
       final normalizedData = Product.normalizeProductData(productData);
 
-      print('Debug - Final data to save:');
-      print('Cost price in data: ${normalizedData['cost_price']}');
-      print('Sale price in data: ${normalizedData['sale_price']}');
+      debugPrint('Debug - Final data to save:');
+      debugPrint('Cost price in data: ${normalizedData['cost_price']}');
+      debugPrint('Sale price in data: ${normalizedData['sale_price']}');
 
-      print('--- LOG GIÁ TRỊ CÁC TRƯỜNG TRƯỚC KHI LƯU ---');
-      print('internal_name: \'${_nameController.text}\'');
-      print('trade_name: \'${_commonNameController.text}\'');
-      print('cost_price: \'${_costPriceController.text}\'');
-      print('sale_price: \'${_sellPriceController.text}\'');
-      print('profit_margin: \'${_profitMarginController.text}\'');
-      print('unit: \'${_unitController.text}\'');
-      print('stock_system: \'${_quantityController.text}\'');
-      print('tags: $_tags');
-      print('description: \'${_descriptionController.text}\'');
-      print('usage: \'${_usageController.text}\'');
-      print('ingredients: \'${_ingredientsController.text}\'');
-      print('notes: \'${_notesController.text}\'');
-      print('category_ids: $_selectedCategories');
-      print('company_ids: $_selectedCompanyIds');
-      print('status: ${_isActive ? 'active' : 'inactive'}');
-      print('--- END LOG ---');
+      debugPrint('--- LOG GIÁ TRỊ CÁC TRƯỜNG TRƯỚC KHI LƯU ---');
+      debugPrint('internal_name: \'${_nameController.text}\'');
+      debugPrint('trade_name: \'${_commonNameController.text}\'');
+      debugPrint('cost_price: \'${_costPriceController.text}\'');
+      debugPrint('sale_price: \'${_sellPriceController.text}\'');
+      debugPrint('profit_margin: \'${_profitMarginController.text}\'');
+      debugPrint('unit: \'${_unitController.text}\'');
+      debugPrint('stock_system: \'${_quantityController.text}\'');
+      debugPrint('tags: $_tags');
+      debugPrint('description: \'${_descriptionController.text}\'');
+      debugPrint('usage: \'${_usageController.text}\'');
+      debugPrint('ingredients: \'${_ingredientsController.text}\'');
+      debugPrint('notes: \'${_notesController.text}\'');
+      debugPrint('category_ids: $_selectedCategories');
+      debugPrint('company_ids: $_selectedCompanyIds');
+      debugPrint('status: ${_isActive ? 'active' : 'inactive'}');
+      debugPrint('--- END LOG ---');
 
       // Lưu thông tin sản phẩm
       await FirebaseFirestore.instance.collection('products').doc(widget.product.id).update(normalizedData);
@@ -243,7 +243,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
         Overlay.of(context).insert(entry);
       }
     } catch (e) {
-      print('Debug - Error saving product: $e');
+      debugPrint('Debug - Error saving product: $e');
       if (mounted) {
         OverlayEntry? entry;
         entry = OverlayEntry(
@@ -415,9 +415,9 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                 children: _tags.map((tag) => Container(
                   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                   decoration: BoxDecoration(
-                    color: Colors.transparent,
+                    color: Colors.white,
                     border: Border.all(color: borderColor),
-                    borderRadius: BorderRadius.circular(16),
+                    borderRadius: BorderRadius.circular(8),
                   ),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
@@ -496,17 +496,17 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                     keyboardType: TextInputType.number,
                     inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                     onChanged: (val) {
-                      print('Debug - Raw input value: $val');
+                      debugPrint('Debug - Raw input value: $val');
                       
                       // Xóa tất cả dấu phẩy và chấm, chỉ giữ lại số
                       final cleanValue = val.replaceAll(RegExp(r'[^0-9]'), '');
-                      print('Debug - Cleaned value: $cleanValue');
+                      debugPrint('Debug - Cleaned value: $cleanValue');
                       
                       final value = int.tryParse(cleanValue) ?? 0;
-                      print('Debug - Parsed value: $value');
+                      debugPrint('Debug - Parsed value: $value');
                       
                       final formatted = formatCurrency(value.toDouble());
-                      print('Debug - Formatted value: $formatted');
+                      debugPrint('Debug - Formatted value: $formatted');
                       
                       if (val != formatted) {
                         _costPriceController.value = TextEditingValue(
@@ -546,16 +546,16 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                     enabled: !_autoCalculatePrice,
                     onChanged: (val) {
                       if (!_autoCalculatePrice) {
-                        print('Debug - Raw sale price input: $val');
+                        debugPrint('Debug - Raw sale price input: $val');
                         
                         final cleanValue = val.replaceAll(RegExp(r'[^0-9]'), '');
-                        print('Debug - Cleaned sale price: $cleanValue');
+                        debugPrint('Debug - Cleaned sale price: $cleanValue');
                         
                         final value = int.tryParse(cleanValue) ?? 0;
-                        print('Debug - Parsed sale price: $value');
+                        debugPrint('Debug - Parsed sale price: $value');
                         
                         final formatted = formatCurrency(value.toDouble());
-                        print('Debug - Formatted sale price: $formatted');
+                        debugPrint('Debug - Formatted sale price: $formatted');
                         
                         if (val != formatted) {
                           _sellPriceController.value = TextEditingValue(
@@ -635,20 +635,20 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
     
     // Xóa tất cả dấu phẩy và chấm, chỉ giữ lại số
     final costPriceStr = _costPriceController.text.replaceAll(RegExp(r'[^0-9]'), '');
-    print('Debug - Cost price string after cleaning: $costPriceStr');
+    debugPrint('Debug - Cost price string after cleaning: $costPriceStr');
     
     final costPrice = double.tryParse(costPriceStr) ?? 0.0;
-    print('Debug - Cost price parsed: $costPrice');
+    debugPrint('Debug - Cost price parsed: $costPrice');
     
     final profitMargin = double.tryParse(_profitMarginController.text) ?? _defaultProfitMargin;
-    print('Debug - Profit margin: $profitMargin');
+    debugPrint('Debug - Profit margin: $profitMargin');
     
     if (costPrice > 0) {
       final salePrice = costPrice * (1 + profitMargin / 100);
-      print('Debug - Calculated sale price: $salePrice');
+      debugPrint('Debug - Calculated sale price: $salePrice');
       
       final formattedPrice = formatCurrency(salePrice);
-      print('Debug - Formatted sale price: $formattedPrice');
+      debugPrint('Debug - Formatted sale price: $formattedPrice');
       
       _sellPriceController.value = TextEditingValue(
         text: formattedPrice,
@@ -726,7 +726,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
               child: Center(
                 child: Container(
                   width: double.infinity,
-                  constraints: const BoxConstraints(maxWidth: 1400),
+                  constraints: const BoxConstraints(maxWidth: 1200),
                   padding: const EdgeInsets.only(top: 0, left: 16, right: 16),
                   child: Row(
                     crossAxisAlignment: CrossAxisAlignment.center,
@@ -759,12 +759,12 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                         padding: const EdgeInsets.symmetric(horizontal: 4.0),
                         child: OutlinedButton.icon(
                           onPressed: () {
-                            print('=== TEST: Kiểm tra dữ liệu hiện tại ===');
-                            print('Selected categories: $_selectedCategories');
-                            print('Tags: $_tags');
-                            print('Cost price: ${_costPriceController.text}');
-                            print('Sale price: ${_sellPriceController.text}');
-                            print('=== END TEST ===');
+                            debugPrint('=== TEST: Kiểm tra dữ liệu hiện tại ===');
+                            debugPrint('Selected categories: $_selectedCategories');
+                            debugPrint('Tags: $_tags');
+                            debugPrint('Cost price: ${_costPriceController.text}');
+                            debugPrint('Sale price: ${_sellPriceController.text}');
+                            debugPrint('=== END TEST ===');
                           },
                           icon: const Icon(Icons.bug_report),
                           label: const Text('Test Data'),
@@ -789,7 +789,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
           child: Center(
             child: Container(
               width: double.infinity,
-              constraints: const BoxConstraints(maxWidth: 1400),
+              constraints: const BoxConstraints(maxWidth: 1200),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -905,7 +905,7 @@ class _ShopifyMultiSelectDropdownState extends State<ShopifyMultiSelectDropdown>
                       minWidth: size.width,
                     ),
                     decoration: BoxDecoration(
-                      color: cardBackground,
+                      color: Colors.white,
                       border: Border.all(color: borderColor),
                       borderRadius: BorderRadius.circular(8),
                     ),
@@ -976,7 +976,7 @@ class _ShopifyMultiSelectDropdownState extends State<ShopifyMultiSelectDropdown>
           onTap: _isOpen ? _removeOverlay : _showOverlay,
           child: Container(
             decoration: BoxDecoration(
-              color: cardBackground,
+              color: Colors.white,
               border: Border.all(color: borderColor),
               borderRadius: BorderRadius.circular(8),
             ),

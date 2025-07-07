@@ -180,7 +180,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   style: ghostButtonStyle,
                   child: Text(
                     'Đã có tài khoản? Đăng nhập',
-                    style: small.copyWith(color: primaryBlue),
+                    style: small.copyWith(color: mainGreen),
                   ),
                 ),
               ],

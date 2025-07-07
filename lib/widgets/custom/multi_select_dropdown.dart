@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../widgets/common/design_system.dart';
+import '../../models/product_category.dart';
 
 // Một class chung để đại diện cho một item có thể chọn
 class MultiSelectItem<T> {
@@ -15,15 +16,17 @@ class MultiSelectDropdown<T> extends StatefulWidget {
   final List<T> initialSelectedValues;
   final ValueChanged<List<T>> onSelectionChanged;
   final String hint;
+  final bool isTreeMode;
 
   const MultiSelectDropdown({
-    Key? key,
+    super.key,
     required this.label,
     required this.items,
     this.initialSelectedValues = const [],
     required this.onSelectionChanged,
     this.hint = 'Chọn một hoặc nhiều',
-  }) : super(key: key);
+    this.isTreeMode = false,
+  });
 
   @override
   _MultiSelectDropdownState<T> createState() => _MultiSelectDropdownState<T>();
@@ -31,15 +34,20 @@ class MultiSelectDropdown<T> extends StatefulWidget {
 
 class _MultiSelectDropdownState<T> extends State<MultiSelectDropdown<T>> {
   bool _isDropdownOpen = false;
-  late OverlayEntry _overlayEntry;
-  final LayerLink _layerLink = LayerLink();
   late List<T> _currentSelectedValues;
   final GlobalKey<State<StatefulWidget>> _dropdownKey = GlobalKey();
+  String _searchText = '';
+  final TextEditingController _searchController = TextEditingController();
 
   @override
   void initState() {
     super.initState();
     _currentSelectedValues = List.from(widget.initialSelectedValues);
+    _searchController.addListener(() {
+      setState(() {
+        _searchText = _searchController.text.trim();
+      });
+    });
   }
   
   @override
@@ -51,123 +59,172 @@ class _MultiSelectDropdownState<T> extends State<MultiSelectDropdown<T>> {
     }
   }
 
-  void _toggleDropdown() {
-    if (_isDropdownOpen) {
-      _overlayEntry.remove();
-    } else {
-      _overlayEntry = _createOverlayEntry();
-      Overlay.of(context).insert(_overlayEntry);
-    }
-    setState(() {
-      _isDropdownOpen = !_isDropdownOpen;
-    });
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
   }
 
-  OverlayEntry _createOverlayEntry() {
-    RenderBox renderBox = context.findRenderObject() as RenderBox;
-    var size = renderBox.size;
-    
-    return OverlayEntry(
-      builder: (context) => Stack(
-        children: [
-          // This positions the dropdown content below the input field
-          CompositedTransformFollower(
-            link: _layerLink,
-            showWhenUnlinked: false,
-            offset: const Offset(0, 45), // Offset from button
-            child: Material(
-              elevation: 4.0,
-              borderRadius: BorderRadius.circular(borderRadiusMedium),
-              child: Container(
-                width: size.width, // Use button width
-                constraints: const BoxConstraints(maxHeight: 250),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(borderRadiusMedium),
-                  border: Border.all(color: borderColor),
-                ),
+  void _openMultiSelectDialog() async {
+    final result = await showDialog<List<T>>(
+      context: context,
+      builder: (context) {
+        List<T> tempSelected = List.from(_currentSelectedValues);
+        String tempSearch = '';
+        final tempSearchController = TextEditingController();
+        return StatefulBuilder(
+          builder: (context, setStateDialog) {
+            final filteredItems = widget.items.where((item) =>
+              tempSearch.isEmpty || item.label.toLowerCase().contains(tempSearch.toLowerCase())
+            ).toList();
+            return AlertDialog(
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(borderRadiusLarge)),
+              contentPadding: const EdgeInsets.all(0),
+              content: SizedBox(
+                width: 400,
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    // Header with close button
+                    // Header
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
                       decoration: BoxDecoration(
                         color: mutedBackground,
                         borderRadius: const BorderRadius.only(
-                          topLeft: Radius.circular(borderRadiusMedium),
-                          topRight: Radius.circular(borderRadiusMedium),
+                          topLeft: Radius.circular(borderRadiusLarge),
+                          topRight: Radius.circular(borderRadiusLarge),
                         ),
                       ),
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          Text(
-                            'Chọn ${widget.label}',
-                            style: body.copyWith(fontWeight: FontWeight.w600),
-                          ),
+                          Text('Chọn ${widget.label}', style: h3),
                           IconButton(
-                            onPressed: _toggleDropdown,
-                            icon: const Icon(Icons.close, size: 20),
-                            padding: EdgeInsets.zero,
-                            constraints: const BoxConstraints(),
+                            icon: const Icon(Icons.close),
+                            onPressed: () => Navigator.of(context).pop(),
                           ),
                         ],
                       ),
                     ),
-                    // Items list
+                    // Search box
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                      child: TextField(
+                        controller: tempSearchController,
+                        decoration: InputDecoration(
+                          hintText: 'Tìm kiếm...',
+                          isDense: true,
+                          contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                        ),
+                        style: body,
+                        onChanged: (val) => setStateDialog(() { tempSearch = val.trim(); }),
+                      ),
+                    ),
+                    // Nếu tree mode thì không hiển thị chip/tag đã chọn
+                    if (!widget.isTreeMode && tempSelected.isNotEmpty)
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
+                        child: Wrap(
+                          spacing: 8,
+                          runSpacing: 8,
+                          children: tempSelected.map((id) {
+                            final item = widget.items.firstWhere((e) => e.value == id);
+                            return Chip(
+                              label: Text(item.label, style: const TextStyle(color: Color(0xFF22C55E), fontWeight: FontWeight.w600, fontSize: 14)),
+                              backgroundColor: const Color(0xFFD1FADF),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                              deleteIcon: const Icon(Icons.close, size: 16, color: Color(0xFF22C55E)),
+                              onDeleted: () => setStateDialog(() => tempSelected.remove(id)),
+                              labelPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 0),
+                              visualDensity: VisualDensity.compact,
+                              materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                              side: BorderSide.none,
+                            );
+                          }).toList(),
+                        ),
+                      ),
+                    // List
                     Flexible(
-                      child: ListView.builder(
-                        padding: EdgeInsets.zero,
-                        itemCount: widget.items.length,
-                        itemBuilder: (context, index) {
-                          final item = widget.items[index];
-                          final isSelected = _currentSelectedValues.contains(item.value);
-                          return ListTile(
-                            title: Text(item.label, style: body),
-                            leading: Checkbox(
-                              value: isSelected,
-                              onChanged: (bool? checked) {
-                                _onItemCheckedChange(item.value, checked ?? false);
-                              },
-                              activeColor: primaryBlue,
-                            ),
-                            onTap: () {
-                               _onItemCheckedChange(item.value, !isSelected);
+                      child: filteredItems.isEmpty
+                        ? Center(child: Padding(
+                            padding: const EdgeInsets.all(16),
+                            child: Text('Không tìm thấy kết quả', style: mutedText),
+                          ))
+                        : ListView.builder(
+                            shrinkWrap: true,
+                            itemCount: filteredItems.length,
+                            itemBuilder: (context, index) {
+                              final item = filteredItems[index];
+                              final isSelected = tempSelected.contains(item.value);
+                              int level = 0;
+                              if (widget.isTreeMode && item.value is ProductCategory && (item.value as ProductCategory).level != null) {
+                                level = (item.value as ProductCategory).level!;
+                              }
+                              return Padding(
+                                padding: EdgeInsets.only(left: widget.isTreeMode ? level * 20.0 : 0),
+                                child: ListTile(
+                                  title: Text(item.label, style: body),
+                                  leading: Checkbox(
+                                    value: isSelected,
+                                    onChanged: (bool? checked) {
+                                      setStateDialog(() {
+                                        if (checked == true) {
+                                          if (!tempSelected.contains(item.value)) tempSelected.add(item.value);
+                                        } else {
+                                          tempSelected.remove(item.value);
+                                        }
+                                      });
+                                    },
+                                    activeColor: mainGreen,
+                                  ),
+                                  onTap: () {
+                                    setStateDialog(() {
+                                      if (isSelected) {
+                                        tempSelected.remove(item.value);
+                                      } else {
+                                        tempSelected.add(item.value);
+                                      }
+                                    });
+                                  },
+                                ),
+                              );
                             },
-                          );
-                        },
+                          ),
+                    ),
+                    // Actions
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.end,
+                        children: [
+                          TextButton(
+                            onPressed: () => Navigator.of(context).pop(),
+                            child: const Text('Hủy'),
+                          ),
+                          const SizedBox(width: 12),
+                          ElevatedButton(
+                            onPressed: () => Navigator.of(context).pop(tempSelected),
+                            style: primaryButtonStyle,
+                            child: const Text('Xác nhận'),
+                          ),
+                        ],
                       ),
                     ),
                   ],
                 ),
               ),
-            ),
-          ),
-        ],
-      ),
+            );
+          },
+        );
+      },
     );
-  }
-
-  void _onItemCheckedChange(T itemValue, bool isSelected) {
-    final newSelectedValues = List<T>.from(_currentSelectedValues);
-    if (isSelected) {
-      if (!newSelectedValues.contains(itemValue)) {
-        newSelectedValues.add(itemValue);
-      }
-    } else {
-      newSelectedValues.remove(itemValue);
+    if (result != null) {
+      setState(() {
+        _currentSelectedValues = result;
+      });
+      widget.onSelectionChanged(result);
     }
-    
-    setState(() {
-      _currentSelectedValues = newSelectedValues;
-    });
-    
-    // Force the overlay to rebuild to show the new state
-    _overlayEntry.markNeedsBuild();
-    
-    // Inform the parent widget about the change
-    widget.onSelectionChanged(newSelectedValues);
   }
 
   String _getDisplayText() {
@@ -180,45 +237,36 @@ class _MultiSelectDropdownState<T> extends State<MultiSelectDropdown<T>> {
 
   @override
   Widget build(BuildContext context) {
-    return NotificationListener<ScrollNotification>(
-      onNotification: (notification) {
-        // Close dropdown when scrolling
-        if (_isDropdownOpen) {
-          _toggleDropdown();
-        }
-        return false; // Allow scroll to continue
-      },
-      child: CompositedTransformTarget(
-        link: _layerLink,
-        child: GestureDetector(
-          onTap: _toggleDropdown,
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 12.0),
-            decoration: ShapeDecoration(
-              shape: RoundedRectangleBorder(
-                side: const BorderSide(color: borderColor),
-                borderRadius: BorderRadius.circular(borderRadiusMedium),
-              ),
-              color: mutedBackground,
-            ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: <Widget>[
-                Text(_getDisplayText(), style: body),
-                Icon(
-                  _isDropdownOpen ? Icons.arrow_drop_up : Icons.arrow_drop_down,
-                  color: textSecondary,
-                ),
-              ],
-            ),
+    return GestureDetector(
+      onTap: _openMultiSelectDialog,
+      child: Container(
+        height: inputHeight,
+        padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 0),
+        decoration: ShapeDecoration(
+          shape: RoundedRectangleBorder(
+            side: const BorderSide(color: borderColor),
+            borderRadius: BorderRadius.circular(borderRadiusMedium),
           ),
+          color: mutedBackground,
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: <Widget>[
+            Expanded(
+              child: Text(
+                _getDisplayText(),
+                style: body,
+                overflow: TextOverflow.ellipsis,
+                maxLines: 1,
+              ),
+            ),
+            const Icon(
+              Icons.arrow_drop_down,
+              color: textSecondary,
+            ),
+          ],
         ),
       ),
     );
-  }
-
-  @override
-  void dispose() {
-    super.dispose();
   }
 } 

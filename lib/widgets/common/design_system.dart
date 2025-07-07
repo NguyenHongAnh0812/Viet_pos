@@ -6,9 +6,17 @@ import 'package:intl/intl.dart';
 
 /// VET-POS Flutter Style Guide
 /// Based on the VET-POS web design system with consistent naming conventions
+/// 
+/// LAYOUT RULES:
+/// - Tất cả màn hình chính phải có max width 1200px (appMaxWidth)
+/// - Sử dụng Center widget để căn giữa nội dung
+/// - Responsive design: mobile < 768px, desktop >= 768px
+/// - Input fields phải có height cố định 40px
+/// - UI blocks phải flat (không có box shadow)
+/// - Blog titles sử dụng mainGreen theme color
 
 // ===================== COLORS =====================
-const Color primaryBlue = Color(0xFF22C55E); // --primary
+const Color mainGreen = Color(0xFF22C55E); // Màu xanh lá chủ đạo
 const Color secondaryGreen = Color(0xFF67C687); // --secondary
 const Color warningOrange = Color(0xFFFFB547); // --warning
 const Color destructiveRed = Color(0xFFFF5A5F); // --destructive
@@ -103,10 +111,36 @@ const double sidebarWidth = 288.0;
 const double sidebarItemHeight = 40.0;
 const double headerHeight = 64.0;
 const double bottomNavHeight = 80.0;
+const double appMaxWidth = 1200.0; // Max width cho tất cả màn hình chính
 
 // ===================== RESPONSIVE TYPOGRAPHY =====================
 TextStyle responsiveTextStyle(BuildContext context, TextStyle desktop, TextStyle mobile) {
   return MediaQuery.of(context).size.width < 1024 ? mobile : desktop;
+}
+
+// ===================== LAYOUT HELPERS =====================
+/// Tạo Container với max width appMaxWidth để đảm bảo layout nhất quán
+Widget appMaxWidthContainer({required Widget child}) {
+  return Center(
+    child: Container(
+      constraints: const BoxConstraints(maxWidth: appMaxWidth),
+      child: child,
+    ),
+  );
+}
+
+/// Tạo Container với max width appMaxWidth và padding
+Widget appMaxWidthContainerWithPadding({
+  required Widget child, 
+  EdgeInsetsGeometry padding = const EdgeInsets.all(16),
+}) {
+  return Center(
+    child: Container(
+      constraints: const BoxConstraints(maxWidth: appMaxWidth),
+      padding: padding,
+      child: child,
+    ),
+  );
 }
 
 // ===================== TYPOGRAPHY =====================
@@ -160,7 +194,7 @@ TextStyle get captionMobile => getInterTextStyle(fontSize: 11, fontWeight: FontW
 const double buttonBorderRadius = 6.0;
 
 ButtonStyle primaryButtonStyle = ElevatedButton.styleFrom(
-  backgroundColor: primaryBlue,
+  backgroundColor: mainGreen,
   foregroundColor: Colors.white,
   minimumSize: const Size(buttonMinWidth, buttonHeightMedium),
   padding: const EdgeInsets.symmetric(horizontal: space20, vertical: space18),
@@ -221,7 +255,7 @@ ButtonStyle ghostBorderButtonStyle = OutlinedButton.styleFrom(
 
 // Button size variants
 ButtonStyle smallButtonStyle = ElevatedButton.styleFrom(
-  backgroundColor: primaryBlue,
+  backgroundColor: mainGreen,
   foregroundColor: Colors.white,
   minimumSize: const Size(buttonMinWidth, buttonHeightSmall),
   padding: const EdgeInsets.symmetric(horizontal: space12, vertical: space4),
@@ -231,7 +265,7 @@ ButtonStyle smallButtonStyle = ElevatedButton.styleFrom(
 );
 
 ButtonStyle largeButtonStyle = ElevatedButton.styleFrom(
-  backgroundColor: primaryBlue, 
+  backgroundColor: mainGreen, 
   foregroundColor: Colors.white,
   minimumSize: const Size(buttonMinWidth, buttonHeightLarge),
   padding: const EdgeInsets.symmetric(horizontal: space20, vertical: space12),
@@ -318,7 +352,7 @@ InputDecoration designSystemInputDecoration({
   ),
   focusedBorder: OutlineInputBorder(
     borderRadius: BorderRadius.circular(borderRadiusMedium),
-    borderSide: const BorderSide(color: primaryBlue, width: 2),
+    borderSide: const BorderSide(color: mainGreen, width: 2),
   ),
   errorBorder: OutlineInputBorder(
     borderRadius: BorderRadius.circular(borderRadiusMedium),
@@ -349,7 +383,7 @@ InputDecoration searchInputDecoration({
   ),
   focusedBorder: OutlineInputBorder(
     borderRadius: BorderRadius.circular(borderRadiusMedium),
-    borderSide: const BorderSide(color: primaryBlue, width: 2),
+    borderSide: const BorderSide(color: mainGreen, width: 2),
   ),
   hintStyle: mutedText,
 );
@@ -476,9 +510,9 @@ class DesignSystemCheckbox extends StatelessWidget {
             child: Checkbox(
               value: value,
               onChanged: enabled ? onChanged : null,
-              activeColor: primaryBlue,
+              activeColor: mainGreen,
               checkColor: Colors.white,
-              side: BorderSide(color: isChecked ? primaryBlue : borderColor, width: 1.5),
+              side: BorderSide(color: isChecked ? mainGreen : borderColor, width: 1.5),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(borderRadiusSmall),
               ),
@@ -496,9 +530,9 @@ class DesignSystemCheckbox extends StatelessWidget {
       child: Checkbox(
         value: value,
         onChanged: enabled ? onChanged : null,
-        activeColor: primaryBlue,
+        activeColor: mainGreen,
         checkColor: Colors.white,
-        side: BorderSide(color: isChecked ? primaryBlue : borderColor, width: 1.5),
+        side: BorderSide(color: isChecked ? mainGreen : borderColor, width: 1.5),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(borderRadiusSmall),
         ),
@@ -537,10 +571,10 @@ class DesignSystemRadio<T> extends StatelessWidget {
               value: value,
               groupValue: groupValue,
               onChanged: enabled ? onChanged : null,
-              activeColor: primaryBlue,
-              fillColor: MaterialStateProperty.resolveWith<Color>((states) {
-                if (states.contains(MaterialState.selected)) {
-                  return primaryBlue;
+              activeColor: mainGreen,
+              fillColor: WidgetStateProperty.resolveWith<Color>((states) {
+                if (states.contains(WidgetState.selected)) {
+                  return mainGreen;
                 }
                 return borderColor;
               }),
@@ -559,10 +593,10 @@ class DesignSystemRadio<T> extends StatelessWidget {
         value: value,
         groupValue: groupValue,
         onChanged: enabled ? onChanged : null,
-        activeColor: primaryBlue,
-        fillColor: MaterialStateProperty.resolveWith<Color>((states) {
-          if (states.contains(MaterialState.selected)) {
-            return primaryBlue;
+        activeColor: mainGreen,
+        fillColor: WidgetStateProperty.resolveWith<Color>((states) {
+          if (states.contains(WidgetState.selected)) {
+            return mainGreen;
           }
           return borderColor;
         }),
@@ -652,15 +686,15 @@ class DesignSystemBadge extends StatelessWidget {
     
     switch (variant) {
       case BadgeVariant.secondary:
-        bg = secondaryGreen.withOpacity(0.12);
+        bg = secondaryGreen.withValues(alpha: 0.12);
         fg = secondaryGreen;
         break;
       case BadgeVariant.destructive:
-        bg = destructiveRed.withOpacity(0.12);
+        bg = destructiveRed.withValues(alpha: 0.12);
         fg = destructiveRed;
         break;
       case BadgeVariant.warning:
-        bg = warningOrange.withOpacity(0.12);
+        bg = warningOrange.withValues(alpha: 0.12);
         fg = warningOrange;
         break;
       case BadgeVariant.outline:
@@ -669,8 +703,8 @@ class DesignSystemBadge extends StatelessWidget {
         border = Border.all(color: borderColor, width: 1);
         break;
       default:
-        bg = primaryBlue.withOpacity(0.12);
-        fg = primaryBlue;
+        bg = mainGreen.withValues(alpha: 0.12);
+        fg = mainGreen;
     }
     
     return Container(
@@ -864,23 +898,23 @@ class DesignSystemAlert extends StatelessWidget {
     
     switch (variant) {
       case AlertVariant.warning:
-        bg = warningOrange.withOpacity(0.12);
+        bg = warningOrange.withValues(alpha: 0.12);
         fg = warningOrange;
         displayIcon = icon ?? Icons.warning_amber_rounded;
         break;
       case AlertVariant.error:
-        bg = destructiveRed.withOpacity(0.12);
+        bg = destructiveRed.withValues(alpha: 0.12);
         fg = destructiveRed;
         displayIcon = icon ?? Icons.error_outline;
         break;
       case AlertVariant.success:
-        bg = secondaryGreen.withOpacity(0.12);
+        bg = secondaryGreen.withValues(alpha: 0.12);
         fg = secondaryGreen;
         displayIcon = icon ?? Icons.check_circle_outline;
         break;
       default:
-        bg = primaryBlue.withOpacity(0.12);
-        fg = primaryBlue;
+        bg = mainGreen.withValues(alpha: 0.12);
+        fg = mainGreen;
         displayIcon = icon ?? Icons.info_outline;
     }
     
@@ -1147,7 +1181,7 @@ bool isDesktop(double screenWidth) => screenWidth >= 900;
 ThemeData get lightTheme => ThemeData(
   useMaterial3: true,
   colorScheme: ColorScheme.light(
-    primary: primaryBlue,
+    primary: mainGreen,
     secondary: secondaryGreen,
     error: destructiveRed,
     background: appBackground,
@@ -1223,7 +1257,7 @@ List<Widget> _withGap(List<Widget> children, double gap) {
 /*
 // Example 1: Using colors
 Container(
-  color: primaryBlue,
+  color: mainGreen,
   child: Text(
     'Hello',
     style: TextStyle(color: Colors.white),
@@ -1713,7 +1747,7 @@ class _ShopifyDropdownItemState<T> extends State<_ShopifyDropdownItem<T>> {
           color: _hovering
               ? mutedBackground
               : widget.selected
-                  ? mutedBackground.withOpacity(0.5)
+                  ? mutedBackground.withValues(alpha: 0.5)
                   : Colors.transparent,
         ),
         child: Text(
@@ -1946,17 +1980,17 @@ Widget designSystemRangeSlider({
 }) {
   return SliderTheme(
     data: SliderTheme.of(context).copyWith(
-      activeTrackColor: activeColor ?? primaryBlue,
+      activeTrackColor: activeColor ?? mainGreen,
       inactiveTrackColor: inactiveColor ?? borderColor,
       trackHeight: trackHeight,
       rangeThumbShape: RoundRangeSliderThumbShape(enabledThumbRadius: thumbRadius),
       overlayShape: RoundSliderOverlayShape(overlayRadius: overlayRadius),
-      thumbColor: activeColor ?? primaryBlue,
-      overlayColor: (activeColor ?? primaryBlue).withOpacity(0.12),
-      valueIndicatorColor: activeColor ?? primaryBlue,
+      thumbColor: activeColor ?? mainGreen,
+      overlayColor: (activeColor ?? mainGreen).withValues(alpha: 0.12),
+      valueIndicatorColor: activeColor ?? mainGreen,
       tickMarkShape: const RoundSliderTickMarkShape(),
       activeTickMarkColor: borderColor,
-      inactiveTickMarkColor: borderColor.withOpacity(0.5),
+      inactiveTickMarkColor: borderColor.withValues(alpha: 0.5),
     ),
     child: RangeSlider(
       values: values,
@@ -2000,7 +2034,7 @@ class TableDesignSystem {
   static EdgeInsets tableRowPadding = const EdgeInsets.symmetric(horizontal: 24, vertical: 16);
 
   static BoxDecoration tableRowDecoration = BoxDecoration(
-    border: Border(bottom: BorderSide(color: borderColor.withOpacity(0.5))),
+    border: Border(bottom: BorderSide(color: borderColor.withValues(alpha: 0.5))),
   );
 
   static TextStyle tableRowTextStyle = const TextStyle(

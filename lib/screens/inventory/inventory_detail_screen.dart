@@ -1,16 +1,16 @@
 import 'package:flutter/material.dart';
-import '../../models/inventory_session.dart';
-import '../../widgets/common/design_system.dart';
+
 import '../../services/inventory_item_service.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../widgets/main_layout.dart';
 import 'package:flutter/services.dart';
 import '../../services/product_service.dart';
+import '../../widgets/common/design_system.dart';
 import '../../models/product.dart';
 
 class InventoryDetailScreen extends StatefulWidget {
   final String sessionId;
-  const InventoryDetailScreen({Key? key, required this.sessionId}) : super(key: key);
+  const InventoryDetailScreen({super.key, required this.sessionId});
 
   @override
   State<InventoryDetailScreen> createState() => _InventoryDetailScreenState();
@@ -81,7 +81,7 @@ class _InventoryDetailScreenState extends State<InventoryDetailScreen> {
         'stock_actual': data['stock_actual'] ?? 0,
         'diff': data['diff'] ?? 0,
         'note': (data['note'] ?? '').toString(),
-        'stock_invoice': product?.stockInvoice ?? 0,
+        'stock_invoice': product.stockInvoice ?? 0,
       };
     }).toList();
     setState(() {
@@ -317,7 +317,7 @@ class _InventoryDetailScreenState extends State<InventoryDetailScreen> {
               borderRadius: BorderRadius.circular(8),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.05),
+                  color: Colors.black.withValues(alpha: 0.05),
                   blurRadius: 10,
                   offset: const Offset(0, 2),
                 ),
@@ -338,13 +338,13 @@ class _InventoryDetailScreenState extends State<InventoryDetailScreen> {
                           Container(
                             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
                             decoration: BoxDecoration(
-                              border: Border.all(color: primaryBlue),
+                              border: Border.all(color: mainGreen),
                               borderRadius: BorderRadius.circular(8),
                               color: Colors.white,
                             ),
                             child: Text(
                               displayStatus,
-                              style: body.copyWith(color: primaryBlue, fontWeight: FontWeight.bold, fontSize: 13),
+                              style: body.copyWith(color: mainGreen, fontWeight: FontWeight.bold, fontSize: 13),
                             ),
                           ),
                         ],
@@ -463,7 +463,7 @@ class _InventoryDetailScreenState extends State<InventoryDetailScreen> {
                     ),
                     focusedBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(8),
-                      borderSide: const BorderSide(color: primaryBlue, width: 1.5),
+                      borderSide: const BorderSide(color: mainGreen, width: 1.5),
                     ),
                     filled: true,
                     isDense: true,
@@ -492,7 +492,9 @@ class _InventoryDetailScreenState extends State<InventoryDetailScreen> {
                                     ElevatedButton(
                                       onPressed: () => Navigator.pop(context, true),
                                     style: primaryButtonStyle,
-                                      child: const Text('Xác nhận'),
+                                      child: _completeLoading
+                                          ? SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                                          : const Text('Xác nhận'),
                                     ),
                                   ],
                               );
@@ -665,7 +667,7 @@ class _InventoryDetailScreenState extends State<InventoryDetailScreen> {
                                   hintStyle: body.copyWith(color: textSecondary, fontSize: isMobile ? 13 : 15),
                                   border: OutlineInputBorder(borderRadius: BorderRadius.circular(6)),
                                   enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(6), borderSide: BorderSide(color: borderColor)),
-                                  focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(6), borderSide: BorderSide(color: primaryBlue, width: 1.5)),
+                                  focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(6), borderSide: BorderSide(color: mainGreen, width: 1.5)),
                                   filled: true,
                                   fillColor: Colors.transparent,
                                   isDense: true,
@@ -768,7 +770,7 @@ class _InventoryDetailScreenState extends State<InventoryDetailScreen> {
                             IconButton(
                               icon: Icon(
                                 (isNoteOpen || (noteController.text.isNotEmpty)) ? Icons.edit_note : Icons.edit_note_outlined,
-                                color: (isNoteOpen || (noteController.text.isNotEmpty)) ? primaryBlue : textSecondary,
+                                color: (isNoteOpen || (noteController.text.isNotEmpty)) ? mainGreen : textSecondary,
                               ),
                               tooltip: isNoteOpen ? 'Ẩn ghi chú' : 'Thêm ghi chú',
                               onPressed: () => showNote.value = !isNoteOpen,
@@ -821,7 +823,7 @@ class _InventoryDetailScreenState extends State<InventoryDetailScreen> {
                           hintStyle: body.copyWith(color: textSecondary, fontSize: 13),
                           border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
                           enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide(color: borderColor ?? Colors.grey)),
-                          focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide(color: primaryBlue, width: 1.5)),
+                          focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide(color: mainGreen, width: 1.5)),
                           filled: true,
                           fillColor: Colors.transparent,
                           isDense: true,

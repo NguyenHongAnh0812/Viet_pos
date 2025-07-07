@@ -62,7 +62,7 @@ class ProductService {
           final product = Product.fromMap(doc.id, doc.data());
           products.add(product);
         } catch (e) {
-          print('ERROR: Failed to parse product ${doc.id}: $e');
+
         }
       }
       return products;
@@ -86,9 +86,7 @@ class ProductService {
           } else if (oldCategoryId is List) {
             newCategoryIds = List<String>.from(oldCategoryId);
           }
-          
-          print('Migrate document ${doc.id}: category_id "$oldCategoryId" -> category_ids $newCategoryIds');
-          
+
           await _firestore.collection(_collection).doc(doc.id).update({
             'category_ids': newCategoryIds,
             'category_id': FieldValue.delete(), // Xóa trường cũ
@@ -100,8 +98,7 @@ class ProductService {
           final categoryIds = data['category_ids'] as List;
           if (categoryIds.isNotEmpty && categoryIds.first is! String) {
             final stringCategoryIds = List<String>.from(categoryIds.map((e) => e.toString()));
-            print('Fix document ${doc.id}: category_ids $categoryIds -> $stringCategoryIds');
-            
+
             await _firestore.collection(_collection).doc(doc.id).update({
               'category_ids': stringCategoryIds,
             });
@@ -111,10 +108,10 @@ class ProductService {
       }
       
       if (fixedCount > 0) {
-        print('Auto-fixed $fixedCount documents for category_ids migration');
+
       }
     } catch (e) {
-      print('Lỗi khi auto-fix dữ liệu: $e');
+
     }
   }
 

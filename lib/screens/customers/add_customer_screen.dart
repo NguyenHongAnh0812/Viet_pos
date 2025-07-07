@@ -5,7 +5,8 @@ import '../../widgets/common/design_system.dart';
 
 class AddCustomerScreen extends StatefulWidget {
   final VoidCallback? onSuccess;
-  const AddCustomerScreen({super.key, this.onSuccess});
+  final Function(Customer)? onCustomerAdded; // Callback để trả về customer mới
+  const AddCustomerScreen({super.key, this.onSuccess, this.onCustomerAdded});
 
   @override
   State<AddCustomerScreen> createState() => _AddCustomerScreenState();
@@ -25,7 +26,7 @@ class _AddCustomerScreenState extends State<AddCustomerScreen> {
   double? _priceAdjust;
   bool _saving = false;
   String gender = 'Anh';
-  bool isOrganization = false;
+  String customerType = 'individual'; // 'individual' hoặc 'organization'
   final birthdayController = TextEditingController();
   final noteController = TextEditingController();
   final orgNameController = TextEditingController();
@@ -50,23 +51,67 @@ class _AddCustomerScreenState extends State<AddCustomerScreen> {
   }
 
   Future<void> _save() async {
-    if (!_formKey.currentState!.validate()) return;
+    print('[AddCustomerScreen] Bắt đầu submit form');
+    if (!_formKey.currentState!.validate()) {
+      print('[AddCustomerScreen] Form không hợp lệ, không lưu');
+      return;
+    }
+
     setState(() => _saving = true);
     try {
+      String? finalCompanyId = _companyId;
+      if (customerType == 'organization' && orgNameController.text.trim().isNotEmpty) {
+        finalCompanyId = orgNameController.text.trim();
+      }
+
       final customer = Customer(
         id: '',
         name: _nameController.text.trim(),
-        gender: _gender,
+        gender: gender,
         phone: _phoneController.text.trim(),
         email: _emailController.text.trim(),
         address: _addressController.text.trim(),
         discount: _discount,
-        taxCode: _taxCodeController.text.trim(),
+        taxCode: customerType == 'organization' ? taxController.text.trim() : _taxCodeController.text.trim(),
         tags: [],
-        companyId: _companyId,
+        companyId: finalCompanyId ?? '',
+        orgName: customerType == 'organization' ? orgNameController.text.trim() : '',
+        orgAddress: customerType == 'organization' ? orgAddressController.text.trim() : '',
+        invoiceEmail: customerType == 'organization' ? invoiceEmailController.text.trim() : '',
+        birthday: birthdayController.text.trim().isNotEmpty ? birthdayController.text.trim() : null,
+        note: noteController.text.trim().isNotEmpty ? noteController.text.trim() : null,
+        customerType: customerType,
       );
-      await CustomerService().addCustomer(customer);
+      print('[AddCustomerScreen] Dữ liệu customer chuẩn bị lưu: ${customer.toMap()}');
+      
+      // Lưu customer và lấy ID
+      final customerService = CustomerService();
+      final docRef = await customerService.addCustomerAndGetId(customer);
+      
+      // Tạo customer với ID mới
+      final savedCustomer = Customer(
+        id: docRef.id,
+        name: customer.name,
+        gender: customer.gender,
+        phone: customer.phone,
+        email: customer.email,
+        address: customer.address,
+        discount: customer.discount,
+        taxCode: customer.taxCode,
+        tags: customer.tags,
+        companyId: customer.companyId,
+        orgName: customer.orgName,
+        orgAddress: customer.orgAddress,
+        invoiceEmail: customer.invoiceEmail,
+        birthday: customer.birthday,
+        note: customer.note,
+        customerType: customer.customerType,
+      );
+      
+      print('[AddCustomerScreen] Lưu khách hàng thành công với ID: ${docRef.id}');
+      
       if (mounted) {
+        // Hiển thị thông báo thành công
         OverlayEntry? entry;
         entry = OverlayEntry(
           builder: (_) => DesignSystemSnackbar(
@@ -77,20 +122,19 @@ class _AddCustomerScreenState extends State<AddCustomerScreen> {
         );
         Overlay.of(context).insert(entry);
         await Future.delayed(const Duration(milliseconds: 600));
+        
+        // Gọi callback để trả về customer mới
+        widget.onCustomerAdded?.call(savedCustomer);
         widget.onSuccess?.call();
-        Navigator.of(context).pop();
+        
+        // Trở về màn hình trước đó
+        Navigator.of(context).pop(savedCustomer);
       }
-    } catch (e) {
+    } catch (e, stack) {
+      print('[AddCustomerScreen] Lỗi khi lưu khách hàng: $e');
+      print(stack);
       if (mounted) {
-        OverlayEntry? entry;
-        entry = OverlayEntry(
-          builder: (_) => DesignSystemSnackbar(
-            message: 'Lỗi: $e',
-            icon: Icons.error,
-            onDismissed: () => entry?.remove(),
-          ),
-        );
-        Overlay.of(context).insert(entry);
+        _showError('Lỗi: $e');
       }
     } finally {
       if (mounted) setState(() => _saving = false);
@@ -101,6 +145,32 @@ class _AddCustomerScreenState extends State<AddCustomerScreen> {
     if (value == null || value.isEmpty) return null;
     final emailRegex = RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$');
     if (!emailRegex.hasMatch(value)) return 'Email không hợp lệ';
+    return null;
+  }
+
+  String? _validatePhone(String? value) {
+    if (value == null || value.trim().isEmpty) return 'Vui lòng nhập số điện thoại';
+    if (value.trim().length < 10) return 'Số điện thoại phải có ít nhất 10 số';
+    return null;
+  }
+
+  String? _validateName(String? value) {
+    if (value == null || value.trim().isEmpty) return 'Vui lòng nhập họ và tên';
+    if (value.trim().length < 2) return 'Họ và tên phải có ít nhất 2 ký tự';
+    return null;
+  }
+
+  String? _validateOrgName(String? value) {
+    if (customerType == 'organization' && (value == null || value.trim().isEmpty)) {
+      return 'Vui lòng nhập tên tổ chức';
+    }
+    return null;
+  }
+
+  String? _validateTaxCode(String? value) {
+    if (customerType == 'organization' && (value == null || value.trim().isEmpty)) {
+      return 'Vui lòng nhập mã số thuế';
+    }
     return null;
   }
 
@@ -119,300 +189,201 @@ class _AddCustomerScreenState extends State<AddCustomerScreen> {
         centerTitle: true,
       ),
       backgroundColor: const Color(0xFFF9FAFB),
-      body: SingleChildScrollView(
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Container(
+      body: Center(
+        child: Container(
+          constraints: const BoxConstraints(maxWidth: 1200),
+          child: Form(
+            key: _formKey,
+            child: SingleChildScrollView(
+              child: Padding(
                 padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(12),
-                ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text('Thông tin cá nhân', style: TextStyle(fontWeight: FontWeight.bold)),
-                    const SizedBox(height: 16),
+                    Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text('Thông tin cá nhân', style: TextStyle(fontWeight: FontWeight.bold)),
+                          const SizedBox(height: 16),
+                          Row(
+                            children: [
+                              Expanded(
+                                child: GestureDetector(
+                                  onTap: () => setState(() => gender = 'Anh'),
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(vertical: 12),
+                                    decoration: BoxDecoration(
+                                      color: gender == 'Anh' ? const Color(0xFF16A34A) : Colors.white,
+                                      border: Border.all(color: gender == 'Anh' ? const Color(0xFF16A34A) : const Color(0xFFE0E0E0)),
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                    child: Text('Anh', textAlign: TextAlign.center, style: TextStyle(color: gender == 'Anh' ? Colors.white : Colors.black, fontWeight: FontWeight.w600)),
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: GestureDetector(
+                                  onTap: () => setState(() => gender = 'Chị'),
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(vertical: 12),
+                                    decoration: BoxDecoration(
+                                      color: gender == 'Chị' ? const Color(0xFF16A34A) : Colors.white,
+                                      border: Border.all(color: gender == 'Chị' ? const Color(0xFF16A34A) : const Color(0xFFE0E0E0)),
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                    child: Text('Chị', textAlign: TextAlign.center, style: TextStyle(color: gender == 'Chị' ? Colors.white : Colors.black, fontWeight: FontWeight.w600)),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 16),
+                          TextFormField(
+                            controller: _nameController,
+                            decoration: const InputDecoration(labelText: 'Họ và tên *'),
+                            validator: _validateName,
+                          ),
+                          const SizedBox(height: 12),
+                          TextFormField(
+                            controller: _phoneController,
+                            decoration: const InputDecoration(labelText: 'Số điện thoại *'),
+                            keyboardType: TextInputType.phone,
+                            validator: _validatePhone,
+                          ),
+                          const SizedBox(height: 12),
+                          TextFormField(
+                            controller: _emailController,
+                            decoration: const InputDecoration(labelText: 'Email'),
+                            validator: _validateEmail,
+                          ),
+                          const SizedBox(height: 12),
+                          TextFormField(
+                            controller: birthdayController,
+                            decoration: InputDecoration(
+                              labelText: 'Ngày sinh',
+                              suffixIcon: IconButton(
+                                icon: const Icon(Icons.calendar_today, size: 20),
+                                onPressed: () async {
+                                  final picked = await showDatePicker(
+                                    context: context,
+                                    initialDate: DateTime.now(),
+                                    firstDate: DateTime(1900),
+                                    lastDate: DateTime.now(),
+                                  );
+                                  if (picked != null) {
+                                    birthdayController.text = '${picked.month.toString().padLeft(2, '0')}/${picked.day.toString().padLeft(2, '0')}/${picked.year}';
+                                  }
+                                },
+                              ),
+                            ),
+                            keyboardType: TextInputType.datetime,
+                          ),
+                          const SizedBox(height: 12),
+                          TextFormField(
+                            controller: _addressController,
+                            decoration: const InputDecoration(labelText: 'Địa chỉ'),
+                          ),
+                          const SizedBox(height: 12),
+                          TextFormField(
+                            controller: noteController,
+                            decoration: const InputDecoration(labelText: 'Ghi chú'),
+                          ),
+                          const SizedBox(height: 12),
+                          Row(
+                            children: [
+                              Checkbox(
+                                value: customerType == 'organization',
+                                onChanged: (val) => setState(() => customerType = val == true ? 'organization' : 'individual'),
+                              ),
+                              const Text('Tổ chức'),
+                            ],
+                          ),
+                          if (customerType == 'organization') ...[
+                            const SizedBox(height: 12),
+                            const Text('Thông tin tổ chức', style: TextStyle(fontWeight: FontWeight.bold)),
+                            const SizedBox(height: 12),
+                            TextFormField(
+                              controller: orgNameController,
+                              decoration: const InputDecoration(labelText: 'Tên tổ chức *'),
+                              validator: _validateOrgName,
+                            ),
+                            const SizedBox(height: 12),
+                            TextFormField(
+                              controller: taxController,
+                              decoration: const InputDecoration(labelText: 'Mã số thuế *'),
+                              validator: _validateTaxCode,
+                            ),
+                            const SizedBox(height: 12),
+                            TextFormField(
+                              controller: orgAddressController,
+                              decoration: const InputDecoration(labelText: 'Địa chỉ tổ chức'),
+                            ),
+                            const SizedBox(height: 12),
+                            TextFormField(
+                              controller: invoiceEmailController,
+                              decoration: const InputDecoration(labelText: 'Email nhận hóa đơn'),
+                              validator: _validateEmail,
+                            ),
+                          ],
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 20),
                     Row(
                       children: [
                         Expanded(
-                          child: GestureDetector(
-                            onTap: () => setState(() => gender = 'Anh'),
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(vertical: 12),
-                              decoration: BoxDecoration(
-                                color: gender == 'Anh' ? const Color(0xFF16A34A) : Colors.white,
-                                border: Border.all(color: gender == 'Anh' ? const Color(0xFF16A34A) : const Color(0xFFE0E0E0)),
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              child: Text('Anh', textAlign: TextAlign.center, style: TextStyle(color: gender == 'Anh' ? Colors.white : Colors.black, fontWeight: FontWeight.w600)),
-                            ),
+                          child: OutlinedButton(
+                            onPressed: _saving ? null : () => Navigator.pop(context),
+                            child: const Text('Hủy'),
                           ),
                         ),
-                        const SizedBox(width: 8),
+                        const SizedBox(width: 12),
                         Expanded(
-                          child: GestureDetector(
-                            onTap: () => setState(() => gender = 'Chị'),
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(vertical: 12),
-                              decoration: BoxDecoration(
-                                color: gender == 'Chị' ? const Color(0xFF16A34A) : Colors.white,
-                                border: Border.all(color: gender == 'Chị' ? const Color(0xFF16A34A) : const Color(0xFFE0E0E0)),
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              child: Text('Chị', textAlign: TextAlign.center, style: TextStyle(color: gender == 'Chị' ? Colors.white : Colors.black, fontWeight: FontWeight.w600)),
+                          child: ElevatedButton(
+                            onPressed: _saving ? null : _save,
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFF16A34A),
                             ),
+                            child: _saving 
+                              ? const SizedBox(
+                                  height: 20,
+                                  width: 20,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                                  ),
+                                )
+                              : const Text('Thêm khách hàng', style: TextStyle(color: Colors.white)),
                           ),
                         ),
                       ],
                     ),
-                    const SizedBox(height: 16),
-                    TextField(
-                      controller: _nameController,
-                      decoration: const InputDecoration(labelText: 'Họ và tên *'),
-                    ),
-                    const SizedBox(height: 12),
-                    TextField(
-                      controller: _phoneController,
-                      decoration: const InputDecoration(labelText: 'Số điện thoại *'),
-                      keyboardType: TextInputType.phone,
-                    ),
-                    const SizedBox(height: 12),
-                    TextField(
-                      controller: _emailController,
-                      decoration: const InputDecoration(labelText: 'Email'),
-                    ),
-                    const SizedBox(height: 12),
-                    TextField(
-                      controller: birthdayController,
-                      decoration: InputDecoration(
-                        labelText: 'Ngày sinh',
-                        suffixIcon: IconButton(
-                          icon: const Icon(Icons.calendar_today, size: 20),
-                          onPressed: () async {
-                            final picked = await showDatePicker(
-                              context: context,
-                              initialDate: DateTime.now(),
-                              firstDate: DateTime(1900),
-                              lastDate: DateTime.now(),
-                            );
-                            if (picked != null) {
-                              birthdayController.text = '${picked.month.toString().padLeft(2, '0')}/${picked.day.toString().padLeft(2, '0')}/${picked.year}';
-                            }
-                          },
-                        ),
-                      ),
-                      keyboardType: TextInputType.datetime,
-                    ),
-                    const SizedBox(height: 12),
-                    TextField(
-                      controller: _addressController,
-                      decoration: const InputDecoration(labelText: 'Địa chỉ'),
-                    ),
-                    const SizedBox(height: 12),
-                    TextField(
-                      controller: noteController,
-                      decoration: const InputDecoration(labelText: 'Ghi chú'),
-                    ),
-                    const SizedBox(height: 12),
-                    Row(
-                      children: [
-                        Checkbox(
-                          value: isOrganization,
-                          onChanged: (val) => setState(() => isOrganization = val ?? false),
-                        ),
-                        const Text('Tổ chức'),
-                      ],
-                    ),
-                    if (isOrganization) ...[
-                      const SizedBox(height: 12),
-                      const Text('Thông tin tổ chức', style: TextStyle(fontWeight: FontWeight.bold)),
-                      const SizedBox(height: 12),
-                      TextField(
-                        controller: orgNameController,
-                        decoration: const InputDecoration(labelText: 'Tên tổ chức *'),
-                      ),
-                      const SizedBox(height: 12),
-                      TextField(
-                        controller: taxController,
-                        decoration: const InputDecoration(labelText: 'Mã số thuế *'),
-                      ),
-                      const SizedBox(height: 12),
-                      TextField(
-                        controller: orgAddressController,
-                        decoration: const InputDecoration(labelText: 'Địa chỉ tổ chức'),
-                      ),
-                      const SizedBox(height: 12),
-                      TextField(
-                        controller: invoiceEmailController,
-                        decoration: const InputDecoration(labelText: 'Email nhận hóa đơn'),
-                      ),
-                    ],
                   ],
                 ),
               ),
-              const SizedBox(height: 20),
-              Row(
-                children: [
-                  Expanded(
-                    child: OutlinedButton(
-                      onPressed: () => Navigator.pop(context),
-                      child: const Text('Hủy'),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: ElevatedButton(
-                      onPressed: _saving ? null : _save,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF16A34A),
-                      ),
-                      child: const Text('Thêm khách hàng', style: TextStyle(color: Colors.white)),
-                    ),
-                  ),
-                ],
-              ),
-            ],
+            ),
           ),
         ),
       ),
     );
   }
 
-  Widget _buildFormColumn() {
-    return designSystemFormCard(
-      title: 'Thông tin khách hàng',
-      child: Column(
-        children: [
-          DesignSystemFormField(
-            label: 'Tên khách hàng',
-            required: true,
-            input: TextFormField(
-              controller: _nameController,
-              validator: (v) => v == null || v.trim().isEmpty ? 'Bắt buộc' : null,
-              decoration: designSystemInputDecoration(hint: 'Nhập tên khách hàng'),
-            ),
-          ),
-          const SizedBox(height: 16),
-          DesignSystemFormField(
-            label: 'Số điện thoại',
-            required: true,
-            input: TextFormField(
-              controller: _phoneController,
-              validator: (v) => v == null || v.trim().isEmpty ? 'Bắt buộc' : null,
-              decoration: designSystemInputDecoration(hint: 'Nhập số điện thoại'),
-              keyboardType: TextInputType.phone,
-            ),
-          ),
-          const SizedBox(height: 16),
-          DesignSystemFormField(
-            label: 'Email',
-            input: TextFormField(
-              controller: _emailController,
-              validator: _validateEmail,
-              decoration: designSystemInputDecoration(hint: 'Nhập email'),
-              keyboardType: TextInputType.emailAddress,
-            ),
-          ),
-          const SizedBox(height: 16),
-          DesignSystemFormField(
-            label: 'Địa chỉ',
-            input: TextFormField(
-              controller: _addressController,
-              decoration: designSystemInputDecoration(hint: 'Nhập địa chỉ'),
-            ),
-          ),
-          const SizedBox(height: 16),
-          DesignSystemFormField(
-            label: 'Giới tính',
-            input: ShopifyDropdown<String>(
-              items: const ['Nam', 'Nữ', 'Khác'],
-              value: _gender,
-              getLabel: (v) => v,
-              onChanged: (v) => setState(() => _gender = v),
-              hint: 'Chọn giới tính',
-            ),
-          ),
-          const SizedBox(height: 16),
-          DesignSystemFormField(
-            label: 'Mã số thuế',
-            input: TextFormField(
-              controller: _taxCodeController,
-              decoration: designSystemInputDecoration(hint: 'Nhập mã số thuế'),
-            ),
-          ),
-          const SizedBox(height: 16),
-          DesignSystemFormField(
-            label: 'Công ty',
-            input: ShopifyDropdown<String>(
-              items: const [], // TODO: Lấy danh sách công ty từ service
-              value: _companyId,
-              getLabel: (v) => v,
-              onChanged: (v) => setState(() => _companyId = v),
-              hint: 'Chọn công ty liên kết',
-            ),
-          ),
-          const SizedBox(height: 16),
-          DesignSystemCheckbox(
-            value: _isSupplier,
-            onChanged: (v) => setState(() => _isSupplier = v ?? false),
-            label: 'Đồng thời là nhà cung cấp?',
-          ),
-          const SizedBox(height: 24),
-          Row(
-            children: [
-              Expanded(
-                child: OutlinedButton(
-                  onPressed: () => Navigator.pop(context),
-                  child: const Text('Hủy'),
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: ElevatedButton(
-                  onPressed: _saving ? null : _save,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF16A34A),
-                  ),
-                  child: const Text('Thêm khách hàng', style: TextStyle(color: Colors.white)),
-                ),
-              ),
-            ],
-          ),
-        ],
+  void _showError(String message) {
+    OverlayEntry? entry;
+    entry = OverlayEntry(
+      builder: (_) => DesignSystemSnackbar(
+        message: message,
+        icon: Icons.error,
+        onDismissed: () => entry?.remove(),
       ),
     );
-  }
-
-  Widget _buildPricePolicyCard() {
-    return designSystemFormCard(
-      title: 'Chính sách giá',
-      child: Column(
-        children: [
-          DesignSystemFormField(
-            label: 'Chiết khấu',
-            input: TextFormField(
-              decoration: designSystemInputDecoration(suffixIcon: const Text('%'), hint: '0'),
-              keyboardType: TextInputType.number,
-              onChanged: (v) => setState(() => _discount = double.tryParse(v)),
-            ),
-            helperText: 'Chiết khấu áp dụng cho tất cả sản phẩm',
-          ),
-          const SizedBox(height: 16),
-          DesignSystemFormField(
-            label: 'Điều chỉnh giá bán (%)',
-            input: TextFormField(
-              decoration: designSystemInputDecoration(suffixIcon: const Text('%'), hint: '0'),
-              keyboardType: TextInputType.number,
-              onChanged: (v) => setState(() => _priceAdjust = double.tryParse(v)),
-            ),
-            helperText: 'Giá cao hơn (+) hoặc thấp hơn (-) so với giá mặc định',
-          ),
-        ],
-      ),
-    );
+    Overlay.of(context).insert(entry);
   }
 } 

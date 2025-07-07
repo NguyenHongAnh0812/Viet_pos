@@ -22,6 +22,10 @@ class Product {
   final String? discontinueReason; // discontinue_reason
   final DateTime createdAt;  // created_at
   final DateTime updatedAt;  // updated_at
+  final String? origin; // xuất xứ
+  final String contraindication;
+  final String direction;
+  final String withdrawalTime;
 
   Product({
     required this.id,
@@ -45,6 +49,10 @@ class Product {
     this.discontinueReason,
     required this.createdAt,
     required this.updatedAt,
+    this.origin,
+    this.contraindication = '',
+    this.direction = '',
+    this.withdrawalTime = '',
   });
 
   Map<String, dynamic> toMap() {
@@ -69,6 +77,10 @@ class Product {
       'discontinue_reason': discontinueReason,
       'created_at': createdAt,
       'updated_at': updatedAt,
+      'origin': origin,
+      'contraindication': contraindication,
+      'direction': direction,
+      'withdrawal_time': withdrawalTime,
     };
   }
 
@@ -114,6 +126,10 @@ class Product {
       discontinueReason: map['discontinue_reason'],
       createdAt: createdAt ?? DateTime.now(),
       updatedAt: updatedAt ?? DateTime.now(),
+      origin: map['origin'],
+      contraindication: map['contraindication'] ?? '',
+      direction: map['direction'] ?? '',
+      withdrawalTime: map['withdrawal_time'] ?? '',
     );
   }
 
@@ -144,6 +160,10 @@ class Product {
     String? discontinueReason,
     DateTime? createdAt,
     DateTime? updatedAt,
+    String? origin,
+    String? contraindication,
+    String? direction,
+    String? withdrawalTime,
   }) {
     return Product(
       id: id ?? this.id,
@@ -167,6 +187,10 @@ class Product {
       discontinueReason: discontinueReason ?? this.discontinueReason,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
+      origin: origin ?? this.origin,
+      contraindication: contraindication ?? this.contraindication,
+      direction: direction ?? this.direction,
+      withdrawalTime: withdrawalTime ?? this.withdrawalTime,
     );
   }
 
@@ -192,6 +216,10 @@ class Product {
       'discontinue_reason': raw['discontinue_reason'] ?? raw['discontinueReason'],
       'created_at': raw['created_at'] ?? raw['createdAt'] ?? FieldValue.serverTimestamp(),
       'updated_at': raw['updated_at'] ?? raw['updatedAt'] ?? FieldValue.serverTimestamp(),
+      'origin': raw['origin'],
+      'contraindication': raw['contraindication'] ?? '',
+      'direction': raw['direction'] ?? '',
+      'withdrawal_time': raw['withdrawal_time'] ?? '',
     };
   }
 } 

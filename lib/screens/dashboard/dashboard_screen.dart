@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
-import '../../widgets/common/design_system_update.dart';
+import '../../widgets/common/design_system.dart';
 
 class DashboardModernScreen extends StatelessWidget {
-  const DashboardModernScreen({Key? key}) : super(key: key);
+  const DashboardModernScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppDesignSystem.secondaryColor,
+      backgroundColor: appBackground,
       body: Column(
         children: [
           // Header logo block
@@ -24,19 +24,19 @@ class DashboardModernScreen extends StatelessWidget {
                     width: 40,
                     height: 40,
                     decoration: BoxDecoration(
-                      color: AppDesignSystem.primaryColor.withOpacity(0.1),
+                      color: mainGreen.withValues(alpha: 0.1),
                       shape: BoxShape.circle,
                     ),
                     child: const Center(
-                      child: Icon(Icons.favorite, color: AppDesignSystem.primaryColor, size: 28),
+                      child: Icon(Icons.favorite, color: mainGreen, size: 28),
                     ),
                   ),
                   const SizedBox(width: 12),
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text('VetPharm', style: AppDesignSystem.headingLg.copyWith(color: AppDesignSystem.primaryColor)),
-                      Text('Nhà thuốc thú y', style: AppDesignSystem.textSm.copyWith(color: AppDesignSystem.primaryColor.withOpacity(0.7))),
+                      Text('VetPharm', style: h1.copyWith(color: mainGreen)),
+                      Text('Nhà thuốc thú y', style: bodySmall.copyWith(color: mainGreen.withValues(alpha: 0.7))),
                     ],
                   ),
                 ],
@@ -47,7 +47,7 @@ class DashboardModernScreen extends StatelessWidget {
           Expanded(
             child: Center(
               child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 484),
+                constraints: const BoxConstraints(maxWidth: 1200),
                 child: SingleChildScrollView(
                   child: Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 32.0),
@@ -55,9 +55,9 @@ class DashboardModernScreen extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         // Welcome
-                        Text('Chào mừng bạn trở lại!', style: AppDesignSystem.headingLg),
+                        Text('Chào mừng bạn trở lại!', style: h1),
                         const SizedBox(height: 4),
-                        Text('Quản lý nhà thuốc thú y một cách hiệu quả', style: AppDesignSystem.textBase.copyWith(color: AppDesignSystem.mutedForegroundColor)),
+                        Text('Quản lý nhà thuốc thú y một cách hiệu quả', style: body.copyWith(color: textMuted)),
                         const SizedBox(height: 32),
                         // Quick Stats
                         Container(
@@ -67,7 +67,7 @@ class DashboardModernScreen extends StatelessWidget {
                             borderRadius: BorderRadius.circular(16),
                             boxShadow: [
                               BoxShadow(
-                                color: Colors.black.withOpacity(0.04),
+                                color: Colors.black.withValues(alpha: 0.04),
                                 blurRadius: 8,
                                 offset: Offset(0, 2),
                               ),
@@ -77,14 +77,14 @@ class DashboardModernScreen extends StatelessWidget {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text('Thống kê nhanh hôm nay', style: AppDesignSystem.textBase.copyWith(fontWeight: FontWeight.bold)),
+                              Text('Thống kê nhanh hôm nay', style: body.copyWith(fontWeight: FontWeight.bold)),
                               const SizedBox(height: 20),
                               Row(
                                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                 children: [
-                                  _StatItem(value: '12', label: 'Đơn hàng', color: AppDesignSystem.successColor),
-                                  _StatItem(value: '2.4M', label: 'Doanh thu', color: AppDesignSystem.infoColor, isBold: true),
-                                  _StatItem(value: '156', label: 'Sản phẩm', color: AppDesignSystem.warningColor),
+                                  _StatItem(value: '12', label: 'Đơn hàng', color: successGreen),
+                                  _StatItem(value: '2.4M', label: 'Doanh thu', color: infoBlue, isBold: true),
+                                  _StatItem(value: '156', label: 'Sản phẩm', color: warningOrange),
                                 ],
                               ),
                             ],
@@ -99,7 +99,7 @@ class DashboardModernScreen extends StatelessWidget {
                             borderRadius: BorderRadius.circular(16),
                             boxShadow: [
                               BoxShadow(
-                                color: Colors.black.withOpacity(0.04),
+                                color: Colors.black.withValues(alpha: 0.04),
                                 blurRadius: 8,
                                 offset: Offset(0, 2),
                               ),
@@ -109,7 +109,7 @@ class DashboardModernScreen extends StatelessWidget {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text('Thao tác nhanh', style: AppDesignSystem.textLg.copyWith(fontWeight: FontWeight.bold)),
+                              Text('Thao tác nhanh', style: h3.copyWith(fontWeight: FontWeight.bold)),
                               const SizedBox(height: 16),
                               Row(
                                 children: [
@@ -119,11 +119,11 @@ class DashboardModernScreen extends StatelessWidget {
                                       height: 44,
                                       child: OutlinedButton.icon(
                                         style: OutlinedButton.styleFrom(
-                                          foregroundColor: AppDesignSystem.foregroundColor,
-                                          side: const BorderSide(color: AppDesignSystem.borderColor),
+                                          foregroundColor: textPrimary,
+                                          side: const BorderSide(color: borderColor),
                                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                                           backgroundColor: Colors.white,
-                                          textStyle: AppDesignSystem.textBase,
+                                          textStyle: body,
                                         ),
                                         onPressed: () {},
                                         icon: const Icon(Icons.search, size: 20),
@@ -138,11 +138,11 @@ class DashboardModernScreen extends StatelessWidget {
                                       height: 44,
                                       child: OutlinedButton.icon(
                                         style: OutlinedButton.styleFrom(
-                                          foregroundColor: AppDesignSystem.foregroundColor,
-                                          side: const BorderSide(color: AppDesignSystem.borderColor),
+                                          foregroundColor: textPrimary,
+                                          side: const BorderSide(color: borderColor),
                                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                                           backgroundColor: Colors.white,
-                                          textStyle: AppDesignSystem.textBase,
+                                          textStyle: body,
                                         ),
                                         onPressed: () {},
                                         icon: const Icon(Icons.qr_code_scanner, size: 20),
@@ -175,6 +175,48 @@ class DashboardModernScreen extends StatelessWidget {
   }
 }
 
+void showMoreSheet(BuildContext context) {
+  final isMobile = MediaQuery.of(context).size.width < 600;
+  final crossAxisCount = isMobile ? 3 : 5;
+  showModalBottomSheet(
+    context: context,
+    backgroundColor: Colors.white,
+    shape: const RoundedRectangleBorder(
+      borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+    ),
+    builder: (context) {
+      final items = [
+        {'icon': Icons.settings, 'label': 'Cài đặt'},
+        {'icon': Icons.bar_chart, 'label': 'Báo cáo'},
+        {'icon': Icons.receipt, 'label': 'Hóa đơn'},
+        {'icon': Icons.account_circle, 'label': 'Tài khoản'},
+        {'icon': Icons.help, 'label': 'Trợ giúp'},
+        // ... thêm các item khác nếu cần
+      ];
+      return Padding(
+        padding: const EdgeInsets.all(24),
+        child: GridView.count(
+          crossAxisCount: crossAxisCount,
+          shrinkWrap: true,
+          mainAxisSpacing: 16,
+          crossAxisSpacing: 16,
+          children: items.map((item) => Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              CircleAvatar(
+                backgroundColor: mainGreen.withOpacity(0.1),
+                child: Icon(item['icon'] as IconData, color: mainGreen),
+              ),
+              const SizedBox(height: 8),
+              Text(item['label'] as String, style: bodySmall),
+            ],
+          )).toList(),
+        ),
+      );
+    },
+  );
+}
+
 class _StatItem extends StatelessWidget {
   final String value;
   final String label;
@@ -188,7 +230,7 @@ class _StatItem extends StatelessWidget {
       children: [
         Text(
           value,
-          style: AppDesignSystem.headingLg.copyWith(
+          style: h1.copyWith(
             color: color,
             fontWeight: isBold ? FontWeight.bold : FontWeight.w700,
             fontSize: 24,
@@ -197,7 +239,7 @@ class _StatItem extends StatelessWidget {
         const SizedBox(height: 4),
         Text(
           label,
-          style: AppDesignSystem.textSm.copyWith(color: AppDesignSystem.mutedForegroundColor),
+          style: bodySmall.copyWith(color: textMuted),
         ),
       ],
     );
@@ -212,7 +254,7 @@ class _BottomNavBar extends StatelessWidget {
         color: Colors.white,
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.04),
+            color: Colors.black.withValues(alpha: 0.04),
             blurRadius: 8,
             offset: Offset(0, -2),
           ),
@@ -223,12 +265,16 @@ class _BottomNavBar extends StatelessWidget {
           padding: const EdgeInsets.symmetric(vertical: 8),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceAround,
-            children: const [
-              _NavItem(icon: Icons.dashboard, label: 'Tổng quan', selected: true),
-              _NavItem(icon: Icons.inventory_2, label: 'Hàng hoá'),
-              _NavItem(icon: Icons.shopping_cart, label: 'Bán hàng'),
-              _NavItem(icon: Icons.people, label: 'Nhà cung cấp'),
-              _NavItem(icon: Icons.more_horiz, label: 'Thêm'),
+            children: [
+              const _NavItem(icon: Icons.dashboard, label: 'Tổng quan 2', selected: true),
+              const _NavItem(icon: Icons.inventory_2, label: 'Hàng hoá'),
+              const _NavItem(icon: Icons.shopping_cart, label: 'Bán hàng'),
+              const _NavItem(icon: Icons.people, label: 'Nhà cung cấp'),
+              _NavItem(
+                icon: Icons.more_horiz,
+                label: 'Thêm',
+                onTap: () => showMoreSheet(context),
+              ),
             ],
           ),
         ),
@@ -241,16 +287,30 @@ class _NavItem extends StatelessWidget {
   final IconData icon;
   final String label;
   final bool selected;
-  const _NavItem({required this.icon, required this.label, this.selected = false});
+  final VoidCallback? onTap;
+  const _NavItem({required this.icon, required this.label, this.selected = false, this.onTap});
   @override
   Widget build(BuildContext context) {
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Icon(icon, color: selected ? AppDesignSystem.primaryColor : AppDesignSystem.mutedForegroundColor),
-        const SizedBox(height: 2),
-        Text(label, style: AppDesignSystem.textXs.copyWith(color: selected ? AppDesignSystem.primaryColor : AppDesignSystem.mutedForegroundColor)),
-      ],
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(8),
+        splashFactory: NoSplash.splashFactory,
+        highlightColor: Colors.transparent,
+        splashColor: Colors.transparent,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(icon, color: selected ? mainGreen : textMuted),
+              const SizedBox(height: 2),
+              Text(label, style: bodySmall.copyWith(color: selected ? mainGreen : textMuted)),
+            ],
+          ),
+        ),
+      ),
     );
   }
 } 

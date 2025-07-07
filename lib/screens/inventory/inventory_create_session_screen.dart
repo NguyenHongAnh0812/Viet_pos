@@ -1,17 +1,18 @@
 import 'package:flutter/material.dart';
-import '../../widgets/common/design_system.dart';
+
 import '../../services/product_service.dart';
-import '../../models/product.dart';
+
 import '../../services/inventory_service.dart';
-import 'inventory_detail_screen.dart';
-import '../../models/inventory_session.dart';
+
 import '../../services/inventory_item_service.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../../widgets/main_layout.dart';
+import '../../widgets/common/design_system.dart';
+import '../../models/product.dart';
 
 class InventoryCreateSessionScreen extends StatefulWidget {
-  const InventoryCreateSessionScreen({Key? key}) : super(key: key);
+  const InventoryCreateSessionScreen({super.key});
 
   @override
   State<InventoryCreateSessionScreen> createState() => _InventoryCreateSessionScreenState();
@@ -22,7 +23,7 @@ class _InventoryCreateSessionScreenState extends State<InventoryCreateSessionScr
   final TextEditingController _noteController = TextEditingController();
   DateTime? _selectedDate = DateTime.now();
 
-  int _selectMode = 0; // 0: all, 1: by category, 2: specific
+  final int _selectMode = 0; // 0: all, 1: by category, 2: specific
   String? _selectedCategory;
   final _productService = ProductService();
   final Set<String> _selectedProducts = {};
@@ -137,7 +138,7 @@ class _InventoryCreateSessionScreenState extends State<InventoryCreateSessionScr
                                 ),
                                 focusedBorder: OutlineInputBorder(
                                   borderRadius: BorderRadius.circular(8),
-                                  borderSide: const BorderSide(color: primaryBlue, width: 1.5),
+                                  borderSide: const BorderSide(color: mainGreen, width: 1.5),
                                 ),
                                 contentPadding: const EdgeInsets.symmetric(vertical: 0, horizontal: 16),
                               ),
@@ -171,7 +172,7 @@ class _InventoryCreateSessionScreenState extends State<InventoryCreateSessionScr
                                 ),
                                 focusedBorder: OutlineInputBorder(
                                   borderRadius: BorderRadius.circular(8),
-                                  borderSide: const BorderSide(color: primaryBlue, width: 1.5),
+                                  borderSide: const BorderSide(color: mainGreen, width: 1.5),
                                 ),
                                 contentPadding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
                               ),
@@ -189,7 +190,7 @@ class _InventoryCreateSessionScreenState extends State<InventoryCreateSessionScr
                                   builder: (context, child) => Theme(
                                     data: Theme.of(context).copyWith(
                                       colorScheme: ColorScheme.light(
-                                        primary: primaryBlue,
+                                        primary: mainGreen,
                                         onPrimary: Colors.white,
                                         surface: cardBackground,
                                         onSurface: textPrimary,
@@ -345,7 +346,7 @@ class _ProductSelectBlockState extends State<_ProductSelectBlock> {
           child: Container(
             decoration: BoxDecoration(
               color: Colors.white,
-              border: Border.all(color: _expanded == 1 ? primaryBlue : borderColor, width: 1.5),
+              border: Border.all(color: _expanded == 1 ? mainGreen : borderColor, width: 1.5),
               borderRadius: BorderRadius.circular(10),
             ),
             padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 12),
@@ -365,7 +366,7 @@ class _ProductSelectBlockState extends State<_ProductSelectBlock> {
           child: Container(
             decoration: BoxDecoration(
               color: _expanded == 2 ? const Color(0xFFF6FFFA) : Colors.white,
-              border: Border.all(color: _expanded == 2 ? primaryBlue : borderColor, width: 1.5),
+              border: Border.all(color: _expanded == 2 ? mainGreen : borderColor, width: 1.5),
               borderRadius: BorderRadius.circular(10),
             ),
             padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 12),
@@ -384,7 +385,7 @@ class _ProductSelectBlockState extends State<_ProductSelectBlock> {
             padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
               color: const Color(0xFFF6FFFA),
-              border: Border.all(color: primaryBlue, width: 1.2),
+              border: Border.all(color: mainGreen, width: 1.2),
               borderRadius: BorderRadius.circular(10),
             ),
             child: Column(
@@ -410,7 +411,7 @@ class _ProductSelectBlockState extends State<_ProductSelectBlock> {
           child: Container(
             decoration: BoxDecoration(
               color: _expanded == 3 ? const Color(0xFFF6FFFA) : Colors.white,
-              border: Border.all(color: _expanded == 3 ? primaryBlue : borderColor, width: 1.5),
+              border: Border.all(color: _expanded == 3 ? mainGreen : borderColor, width: 1.5),
               borderRadius: BorderRadius.circular(10),
             ),
             padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 12),
@@ -430,7 +431,7 @@ class _ProductSelectBlockState extends State<_ProductSelectBlock> {
             padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
               color: const Color(0xFFF6FFFA),
-              border: Border.all(color: primaryBlue, width: 1.2),
+              border: Border.all(color: mainGreen, width: 1.2),
               borderRadius: BorderRadius.circular(10),
             ),
             child: Row(
@@ -449,7 +450,7 @@ class _ProductSelectBlockState extends State<_ProductSelectBlock> {
                   ),
                 ),
                 const SizedBox(width: 8),
-                Icon(Icons.qr_code_scanner, color: primaryBlue),
+                Icon(Icons.qr_code_scanner, color: mainGreen),
               ],
             ),
           ),

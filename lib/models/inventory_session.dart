@@ -48,6 +48,9 @@ class InventorySession {
       'products': products.map((p) => p.toMap()).toList(),
     };
   }
+
+  int get totalCount => products.length;
+  int get checkedCount => products.where((p) => p.actualQty != null && p.actualQty > 0).length;
 }
 
 class InventoryProduct {

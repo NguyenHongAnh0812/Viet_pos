@@ -166,7 +166,7 @@ class _AddProductCategoryScreenState extends State<AddProductCategoryScreen> {
   
   // Condition state
   String _selectedConditionType = 'all'; // 'all' or 'any'
-  List<ProductCondition> _conditions = [];
+  final List<ProductCondition> _conditions = [];
 
   @override
   void initState() {
@@ -603,7 +603,7 @@ class _AddProductCategoryScreenState extends State<AddProductCategoryScreen> {
                                   final index = entry.key;
                                   final condition = entry.value;
                                   return _buildConditionRow(condition, index);
-                                }).toList(),
+                                }),
                                 Container(
                                   margin: const EdgeInsets.only(top: 12),
                                   child: OutlinedButton.icon(
@@ -1128,8 +1128,8 @@ class _ProductRow extends StatelessWidget {
     this.showRemove = false,
     this.onRemove,
     this.onTap,
-    Key? key,
-  }) : super(key: key);
+    super.key,
+  });
 
   @override
   Widget build(BuildContext context) {

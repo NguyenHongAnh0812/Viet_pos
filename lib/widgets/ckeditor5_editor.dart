@@ -18,7 +18,7 @@ class CKEditor5Widget extends StatefulWidget {
   final Duration autoSaveDelay;
   
   const CKEditor5Widget({
-    Key? key, 
+    super.key, 
     this.initialContent, 
     this.onContentChanged,
     this.onAutoSave,
@@ -27,7 +27,7 @@ class CKEditor5Widget extends StatefulWidget {
     this.maxHeight = 800,
     this.enableAutoSave = true,
     this.autoSaveDelay = const Duration(seconds: 2),
-  }) : super(key: key);
+  });
 
   @override
   State<CKEditor5Widget> createState() => _CKEditor5WidgetState();
@@ -57,14 +57,15 @@ class _CKEditor5WidgetState extends State<CKEditor5Widget> {
           //   ..style.width = '100%'
           //   ..style.height = '${_currentHeight}px';
           
-          // Listen for messages from iframe
+          // // Listen for messages from iframe
           // html.window.addEventListener('message', (event) {
           //   if (event is html.MessageEvent && event.data is Map) {
           //     _handleMessage(event.data);
           //   }
           // });
           
-          return null; // Return null as _iframeElement is commented out
+          // return _iframeElement!;
+          return null; // Placeholder
         },
       );
       _viewTypeRegistered = true;
@@ -106,7 +107,7 @@ class _CKEditor5WidgetState extends State<CKEditor5Widget> {
       case 'editorError':
         final error = data['error'] as String?;
         if (error != null) {
-          print('CKEditor error: $error');
+
         }
         break;
     }
@@ -129,49 +130,49 @@ class _CKEditor5WidgetState extends State<CKEditor5Widget> {
   }
 
   void _setContent(String content) {
-    if (_isEditorReady && false) { // _iframeElement is commented out
-      try {
-        // Call JavaScript function to set content
-        js.context.callMethod('setCKContent', [content]);
-      } catch (e) {
-        print('Error setting content: $e');
-      }
-    }
+    // if (_isEditorReady && _iframeElement != null) {
+    //   try {
+    //     // Call JavaScript function to set content
+    //     js.context.callMethod('setCKContent', [content]);
+    //   } catch (e) {
+    //     print('Error setting content: $e');
+    //   }
+    // }
   }
 
   void _updateWordCount(String content) {
-    if (_isEditorReady && false) { // _iframeElement is commented out
-      try {
-        final wordCount = js.context.callMethod('getWordCount') as int? ?? 0;
-        if (wordCount != _wordCount) {
-          _wordCount = wordCount;
-          widget.onWordCountChanged?.call(_wordCount);
-        }
-      } catch (e) {
-        print('Error getting word count: $e');
-      }
-    }
+    // if (_isEditorReady && _iframeElement != null) {
+    //   try {
+    //     final wordCount = js.context.callMethod('getWordCount') as int? ?? 0;
+    //     if (wordCount != _wordCount) {
+    //       _wordCount = wordCount;
+    //       widget.onWordCountChanged?.call(_wordCount);
+    //   }
+    //   } catch (e) {
+    //     print('Error getting word count: $e');
+    //   }
+    // }
   }
 
   void _focusEditor() {
-    if (_isEditorReady && false) { // _iframeElement is commented out
-      try {
-        js.context.callMethod('focusEditor');
-      } catch (e) {
-        print('Error focusing editor: $e');
-      }
-    }
+    // if (_isEditorReady && _iframeElement != null) {
+    //   try {
+    //     js.context.callMethod('focusEditor');
+    //   } catch (e) {
+    //     print('Error focusing editor: $e');
+    //   }
+    // }
   }
 
   String _getContent() {
-    if (_isEditorReady && false) { // _iframeElement is commented out
-      try {
-        return js.context.callMethod('getCKContent') as String? ?? '';
-      } catch (e) {
-        print('Error getting content: $e');
-        return '';
-      }
-    }
+    // if (_isEditorReady && _iframeElement != null) {
+    //   try {
+    //     return js.context.callMethod('getCKContent') as String? ?? '';
+    //   } catch (e) {
+    //     print('Error getting content: $e');
+    //     return '';
+    //   }
+    // }
     return '';
   }
 
