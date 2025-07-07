@@ -21,15 +21,16 @@ import '../../widgets/common/design_system.dart';
 import '../../models/product_category.dart';
 import '../../models/product.dart';
 
-class AddProductScreen extends StatefulWidget {
+class EditProductScreen extends StatefulWidget {
+  final Product product;
   final VoidCallback? onBack;
-  const AddProductScreen({super.key, this.onBack});
+  const EditProductScreen({super.key, required this.product, this.onBack});
 
   @override
-  State<AddProductScreen> createState() => _AddProductScreenState();
+  State<EditProductScreen> createState() => _EditProductScreenState();
 }
 
-class _AddProductScreenState extends State<AddProductScreen> with TickerProviderStateMixin {
+class _EditProductScreenState extends State<EditProductScreen> with TickerProviderStateMixin {
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
   final _commonNameController = TextEditingController();
@@ -71,21 +72,53 @@ class _AddProductScreenState extends State<AddProductScreen> with TickerProvider
   DateTime? _expDate;
   List<ProductCategory> _allCategories = [];
 
-  // Tab controller for modern tabbed interface
-  late TabController _tabController;
-
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 3, vsync: this);
     _profitMarginController.text = _defaultProfitMargin.toStringAsFixed(0);
     _loadCompanies();
     _loadCategories();
+    _fillProductData();
+  }
+
+  void _fillProductData() {
+    final product = widget.product;
+    
+    // Fill basic information
+    _nameController.text = product.tradeName;
+    _commonNameController.text = product.internalName;
+    _barcodeController.text = product.barcode ?? '';
+    _skuController.text = product.sku ?? '';
+    _unitController.text = product.unit;
+    _quantityController.text = product.stockSystem.toString();
+    _costPriceController.text = formatCurrency(product.costPrice);
+    _sellPriceController.text = formatCurrency(product.salePrice);
+    _descriptionController.text = product.description;
+    _usageController.text = product.usage;
+    _ingredientsController.text = product.ingredients;
+    _notesController.text = product.notes;
+    _contraindicationController.text = product.contraindication;
+    _directionController.text = product.direction;
+    _withdrawalTimeController.text = product.withdrawalTime;
+    
+    // Fill tags
+    _tags = List<String>.from(product.tags);
+    
+    // Fill status
+    _isActive = product.status == 'active';
+    
+    // Fill existing images (Product model doesn't have images field yet)
+    _productImageUrls = [];
+    
+    // Calculate profit margin
+    if (product.costPrice > 0 && product.salePrice > 0) {
+      final profitMargin = ((product.salePrice - product.costPrice) / product.costPrice * 100);
+      _profitMarginController.text = profitMargin.toStringAsFixed(0);
+    }
   }
 
   @override
   void dispose() {
-    _tabController.dispose();
     _nameController.dispose();
     _commonNameController.dispose();
     _barcodeController.dispose();
@@ -124,12 +157,15 @@ class _AddProductScreenState extends State<AddProductScreen> with TickerProvider
     if (mounted) {
       setState(() {
         _allCategories = _buildCategoryTree(categories);
-        if (_selectedCategories.isNotEmpty && _selectedCategories.first is String) {
-          final idSet = Set<String>.from(_selectedCategories as List<String>);
-          _selectedCategories = _allCategories.where((c) => idSet.contains(c.id)).toList();
-        }
+        // Load selected categories for this product
+        _loadSelectedCategories();
       });
     }
+  }
+
+  void _loadSelectedCategories() {
+    // TODO: Load selected categories based on product.categoryIds
+    // This will be implemented when category relation is available
   }
 
   // Hàm build tree phân cấp, trả về list đã sort theo cấp, mỗi item có level
@@ -168,8 +204,7 @@ class _AddProductScreenState extends State<AddProductScreen> with TickerProvider
 
   void _calculateSalePrice() {
     if (!_autoCalculatePrice) return;
-    final costPriceStr = _costPriceController.text.replaceAll(RegExp(r'[^0-9]'), '');
-    final costPrice = double.tryParse(costPriceStr) ?? 0.0;
+    final costPrice = _parseCurrency(_costPriceController.text);
     final profitMargin = double.tryParse(_profitMarginController.text) ?? _defaultProfitMargin;
     if (costPrice > 0) {
       final salePrice = costPrice * (1 + profitMargin / 100);
@@ -198,284 +233,88 @@ class _AddProductScreenState extends State<AddProductScreen> with TickerProvider
             final reader = html.FileReader();
             reader.readAsArrayBuffer(file);
             reader.onLoadEnd.listen((event) {
-              setState(() {
-                _webImageBytesList.add(reader.result as Uint8List);
-              });
+              if (reader.result != null) {
+                setState(() {
+                  _webImageBytesList.add(reader.result as Uint8List);
+                });
+              }
             });
           }
         }
       });
     } else {
-      final pickedFiles = await _picker.pickMultiImage(imageQuality: 80);
-      if (pickedFiles.isNotEmpty) {
+      final List<XFile> images = await _picker.pickMultiImage();
+      if (images.isNotEmpty) {
         int remain = 5 - _productImageFiles.length;
-        if (pickedFiles.length > remain) {
+        if (images.length > remain) {
           _showPopupNotification('Chỉ được chọn tối đa 5 ảnh', Icons.error_outline);
         }
         setState(() {
-          _productImageFiles.addAll(pickedFiles.take(remain).map((e) => File(e.path)));
+          for (final image in images.take(remain)) {
+            _productImageFiles.add(File(image.path));
+          }
         });
       }
     }
   }
 
-  Future<void> _pickImageFromCamera() async {
-    if (kIsWeb) return;
-    if (_productImageFiles.length >= 5) {
-      _showPopupNotification('Chỉ được chọn tối đa 5 ảnh', Icons.error_outline);
-      return;
-    }
-    final pickedFile = await _picker.pickImage(source: ImageSource.camera, imageQuality: 80);
-    if (pickedFile != null) {
-      setState(() {
-        if (_productImageFiles.length < 5) {
-          _productImageFiles.add(File(pickedFile.path));
-        }
-      });
-    }
-  }
-
-  void _removeImage() {
+  void _removeImage(int index) {
     setState(() {
-      _productImageFiles.clear();
-      _productImageUrls.clear();
-    });
-  }
-
-  Future<String?> _uploadImageToFirebase(File imageFile) async {
-    try {
-      final fileName = 'products/${DateTime.now().millisecondsSinceEpoch}_${imageFile.path.split('/').last}';
-      final ref = FirebaseStorage.instance.ref().child(fileName);
-      final uploadTask = await ref.putFile(imageFile);
-      final url = await uploadTask.ref.getDownloadURL();
-      return url;
-    } catch (e) {
-      debugPrint('Upload image error: $e');
-      return null;
-    }
-  }
-
-  Future<List<String>> _uploadAllImages() async {
-    List<String> urls = [];
-    if (kIsWeb && _webImageBytesList.isNotEmpty) {
-      for (final bytes in _webImageBytesList) {
-        final fileName = 'products/${DateTime.now().millisecondsSinceEpoch}_${urls.length}.web.jpg';
-        final ref = FirebaseStorage.instance.ref().child(fileName);
-        final uploadTask = await ref.putData(bytes);
-        final url = await uploadTask.ref.getDownloadURL();
-        urls.add(url);
-      }
-    } else if (_productImageFiles.isNotEmpty) {
-      for (final file in _productImageFiles) {
-        final url = await _uploadImageToFirebase(file);
-        if (url != null) urls.add(url);
-      }
-    }
-    return urls;
-  }
-
-  @override
-  Future<void> _saveProduct() async {
-    if (!_formKey.currentState!.validate()) return;
-    setState(() => _isSaving = true);
-    try {
-      List<String> imageUrls = await _uploadAllImages();
-      if (imageUrls.isNotEmpty) {
-        _productImageUrls = imageUrls;
-      }
-      final costPriceStr = _costPriceController.text.replaceAll(RegExp(r'[^0-9]'), '');
-      final salePriceStr = _sellPriceController.text.replaceAll(RegExp(r'[^0-9]'), '');
-      final costPrice = double.tryParse(costPriceStr) ?? 0.0;
-      final salePrice = double.tryParse(salePriceStr) ?? 0.0;
-      final rawData = {
-        'internal_name': _nameController.text.trim(),
-        'trade_name': _commonNameController.text.trim(),
-        'barcode': _barcodeController.text.trim(),
-        'sku': _skuController.text.trim(),
-        'unit': _unitController.text.trim(),
-        'stock_system': int.tryParse(_quantityController.text) ?? 0,
-        'cost_price': costPrice,
-        'sale_price': salePrice,
-        'tags': _tags,
-        'description': _descriptionController.text.trim(),
-        'usage': _usageController.text.trim(),
-        'ingredients': _ingredientsController.text.trim(),
-        'notes': _notesController.text.trim(),
-        'status': _isActive ? 'active' : 'inactive',
-        'created_at': FieldValue.serverTimestamp(),
-        'updated_at': FieldValue.serverTimestamp(),
-        'images': imageUrls,
-        'main_image': imageUrls.isNotEmpty ? imageUrls[_mainImageIndex.clamp(0, imageUrls.length-1)] : null,
-        'mfg_date': _mfgDate,
-        'exp_date': _expDate,
-        'origin': _originController.text.trim(),
-        'contraindication': _contraindicationController.text.trim(),
-        'direction': _directionController.text.trim(),
-        'withdrawal_time': _withdrawalTimeController.text.trim(),
-      };
-      final productData = Product.normalizeProductData(rawData);
-      final docRef = await FirebaseFirestore.instance.collection('products').add(productData);
-      
-      // Lưu mối quan hệ Product-Category với hierarchy (Approach 2)
-      if (_selectedCategories.isNotEmpty) {
-        // Lấy tất cả category IDs (bao gồm cả parent categories)
-        final allCategoryIds = await _getAllCategoryIdsForProduct(_selectedCategories.map((c) => c.id).toList());
-        
-        // Lưu tất cả mối quan hệ vào product_categories collection
-        final batch = FirebaseFirestore.instance.batch();
-        for (final categoryId in allCategoryIds) {
-          final relationDocRef = FirebaseFirestore.instance.collection('product_categories').doc();
-          batch.set(relationDocRef, {
-            'product_id': docRef.id,
-            'category_id': categoryId,
-            'created_at': FieldValue.serverTimestamp(),
-            'updated_at': FieldValue.serverTimestamp(),
-          });
-        }
-        await batch.commit();
-        
-        debugPrint('=== APPROACH 2: Đã lưu hierarchy ===');
-        debugPrint('Product ID: ${docRef.id}');
-        debugPrint('Selected categories: $_selectedCategories');
-        debugPrint('All category IDs (including parents): $allCategoryIds');
-        debugPrint('Total relationships created: ${allCategoryIds.length}');
-      }
-      
-      // Lưu mối quan hệ Product-Company vào bảng trung gian
-      if (_selectedCompanyIds.isNotEmpty) {
-        await _productCompanyService.addProductCompanies(docRef.id, _selectedCompanyIds);
-      }
-      
-      if (mounted) {
-        // Hiển thị popup thông báo thành công theo styleguide
-        _showPopupNotification('Đã thêm sản phẩm mới thành công!', Icons.check_circle);
-        
-        if (widget.onBack != null) widget.onBack!();
-      }
-    } catch (e) {
-      if (mounted) {
-        // Hiển thị popup thông báo lỗi theo styleguide
-        _showPopupNotification('Lỗi: $e', Icons.error_outline);
-      }
-    } finally {
-      if (mounted) {
-        setState(() => _isSaving = false);
-      }
-    }
-  }
-
-  void _fillSampleData() {
-    setState(() {
-      _commonNameController.text = 'Pro-cell';
-      _nameController.text = 'PC-001';
-      _barcodeController.text = '8938505970012';
-      _skuController.text = 'SKU-001';
-      _unitController.text = 'Hộp';
-      _ingredientsController.text = 'Thành phần mẫu';
-      _usageController.text = 'Công dụng mẫu';
-      _descriptionController.text = 'Mô tả sản phẩm mẫu';
-      _tags = ['kháng sinh', 'vitamin'];
-      _tagsController.clear();
-      _costPriceController.text = formatCurrency(100000);
-      _sellPriceController.text = formatCurrency(120000);
-      _profitMarginController.text = '20';
-      _quantityController.text = '50';
-      _isActive = true;
-      _notesController.text = 'Ghi chú sản phẩm mẫu';
-      _selectedCompanyIds = _allCompanies.isNotEmpty ? [_allCompanies.first.id] : [];
-      _mfgDate = DateTime(DateTime.now().year - 1, 1, 1);
-      _expDate = DateTime(DateTime.now().year + 1, 1, 1);
-      _originController.text = 'Việt Nam';
-      _contraindicationController.text = 'Không có';
-      _directionController.text = 'Không có';
-      _withdrawalTimeController.text = 'Không có';
-    });
-  }
-
-  Future<void> _createSampleCategories() async {
-    try {
-      final sampleCategories = [
-        ProductCategory(id: '', name: 'Kháng sinh', description: 'Thuốc kháng sinh'),
-        ProductCategory(id: '', name: 'Vitamin', description: 'Vitamin và khoáng chất'),
-        ProductCategory(id: '', name: 'Thuốc giảm đau', description: 'Thuốc giảm đau, hạ sốt'),
-        ProductCategory(id: '', name: 'Thuốc khác', description: 'Các loại thuốc khác'),
-      ];
-
-      for (final category in sampleCategories) {
-        await _categoryService.addCategory(category);
-      }
-
-      if (mounted) {
-        // Hiển thị popup thông báo thành công theo styleguide
-        _showPopupNotification('Đã tạo danh mục mẫu thành công!', Icons.check_circle);
-      }
-    } catch (e) {
-      if (mounted) {
-        // Hiển thị popup thông báo lỗi theo styleguide
-        _showPopupNotification('Lỗi: $e', Icons.error_outline);
-      }
-    }
-  }
-
-  // Helper method để lấy tất cả parent category IDs
-  Future<List<String>> _getAllParentCategoryIds(String categoryId) async {
-    List<String> parentIds = [];
-    String? currentId = categoryId;
-    
-    while (currentId != null && currentId.isNotEmpty) {
-      final doc = await FirebaseFirestore.instance.collection('categories').doc(currentId).get();
-      if (doc.exists) {
-        final data = doc.data()!;
-        final parentId = data['parentId'] as String?;
-        if (parentId != null && parentId.isNotEmpty) {
-          parentIds.add(parentId);
-          currentId = parentId;
-        } else {
-          break;
-        }
+      if (index < _productImageFiles.length) {
+        _productImageFiles.removeAt(index);
       } else {
-        break;
+        final urlIndex = index - _productImageFiles.length;
+        if (urlIndex < _productImageUrls.length) {
+          _productImageUrls.removeAt(urlIndex);
+        }
       }
-    }
-    
-    return parentIds;
+      if (_mainImageIndex >= _productImageFiles.length + _productImageUrls.length) {
+        _mainImageIndex = 0;
+      }
+    });
   }
 
-  // Helper method để lấy tất cả category IDs (bao gồm cả parent) cho một sản phẩm
-  Future<List<String>> _getAllCategoryIdsForProduct(List<String> selectedCategoryIds) async {
-    Set<String> allCategoryIds = {};
-    for (final categoryId in selectedCategoryIds) {
-      allCategoryIds.add(categoryId);
-      final parentIds = await _getAllParentCategoryIds(categoryId);
-      allCategoryIds.addAll(parentIds);
-    }
-    return allCategoryIds.toList();
+  void _setMainImage(int index) {
+    setState(() {
+      _mainImageIndex = index;
+    });
   }
 
-  // Debug method để hiển thị thông tin hierarchy
-  Future<void> _debugCategoryHierarchy() async {
-    if (_selectedCategories.isEmpty) {
-      debugPrint('Không có category nào được chọn');
-      return;
+  Future<List<String>> _uploadImages() async {
+    final List<String> uploadedUrls = [];
+    
+    // Upload new files
+    for (int i = 0; i < _productImageFiles.length; i++) {
+      final file = _productImageFiles[i];
+      final fileName = 'product_images/${widget.product.id}_${DateTime.now().millisecondsSinceEpoch}_$i.jpg';
+      final ref = FirebaseStorage.instance.ref().child(fileName);
+      final uploadTask = ref.putFile(file);
+      final snapshot = await uploadTask;
+      final downloadUrl = await snapshot.ref.getDownloadURL();
+      uploadedUrls.add(downloadUrl);
     }
-    
-    debugPrint('=== DEBUG CATEGORY HIERARCHY ===');
-    debugPrint('Selected categories: $_selectedCategories');
-    
-    for (final category in _selectedCategories) {
-      final parentIds = await _getAllParentCategoryIds(category.id);
-      debugPrint('Category ${category.id} -> Parent IDs: $parentIds');
+
+    // Upload web images
+    for (int i = 0; i < _webImageBytesList.length; i++) {
+      final bytes = _webImageBytesList[i];
+      final fileName = 'product_images/${widget.product.id}_${DateTime.now().millisecondsSinceEpoch}_web_$i.jpg';
+      final ref = FirebaseStorage.instance.ref().child(fileName);
+      final uploadTask = ref.putData(bytes);
+      final snapshot = await uploadTask;
+      final downloadUrl = await snapshot.ref.getDownloadURL();
+      uploadedUrls.add(downloadUrl);
     }
-    
-    final allCategoryIds = await _getAllCategoryIdsForProduct(_selectedCategories.map((c) => c.id).toList());
-    debugPrint('All category IDs (including parents): $allCategoryIds');
-    debugPrint('=== END DEBUG ===');
+
+    return uploadedUrls;
   }
 
-  // Helper method để hiển thị popup thông báo
+  double _parseCurrency(String text) {
+    // Remove currency symbol and commas, then parse as double
+    final cleanText = text.replaceAll(RegExp(r'[^\d.]'), '');
+    return double.tryParse(cleanText) ?? 0.0;
+  }
+
   void _showPopupNotification(String message, IconData icon) {
-    if (!mounted) return;
-    
     OverlayEntry? entry;
     entry = OverlayEntry(
       builder: (_) => DesignSystemSnackbar(
@@ -487,116 +326,251 @@ class _AddProductScreenState extends State<AddProductScreen> with TickerProvider
     Overlay.of(context).insert(entry);
   }
 
-  // Test method để tạo category mới với Materialized Path
-  Future<void> _testCreateCategoryWithPath() async {
+  Future<void> _saveProduct() async {
+    if (!_formKey.currentState!.validate()) return;
+
+    setState(() => _isSaving = true);
+
     try {
-      debugPrint('=== TEST CREATE CATEGORY WITH PATH ===');
-      
-      // Tạo root category
-      final rootCategory = ProductCategory(
-        id: '',
-        name: 'Thuốc',
-        description: 'Danh mục thuốc chính',
-        parentId: null,
-      );
-      
-      await _categoryService.addCategory(rootCategory);
-      debugPrint('✅ Đã tạo root category: Thuốc');
-      
-      // Lấy root category ID
-      final categories = await _categoryService.getCategories().first;
-      final rootCat = categories.firstWhere((c) => c.name == 'Thuốc');
-      
-      // Tạo child category
-      final childCategory = ProductCategory(
-        id: '',
-        name: 'Vitamin',
-        description: 'Vitamin và khoáng chất',
-        parentId: rootCat.id,
-      );
-      
-      await _categoryService.addCategory(childCategory);
-      debugPrint('✅ Đã tạo child category: Vitamin (parent: ${rootCat.name})');
-      
-      // Lấy child category ID
-      final updatedCategories = await _categoryService.getCategories().first;
-      final vitaminCat = updatedCategories.firstWhere((c) => c.name == 'Vitamin');
-      
-      debugPrint('📊 Category info:');
-      debugPrint('   - ID: ${vitaminCat.id}');
-      debugPrint('   - Name: ${vitaminCat.name}');
-      debugPrint('   - Parent ID: ${vitaminCat.parentId}');
-      debugPrint('   - Path: ${vitaminCat.path}');
-      debugPrint('   - Path Array: ${vitaminCat.pathArray}');
-      debugPrint('   - Level: ${vitaminCat.level}');
-      
+      // Upload new images
+      final newImageUrls = await _uploadImages();
+      final allImageUrls = [..._productImageUrls, ...newImageUrls];
+
+      // Prepare product data
+      final productData = {
+        'trade_name': _nameController.text.trim(),
+        'internal_name': _commonNameController.text.trim(),
+        'barcode': _barcodeController.text.trim().isEmpty ? null : _barcodeController.text.trim(),
+        'sku': _skuController.text.trim().isEmpty ? null : _skuController.text.trim(),
+        'unit': _unitController.text.trim(),
+        'stock_system': int.tryParse(_quantityController.text.replaceAll(RegExp(r'[^0-9]'), '')) ?? 0,
+        'cost_price': _parseCurrency(_costPriceController.text),
+        'sale_price': _parseCurrency(_sellPriceController.text),
+        'gross_profit': _parseCurrency(_sellPriceController.text) - _parseCurrency(_costPriceController.text),
+        'auto_price': _autoCalculatePrice,
+        'tags': _tags,
+        'description': _descriptionController.text.trim(),
+        'usage': _usageController.text.trim(),
+        'ingredients': _ingredientsController.text.trim(),
+        'notes': _notesController.text.trim(),
+        if (_originController.text.trim().isNotEmpty)
+          'origin': _originController.text.trim(),
+        'contraindication': _contraindicationController.text.trim(),
+        'direction': _directionController.text.trim(),
+        'withdrawal_time': _withdrawalTimeController.text.trim(),
+        'status': _isActive ? 'active' : 'inactive',
+        if (!_isActive && _discontinueReasonController.text.trim().isNotEmpty)
+          'discontinue_reason': _discontinueReasonController.text.trim(),
+        'images': allImageUrls,
+        'mainImageIndex': _mainImageIndex,
+        'updated_at': FieldValue.serverTimestamp(),
+      };
+
+      // Update product in Firestore
+      await FirebaseFirestore.instance
+          .collection('products')
+          .doc(widget.product.id)
+          .update(productData);
+
       if (mounted) {
-        // Hiển thị popup thông báo thành công theo styleguide
-        _showPopupNotification('✅ Đã tạo category test thành công!', Icons.check_circle);
+        _showPopupNotification('Cập nhật sản phẩm thành công!', Icons.check_circle);
+        Navigator.of(context).pop();
       }
-      
     } catch (e) {
-      debugPrint('❌ Lỗi test: $e');
       if (mounted) {
-        // Hiển thị popup thông báo lỗi theo styleguide
-        _showPopupNotification('Lỗi: $e', Icons.error_outline);
+        _showPopupNotification('Lỗi khi cập nhật sản phẩm: $e', Icons.error);
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isSaving = false);
       }
     }
   }
 
-  Future<void> _pickMfgDate() async {
-    final now = DateTime.now();
-    final picked = await showDatePicker(
-      context: context,
-      initialDate: _mfgDate ?? now,
-      firstDate: DateTime(now.year - 10),
-      lastDate: DateTime(now.year + 10),
-      helpText: 'Chọn năm sản xuất',
-      fieldLabelText: 'Năm sản xuất',
-      fieldHintText: 'yyyy',
-      initialEntryMode: DatePickerEntryMode.calendar,
+  Widget _buildFormField({
+    required String label,
+    TextEditingController? controller,
+    Widget? child,
+    TextInputType? keyboardType,
+    int minLines = 1,
+    int maxLines = 1,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(label, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: textPrimary)),
+        const SizedBox(height: space8),
+        if (child != null)
+          child
+        else
+          TextFormField(
+            controller: controller,
+            keyboardType: keyboardType,
+            minLines: minLines,
+            maxLines: maxLines,
+            style: const TextStyle(fontSize: 15),
+            decoration: InputDecoration(
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(borderRadiusMedium)),
+              contentPadding: EdgeInsets.symmetric(horizontal: inputPadding, vertical: minLines > 1 ? 12 : 0),
+              filled: true,
+              fillColor: Colors.white,
+            ),
+            validator: (value) {
+              if (label.contains('*') && (value == null || value.trim().isEmpty)) {
+                return 'Vui lòng nhập $label';
+              }
+              return null;
+            },
+          ),
+      ],
     );
-    if (picked != null) {
-      setState(() => _mfgDate = picked);
-    }
   }
 
-  Future<void> _pickExpDate() async {
-    final now = DateTime.now();
-    final picked = await showDatePicker(
-      context: context,
-      initialDate: _expDate ?? now,
-      firstDate: DateTime(now.year - 10),
-      lastDate: DateTime(now.year + 20),
-      helpText: 'Chọn năm hết hạn',
-      fieldLabelText: 'Năm hết hạn',
-      fieldHintText: 'yyyy',
-      initialEntryMode: DatePickerEntryMode.calendar,
+  Widget _buildProductImageBlock() {
+    final hasImage = _productImageFiles.isNotEmpty || _productImageUrls.isNotEmpty;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Text('Ảnh sản phẩm', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: mainGreen)),
+            const Text(' *', style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),
+          ],
+        ),
+        const SizedBox(height: 16),
+        if (!hasImage)
+          Center(
+            child: Container(
+              width: 140,
+              height: 140,
+              decoration: BoxDecoration(
+                border: Border.all(color: Colors.grey, width: 1, style: BorderStyle.solid),
+                borderRadius: BorderRadius.circular(12),
+                color: Colors.grey[50],
+                // Custom dashed border can be added with a custom painter if needed
+              ),
+              child: Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.image, size: 48, color: Colors.grey[400]),
+                    const SizedBox(height: 8),
+                    Text('Product', style: TextStyle(color: Colors.grey[500], fontSize: 16)),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        if (hasImage)
+          GridView.builder(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 3,
+              crossAxisSpacing: 8,
+              mainAxisSpacing: 8,
+              childAspectRatio: 1,
+            ),
+            itemCount: _productImageFiles.length + _productImageUrls.length,
+            itemBuilder: (context, index) {
+              final isMain = index == _mainImageIndex;
+              return Stack(
+                children: [
+                  Container(
+                    width: double.infinity,
+                    height: double.infinity,
+                    decoration: BoxDecoration(
+                      border: Border.all(
+                        color: isMain ? mainGreen : Colors.grey[300]!,
+                        width: isMain ? 2 : 1,
+                      ),
+                      borderRadius: BorderRadius.circular(8),
+                      color: Colors.grey[100],
+                    ),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(8),
+                      child: index < _productImageFiles.length
+                          ? Image.file(_productImageFiles[index], fit: BoxFit.cover, width: double.infinity, height: double.infinity)
+                          : Image.network(_productImageUrls[index - _productImageFiles.length], fit: BoxFit.cover, width: double.infinity, height: double.infinity),
+                    ),
+                  ),
+                  Positioned(
+                    top: 4,
+                    right: 4,
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        if (isMain)
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: mainGreen,
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                            child: const Text('Chính', style: TextStyle(color: Colors.white, fontSize: 10)),
+                          ),
+                        IconButton(
+                          onPressed: () => _removeImage(index),
+                          icon: const Icon(Icons.close, color: Colors.red, size: 16),
+                          style: IconButton.styleFrom(
+                            backgroundColor: Colors.white,
+                            padding: const EdgeInsets.all(4),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  if (!isMain)
+                    Positioned(
+                      bottom: 4,
+                      left: 4,
+                      child: IconButton(
+                        onPressed: () => _setMainImage(index),
+                        icon: const Icon(Icons.star_border, color: Colors.orange, size: 16),
+                        style: IconButton.styleFrom(
+                          backgroundColor: Colors.white,
+                          padding: const EdgeInsets.all(4),
+                        ),
+                      ),
+                    ),
+                ],
+              );
+            },
+          ),
+        const SizedBox(height: 16),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            OutlinedButton.icon(
+              onPressed: _pickMultiImageFromGallery,
+              icon: const Icon(Icons.upload, size: 20),
+              label: const Text('Tải ảnh'),
+              style: OutlinedButton.styleFrom(
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+              ),
+            ),
+            const SizedBox(width: 12),
+            OutlinedButton.icon(
+              onPressed: () {/* TODO: implement camera picker */},
+              icon: const Icon(Icons.camera_alt, size: 20),
+              label: const Text('Chụp ảnh'),
+              style: OutlinedButton.styleFrom(
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+              ),
+            ),
+          ],
+        ),
+      ],
     );
-    if (picked != null) {
-      setState(() => _expDate = picked);
-    }
-  }
-
-  void _removeImageAt(int index) {
-    setState(() {
-      if (kIsWeb && _webImageBytesList.isNotEmpty) {
-        _webImageBytesList.removeAt(index);
-      } else if (_productImageFiles.isNotEmpty) {
-        _productImageFiles.removeAt(index);
-      } else if (_productImageUrls.isNotEmpty) {
-        _productImageUrls.removeAt(index);
-      }
-      if (_mainImageIndex >= index && _mainImageIndex > 0) {
-        _mainImageIndex--;
-      }
-    });
   }
 
   @override
   Widget build(BuildContext context) {
     final isDesktop = MediaQuery.of(context).size.width > 1024;
     final isTablet = MediaQuery.of(context).size.width > 768;
+    
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFC),
       body: Stack(
@@ -610,19 +584,14 @@ class _AddProductScreenState extends State<AddProductScreen> with TickerProvider
                   children: [
                     IconButton(
                       icon: const Icon(Icons.arrow_back, color: Colors.white),
-                      onPressed: widget.onBack,
+                      onPressed: widget.onBack ?? () => Navigator.of(context).maybePop(),
                     ),
                     Expanded(
                       child: Text(
-                        'Thêm sản phẩm mới',
+                        'Sửa sản phẩm',
                         style: h2Mobile.copyWith(color: Colors.white),
                         textAlign: TextAlign.left,
                       ),
-                    ),
-                    TextButton.icon(
-                      onPressed: _fillSampleData,
-                      icon: const Icon(Icons.auto_fix_high, size: 18, color: Colors.white),
-                      label: Text(isDesktop ? 'Dữ liệu mẫu' : 'Mẫu', style: const TextStyle(color: Colors.white)),
                     ),
                   ],
                 ),
@@ -643,6 +612,7 @@ class _AddProductScreenState extends State<AddProductScreen> with TickerProvider
                   ),
                 ),
               ),
+              const SizedBox(height: 64), // Để chừa chỗ cho footer
             ],
           ),
           // Footer nút Hủy/Lưu cố định
@@ -693,12 +663,17 @@ class _AddProductScreenState extends State<AddProductScreen> with TickerProvider
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Cột 7: Thông tin cơ bản, Ảnh sản phẩm, Thông tin y tế
+        // Cột 7: Ảnh sản phẩm, Thông tin cơ bản, Thông tin y tế
         Expanded(
           flex: 7,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              // Ảnh sản phẩm lên đầu
+              SectionCard(
+                padding: const EdgeInsets.all(16),
+                child: _buildProductImageBlock(),
+              ),
               // Thông tin cơ bản
               SectionCard(
                 child: Column(
@@ -711,7 +686,6 @@ class _AddProductScreenState extends State<AddProductScreen> with TickerProvider
                     _buildFormField(label: 'Tên nội bộ', controller: _nameController),
                     const SizedBox(height: space12),
                     _buildFormField(label: 'Mô tả', controller: _descriptionController, minLines: 4, maxLines: 6),
-                    
                     Row(
                       children: [
                         const SizedBox(height: space12),
@@ -724,11 +698,6 @@ class _AddProductScreenState extends State<AddProductScreen> with TickerProvider
                     ),
                   ],
                 ),
-              ),
-              // Ảnh sản phẩm
-              SectionCard(
-                padding: const EdgeInsets.all(16),
-                child: _buildProductImageBlock(),
               ),
               // Thông tin y tế
               SectionCard(
@@ -746,8 +715,6 @@ class _AddProductScreenState extends State<AddProductScreen> with TickerProvider
                     _buildFormField(label: 'Cách dùng', controller: _directionController, maxLines: 2),
                     const SizedBox(height: space12),
                     _buildFormField(label: 'Thời gian ngưng sử dụng', controller: _withdrawalTimeController, maxLines: 1),
-                    const SizedBox(height: space12),
-                    _buildFormField(label: 'Nguồn gốc xuất xứ', controller: _originController),
                   ],
                 ),
               ),
@@ -987,84 +954,18 @@ class _AddProductScreenState extends State<AddProductScreen> with TickerProvider
     );
   }
 
-  Widget _buildSidebarCard({
-    required String title,
-    required IconData icon,
-    required List<Widget> children,
-  }) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Icon(icon, color: Colors.grey[600], size: 18),
-              const SizedBox(width: 8),
-              Text(
-                title,
-                style: const TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          ...children,
-        ],
-      ),
-    );
-  }
-
-  Widget _buildSidebarInfoItem({
-    required String label,
-    required String value,
-    required IconData icon,
-  }) {
-    return Row(
-      children: [
-        Icon(icon, size: 16, color: Colors.grey[600]),
-        const SizedBox(width: 8),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                label,
-                style: TextStyle(
-                  fontSize: 12,
-                  color: Colors.grey[600],
-                ),
-              ),
-              Text(
-                value,
-                style: const TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-
   Widget _buildMobileLayout() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // 1. Ảnh sản phẩm
-        _buildProductImageBlock(),
-        const SizedBox(height: 16),
-        // 2. Thông tin cơ bản
+        // Ảnh sản phẩm lên đầu
         SectionCard(
           padding: const EdgeInsets.all(16),
+          child: _buildProductImageBlock(),
+        ),
+        const SizedBox(height: 16),
+        // Thông tin cơ bản
+        SectionCard(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -1074,21 +975,19 @@ class _AddProductScreenState extends State<AddProductScreen> with TickerProvider
               const SizedBox(height: space12),
               _buildFormField(label: 'Tên nội bộ', controller: _nameController),
               const SizedBox(height: space12),
-              _buildFormField(label: 'Mô tả', controller: _descriptionController, minLines: 4, maxLines: 6),
+              _buildFormField(label: 'Mô tả', controller: _descriptionController, minLines: 3, maxLines: 5),
               const SizedBox(height: space12),
               _buildFormField(label: 'Barcode', controller: _barcodeController),
               const SizedBox(height: space12),
               _buildFormField(label: 'SKU', controller: _skuController),
               const SizedBox(height: space12),
               _buildFormField(label: 'Đơn vị tính', controller: _unitController),
-              const SizedBox(height: space12),
             ],
           ),
         ),
         const SizedBox(height: 16),
-        // 3. Danh mục & Nhà phân phối
+        // Danh mục & Nhà cung cấp
         SectionCard(
-          padding: const EdgeInsets.all(16),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -1161,9 +1060,9 @@ class _AddProductScreenState extends State<AddProductScreen> with TickerProvider
           ),
         ),
         const SizedBox(height: 16),
-        // 4. Giá
+        // Giá & Tồn kho
         SectionCard(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.all(20),
           decoration: BoxDecoration(
             color: Color(0xFFF0FDF4),
             borderRadius: BorderRadius.circular(6),
@@ -1171,71 +1070,39 @@ class _AddProductScreenState extends State<AddProductScreen> with TickerProvider
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Row(
-                children: [
-                  const SizedBox(width: 8),
-                  Text('Giá', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: mainGreen)),
-                ],
-              ),
+              Text('Giá & Tồn kho', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: mainGreen)),
               const SizedBox(height: space16),
-              Row(
-                children: [
-                  Expanded(child: _buildFormField(label: 'Giá nhập', controller: _costPriceController, keyboardType: TextInputType.number)),
-                  const SizedBox(width: space12),
-                  Expanded(child: _buildFormField(label: 'Giá bán', controller: _sellPriceController, keyboardType: TextInputType.number)),
-                ],
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(height: 16),
-        // 5. Tồn kho
-        SectionCard(
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: Color(0xFFF0FDF4),
-            borderRadius: BorderRadius.circular(6),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  Text('Tồn kho', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: mainGreen)),
-                ],
-              ),
-              const SizedBox(height: space16),
+              _buildFormField(label: 'Giá nhập', controller: _costPriceController, keyboardType: TextInputType.number),
+              const SizedBox(height: space12),
+              _buildFormField(label: 'Giá bán', controller: _sellPriceController, keyboardType: TextInputType.number),
+              const SizedBox(height: space12),
               _buildFormField(label: 'Số lượng', controller: _quantityController, keyboardType: TextInputType.number),
             ],
           ),
         ),
         const SizedBox(height: 16),
-        // 6. Thông tin y tế
+        // Thông tin y tế
         SectionCard(
-          padding: const EdgeInsets.all(16),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text('Thông tin y tế', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: mainGreen)),
               const SizedBox(height: space16),
-              _buildFormField(label: 'Thành phần', controller: _ingredientsController, minLines: 4, maxLines: 6),
+              _buildFormField(label: 'Thành phần', controller: _ingredientsController, minLines: 3, maxLines: 5),
               const SizedBox(height: space12),
-              _buildFormField(label: 'Chỉ định', controller: _usageController, minLines: 4, maxLines: 6),
+              _buildFormField(label: 'Chỉ định', controller: _usageController, minLines: 3, maxLines: 5),
               const SizedBox(height: space12),
               _buildFormField(label: 'Chống chỉ định', controller: _contraindicationController, maxLines: 2),
               const SizedBox(height: space12),
               _buildFormField(label: 'Cách dùng', controller: _directionController, maxLines: 2),
               const SizedBox(height: space12),
               _buildFormField(label: 'Thời gian ngưng sử dụng', controller: _withdrawalTimeController, maxLines: 1),
-              const SizedBox(height: space12),
-              _buildFormField(label: 'Nguồn gốc xuất xứ', controller: _originController),
             ],
           ),
         ),
         const SizedBox(height: 16),
-        // 7. Trạng thái
+        // Trạng thái
         SectionCard(
-          padding: const EdgeInsets.all(16),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -1268,9 +1135,8 @@ class _AddProductScreenState extends State<AddProductScreen> with TickerProvider
           ),
         ),
         const SizedBox(height: 16),
-        // 8. Tag
+        // Tags
         SectionCard(
-          padding: const EdgeInsets.all(16),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -1337,432 +1203,45 @@ class _AddProductScreenState extends State<AddProductScreen> with TickerProvider
           ),
         ),
         const SizedBox(height: 16),
-        // 9. Ghi chú
+        // Ghi chú
         SectionCard(
-          padding: const EdgeInsets.all(16),
           child: _buildFormField(label: 'Ghi chú', controller: _notesController, minLines: 2, maxLines: 4),
         ),
       ],
     );
   }
-
-  Widget _buildProductImageBlock() {
-    return SectionCard(
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text('Ảnh sản phẩm', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 16, color: Color(0xFF22C55E))),
-          const SizedBox(height: 16),
-          // Hiển thị grid ảnh
-          if ((kIsWeb && _webImageBytesList.isNotEmpty) || _productImageFiles.isNotEmpty || _productImageUrls.isNotEmpty)
-            Column(
-              children: [
-                GridView.builder(
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: 5,
-                    crossAxisSpacing: 12,
-                    mainAxisSpacing: 12,
-                    childAspectRatio: 1,
-                  ),
-                  itemCount: kIsWeb ? _webImageBytesList.length : (_productImageFiles.isNotEmpty ? _productImageFiles.length : _productImageUrls.length),
-                  itemBuilder: (context, index) {
-                    Widget img;
-                    if (kIsWeb && _webImageBytesList.isNotEmpty) {
-                      img = Image.memory(_webImageBytesList[index], fit: BoxFit.cover);
-                    } else if (_productImageFiles.isNotEmpty) {
-                      img = Image.file(_productImageFiles[index], fit: BoxFit.cover);
-                    } else {
-                      img = Image.network(_productImageUrls[index], fit: BoxFit.cover);
-                    }
-                    return Stack(
-                      children: [
-                        ClipRRect(
-                          borderRadius: BorderRadius.circular(10),
-                          child: SizedBox.expand(child: img),
-                        ),
-                        Positioned(
-                          top: 4, right: 4,
-                          child: GestureDetector(
-                            onTap: () => _removeImageAt(index),
-                            child: Container(
-                              decoration: BoxDecoration(color: Colors.white, shape: BoxShape.circle, boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 2)]),
-                              child: const Icon(Icons.close, size: 18, color: Colors.red),
-                            ),
-                          ),
-                        ),
-                        if (index == _mainImageIndex)
-                          Positioned(
-                            bottom: 4, left: 4,
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                              decoration: BoxDecoration(color: Color(0xFF22C55E), borderRadius: BorderRadius.circular(8)),
-                              child: const Text('Đại diện', style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w600)),
-                            ),
-                          )
-                        else
-                          Positioned(
-                            bottom: 4, left: 4,
-                            child: GestureDetector(
-                              onTap: () => setState(() => _mainImageIndex = index),
-                              child: Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                                decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(8), border: Border.all(color: Color(0xFF22C55E))),
-                                child: const Text('Chọn đại diện', style: TextStyle(color: Color(0xFF22C55E), fontSize: 11, fontWeight: FontWeight.w600)),
-                              ),
-                            ),
-                          ),
-                      ],
-                    );
-                  },
-                ),
-                const SizedBox(height: 16),
-              ],
-            ),
-          // Nút upload nhiều ảnh
-          Row(
-            children: [
-              Expanded(
-                child: OutlinedButton(
-                  onPressed: (kIsWeb ? _webImageBytesList.length : _productImageFiles.length) >= 5 ? null : _pickMultiImageFromGallery,
-                  style: OutlinedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(vertical: 20),
-                    side: BorderSide(color: Colors.grey[300]!),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                    foregroundColor: Colors.grey[800],
-                    textStyle: const TextStyle(fontSize: 15, fontWeight: FontWeight.w500),
-                  ).copyWith(
-                    side: WidgetStateProperty.resolveWith((states) {
-                      if (states.contains(WidgetState.hovered) || states.contains(WidgetState.focused)) {
-                        return const BorderSide(color: Color(0xFF22C55E), width: 1.5);
-                      }
-                      return BorderSide(color: Colors.grey[300]!);
-                    }),
-                  ),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: const [
-                      Icon(Icons.upload_outlined, size: 28, color: Color(0xFF475569)),
-                      SizedBox(height: 8),
-                      Text('Tải nhiều ảnh', style: TextStyle(color: Color(0xFF475569), fontWeight: FontWeight.w500)),
-                    ],
-                  ),
-                ),
-              ),
-              if (!kIsWeb) ...[
-                const SizedBox(width: 16),
-                Expanded(
-                  child: OutlinedButton(
-                    onPressed: _productImageFiles.length >= 5 ? null : _pickImageFromCamera,
-                    style: OutlinedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(vertical: 20),
-                      side: BorderSide(color: Colors.grey[300]!),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                      foregroundColor: Colors.grey[800],
-                      textStyle: const TextStyle(fontSize: 15, fontWeight: FontWeight.w500),
-                    ).copyWith(
-                      side: WidgetStateProperty.resolveWith((states) {
-                        if (states.contains(WidgetState.hovered) || states.contains(WidgetState.focused)) {
-                          return const BorderSide(color: Color(0xFF22C55E), width: 1.5);
-                        }
-                        return BorderSide(color: Colors.grey[300]!);
-                      }),
-                    ),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: const [
-                        Icon(Icons.photo_camera_outlined, size: 28, color: Color(0xFF475569)),
-                        SizedBox(height: 8),
-                        Text('Chụp ảnh', style: TextStyle(color: Color(0xFF475569), fontWeight: FontWeight.w500)),
-                      ],
-                    ),
-                  ),
-                ),
-              ],
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildSectionHeader({
-    required String title,
-    required String subtitle,
-    required IconData icon,
-    required Color color,
-  }) {
-    return Row(
-      children: [
-        Container(
-          padding: const EdgeInsets.all(8),
-          decoration: BoxDecoration(
-            color: color.withValues(alpha: 0.1),
-            borderRadius: BorderRadius.circular(8),
-          ),
-          child: Icon(icon, color: color, size: 20),
-        ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                title,
-                style: const TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-              Text(
-                subtitle,
-                style: TextStyle(
-                  color: Colors.grey[600],
-                  fontSize: 14,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildSectionCard({
-    required List<Widget> children,
-  }) {
-    return Container(
-      padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: children,
-      ),
-    );
-  }
-
-  Widget _buildFormField({
-    required String label,
-    TextEditingController? controller,
-    String? suffix,
-    TextInputType? keyboardType,
-    List<TextInputFormatter>? inputFormatters,
-    bool enabled = true,
-    int maxLines = 1,
-    int? minLines,
-    Function(String)? onChanged,
-    String? Function(String?)? validator,
-    Widget? child,
-  }) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            Text(
-              label,
-              style: const TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w700,
-                color: Colors.black87,
-              ),
-            ),
-            if (suffix != null) ...[
-              const SizedBox(width: 4),
-              Text(
-                suffix,
-                style: TextStyle(
-                  fontSize: 14,
-                  color: Colors.grey[600],
-                ),
-              ),
-            ],
-          ],
-        ),
-        const SizedBox(height: 8),
-        if (child != null)
-          child
-        else
-          SizedBox(
-            height: (maxLines == 1 && (minLines == null || minLines == 1)) ? inputHeight : null,
-            child: TextFormField(
-              controller: controller,
-              enabled: enabled,
-              keyboardType: keyboardType,
-              inputFormatters: inputFormatters,
-              maxLines: maxLines,
-              minLines: minLines,
-              onChanged: onChanged,
-              validator: validator,
-              style: const TextStyle(fontSize: 15, height: 1.2),
-              decoration: InputDecoration(
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8),
-                  borderSide: BorderSide(color: Colors.grey[300]!),
-                ),
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8),
-                  borderSide: BorderSide(color: Colors.grey[300]!),
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8),
-                  borderSide: BorderSide(color: mainGreen, width: 2),
-                ),
-                errorBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8),
-                  borderSide: BorderSide(color: destructiveRed, width: 1),
-                ),
-                focusedErrorBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8),
-                  borderSide: BorderSide(color: destructiveRed, width: 2),
-                ),
-                contentPadding: EdgeInsets.symmetric(horizontal: inputPadding, vertical: maxLines > 1 || (minLines != null && minLines > 1) ? 12 : 0),
-                filled: true,
-                fillColor: Colors.white,
-              ),
-            ),
-          ),
-      ],
-    );
-  }
 }
 
+// SectionCard widget for consistent styling
 class SectionCard extends StatelessWidget {
   final Widget child;
   final EdgeInsetsGeometry? padding;
   final BoxDecoration? decoration;
-  const SectionCard({super.key, required this.child, this.padding, this.decoration});
+
+  const SectionCard({
+    super.key,
+    required this.child,
+    this.padding,
+    this.decoration,
+  });
+
   @override
   Widget build(BuildContext context) {
     return Container(
-      margin: const EdgeInsets.only(bottom: 20),
-      padding: padding ?? const EdgeInsets.all(cardPadding),
+      padding: padding ?? const EdgeInsets.all(20),
       decoration: decoration ?? BoxDecoration(
-        color: cardBackground,
-        borderRadius: BorderRadius.circular(6),
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.grey.shade200),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 2),
+          ),
+        ],
       ),
       child: child,
-    );
-  }
-}
-
-// Thêm widget _ProductSearchSheet để fix lỗi linter
-class _ProductSearchSheet extends StatefulWidget {
-  final Function(Product)? onProductSelected;
-  const _ProductSearchSheet({this.onProductSelected});
-
-  @override
-  State<_ProductSearchSheet> createState() => _ProductSearchSheetState();
-}
-
-class _ProductSearchSheetState extends State<_ProductSearchSheet> {
-  final TextEditingController _controller = TextEditingController();
-  List<Product> _results = [];
-  bool _loading = false;
-
-  void _onChanged() async {
-    final query = _controller.text.trim().toLowerCase();
-    if (query.isEmpty) {
-      setState(() => _results = []);
-      return;
-    }
-    setState(() => _loading = true);
-    final products = await FirebaseFirestore.instance.collection('products').get();
-    setState(() {
-      _results = products.docs.map((doc) => Product.fromMap(doc.id, doc.data())).where((p) =>
-        p.internalName.toLowerCase().contains(query) ||
-        p.tradeName.toLowerCase().contains(query) ||
-        (p.barcode?.toLowerCase().contains(query) ?? false) ||
-        (p.sku?.toLowerCase().contains(query) ?? false)
-      ).toList();
-      _loading = false;
-    });
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return SafeArea(
-      child: Container(
-        height: MediaQuery.of(context).size.height * 0.98,
-        decoration: const BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-        ),
-        child: Column(
-          children: [
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-              child: Row(
-                children: [
-                  IconButton(
-                    icon: const Icon(Icons.arrow_back),
-                    onPressed: () => Navigator.of(context).pop(),
-                  ),
-                  Expanded(
-                    child: TextField(
-                      controller: _controller,
-                      autofocus: true,
-                      decoration: const InputDecoration(
-                        hintText: 'Tìm kiếm sản phẩm theo tên, mã vạch, SKU...',
-                        border: InputBorder.none,
-                      ),
-                      onChanged: (val) => _onChanged(),
-                    ),
-                  ),
-                  if (_controller.text.isNotEmpty)
-                    IconButton(
-                      icon: const Icon(Icons.clear),
-                      onPressed: () {
-                        _controller.clear();
-                        setState(() => _results = []);
-                      },
-                    ),
-                ],
-              ),
-            ),
-            const Divider(height: 1),
-            if (_loading)
-              const Padding(
-                padding: EdgeInsets.all(24),
-                child: CircularProgressIndicator(),
-              )
-            else if (_results.isEmpty && _controller.text.isNotEmpty)
-              const Padding(
-                padding: EdgeInsets.all(32),
-                child: Text('Không tìm thấy sản phẩm phù hợp', style: TextStyle(color: Colors.grey)),
-              )
-            else
-              Expanded(
-                child: ListView.separated(
-                  itemCount: _results.length,
-                  separatorBuilder: (_, __) => const Divider(height: 1),
-                  itemBuilder: (context, index) {
-                    final p = _results[index];
-                    return ListTile(
-                      title: Text(p.tradeName.isNotEmpty ? p.tradeName : p.internalName),
-                      subtitle: Text('Barcode:  0${p.barcode ?? ''} | SKU: ${p.sku ?? ''}'),
-                      onTap: () {
-                        if (widget.onProductSelected != null) widget.onProductSelected!(p);
-                        Navigator.of(context).pop();
-                      },
-                    );
-                  },
-                ),
-              ),
-          ],
-        ),
-      ),
     );
   }
 } 

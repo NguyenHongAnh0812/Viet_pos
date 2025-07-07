@@ -4,6 +4,7 @@ import 'dart:convert';
 import '../../services/product_service.dart';
 import '../../widgets/main_layout.dart';
 import 'product_detail_screen.dart';
+import 'edit_product_screen.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:excel/excel.dart' as excel;
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -719,10 +720,10 @@ class _ProductListScreenState extends State<ProductListScreen> {
                     onChanged: (v) => setModalState(() => tempPrice = v),
                     activeColor: mainGreen,
                     inactiveColor: Color(0xFFE5E7EB),
-                  ),
-                  Row(
+                          ),
+                          Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
+                            children: [
                       Text('${tempPrice.start.toInt()}đ', style: bodySmall),
                       Text('${tempPrice.end.toInt()}đ', style: bodySmall),
                     ],
@@ -798,10 +799,10 @@ class _ProductListScreenState extends State<ProductListScreen> {
                         activeColor: mainGreen,
                       ),
                       const Text('Ngừng kinh doanh'),
-                    ],
-                  ),
-                ],
-              ),
+                            ],
+                          ),
+                        ],
+                      ),
             );
           },
         );
@@ -838,14 +839,14 @@ class _ProductListScreenState extends State<ProductListScreen> {
             child: Container(
               width: double.infinity,
               constraints: const BoxConstraints(maxWidth: 1200),
-              child: Column(
-                children: [
+                  child: Column(
+                    children: [
                   // Header xanh style kiểm kê kho
                   Container(
                     color: mainGreen,
                     padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 12),
                     child: Row(
-                      children: [
+                          children: [
                         IconButton(
                           icon: const Icon(Icons.arrow_back, color: Colors.white),
                           onPressed: () => Navigator.of(context).maybePop(),
@@ -864,9 +865,9 @@ class _ProductListScreenState extends State<ProductListScreen> {
                           },
                         ),
                         // ... các action khác nếu có, cũng dùng màu trắng ...
-                      ],
-                    ),
-                  ),
+                          ],
+                        ),
+                      ),
                   Expanded(
                     child: SingleChildScrollView(
                       child: Column(
@@ -1154,125 +1155,127 @@ class _ProductListScreenState extends State<ProductListScreen> {
                                                 final isMobile = MediaQuery.of(context).size.width < 600;
 
                                                 if (isMobile) {
-                                                    // Mobile: render dạng card hiện đại
-                                                    return Container(
-                                                      margin: const EdgeInsets.symmetric(vertical: 0),
-                                                      decoration: BoxDecoration(
-                                                        color: Colors.white,
-                                                        borderRadius: BorderRadius.circular(0),
-                                                        boxShadow: [
-                                                          BoxShadow(
-                                                            color: Colors.black.withOpacity(0.08),
-                                                            blurRadius: 0,
-                                                            offset: const Offset(0, 2),
-                                                          ),
-                                                        ],
+                                                    // Mobile: render dạng item phẳng, nối liền, đúng design mới, có thể swipe để xóa
+                                                    return Dismissible(
+                                                      key: ValueKey(product.id),
+                                                      direction: DismissDirection.endToStart,
+                                                      background: Container(
+                                                        alignment: Alignment.centerRight,
+                                                        color: Colors.redAccent,
+                                                        padding: const EdgeInsets.symmetric(horizontal: 24),
+                                                        child: const Icon(Icons.delete, color: Colors.white, size: 32),
                                                       ),
+                                                      confirmDismiss: (direction) async {
+                                                        return await showDialog<bool>(
+                                                          context: context,
+                                                          builder: (context) => AlertDialog(
+                                                            title: const Text('Xác nhận xóa'),
+                                                            content: Text('Bạn có chắc chắn muốn xóa sản phẩm "${product.tradeName}"?'),
+                                                            actions: [
+                                                              TextButton(
+                                                                onPressed: () => Navigator.pop(context, false),
+                                                                child: const Text('Hủy'),
+                                                              ),
+                                                              TextButton(
+                                                                onPressed: () => Navigator.pop(context, true),
+                                                                style: TextButton.styleFrom(foregroundColor: Colors.red),
+                                                                child: const Text('Xóa'),
+                                                              ),
+                                                            ],
+                                                          ),
+                                                        );
+                                                      },
+                                                      onDismissed: (direction) async {
+                                                        await FirebaseFirestore.instance.collection('products').doc(product.id).delete();
+                                                        if (mounted) {
+                                                          OverlayEntry? entry;
+                                                          entry = OverlayEntry(
+                                                            builder: (_) => DesignSystemSnackbar(
+                                                              message: 'Đã xóa sản phẩm thành công',
+                                                              icon: Icons.check_circle,
+                                                              onDismissed: () => entry?.remove(),
+                                                            ),
+                                                          );
+                                                          Overlay.of(context).insert(entry);
+                                                        }
+                                                        setState(() {}); // Cập nhật lại UI
+                                                      },
                                                       child: InkWell(
-                                                        onTap: () => widget.onProductTap?.call(product),
-                                                        borderRadius: BorderRadius.circular(0),
-                                                        child: Padding(
-                                                      padding: const EdgeInsets.all(16),
+                                                        onTap: () => Navigator.of(context).push(
+                                                          MaterialPageRoute(
+                                                            builder: (context) => EditProductScreen(product: product),
+                                                          ),
+                                                        ),
+                                                    child: Container(
+                                                          color: Colors.white,
+                                                          width: double.infinity,
+                                                          child: Column(
+                                                            children: [
+                                                              Row(
+                                                                crossAxisAlignment: CrossAxisAlignment.start,
+                                                                children: [
+                                                                  // Ảnh placeholder
+                                                                  Container(
+                                                                    width: 56,
+                                                                    height: 56,
+                                                                    margin: const EdgeInsets.only(right: 16, top: 12, bottom: 12, left: 16),
+                                                      decoration: BoxDecoration(
+                                                                      color: Colors.grey[300],
+                                                                      borderRadius: BorderRadius.circular(8),
+                                                                    ),
+                                                                    child: const Icon(Icons.image, color: Colors.white54, size: 32),
+                                                                  ),
+                                                                  // Thông tin sản phẩm
+                                                                  Expanded(
+                                                                    child: Stack(
+                                                                      children: [
+                                                                        Padding(
+                                                                          padding: const EdgeInsets.only(right: 16, top: 12, bottom: 12),
                                                       child: Column(
                                                         crossAxisAlignment: CrossAxisAlignment.start,
                                                         children: [
-                                                              Row(
-                                                                children: [
-                                                                  Expanded(
-                                                                    child: Column(
-                                                                      crossAxisAlignment: CrossAxisAlignment.start,
-                                                                      children: [
-                                                                        Text(
-                                                                          product.tradeName,
-                                                                          style: const TextStyle(
-                                                                            fontWeight: FontWeight.w600,
-                                                                            fontSize: 16,
-                                                                            color: Colors.black87,
-                                                                          ),
-                                                                        ),
+                                                                              Text(product.tradeName, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
                                                           if (product.internalName.isNotEmpty)
                                                             Padding(
-                                                                            padding: const EdgeInsets.only(top: 4),
-                                                                            child: Text(
-                                                                              product.internalName,
-                                                                              style: TextStyle(
-                                                                                fontSize: 14,
-                                                                                color: Colors.grey[600],
-                                                                                fontWeight: FontWeight.w400,
+                                                              padding: const EdgeInsets.only(top: 2),
+                                                                                  child: Text(product.internalName, style: const TextStyle(fontSize: 14, color: Colors.black54)),
+                                                                                ),
+                                                                              if ((product.barcode ?? '').isNotEmpty)
+                                                                                Padding(
+                                                                                  padding: const EdgeInsets.only(top: 2),
+                                                                                  child: Text(product.barcode!, style: const TextStyle(fontSize: 13, color: Colors.black54)),
+                                                                                ),
+                                                                              Padding(
+                                                                                padding: const EdgeInsets.only(top: 8),
+                                                                                child: Text('Giá bán: ${formatCurrency(product.salePrice)}', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
                                                                               ),
-                                                                            ),
+                                                                            ],
                                                                           ),
+                                                                        ),
+                                                                        // Số lượng (chip bo tròn, viền xanh, góc trên phải)
+                                                                        Positioned(
+                                                                          top: 12,
+                                                                          right: 16,
+                                                                          child: Container(
+                                                                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                                                                            decoration: BoxDecoration(
+                                                                              color: Colors.white,
+                                                                              border: Border.all(color: mainGreen, width: 1),
+                                                                              borderRadius: BorderRadius.circular(20),
+                                                                            ),
+                                                                            child: Text('${product.stockSystem} ${product.unit}', style: const TextStyle(color: mainGreen, fontSize: 13, fontWeight: FontWeight.w500)),
+                                                                          ),
+                                                                        ),
                                                                       ],
                                                                     ),
                                                                   ),
-                                                                  Container(
-                                                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                                                                    decoration: BoxDecoration(
-                                                                      color: product.stockSystem > 10 ? Colors.green[50] : Colors.orange[50],
-                                                                      borderRadius: BorderRadius.circular(6),
-                                                                      border: Border.all(
-                                                                        color: product.stockSystem > 10 ? Colors.green[200]! : Colors.orange[200]!,
-                                                                        width: 1,
-                                                                      ),
-                                                                    ),
-                                                                    child: Text(
-                                                                      '${product.stockSystem}',
-                                                                      style: TextStyle(
-                                                                        color: product.stockSystem > 10 ? Colors.green[700] : Colors.orange[700],
-                                                                        fontWeight: FontWeight.w600,
-                                                                        fontSize: 12,
-                                                                      ),
-                                                                    ),
-                                                                  ),
                                                                 ],
                                                               ),
-                                                              const SizedBox(height: 12),
-                                                          Row(
-                                                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                                                children: [
-                                                                  Column(
-                                                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                                            children: [
-                                                              Text(
-                                                                        'Giá nhập',
-                                                                        style: TextStyle(
-                                                                          fontSize: 12,
-                                                                          color: Colors.grey[600],
-                                                                          fontWeight: FontWeight.w500,
-                                                                        ),
-                                                              ),
-                                                              Text(
-                                                                        formatCurrency(product.costPrice),
-                                                                        style: const TextStyle(
-                                                                          fontSize: 14,
-                                                                          fontWeight: FontWeight.w600,
-                                                                          color: Colors.black87,
-                                                                        ),
-                                                                      ),
-                                                                    ],
-                                                                  ),
-                                                                  Column(
-                                                                    crossAxisAlignment: CrossAxisAlignment.end,
-                                                                    children: [
-                                                                      Text(
-                                                                        'Mã vạch',
-                                                                        style: TextStyle(
-                                                                          fontSize: 12,
-                                                                          color: Colors.grey[600],
-                                                                          fontWeight: FontWeight.w500,
-                                                                        ),
-                                                                      ),
-                                                                      Text(
-                                                                        product.barcode ?? '-',
-                                                                        style: const TextStyle(
-                                                                          fontSize: 14,
-                                                                          fontWeight: FontWeight.w500,
-                                                                          color: Colors.black87,
-                                                                        ),
-                                                                      ),
-                                                                    ],
-                                                                  ),
-                                                                ],
+                                                              // Border xám nhạt dưới cùng
+                                                              Container(
+                                                                height: 1,
+                                                                color: Colors.grey[200],
+                                                                margin: const EdgeInsets.only(left: 88), // thẳng hàng với text, không kéo dài dưới avatar
                                                               ),
                                                             ],
                                                           ),
