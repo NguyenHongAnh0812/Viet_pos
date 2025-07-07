@@ -47,6 +47,9 @@ class _AddProductScreenState extends State<AddProductScreen> with TickerProvider
   final _profitMarginController = TextEditingController();
   final _originController = TextEditingController();
   final _discontinueReasonController = TextEditingController();
+  final _contraindicationController = TextEditingController();
+  final _directionController = TextEditingController();
+  final _withdrawalTimeController = TextEditingController();
   List<String> _tags = [];
   List<ProductCategory> _selectedCategories = [];
   List<String> _selectedCompanyIds = [];
@@ -99,6 +102,9 @@ class _AddProductScreenState extends State<AddProductScreen> with TickerProvider
     _profitMarginController.dispose();
     _originController.dispose();
     _discontinueReasonController.dispose();
+    _contraindicationController.dispose();
+    _directionController.dispose();
+    _withdrawalTimeController.dispose();
     super.dispose();
   }
 
@@ -303,6 +309,9 @@ class _AddProductScreenState extends State<AddProductScreen> with TickerProvider
         'mfg_date': _mfgDate,
         'exp_date': _expDate,
         'origin': _originController.text.trim(),
+        'contraindication': _contraindicationController.text.trim(),
+        'direction': _directionController.text.trim(),
+        'withdrawal_time': _withdrawalTimeController.text.trim(),
       };
       final productData = Product.normalizeProductData(rawData);
       final docRef = await FirebaseFirestore.instance.collection('products').add(productData);
@@ -377,6 +386,9 @@ class _AddProductScreenState extends State<AddProductScreen> with TickerProvider
       _mfgDate = DateTime(DateTime.now().year - 1, 1, 1);
       _expDate = DateTime(DateTime.now().year + 1, 1, 1);
       _originController.text = 'Việt Nam';
+      _contraindicationController.text = 'Không có';
+      _directionController.text = 'Không có';
+      _withdrawalTimeController.text = 'Không có';
     });
   }
 
@@ -585,64 +597,95 @@ class _AddProductScreenState extends State<AddProductScreen> with TickerProvider
   Widget build(BuildContext context) {
     final isDesktop = MediaQuery.of(context).size.width > 1024;
     final isTablet = MediaQuery.of(context).size.width > 768;
-    
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFC),
-      appBar: AppBar(
-        backgroundColor: Colors.white,
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.black87),
-          onPressed: widget.onBack,
-        ),
-        title: Text(
-          'Thêm sản phẩm mới',
-          style: TextStyle(
-            color: Colors.black87,
-            fontSize: isDesktop ? 22 : 20,
-            fontWeight: FontWeight.w600,
+      body: Stack(
+        children: [
+          Column(
+            children: [
+              Container(
+                color: mainGreen,
+                padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 12),
+                child: Row(
+                  children: [
+                    IconButton(
+                      icon: const Icon(Icons.arrow_back, color: Colors.white),
+                      onPressed: widget.onBack,
+                    ),
+                    Expanded(
+                      child: Text(
+                        'Thêm sản phẩm mới',
+                        style: h2Mobile.copyWith(color: Colors.white),
+                        textAlign: TextAlign.left,
+                      ),
+                    ),
+                    TextButton.icon(
+                      onPressed: _fillSampleData,
+                      icon: const Icon(Icons.auto_fix_high, size: 18, color: Colors.white),
+                      label: Text(isDesktop ? 'Dữ liệu mẫu' : 'Mẫu', style: const TextStyle(color: Colors.white)),
+                    ),
+                  ],
+                ),
+              ),
+              Expanded(
+                child: Form(
+                  key: _formKey,
+                  child: SingleChildScrollView(
+                    padding: EdgeInsets.all(isDesktop ? 32 : 24),
+                    child: Center(
+                      child: ConstrainedBox(
+                        constraints: const BoxConstraints(maxWidth: 1400),
+                        child: isDesktop
+                            ? _buildDesktopLayout()
+                            : _buildMobileLayout(),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 64), // Để chừa chỗ cho footer
+            ],
           ),
-        ),
-        actions: [
-          // Sample data button
-          TextButton.icon(
-            onPressed: _fillSampleData,
-            icon: const Icon(Icons.auto_fix_high, size: 18),
-            label: Text(isDesktop ? 'Dữ liệu mẫu' : 'Mẫu'),
-            style: TextButton.styleFrom(
-              foregroundColor: Colors.blue[600],
+          // 2. Footer nút Hủy/Lưu cố định
+          Positioned(
+            left: 0, right: 0, bottom: 0,
+            child: Container(
+              color: Colors.white,
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton(
+                      onPressed: _isSaving ? null : () => Navigator.of(context).maybePop(),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: textPrimary,
+                        side: const BorderSide(color: borderColor),
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        textStyle: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15),
+                      ),
+                      child: const Text('Hủy'),
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: ElevatedButton(
+                      onPressed: _isSaving ? null : _saveProduct,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: mainGreen,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        textStyle: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                        elevation: 0,
+                      ),
+                      child: Text(_isSaving ? 'Đang lưu...' : 'Lưu sản phẩm'),
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
-          const SizedBox(width: 8),
-          // Save button
-          ElevatedButton.icon(
-            onPressed: _isSaving ? null : _saveProduct,
-            icon: _isSaving 
-              ? const SizedBox(
-                  width: 16,
-                  height: 16,
-                  child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
-                )
-              : const Icon(Icons.save, size: 18),
-            label: Text(_isSaving ? 'Đang lưu...' : (isDesktop ? 'Lưu sản phẩm' : 'Lưu'), style: const TextStyle(fontSize: 15)),
-            style: primaryButtonStyle,
-          ),
-          const SizedBox(width: 16),
         ],
-      ),
-      body: Form(
-        key: _formKey,
-        child: SingleChildScrollView(
-          padding: EdgeInsets.all(isDesktop ? 32 : 24),
-              child: Center(
-            child: ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 1400),
-              child: isDesktop 
-                ? _buildDesktopLayout()
-                : _buildMobileLayout(),
-            ),
-          ),
-        ),
       ),
     );
   }
@@ -650,7 +693,7 @@ class _AddProductScreenState extends State<AddProductScreen> with TickerProvider
   Widget _buildDesktopLayout() {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
+      children: [
         // Cột 7: Thông tin cơ bản, Ảnh sản phẩm, Thông tin y tế
         Expanded(
           flex: 7,
@@ -668,6 +711,7 @@ class _AddProductScreenState extends State<AddProductScreen> with TickerProvider
                     const SizedBox(height: space12),
                     _buildFormField(label: 'Tên nội bộ', controller: _nameController),
                     const SizedBox(height: space12),
+                    _buildFormField(label: 'Mô tả', controller: _descriptionController, minLines: 4, maxLines: 6),
                     Row(
                       children: [
                         Expanded(child: _buildFormField(label: 'Barcode', controller: _barcodeController)),
@@ -696,47 +740,11 @@ class _AddProductScreenState extends State<AddProductScreen> with TickerProvider
                     const SizedBox(height: space12),
                     _buildFormField(label: 'Chỉ định', controller: _usageController, minLines: 4, maxLines: 6),
                     const SizedBox(height: space12),
-                    _buildFormField(label: 'Mô tả', controller: _descriptionController, minLines: 4, maxLines: 6),
+                    _buildFormField(label: 'Chống chỉ định', controller: _contraindicationController, maxLines: 2),
                     const SizedBox(height: space12),
-                    Row(
-                      children: [
-                        Expanded(child: _buildFormField(label: 'Năm sản xuất', child: SizedBox(
-                          height: 40,
-                          child: InkWell(
-                            onTap: _pickMfgDate,
-                            child: InputDecorator(
-                              decoration: InputDecoration(
-                                hintText: 'Chọn năm sản xuất',
-                                border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-                                contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 0),
-                              ),
-                              child: Align(
-                                alignment: Alignment.centerLeft,
-                                child: Text(_mfgDate != null ? '${_mfgDate!.year}' : '', style: TextStyle(fontSize: 15)),
-                              ),
-                            ),
-                          ),
-                        ))),
-                        const SizedBox(width: 16),
-                        Expanded(child: _buildFormField(label: 'Năm hết hạn', child: SizedBox(
-                          height: 40,
-                          child: InkWell(
-                            onTap: _pickExpDate,
-                            child: InputDecorator(
-                              decoration: InputDecoration(
-                                hintText: 'Chọn năm hết hạn',
-                                border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-                                contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 0),
-                              ),
-                              child: Align(
-                                alignment: Alignment.centerLeft,
-                                child: Text(_expDate != null ? '${_expDate!.year}' : '', style: TextStyle(fontSize: 15)),
-                              ),
-                            ),
-                          ),
-                        ))),
-                      ],
-                    ),
+                    _buildFormField(label: 'Cách dùng', controller: _directionController, maxLines: 2),
+                    const SizedBox(height: space12),
+                    _buildFormField(label: 'Thời gian ngưng sử dụng', controller: _withdrawalTimeController, maxLines: 1),
                     const SizedBox(height: space12),
                     _buildFormField(label: 'Nguồn gốc xuất xứ', controller: _originController),
                   ],
@@ -747,7 +755,7 @@ class _AddProductScreenState extends State<AddProductScreen> with TickerProvider
         ),
         const SizedBox(width: space32),
         // Cột 3: Trạng thái, Danh mục + Nhà cung cấp, Giá, Tồn kho, Tags
-                      Expanded(
+        Expanded(
           flex: 3,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -829,7 +837,7 @@ class _AddProductScreenState extends State<AddProductScreen> with TickerProvider
                           onSelectionChanged: (values) { setState(() { _selectedCompanyIds = values; }); },
                           hint: 'Chọn nhà cung cấp',
                         ),
-                        ),
+                      ),
                     )),
                     if (_selectedCompanyIds.isNotEmpty)
                       Padding(
@@ -898,8 +906,8 @@ class _AddProductScreenState extends State<AddProductScreen> with TickerProvider
                     const SizedBox(height: space16),
                     _buildFormField(label: 'Số lượng', controller: _quantityController, keyboardType: TextInputType.number),
                   ],
-                        ),
-                      ),
+                ),
+              ),
               // Tags
               SectionCard(
                 child: Column(
@@ -1001,15 +1009,15 @@ class _AddProductScreenState extends State<AddProductScreen> with TickerProvider
                 style: const TextStyle(
                   fontSize: 14,
                   fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ],
-                  ),
+                ),
+              ),
+            ],
+          ),
           const SizedBox(height: 12),
           ...children,
         ],
-              ),
-            );
+      ),
+    );
   }
 
   Widget _buildSidebarInfoItem({
@@ -1065,11 +1073,13 @@ class _AddProductScreenState extends State<AddProductScreen> with TickerProvider
               const SizedBox(height: space12),
               _buildFormField(label: 'Tên nội bộ', controller: _nameController),
               const SizedBox(height: space12),
+              _buildFormField(label: 'Mô tả', controller: _descriptionController, minLines: 4, maxLines: 6),
               _buildFormField(label: 'Barcode', controller: _barcodeController),
               const SizedBox(height: space12),
               _buildFormField(label: 'SKU', controller: _skuController),
               const SizedBox(height: space12),
               _buildFormField(label: 'Đơn vị tính', controller: _unitController),
+              const SizedBox(height: space12),
             ],
           ),
         ),
@@ -1156,9 +1166,9 @@ class _AddProductScreenState extends State<AddProductScreen> with TickerProvider
             color: Color(0xFFF0F9FF),
             borderRadius: BorderRadius.circular(6),
           ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
               Row(
                 children: [
                   Icon(Icons.attach_money, color: Color(0xFF2563EB)),
@@ -1186,8 +1196,8 @@ class _AddProductScreenState extends State<AddProductScreen> with TickerProvider
             borderRadius: BorderRadius.circular(6),
           ),
           child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
               Row(
                 children: [
                   Icon(Icons.inventory_2, color: Color(0xFF059669)),
@@ -1199,8 +1209,8 @@ class _AddProductScreenState extends State<AddProductScreen> with TickerProvider
               _buildFormField(label: 'Số lượng', controller: _quantityController, keyboardType: TextInputType.number),
             ],
           ),
-                            ),
-                            const SizedBox(height: 16),
+        ),
+        const SizedBox(height: 16),
         // 6. Thông tin y tế
         SectionCard(
           padding: const EdgeInsets.all(16),
@@ -1213,53 +1223,17 @@ class _AddProductScreenState extends State<AddProductScreen> with TickerProvider
               const SizedBox(height: space12),
               _buildFormField(label: 'Chỉ định', controller: _usageController, minLines: 4, maxLines: 6),
               const SizedBox(height: space12),
-              _buildFormField(label: 'Mô tả', controller: _descriptionController, minLines: 4, maxLines: 6),
+              _buildFormField(label: 'Chống chỉ định', controller: _contraindicationController, maxLines: 2),
               const SizedBox(height: space12),
-              Row(
-                children: [
-                  Expanded(child: _buildFormField(label: 'Năm sản xuất', child: SizedBox(
-                    height: 40,
-                    child: InkWell(
-                      onTap: _pickMfgDate,
-                      child: InputDecorator(
-                        decoration: InputDecoration(
-                          hintText: 'Chọn năm sản xuất',
-                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-                          contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 0),
-                        ),
-                        child: Align(
-                          alignment: Alignment.centerLeft,
-                          child: Text(_mfgDate != null ? '${_mfgDate!.year}' : '', style: TextStyle(fontSize: 15)),
-                        ),
-                      ),
-                    ),
-                  ))),
-                  const SizedBox(width: 12),
-                  Expanded(child: _buildFormField(label: 'Năm hết hạn', child: SizedBox(
-                    height: 40,
-                    child: InkWell(
-                      onTap: _pickExpDate,
-                      child: InputDecorator(
-                        decoration: InputDecoration(
-                          hintText: 'Chọn năm hết hạn',
-                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-                          contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 0),
-                        ),
-                        child: Align(
-                          alignment: Alignment.centerLeft,
-                          child: Text(_expDate != null ? '${_expDate!.year}' : '', style: TextStyle(fontSize: 15)),
-                        ),
-                      ),
-                    ),
-                  ))),
-                ],
-              ),
+              _buildFormField(label: 'Cách dùng', controller: _directionController, maxLines: 2),
+              const SizedBox(height: space12),
+              _buildFormField(label: 'Thời gian ngưng sử dụng', controller: _withdrawalTimeController, maxLines: 1),
               const SizedBox(height: space12),
               _buildFormField(label: 'Nguồn gốc xuất xứ', controller: _originController),
             ],
           ),
         ),
-                            const SizedBox(height: 16),
+        const SizedBox(height: 16),
         // 7. Tag
         SectionCard(
           padding: const EdgeInsets.all(16),
@@ -1323,7 +1297,7 @@ class _AddProductScreenState extends State<AddProductScreen> with TickerProvider
                       child: const Text('Thêm'),
                     ),
                   ),
-                          ],
+                ],
               ),
             ],
           ),
@@ -1334,7 +1308,7 @@ class _AddProductScreenState extends State<AddProductScreen> with TickerProvider
           padding: const EdgeInsets.all(16),
           child: _buildFormField(label: 'Ghi chú', controller: _notesController, minLines: 2, maxLines: 4),
         ),
-      ], 
+      ],
     );
   }
 
@@ -1342,7 +1316,7 @@ class _AddProductScreenState extends State<AddProductScreen> with TickerProvider
     return SectionCard(
       padding: const EdgeInsets.all(16),
       child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const Text('Ảnh sản phẩm', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 16, color: Color(0xFF22C55E))),
           const SizedBox(height: 16),
@@ -1415,8 +1389,8 @@ class _AddProductScreenState extends State<AddProductScreen> with TickerProvider
             ),
           // Nút upload nhiều ảnh
           Row(
-                          children: [
-                            Expanded(
+            children: [
+              Expanded(
                 child: OutlinedButton(
                   onPressed: (kIsWeb ? _webImageBytesList.length : _productImageFiles.length) >= 5 ? null : _pickMultiImageFromGallery,
                   style: OutlinedButton.styleFrom(
@@ -1445,7 +1419,7 @@ class _AddProductScreenState extends State<AddProductScreen> with TickerProvider
               ),
               if (!kIsWeb) ...[
                 const SizedBox(width: 16),
-                            Expanded(
+                Expanded(
                   child: OutlinedButton(
                     onPressed: _productImageFiles.length >= 5 ? null : _pickImageFromCamera,
                     style: OutlinedButton.styleFrom(
@@ -1462,7 +1436,7 @@ class _AddProductScreenState extends State<AddProductScreen> with TickerProvider
                         return BorderSide(color: Colors.grey[300]!);
                       }),
                     ),
-                              child: Column(
+                    child: Column(
                       mainAxisSize: MainAxisSize.min,
                       children: const [
                         Icon(Icons.photo_camera_outlined, size: 28, color: Color(0xFF475569)),
@@ -1487,7 +1461,7 @@ class _AddProductScreenState extends State<AddProductScreen> with TickerProvider
     required Color color,
   }) {
     return Row(
-                                children: [
+      children: [
         Container(
           padding: const EdgeInsets.all(8),
           decoration: BoxDecoration(
@@ -1515,12 +1489,12 @@ class _AddProductScreenState extends State<AddProductScreen> with TickerProvider
                   fontSize: 14,
                 ),
               ),
-                                ],
-                              ),
-                            ),
-                          ],
-                        );
-                      }
+            ],
+          ),
+        ),
+      ],
+    );
+  }
 
   Widget _buildSectionCard({
     required List<Widget> children,
@@ -1596,11 +1570,11 @@ class _AddProductScreenState extends State<AddProductScreen> with TickerProvider
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(8),
                   borderSide: BorderSide(color: Colors.grey[300]!),
-              ),
+                ),
                 enabledBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(8),
                   borderSide: BorderSide(color: Colors.grey[300]!),
-        ),
+                ),
                 focusedBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(8),
                   borderSide: BorderSide(color: mainGreen, width: 2),
@@ -1639,6 +1613,122 @@ class SectionCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(6),
       ),
       child: child,
+    );
+  }
+}
+
+// Thêm widget _ProductSearchSheet để fix lỗi linter
+class _ProductSearchSheet extends StatefulWidget {
+  final Function(Product)? onProductSelected;
+  const _ProductSearchSheet({this.onProductSelected});
+
+  @override
+  State<_ProductSearchSheet> createState() => _ProductSearchSheetState();
+}
+
+class _ProductSearchSheetState extends State<_ProductSearchSheet> {
+  final TextEditingController _controller = TextEditingController();
+  List<Product> _results = [];
+  bool _loading = false;
+
+  void _onChanged() async {
+    final query = _controller.text.trim().toLowerCase();
+    if (query.isEmpty) {
+      setState(() => _results = []);
+      return;
+    }
+    setState(() => _loading = true);
+    final products = await FirebaseFirestore.instance.collection('products').get();
+    setState(() {
+      _results = products.docs.map((doc) => Product.fromMap(doc.id, doc.data())).where((p) =>
+        p.internalName.toLowerCase().contains(query) ||
+        p.tradeName.toLowerCase().contains(query) ||
+        (p.barcode?.toLowerCase().contains(query) ?? false) ||
+        (p.sku?.toLowerCase().contains(query) ?? false)
+      ).toList();
+      _loading = false;
+    });
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return SafeArea(
+      child: Container(
+        height: MediaQuery.of(context).size.height * 0.98,
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        ),
+        child: Column(
+          children: [
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              child: Row(
+                children: [
+                  IconButton(
+                    icon: const Icon(Icons.arrow_back),
+                    onPressed: () => Navigator.of(context).pop(),
+                  ),
+                  Expanded(
+                    child: TextField(
+                      controller: _controller,
+                      autofocus: true,
+                      decoration: const InputDecoration(
+                        hintText: 'Tìm kiếm sản phẩm theo tên, mã vạch, SKU...',
+                        border: InputBorder.none,
+                      ),
+                      onChanged: (val) => _onChanged(),
+                    ),
+                  ),
+                  if (_controller.text.isNotEmpty)
+                    IconButton(
+                      icon: const Icon(Icons.clear),
+                      onPressed: () {
+                        _controller.clear();
+                        setState(() => _results = []);
+                      },
+                    ),
+                ],
+              ),
+            ),
+            const Divider(height: 1),
+            if (_loading)
+              const Padding(
+                padding: EdgeInsets.all(24),
+                child: CircularProgressIndicator(),
+              )
+            else if (_results.isEmpty && _controller.text.isNotEmpty)
+              const Padding(
+                padding: EdgeInsets.all(32),
+                child: Text('Không tìm thấy sản phẩm phù hợp', style: TextStyle(color: Colors.grey)),
+              )
+            else
+              Expanded(
+                child: ListView.separated(
+                  itemCount: _results.length,
+                  separatorBuilder: (_, __) => const Divider(height: 1),
+                  itemBuilder: (context, index) {
+                    final p = _results[index];
+                    return ListTile(
+                      title: Text(p.tradeName.isNotEmpty ? p.tradeName : p.internalName),
+                      subtitle: Text('Barcode:  0${p.barcode ?? ''} | SKU: ${p.sku ?? ''}'),
+                      onTap: () {
+                        if (widget.onProductSelected != null) widget.onProductSelected!(p);
+                        Navigator.of(context).pop();
+                      },
+                    );
+                  },
+                ),
+              ),
+          ],
+        ),
+      ),
     );
   }
 } 

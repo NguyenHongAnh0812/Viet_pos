@@ -22,9 +22,10 @@ class Product {
   final String? discontinueReason; // discontinue_reason
   final DateTime createdAt;  // created_at
   final DateTime updatedAt;  // updated_at
-  final DateTime? mfgDate; // năm sản xuất
-  final DateTime? expDate; // năm hết hạn
   final String? origin; // xuất xứ
+  final String contraindication;
+  final String direction;
+  final String withdrawalTime;
 
   Product({
     required this.id,
@@ -48,9 +49,10 @@ class Product {
     this.discontinueReason,
     required this.createdAt,
     required this.updatedAt,
-    this.mfgDate,
-    this.expDate,
     this.origin,
+    this.contraindication = '',
+    this.direction = '',
+    this.withdrawalTime = '',
   });
 
   Map<String, dynamic> toMap() {
@@ -75,17 +77,16 @@ class Product {
       'discontinue_reason': discontinueReason,
       'created_at': createdAt,
       'updated_at': updatedAt,
-      'mfg_date': mfgDate,
-      'exp_date': expDate,
       'origin': origin,
+      'contraindication': contraindication,
+      'direction': direction,
+      'withdrawal_time': withdrawalTime,
     };
   }
 
   factory Product.fromMap(String id, Map<String, dynamic> map) {
     DateTime? createdAt;
     DateTime? updatedAt;
-    DateTime? mfgDate;
-    DateTime? expDate;
     try {
       if (map['created_at'] is Timestamp) {
         createdAt = (map['created_at'] as Timestamp).toDate();
@@ -100,20 +101,6 @@ class Product {
         updatedAt = map['updated_at'] as DateTime;
       } else if (map['updated_at'] != null) {
         updatedAt = DateTime.tryParse(map['updated_at'].toString());
-      }
-      if (map['mfg_date'] is Timestamp) {
-        mfgDate = (map['mfg_date'] as Timestamp).toDate();
-      } else if (map['mfg_date'] is DateTime) {
-        mfgDate = map['mfg_date'] as DateTime;
-      } else if (map['mfg_date'] != null) {
-        mfgDate = DateTime.tryParse(map['mfg_date'].toString());
-      }
-      if (map['exp_date'] is Timestamp) {
-        expDate = (map['exp_date'] as Timestamp).toDate();
-      } else if (map['exp_date'] is DateTime) {
-        expDate = map['exp_date'] as DateTime;
-      } else if (map['exp_date'] != null) {
-        expDate = DateTime.tryParse(map['exp_date'].toString());
       }
     } catch (e) {}
     
@@ -139,9 +126,10 @@ class Product {
       discontinueReason: map['discontinue_reason'],
       createdAt: createdAt ?? DateTime.now(),
       updatedAt: updatedAt ?? DateTime.now(),
-      mfgDate: mfgDate,
-      expDate: expDate,
       origin: map['origin'],
+      contraindication: map['contraindication'] ?? '',
+      direction: map['direction'] ?? '',
+      withdrawalTime: map['withdrawal_time'] ?? '',
     );
   }
 
@@ -172,9 +160,10 @@ class Product {
     String? discontinueReason,
     DateTime? createdAt,
     DateTime? updatedAt,
-    DateTime? mfgDate,
-    DateTime? expDate,
     String? origin,
+    String? contraindication,
+    String? direction,
+    String? withdrawalTime,
   }) {
     return Product(
       id: id ?? this.id,
@@ -198,9 +187,10 @@ class Product {
       discontinueReason: discontinueReason ?? this.discontinueReason,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
-      mfgDate: mfgDate ?? this.mfgDate,
-      expDate: expDate ?? this.expDate,
       origin: origin ?? this.origin,
+      contraindication: contraindication ?? this.contraindication,
+      direction: direction ?? this.direction,
+      withdrawalTime: withdrawalTime ?? this.withdrawalTime,
     );
   }
 
@@ -226,9 +216,10 @@ class Product {
       'discontinue_reason': raw['discontinue_reason'] ?? raw['discontinueReason'],
       'created_at': raw['created_at'] ?? raw['createdAt'] ?? FieldValue.serverTimestamp(),
       'updated_at': raw['updated_at'] ?? raw['updatedAt'] ?? FieldValue.serverTimestamp(),
-      'mfg_date': raw['mfg_date'] ?? raw['mfgDate'],
-      'exp_date': raw['exp_date'] ?? raw['expDate'],
       'origin': raw['origin'],
+      'contraindication': raw['contraindication'] ?? '',
+      'direction': raw['direction'] ?? '',
+      'withdrawal_time': raw['withdrawal_time'] ?? '',
     };
   }
 } 
