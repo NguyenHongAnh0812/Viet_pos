@@ -10,12 +10,12 @@ class CategoryDropdownButton extends StatefulWidget {
   final bool isMultiSelect;
 
   const CategoryDropdownButton({
-    Key? key,
+    super.key,
     required this.selectedCategoryIds,
     required this.onChanged,
     this.hint,
     this.isMultiSelect = true,
-  }) : super(key: key);
+  });
 
   @override
   State<CategoryDropdownButton> createState() => _CategoryDropdownButtonState();
@@ -62,18 +62,18 @@ class _CategoryDropdownButtonState extends State<CategoryDropdownButton> {
 
   Future<void> _loadCategories() async {
     try {
-      print('Loading categories...');
+
       final categories = await _categoryService.getCategories().first;
-      print('Loaded ${categories.length} categories');
+
       for (final cat in categories) {
-        print('Category: ${cat.name} (ID: ${cat.id}, Parent: ${cat.parentId})');
+        debugPrint('Category: ${cat.name} (ID: ${cat.id}, Parent: ${cat.parentId})');
       }
       setState(() {
         _categories = categories;
         _isLoading = false;
       });
     } catch (e) {
-      print('Error loading categories: $e');
+
       setState(() {
         _isLoading = false;
       });
@@ -312,7 +312,7 @@ class _CategoryDropdownButtonState extends State<CategoryDropdownButton> {
                   category.name,
                   style: body.copyWith(
                     fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
-                    color: isSelected ? primaryBlue : textPrimary,
+                    color: isSelected ? mainGreen : textPrimary,
                   ),
                 ),
               ),
@@ -322,7 +322,7 @@ class _CategoryDropdownButtonState extends State<CategoryDropdownButton> {
               ? Checkbox(
                   value: isSelected,
                   onChanged: (value) => _toggleCategory(category.id),
-                  activeColor: primaryBlue,
+                  activeColor: mainGreen,
                 )
               : null,
           onTap: () => _toggleCategory(category.id),

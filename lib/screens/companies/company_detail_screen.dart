@@ -274,7 +274,7 @@ class _CompanyDetailScreenState extends State<CompanyDetailScreen> {
               ),
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(8),
-                borderSide: const BorderSide(color: primaryBlue, width: 1.5),
+                borderSide: const BorderSide(color: mainGreen, width: 1.5),
               ),
               contentPadding: const EdgeInsets.symmetric(vertical: 10, horizontal: 12),
             ),
@@ -320,7 +320,7 @@ class _CompanyDetailScreenState extends State<CompanyDetailScreen> {
               ),
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(8),
-                borderSide: const BorderSide(color: primaryBlue, width: 1.5),
+                borderSide: const BorderSide(color: mainGreen, width: 1.5),
               ),
               contentPadding: const EdgeInsets.symmetric(vertical: 10, horizontal: 12),
             ),

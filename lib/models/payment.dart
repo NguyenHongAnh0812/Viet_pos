@@ -6,7 +6,7 @@ class Payment {
   final double amount;
   final String method; // 'cash', 'bank_transfer', 'card'
   final String status; // 'pending', 'completed', 'failed'
-  final DateTime paymentDate;
+  final DateTime? paymentDate;
   final String? reference; // Mã giao dịch, số hóa đơn, v.v.
   final String? note;
   final DateTime createdAt;
@@ -18,7 +18,7 @@ class Payment {
     required this.amount,
     required this.method,
     required this.status,
-    required this.paymentDate,
+    this.paymentDate,
     this.reference,
     this.note,
     required this.createdAt,
@@ -28,17 +28,9 @@ class Payment {
   factory Payment.fromFirestore(DocumentSnapshot doc) {
     final data = doc.data() as Map<String, dynamic>;
     
-    DateTime paymentDate;
     DateTime createdAt;
     DateTime updatedAt;
-    
-    if (data['payment_date'] is Timestamp) {
-      paymentDate = (data['payment_date'] as Timestamp).toDate();
-    } else if (data['payment_date'] is DateTime) {
-      paymentDate = data['payment_date'] as DateTime;
-    } else {
-      paymentDate = DateTime.now();
-    }
+    DateTime? paymentDate;
     
     if (data['created_at'] is Timestamp) {
       createdAt = (data['created_at'] as Timestamp).toDate();
@@ -54,6 +46,12 @@ class Payment {
       updatedAt = data['updated_at'] as DateTime;
     } else {
       updatedAt = DateTime.now();
+    }
+
+    if (data['payment_date'] is Timestamp) {
+      paymentDate = (data['payment_date'] as Timestamp).toDate();
+    } else if (data['payment_date'] is DateTime) {
+      paymentDate = data['payment_date'] as DateTime;
     }
 
     return Payment(
@@ -76,7 +74,7 @@ class Payment {
       'amount': amount,
       'method': method,
       'status': status,
-      'payment_date': Timestamp.fromDate(paymentDate),
+      if (paymentDate != null) 'payment_date': Timestamp.fromDate(paymentDate!),
       if (reference != null) 'reference': reference,
       if (note != null) 'note': note,
       'created_at': Timestamp.fromDate(createdAt),

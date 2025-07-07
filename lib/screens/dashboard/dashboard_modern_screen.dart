@@ -32,7 +32,7 @@ class DashboardModernScreen extends StatelessWidget {
                   color: Colors.white,
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withOpacity(0.08),
+                      color: Colors.black.withValues(alpha: 0.08),
                       blurRadius: 12,
                       offset: Offset(0, 4),
                     ),
@@ -48,7 +48,7 @@ class DashboardModernScreen extends StatelessWidget {
                         width: 40,
                         height: 40,
                         decoration: BoxDecoration(
-                          color: primaryBlue,
+                          color: mainGreen,
                           shape: BoxShape.circle,
                         ),
                         child: Center(
@@ -65,7 +65,7 @@ class DashboardModernScreen extends StatelessWidget {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text('VetPharm', style: responsiveTextStyle(context, h1, h1Mobile).copyWith(color: textPrimary)),
-                          Text('Nhà thuốc thú y', style: responsiveTextStyle(context, bodySmall.copyWith(color: primaryBlue), smallMobile.copyWith(color: primaryBlue))),
+                          Text('Nhà thuốc thú y', style: responsiveTextStyle(context, bodySmall.copyWith(color: mainGreen), smallMobile.copyWith(color: mainGreen))),
                         ],
                       ),
                     ],
@@ -76,7 +76,7 @@ class DashboardModernScreen extends StatelessWidget {
             // Main content scrollable
             Expanded(
                 child: ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 484),
+                  constraints: const BoxConstraints(maxWidth: 1200),
                   child: SingleChildScrollView(
                     child: Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
@@ -96,7 +96,7 @@ class DashboardModernScreen extends StatelessWidget {
                               borderRadius: BorderRadius.circular(16),
                               boxShadow: [
                                 BoxShadow(
-                                  color: Colors.black.withOpacity(0.04),
+                                  color: Colors.black.withValues(alpha: 0.04),
                                   blurRadius: 8,
                                   offset: Offset(0, 2),
                                 ),
@@ -128,7 +128,7 @@ class DashboardModernScreen extends StatelessWidget {
                               borderRadius: BorderRadius.circular(16),
                               boxShadow: [
                                 BoxShadow(
-                                  color: Colors.black.withOpacity(0.04),
+                                  color: Colors.black.withValues(alpha: 0.04),
                                   blurRadius: 8,
                                   offset: Offset(0, 2),
                                 ),
@@ -247,7 +247,7 @@ class _BottomNavBar extends StatelessWidget {
         color: Colors.white,
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.04),
+            color: Colors.black.withValues(alpha: 0.04),
             blurRadius: 8,
             offset: Offset(0, -2),
           ),
@@ -282,11 +282,11 @@ class _NavItem extends StatelessWidget {
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Icon(icon, color: selected ? primaryBlue : textSecondary),
+        Icon(icon, color: selected ? mainGreen : textSecondary),
         const SizedBox(height: 2),
         Text(
           label,
-          style: responsiveTextStyle(context, labelSmall, captionMobile).copyWith(color: selected ? primaryBlue : textSecondary),
+          style: responsiveTextStyle(context, labelSmall, captionMobile).copyWith(color: selected ? mainGreen : textSecondary),
         ),
       ],
     );

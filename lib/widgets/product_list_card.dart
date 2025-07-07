@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
+
 import '../models/product.dart';
 import 'common/design_system.dart';
+import '../widgets/common/design_system.dart';
 
 class ProductListCard extends StatelessWidget {
   final Product product;

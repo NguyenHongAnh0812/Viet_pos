@@ -41,7 +41,7 @@ class StyleGuideScreen extends StatelessWidget {
                     spacing: space16,
                     runSpacing: space16,
                     children: [
-                      _colorBox('Primary', primaryBlue),
+                      _colorBox('Primary', mainGreen),
                       _colorBox('Secondary', secondaryGreen),
                       _colorBox('Warning', warningOrange),
                       _colorBox('Destructive', destructiveRed),
@@ -194,7 +194,7 @@ class StyleGuideScreen extends StatelessWidget {
                       ),
                       IconButton(
                         onPressed: () {},
-                        icon: const Icon(Icons.delete),
+                        icon: const Icon(Icons.delete, size: 20, color: Colors.red),
                         style: iconButtonStyle,
                       ),
                     ],
@@ -575,7 +575,6 @@ class StyleGuideScreen extends StatelessWidget {
                                         child: Icon(
                                           Icons.keyboard_arrow_right,
                                           size: 20,
-                                          color: Colors.grey[600],
                                         ),
                                       ),
                                     ),
@@ -1030,7 +1029,7 @@ class StyleGuideScreen extends StatelessWidget {
                     decoration: BoxDecoration(
                       color: Colors.grey[100],
                       borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: borderColor),
+                      border: Border.all(color: Colors.blue[200]!),
                     ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -1191,7 +1190,7 @@ class StyleGuideScreen extends StatelessWidget {
                     decoration: BoxDecoration(
                       color: Colors.white,
                       borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: borderColor),
+                      border: Border.all(color: Colors.blue[200]!),
                     ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -1237,7 +1236,7 @@ class StyleGuideScreen extends StatelessWidget {
                     decoration: BoxDecoration(
                       color: Colors.grey[50],
                       borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: borderColor),
+                      border: Border.all(color: Colors.blue[200]!),
                     ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -1397,7 +1396,7 @@ class StyleGuideScreen extends StatelessWidget {
             width: size,
             height: 24,
             decoration: BoxDecoration(
-              color: primaryBlue.withOpacity(0.1),
+              color: mainGreen.withAlpha(10),
               borderRadius: BorderRadius.circular(borderRadiusSmall),
             ),
           ),

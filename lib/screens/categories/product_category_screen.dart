@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
 import '../../widgets/main_layout.dart';
-import '../../models/product_category.dart';
-import '../../models/product.dart';
+
 import '../../services/product_category_service.dart';
 import '../../services/product_service.dart';
-import 'add_product_category_screen.dart';
-import '../../widgets/common/design_system.dart';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'product_category_detail_screen.dart';
+
+import '../../models/product_category.dart';
+import '../../widgets/common/design_system.dart';
 
 class ProductCategoryScreen extends StatefulWidget {
   final Function(MainPage)? onNavigate;
@@ -44,176 +44,150 @@ class _ProductCategoryScreenState extends State<ProductCategoryScreen> with Sing
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: appBackground,
-      body: SingleChildScrollView(
-        child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Header
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      body: Center(
+        child: Container(
+          constraints: const BoxConstraints(maxWidth: 1200),
+          child: SingleChildScrollView(
+            child: Padding(
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text(
-                    'Danh mục sản phẩm',
-                    style: TextStyle(
-                      color: Colors.black87,
-                      fontSize: 20,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                  ElevatedButton.icon(
-                    onPressed: () {
-                      if (widget.onNavigate != null) {
-                        widget.onNavigate!(MainPage.addProductCategory);
-                      }
-                    },
-                    icon: const Icon(Icons.add),
-                    label: const Text('Thêm danh mục'),
-                    style: primaryButtonStyle,
-                  ),
-                ],
-              ),
-              const SizedBox(height: 24),
-              // Search and Sort Controls
-              Padding(
-                padding: const EdgeInsets.only(bottom: 24),
-                child: Row(
-                  children: [
-                    // Search bar
-                    Expanded(
-                      child: TextField(
-                        controller: _searchController,
-                        onChanged: (value) => setState(() => searchText = value),
-                        decoration: searchInputDecoration(hint: 'Tìm kiếm danh mục...'),
+                  // Header
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text(
+                        'Danh mục sản phẩm',
+                        style: TextStyle(
+                          color: Colors.black87,
+                          fontSize: 20,
+                          fontWeight: FontWeight.w600,
+                        ),
                       ),
-                    ),
-                    const SizedBox(width: 16),
-                    // Sort dropdown
-                    Container(
-                      width: 200,
-                      child: ShopifyDropdown<String>(
-                        value: sortOption,
-                        items: const [
-                          'name_asc', 
-                          'name_desc', 
-                          'products_desc', 
-                          'products_asc', 
-                          'date_desc', 
-                          'date_asc'
-                        ],
-                        getLabel: (value) {
-                          switch (value) {
-                            case 'name_asc': return 'Tên: A-Z';
-                            case 'name_desc': return 'Tên: Z-A';
-                            case 'products_desc': return 'Số sản phẩm: Nhiều nhất';
-                            case 'products_asc': return 'Số sản phẩm: Ít nhất';
-                            case 'date_desc': return 'Ngày tạo: Mới nhất';
-                            case 'date_asc': return 'Ngày tạo: Cũ nhất';
-                            default: return '';
+                      ElevatedButton.icon(
+                        onPressed: () {
+                          if (widget.onNavigate != null) {
+                            widget.onNavigate!(MainPage.addProductCategory);
                           }
                         },
-                        onChanged: (value) {
-                          if (value != null) {
-                            setState(() => sortOption = value);
-                          }
-                        },
+                        icon: const Icon(Icons.add),
+                        label: const Text('Thêm danh mục'),
+                        style: primaryButtonStyle,
                       ),
-                    ),
-                  ],
-                ),
-              ),
-              // Table container
-              Container(
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: borderColor),
-                ),
-                child: Column(
-                  children: [
-                    // Table Header
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-                      decoration: BoxDecoration(
-                        border: Border(bottom: BorderSide(color: borderColor)),
-                      ),
-                      child: Row(
-                        children: [
-                          const SizedBox(width: 40), // Space for arrow/bullet
-                          Expanded(
-                            child: Row(
-                              children: const [
-                                Expanded(
-                                  flex: 3,
-                                  child: Text(
-                                    'Tên danh mục',
-                                    style: TextStyle(
-                                      fontWeight: FontWeight.w600,
-                                      fontSize: 14,
-                                      color: textSecondary,
-                                    ),
-                                  ),
-                                ),
-                                SizedBox(width: 24),
-                                SizedBox(
-                                  width: 120,
-                                  child: Text(
-                                    'Số sản phẩm',
-                                    style: TextStyle(
-                                      fontWeight: FontWeight.w600,
-                                      fontSize: 14,
-                                      color: textSecondary,
-                                    ),
-                                    textAlign: TextAlign.center,
-                                  ),
-                                ),
-                                SizedBox(width: 24),
-                              ],
-                            ),
+                    ],
+                  ),
+                  const SizedBox(height: 24),
+                  // Search and Sort Controls
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 24),
+                    child: Row(
+                      children: [
+                        // Search bar
+                        Expanded(
+                          child: TextField(
+                            controller: _searchController,
+                            onChanged: (value) => setState(() => searchText = value),
+                            decoration: searchInputDecoration(hint: 'Tìm kiếm danh mục...'),
                           ),
-                        ],
-                      ),
+                        ),
+                        const SizedBox(width: 16),
+                        // Sort dropdown
+                        SizedBox(
+                          width: 200,
+                          child: ShopifyDropdown<String>(
+                            value: sortOption,
+                            items: const [
+                              'name_asc', 
+                              'name_desc', 
+                              'products_desc', 
+                              'products_asc', 
+                              'date_desc', 
+                              'date_asc'
+                            ],
+                            getLabel: (value) {
+                              switch (value) {
+                                case 'name_asc': return 'Tên: A-Z';
+                                case 'name_desc': return 'Tên: Z-A';
+                                case 'products_desc': return 'Số sản phẩm: Nhiều nhất';
+                                case 'products_asc': return 'Số sản phẩm: Ít nhất';
+                                case 'date_desc': return 'Ngày tạo: Mới nhất';
+                                case 'date_asc': return 'Ngày tạo: Cũ nhất';
+                                default: return '';
+                              }
+                            },
+                            onChanged: (value) {
+                              if (value != null) {
+                                setState(() => sortOption = value);
+                              }
+                            },
+                          ),
+                        ),
+                      ],
                     ),
-                    // Category List
-                    StreamBuilder<List<ProductCategory>>(
-                      stream: FirebaseFirestore.instance
-                          .collection('categories')
-                          .snapshots()
-                          .map((snapshot) => snapshot.docs
-                              .map((doc) => ProductCategory.fromFirestore(doc))
-                              .toList()),
-                      builder: (context, snapshot) {
-                        if (snapshot.connectionState == ConnectionState.waiting) {
-                          return const Center(
-                            child: Padding(
-                              padding: EdgeInsets.all(24),
-                              child: CircularProgressIndicator(),
-                            ),
-                          );
-                        }
-
-                        if (snapshot.hasError) {
-                          return Center(
-                            child: Padding(
-                              padding: const EdgeInsets.all(24),
-                              child: Text('Error: ${snapshot.error}'),
-                            ),
-                          );
-                        }
-
-                        var categories = snapshot.data ?? [];
-                        
-                        // Apply search filter
-                        if (searchText.isNotEmpty) {
-                          categories = categories.where((c) => c.name.toLowerCase().contains(searchText.toLowerCase())).toList();
-                        }
-                        
-                        // Fetch product counts for sorting if needed
-                        return FutureBuilder<Map<String, int>>(
-                          future: _getProductCounts(categories),
-                          builder: (context, productCountSnapshot) {
-                            if (productCountSnapshot.connectionState == ConnectionState.waiting) {
+                  ),
+                  // Table container
+                  Container(
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: borderColor),
+                    ),
+                    child: Column(
+                      children: [
+                        // Table Header
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                          decoration: BoxDecoration(
+                            border: Border(bottom: BorderSide(color: borderColor)),
+                          ),
+                          child: Row(
+                            children: [
+                              const SizedBox(width: 40), // Space for arrow/bullet
+                              Expanded(
+                                child: Row(
+                                  children: const [
+                                    Expanded(
+                                      flex: 3,
+                                      child: Text(
+                                        'Tên danh mục',
+                                        style: TextStyle(
+                                          fontWeight: FontWeight.w600,
+                                          fontSize: 14,
+                                          color: textSecondary,
+                                        ),
+                                      ),
+                                    ),
+                                    SizedBox(width: 24),
+                                    SizedBox(
+                                      width: 120,
+                                      child: Text(
+                                        'Số sản phẩm',
+                                        style: TextStyle(
+                                          fontWeight: FontWeight.w600,
+                                          fontSize: 14,
+                                          color: textSecondary,
+                                        ),
+                                        textAlign: TextAlign.center,
+                                      ),
+                                    ),
+                                    SizedBox(width: 24),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        // Category List
+                        StreamBuilder<List<ProductCategory>>(
+                          stream: FirebaseFirestore.instance
+                              .collection('categories')
+                              .snapshots()
+                              .map((snapshot) => snapshot.docs
+                                  .map((doc) => ProductCategory.fromFirestore(doc))
+                                  .toList()),
+                          builder: (context, snapshot) {
+                            if (snapshot.connectionState == ConnectionState.waiting) {
                               return const Center(
                                 child: Padding(
                                   padding: EdgeInsets.all(24),
@@ -222,74 +196,105 @@ class _ProductCategoryScreenState extends State<ProductCategoryScreen> with Sing
                               );
                             }
 
-                            final productCounts = productCountSnapshot.data ?? {};
-
-                            // Apply sorting
-                            categories.sort((a, b) {
-                              switch (sortOption) {
-                                case 'name_asc':
-                                  return a.name.toLowerCase().compareTo(b.name.toLowerCase());
-                                case 'name_desc':
-                                  return b.name.toLowerCase().compareTo(a.name.toLowerCase());
-                                case 'products_desc':
-                                  return (productCounts[b.id] ?? 0).compareTo(productCounts[a.id] ?? 0);
-                                case 'products_asc':
-                                  return (productCounts[a.id] ?? 0).compareTo(productCounts[b.id] ?? 0);
-                                case 'date_desc':
-                                  final dateA = a.createdAt?.toDate() ?? DateTime(1970);
-                                  final dateB = b.createdAt?.toDate() ?? DateTime(1970);
-                                  return dateB.compareTo(dateA);
-                                case 'date_asc':
-                                  final dateA = a.createdAt?.toDate() ?? DateTime(1970);
-                                  final dateB = b.createdAt?.toDate() ?? DateTime(1970);
-                                  return dateA.compareTo(dateB);
-                                default:
-                                  return 0;
-                              }
-                            });
-
-                            // Build tree structure
-                            final Map<String?, List<ProductCategory>> categoryTree = {};
-                            for (var category in categories) {
-                              // Only add search results and their parents
-                              if (searchText.isNotEmpty) {
-                                categoryTree.putIfAbsent(category.parentId, () => []).add(category);
-                              } else {
-                                final parentId = category.parentId;
-                                categoryTree.putIfAbsent(parentId, () => []).add(category);
-                              }
-                            }
-
-                            // Build list items starting with root categories
-                            final rootCategories = categoryTree[null] ?? [];
-                            
-                            if (categories.isEmpty) { // Changed from rootCategories.isEmpty
-                              return const Center(
+                            if (snapshot.hasError) {
+                              return Center(
                                 child: Padding(
-                                  padding: EdgeInsets.all(24),
-                                  child: Text('Không có danh mục nào phù hợp'),
+                                  padding: const EdgeInsets.all(24),
+                                  child: Text('Error: ${snapshot.error}'),
                                 ),
                               );
                             }
-                            
-                            if (searchText.isNotEmpty) {
-                              // Flatten list for search results
-                              return Column(
-                                children: _buildCategoryItems(categories, {}, 0, productCounts),
-                              );
-                            }
 
-                            return Column(
-                              children: _buildCategoryItems(rootCategories, categoryTree, 0, productCounts),
+                            var categories = snapshot.data ?? [];
+                            
+                            // Apply search filter
+                            if (searchText.isNotEmpty) {
+                              categories = categories.where((c) => c.name.toLowerCase().contains(searchText.toLowerCase())).toList();
+                            }
+                            
+                            // Fetch product counts for sorting if needed
+                            return FutureBuilder<Map<String, int>>(
+                              future: _getProductCounts(categories),
+                              builder: (context, productCountSnapshot) {
+                                if (productCountSnapshot.connectionState == ConnectionState.waiting) {
+                                  return const Center(
+                                    child: Padding(
+                                      padding: EdgeInsets.all(24),
+                                      child: CircularProgressIndicator(),
+                                    ),
+                                  );
+                                }
+
+                                final productCounts = productCountSnapshot.data ?? {};
+
+                                // Apply sorting
+                                categories.sort((a, b) {
+                                  switch (sortOption) {
+                                    case 'name_asc':
+                                      return a.name.toLowerCase().compareTo(b.name.toLowerCase());
+                                    case 'name_desc':
+                                      return b.name.toLowerCase().compareTo(a.name.toLowerCase());
+                                    case 'products_desc':
+                                      return (productCounts[b.id] ?? 0).compareTo(productCounts[a.id] ?? 0);
+                                    case 'products_asc':
+                                      return (productCounts[a.id] ?? 0).compareTo(productCounts[b.id] ?? 0);
+                                    case 'date_desc':
+                                      final dateA = a.createdAt?.toDate() ?? DateTime(1970);
+                                      final dateB = b.createdAt?.toDate() ?? DateTime(1970);
+                                      return dateB.compareTo(dateA);
+                                    case 'date_asc':
+                                      final dateA = a.createdAt?.toDate() ?? DateTime(1970);
+                                      final dateB = b.createdAt?.toDate() ?? DateTime(1970);
+                                      return dateA.compareTo(dateB);
+                                    default:
+                                      return 0;
+                                  }
+                                });
+
+                                // Build tree structure
+                                final Map<String?, List<ProductCategory>> categoryTree = {};
+                                for (var category in categories) {
+                                  // Only add search results and their parents
+                                  if (searchText.isNotEmpty) {
+                                    categoryTree.putIfAbsent(category.parentId, () => []).add(category);
+                                  } else {
+                                    final parentId = category.parentId;
+                                    categoryTree.putIfAbsent(parentId, () => []).add(category);
+                                  }
+                                }
+
+                                // Build list items starting with root categories
+                                final rootCategories = categoryTree[null] ?? [];
+                                
+                                if (categories.isEmpty) { // Changed from rootCategories.isEmpty
+                                  return const Center(
+                                    child: Padding(
+                                      padding: EdgeInsets.all(24),
+                                      child: Text('Không có danh mục nào phù hợp'),
+                                    ),
+                                  );
+                                }
+                                
+                                if (searchText.isNotEmpty) {
+                                  // Flatten list for search results
+                                  return Column(
+                                    children: _buildCategoryItems(categories, {}, 0, productCounts),
+                                  );
+                                }
+
+                                return Column(
+                                  children: _buildCategoryItems(rootCategories, categoryTree, 0, productCounts),
+                                );
+                              },
                             );
                           },
-                        );
-                      },
+                        ),
+                      ],
                     ),
-                  ],
-                ),
+                  ),
+                ],
               ),
-            ],
+            ),
           ),
         ),
       ),
@@ -399,7 +404,7 @@ class _ProductCategoryScreenState extends State<ProductCategoryScreen> with Sing
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          category.name,
+                          category.name ?? '',
                           style: const TextStyle(
                             fontWeight: FontWeight.w600,
                             fontSize: 14,

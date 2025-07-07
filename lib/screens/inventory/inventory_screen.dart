@@ -1,16 +1,18 @@
 import 'package:flutter/material.dart';
 import '../../services/inventory_service.dart';
-import '../../models/inventory_session.dart';
+
 import '../../services/product_category_service.dart';
-import '../../models/product_category.dart';
+
 import '../../services/product_service.dart';
+
 import '../../models/product.dart';
-import 'inventory_history_screen.dart';
-import '../../widgets/common/design_system.dart';
+import '../../models/inventory_session.dart';
+
 import 'inventory_create_session_screen.dart';
-import 'inventory_detail_screen.dart';
+
 import '../../widgets/main_layout.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import '../../widgets/common/design_system.dart';
 
 class InventoryScreen extends StatefulWidget {
   final VoidCallback? onBack;
@@ -22,12 +24,12 @@ class InventoryScreen extends StatefulWidget {
 }
 
 class _InventoryScreenState extends State<InventoryScreen> with SingleTickerProviderStateMixin {
-  int _tabIndex = 0;
+  final int _tabIndex = 0;
   final TextEditingController _searchController = TextEditingController();
   final TextEditingController _noteController = TextEditingController();
   final TextEditingController _barcodeController = TextEditingController();
   // TODO: Replace with real data/models
-  List<Map<String, dynamic>> _products = [
+  final List<Map<String, dynamic>> _products = [
     {'name': 'Amoxicillin 250mg', 'commonName': 'Amoxicillin', 'systemQty': 120, 'actualQty': null, 'checked': false},
     {'name': 'Enrofloxacin 50mg', 'commonName': 'Enrofloxacin', 'systemQty': 5, 'actualQty': null, 'checked': false},
     {'name': 'Meloxicam 1.5mg', 'commonName': 'Meloxicam', 'systemQty': 80, 'actualQty': null, 'checked': false},
@@ -35,29 +37,29 @@ class _InventoryScreenState extends State<InventoryScreen> with SingleTickerProv
     {'name': 'Vitamin B Complex', 'commonName': 'B Complex', 'systemQty': 45, 'actualQty': null, 'checked': false},
   ];
   bool _saving = false;
-  bool _showHistory = false;
-  bool _showFilter = false;
+  final bool _showHistory = false;
+  final bool _showFilter = false;
   String? _selectedCategory;
-  String _selectedStatus = 'Tất cả trạng thái';
+  final String _selectedStatus = 'Tất cả trạng thái';
   final List<String> _categoryOptions = ['Tất cả danh mục', 'Kháng sinh', 'Vitamin', 'Khác']; // TODO: lấy từ service thực tế
   final List<String> _statusOptions = ['Tất cả trạng thái', 'Chưa kiểm kê', 'Đã kiểm kê', 'Lệch số lượng'];
   final _inventoryService = InventoryService();
   final _categoryService = ProductCategoryService();
   final _productService = ProductService();
-  List<Map<String, dynamic>> _scannedProducts = [];
-  Map<String, String> _actualQtyMap = {};
+  final List<Map<String, dynamic>> _scannedProducts = [];
+  final Map<String, String> _actualQtyMap = {};
   // Thêm biến để bật/tắt tính năng đồng bộ số lượng thực tế
-  bool _syncStock = false;
-  Map<String, TextEditingController> _qtyControllers = {};
+  final bool _syncStock = false;
+  final Map<String, TextEditingController> _qtyControllers = {};
   // Thêm biến để theo dõi trạng thái đã lưu
-  Map<String, bool> _savedProducts = {};
+  final Map<String, bool> _savedProducts = {};
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: appBackground,
       floatingActionButton: FloatingActionButton(
-        backgroundColor: primaryBlue,
+        backgroundColor: mainGreen,
         elevation: 8,
         onPressed: () {
           Navigator.push(
@@ -80,23 +82,18 @@ class _InventoryScreenState extends State<InventoryScreen> with SingleTickerProv
               child: Row(
                 children: [
                   IconButton(
-                    icon: const Icon(Icons.arrow_back, color: textPrimary),
-                    onPressed: widget.onBack ?? () => Navigator.pop(context),
+                    icon: const Icon(Icons.arrow_back_ios_new, color: Color(0xFF222B45)),
+                    onPressed: () {
+                      final mainLayoutState = context.findAncestorStateOfType<MainLayoutState>();
+                      if (mainLayoutState != null) {
+                        mainLayoutState.onSidebarTap(MainPage.inventory);
+                      }
+                    },
                   ),
                   const SizedBox(width: 8),
-                  Expanded(
-                    child: Text('Kiểm kho', style: h2Mobile),
-                  ),
-                  IconButton(
-                    icon: const Icon(Icons.search, color: textPrimary),
-                    onPressed: () {
-                      showModalBottomSheet(
-                        context: context,
-                        isScrollControlled: true,
-                        backgroundColor: Colors.transparent,
-                        builder: (context) => _InventorySearchSheet(),
-                      );
-                    },
+                  Text(
+                    'Kiểm kê kho',
+                    style: h2Mobile,
                   ),
                 ],
               ),
@@ -351,10 +348,10 @@ class _InventoryScreenState extends State<InventoryScreen> with SingleTickerProv
             'Chưa có sản phẩm nào để kiểm kê',
             style: Theme.of(context).textTheme.titleMedium?.copyWith(
                   color: Colors.grey,
-                                    ),
-                                  ),
-                                ],
-                              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -373,10 +370,10 @@ class _InventoryScreenState extends State<InventoryScreen> with SingleTickerProv
             'Chưa có sản phẩm nào được quét',
             style: Theme.of(context).textTheme.titleMedium?.copyWith(
                   color: Colors.grey,
-              ),
             ),
-          ],
-        ),
+          ),
+        ],
+      ),
     );
   }
 

@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+
 import '../models/product.dart';
 import '../models/product_category.dart';
 import '../services/product_category_service.dart';
 import '../services/product_category_relation_service.dart';
 import '../widgets/common/design_system.dart';
-import '../screens/products/product_detail_screen.dart';
 
 class ProductCardItem extends StatefulWidget {
   final Product product;
@@ -14,12 +14,12 @@ class ProductCardItem extends StatefulWidget {
   final VoidCallback? onTap;
 
   const ProductCardItem({
-    Key? key,
+    super.key,
     required this.product,
     required this.isSelected,
     required this.onSelectionChanged,
     this.onTap,
-  }) : super(key: key);
+  });
 
   @override
   State<ProductCardItem> createState() => _ProductCardItemState();

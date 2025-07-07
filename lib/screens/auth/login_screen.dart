@@ -87,7 +87,7 @@ class _LoginScreenState extends State<LoginScreen> {
               children: [
                 Text(
                   'VET-POS',
-                  style: responsiveTextStyle(context, h1.copyWith(color: primaryBlue), h1Mobile.copyWith(color: primaryBlue)),
+                  style: responsiveTextStyle(context, h1.copyWith(color: mainGreen), h1Mobile.copyWith(color: mainGreen)),
                   textAlign: TextAlign.center,
                 ),
                 SizedBox(height: MediaQuery.of(context).size.width < 600 ? spaceMobile : space8),

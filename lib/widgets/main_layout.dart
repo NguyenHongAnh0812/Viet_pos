@@ -70,7 +70,7 @@ class MainLayout extends StatefulWidget {
   State<MainLayout> createState() => MainLayoutState();
 }
 
-class MainLayoutState extends State<MainLayout> {
+class MainLayoutState extends State<MainLayout> with TickerProviderStateMixin {
   bool _sidebarOpen = false;
   int _selectedIndex = 0;
   MainPage _currentPage = MainPage.dashboard;
@@ -80,6 +80,10 @@ class MainLayoutState extends State<MainLayout> {
   ProductCategory? _selectedCategory;
   Customer? _selectedCustomer;
   bool isFilterSidebarOpen = false;
+  
+  // Animation controller cho bottom navigation
+  late AnimationController _navAnimationController;
+  late Animation<double> _navAnimation;
 
   // Filter state
   List<String> categories = ['Tất cả', 'Kháng sinh', 'Vitamin', 'Bổ sung', 'NSAID'];
@@ -100,7 +104,7 @@ class MainLayoutState extends State<MainLayout> {
   String? _selectedInventorySessionId;
 
   // Trạng thái mở/đóng cho từng mục cha
-  Map<String, bool> _openMenus = {
+  final Map<String, bool> _openMenus = {
     'product': false,
     'order': false,
     'customer': false,
@@ -110,6 +114,22 @@ class MainLayoutState extends State<MainLayout> {
   @override
   void initState() {
     super.initState();
+    
+    // Khởi tạo animation controller
+    _navAnimationController = AnimationController(
+      duration: const Duration(milliseconds: 200),
+      vsync: this,
+    );
+    _navAnimation = CurvedAnimation(
+      parent: _navAnimationController,
+      curve: Curves.easeInOut,
+    );
+  }
+
+  @override
+  void dispose() {
+    _navAnimationController.dispose();
+    super.dispose();
   }
 
   void _toggleSidebar() {
@@ -302,13 +322,81 @@ class MainLayoutState extends State<MainLayout> {
     });
   }
 
+  void _showMoreSheet(BuildContext context) {
+    final isMobile = MediaQuery.of(context).size.width < 600;
+    final crossAxisCount = isMobile ? 3 : 5;
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (context) {
+        final items = [
+          {'icon': Icons.settings, 'label': 'Cài đặt'},
+          {'icon': Icons.bar_chart, 'label': 'Báo cáo'},
+          {'icon': Icons.receipt, 'label': 'Hóa đơn'},
+          {'icon': Icons.account_circle, 'label': 'Tài khoản'},
+          {'icon': Icons.help, 'label': 'Trợ giúp'},
+          {'icon': Icons.inventory, 'label': 'Kiểm kê'},
+          {'icon': Icons.category, 'label': 'Danh mục'},
+          {'icon': Icons.people, 'label': 'Khách hàng'},
+          {'icon': Icons.analytics, 'label': 'Thống kê'},
+          {'icon': Icons.backup, 'label': 'Sao lưu'},
+        ];
+        return Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: Colors.grey[300],
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              const SizedBox(height: 16),
+              Text('Thêm', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+              const SizedBox(height: 24),
+              GridView.count(
+                crossAxisCount: crossAxisCount,
+                shrinkWrap: true,
+                mainAxisSpacing: 16,
+                crossAxisSpacing: 16,
+                children: items.map((item) => Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    CircleAvatar(
+                      backgroundColor: Colors.green.withOpacity(0.1),
+                      child: Icon(item['icon'] as IconData, color: Colors.green),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      item['label'] as String, 
+                      style: TextStyle(fontSize: 12),
+                      textAlign: TextAlign.center,
+                    ),
+                  ],
+                )).toList(),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
   Widget _buildMainContent() {
     switch (_currentPage) {
       case MainPage.dashboard:
-        return const DashboardModernScreen();
+        return const DashboardModernScreen(
+          key: PageStorageKey('dashboard'),
+        );
       case MainPage.productList:
         return ProductListScreen(
-          key: ValueKey('product-list-$productListKey'),
+          key: PageStorageKey('product-list'),
           onProductTap: _openProductDetail,
           onNavigate: onSidebarTap,
           onOpenFilterSidebar: _openFilterSidebar,
@@ -322,20 +410,24 @@ class MainLayoutState extends State<MainLayout> {
         );
       case MainPage.productCategory:
         return ProductCategoryScreen(
-           onNavigate: onSidebarTap,
-           onCategorySelected: _openCategoryDetail,
+          key: const PageStorageKey('product-category'),
+          onNavigate: onSidebarTap,
+          onCategorySelected: _openCategoryDetail,
         );
       case MainPage.addProduct:
         return AddProductScreen(
+          key: const PageStorageKey('add-product'),
           onBack: _openProductList,
         );
       case MainPage.productDetail:
         return ProductDetailScreen(
+          key: const PageStorageKey('product-detail'),
           product: _selectedProduct!,
           onBack: _openProductList,
         );
       case MainPage.inventory:
         return InventoryScreen(
+          key: const PageStorageKey('inventory'),
           onBack: () {
             setState(() {
               _currentPage = MainPage.dashboard;
@@ -349,6 +441,7 @@ class MainLayoutState extends State<MainLayout> {
         );
       case MainPage.inventoryHistory:
         return InventoryHistoryScreen(
+          key: const PageStorageKey('inventory-history'),
           onBack: () {
             setState(() {
               _currentPage = MainPage.inventory;
@@ -446,27 +539,31 @@ class MainLayoutState extends State<MainLayout> {
   }
 
   void _onNavTap(int index) {
+    MainPage targetPage;
+    switch (index) {
+      case 0:
+        targetPage = MainPage.dashboard;
+        break;
+      case 1:
+        targetPage = MainPage.productList;
+        break;
+      case 2:
+        targetPage = MainPage.orderCreate;
+        break;
+      case 3:
+        targetPage = MainPage.companies;
+        break;
+      case 4:
+        targetPage = MainPage.moreDashboard;
+        break;
+      default:
+        targetPage = MainPage.dashboard;
+    }
+    
     setState(() {
-      _selectedIndex = index;
-      switch (index) {
-        case 0:
-          onSidebarTap(MainPage.dashboard);
-          break;
-        case 1:
-          onSidebarTap(MainPage.productList);
-          break;
-        case 2:
-          onSidebarTap(MainPage.orderCreate);
-          break;
-        case 3:
-          onSidebarTap(MainPage.companies);
-          break;
-        case 4:
-          _currentPage = MainPage.moreDashboard;
-          break;
-      }
+      _currentPage = targetPage;
     });
-}
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -478,28 +575,28 @@ class MainLayoutState extends State<MainLayout> {
         ],
       ),
       bottomNavigationBar: Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.04),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.04),
               blurRadius: 8,
-              offset: Offset(0, -2),
-          ),
-        ],
-      ),
+              offset: const Offset(0, -2),
+            ),
+          ],
+        ),
         child: SafeArea(
           child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 8),
+            padding: const EdgeInsets.symmetric(vertical: 8),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceAround,
               children: [
                 _NavItem(
                   icon: SvgPicture.asset(
                     'assets/icons/new_icon/overview.svg', 
-                  width: 20,
-                  height: 20,
-                    color: _currentPage == MainPage.dashboard ? Colors.green : Colors.grey
+                    width: 20,
+                    height: 20,
+                    color: _currentPage == MainPage.dashboard ? Colors.green : Colors.grey,
                   ),
                   label: 'Tổng quan',
                   selected: _currentPage == MainPage.dashboard,
@@ -548,10 +645,10 @@ class MainLayoutState extends State<MainLayout> {
                   label: 'Thêm',
                   selected: _currentPage == MainPage.moreDashboard,
                   onTap: () => _onNavTap(4),
-                  ),
-                ],
-              ),
+                ),
+              ],
             ),
+          ),
         ),
       ),
     );
@@ -714,29 +811,320 @@ class _SettingsListItem extends StatelessWidget {
 
 class MoreDashboardScreen extends StatelessWidget {
   final void Function(MainPage) onNavigate;
-  const MoreDashboardScreen({required this.onNavigate});
+  const MoreDashboardScreen({super.key, required this.onNavigate});
 
   @override
   Widget build(BuildContext context) {
+    final isMobile = MediaQuery.of(context).size.width < 600;
+    
     return Scaffold(
       backgroundColor: const Color(0xFFF9FAFB),
       body: SafeArea(
-        child: SingleChildScrollView(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 12),
-      child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-                _StoreInfoBlock(
-                  storeName: 'Cửa hàng ABC',
-                  role: 'Nhân viên kho',
-                  onEdit: () {/* TODO: Sửa thông tin cửa hàng */},
-                  onInfo: () {/* TODO: Xem thông tin cửa hàng */},
-                ),
-                const SizedBox(height: 10),
-                _MoreDashboardSheetContent(onNavigate: onNavigate),
-              ],
+        child: isMobile 
+          ? _buildMobileLayout()
+          : _buildDesktopLayout(),
+      ),
+    );
+  }
+
+  Widget _buildMobileLayout() {
+    return SingleChildScrollView(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 12),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _StoreInfoBlock(
+              storeName: 'Cửa hàng ABC',
+              role: 'Nhân viên kho',
+              onEdit: () {/* TODO: Sửa thông tin cửa hàng */},
+              onInfo: () {/* TODO: Xem thông tin cửa hàng */},
             ),
+            const SizedBox(height: 10),
+            _MoreDashboardSheetContent(onNavigate: onNavigate),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDesktopLayout() {
+    return Center(
+      child: Container(
+        constraints: const BoxConstraints(maxWidth: 1200),
+        child: SingleChildScrollView(
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Left column - Store info and main features
+              Expanded(
+                flex: 2,
+                child: Padding(
+                  padding: const EdgeInsets.all(24),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Header
+                      Container(
+                        padding: const EdgeInsets.all(24),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(16),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.05),
+                              blurRadius: 10,
+                              offset: const Offset(0, 2),
+                            ),
+                          ],
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                Container(
+                                  width: 60,
+                                  height: 60,
+                                  decoration: BoxDecoration(
+                                    color: Colors.green.withOpacity(0.1),
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  child: const Icon(
+                                    Icons.store,
+                                    color: Colors.green,
+                                    size: 30,
+                                  ),
+                                ),
+                                const SizedBox(width: 16),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        'Cửa hàng ABC',
+                                        style: h2.copyWith(fontWeight: FontWeight.bold),
+                                      ),
+                                      const SizedBox(height: 4),
+                                      Text(
+                                        'Nhân viên kho',
+                                        style: body.copyWith(color: textSecondary),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                IconButton(
+                                  icon: const Icon(Icons.edit, color: Colors.grey),
+                                  onPressed: () {/* TODO */},
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 16),
+                            Container(
+                              width: double.infinity,
+                              padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFF3F6FA),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: Row(
+                                children: [
+                                  const Icon(Icons.info_outline, color: Colors.grey),
+                                  const SizedBox(width: 8),
+                                  Text(
+                                    'Thông tin cửa hàng',
+                                    style: body.copyWith(fontWeight: FontWeight.w600),
+                                  ),
+                                  const Spacer(),
+                                  const Icon(Icons.chevron_right, color: Colors.grey),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 24),
+                      // Main features grid
+                      _buildDesktopGroup('Giao dịch', [
+                        _MoreDashboardItem(icon: Icons.shopping_cart, label: 'Tạo đơn', onTap: () { onNavigate(MainPage.orderCreate); }),
+                        _MoreDashboardItem(icon: Icons.receipt_long, label: 'Hóa đơn', onTap: () {/* TODO */}),
+                        _MoreDashboardItem(icon: Icons.store, label: 'Cửa hàng', onTap: () {/* TODO */}),
+                      ]),
+                      const SizedBox(height: 16),
+                      _buildDesktopGroup('Hàng hoá', [
+                        _MoreDashboardItem(icon: Icons.inventory_2, label: 'Hàng hoá', onTap: () { onNavigate(MainPage.productList); }),
+                        _MoreDashboardItem(icon: Icons.category, label: 'Danh mục', onTap: () { onNavigate(MainPage.productCategory); }),
+                        _MoreDashboardItem(icon: Icons.inventory, label: 'Tồn kho', onTap: () { onNavigate(MainPage.inventory); }),
+                      ]),
+                      const SizedBox(height: 16),
+                      _buildDesktopGroup('Đối tác', [
+                        _MoreDashboardItem(icon: Icons.people, label: 'Khách hàng', onTap: () { onNavigate(MainPage.customers); }),
+                        _MoreDashboardItem(icon: Icons.business, label: 'Nhà cung cấp', onTap: () { onNavigate(MainPage.companies); }),
+                      ]),
+                      const SizedBox(height: 16),
+                      _buildDesktopGroup('Báo cáo', [
+                        _MoreDashboardItem(icon: Icons.bar_chart, label: 'Doanh thu', onTap: () {/* TODO */}),
+                        _MoreDashboardItem(icon: Icons.inventory, label: 'Hàng tồn', onTap: () {/* TODO */}),
+                      ]),
+                      const SizedBox(height: 16),
+                      _buildDesktopGroup('Tài chính', [
+                        _MoreDashboardItem(icon: Icons.payments, label: 'Thanh toán', onTap: () {/* TODO */}),
+                        _MoreDashboardItem(icon: Icons.history, label: 'Lịch sử', onTap: () {/* TODO */}),
+                      ]),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(width: 16),
+              // Right column - Settings and support
+              Expanded(
+                flex: 1,
+                child: Padding(
+                  padding: const EdgeInsets.all(24),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _buildDesktopSettingsBlock('CÀI ĐẶT CHUNG', [
+                        _SettingsListItem(icon: Icons.store, label: 'Thiết lập cửa hàng', onTap: () {/* TODO */}),
+                        _SettingsListItem(icon: Icons.devices, label: 'Ứng dụng & thiết bị', onTap: () {/* TODO */}),
+                        _SettingsListItem(icon: Icons.group, label: 'Quản lý người dùng', onTap: () {/* TODO */}),
+                      ]),
+                      const SizedBox(height: 16),
+                      _buildDesktopSettingsBlock('HỖ TRỢ', [
+                        _SettingsListItem(icon: Icons.help_outline, label: 'Hướng dẫn sử dụng', onTap: () {/* TODO */}),
+                        _SettingsListItem(icon: Icons.chat, label: 'Chat với KiotViet', onTap: () {/* TODO */}),
+                        _SettingsListItem(icon: Icons.phone, label: 'Gọi tổng đài 19006522', onTap: () {/* TODO */}),
+                      ]),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDesktopGroup(String title, List<_MoreDashboardItem> items) {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.03),
+            blurRadius: 6,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            title,
+            style: h4.copyWith(fontWeight: FontWeight.w700),
+          ),
+          const SizedBox(height: 16),
+          GridView.count(
+            crossAxisCount: 5,
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            mainAxisSpacing: 12,
+            crossAxisSpacing: 12,
+            childAspectRatio: 1.2,
+            children: items,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDesktopSettingsBlock(String title, List<_SettingsListItem> items) {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.03),
+            blurRadius: 6,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            title,
+            style: h4.copyWith(fontWeight: FontWeight.w700),
+          ),
+          const SizedBox(height: 12),
+          ...items,
+        ],
+      ),
+    );
+  }
+}
+
+class _Header extends StatelessWidget {
+  final VoidCallback onMenuPressed;
+  const _Header({required this.onMenuPressed});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      height: 0,
+      width: double.infinity,
+      color: Colors.white,
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      alignment: Alignment.centerLeft,
+      child: Row(
+        children: [
+          // Ẩn hoàn toàn header
+        ],
+      ),
+    );
+  }
+}
+
+class _NavItem extends StatelessWidget {
+  final Widget icon;
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+  const _NavItem({required this.icon, required this.label, required this.selected, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(8),
+        splashFactory: NoSplash.splashFactory,
+        highlightColor: Colors.transparent,
+        splashColor: Colors.transparent,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              icon,
+              const SizedBox(height: 2),
+              Text(
+                label,
+                style: responsiveTextStyle(
+                  context,
+                  labelMedium.copyWith(color: selected ? const Color(0xFF16A34A) : Colors.grey),
+                  labelSmall.copyWith(color: selected ? const Color(0xFF16A34A) : Colors.grey),
+                ),
+              ),
+            ],
           ),
         ),
       ),
@@ -749,9 +1137,57 @@ class _MoreDashboardSheetContent extends StatelessWidget {
   const _MoreDashboardSheetContent({required this.onNavigate});
 
   Widget _buildGroup(String title, List<_MoreDashboardItem> items) {
+    return Builder(
+      builder: (context) {
+        final isMobile = MediaQuery.of(context).size.width < 600;
+        final crossAxisCount = isMobile ? 3 : 5;
+        
+        return Container(
+          margin: const EdgeInsets.only(bottom: 18),
+          padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 12),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(16),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.03),
+                blurRadius: 6,
+                offset: const Offset(0, 2),
+              ),
+            ],
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                title,
+                style: responsiveTextStyle(
+                  context,
+                  h4.copyWith(fontWeight: FontWeight.w700),
+                  h3Mobile.copyWith(fontWeight: FontWeight.w700),
+                ),
+              ),
+              const SizedBox(height: 14),
+              GridView.count(
+                crossAxisCount: crossAxisCount,
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                mainAxisSpacing: 12,
+                crossAxisSpacing: 8,
+                childAspectRatio: 0.95,
+                children: items,
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildSettingsBlock({required String title, required List<_SettingsListItem> items}) {
     return Container(
       margin: const EdgeInsets.only(bottom: 18),
-      padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 12),
+      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 0),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
@@ -763,49 +1199,6 @@ class _MoreDashboardSheetContent extends StatelessWidget {
           ),
         ],
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Builder(
-            builder: (context) => Text(
-              title,
-              style: responsiveTextStyle(
-                context,
-                h4.copyWith(fontWeight: FontWeight.w700),
-                h3Mobile.copyWith(fontWeight: FontWeight.w700),
-              ),
-            ),
-          ),
-          const SizedBox(height: 14),
-          GridView.count(
-            crossAxisCount: 3,
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            mainAxisSpacing: 12,
-            crossAxisSpacing: 8,
-            childAspectRatio: 0.95,
-            children: items,
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildSettingsBlock({required String title, required List<_SettingsListItem> items}) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 18),
-      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 0),
-            decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-              boxShadow: [
-                BoxShadow(
-            color: Colors.black.withOpacity(0.03),
-            blurRadius: 6,
-            offset: const Offset(0, 2),
-                ),
-              ],
-            ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -912,57 +1305,6 @@ class _MoreDashboardSheetContent extends StatelessWidget {
           ],
         ),
       ],
-    );
-  }
-}
-
-class _Header extends StatelessWidget {
-  final VoidCallback onMenuPressed;
-  const _Header({required this.onMenuPressed});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      height: 0,
-      width: double.infinity,
-      color: Colors.white,
-      padding: const EdgeInsets.symmetric(horizontal: 16),
-      alignment: Alignment.centerLeft,
-      child: Row(
-        children: [
-          // Ẩn hoàn toàn header
-        ],
-      ),
-    );
-  }
-}
-
-class _NavItem extends StatelessWidget {
-  final Widget icon;
-  final String label;
-  final bool selected;
-  final VoidCallback onTap;
-  const _NavItem({required this.icon, required this.label, required this.selected, required this.onTap});
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          icon,
-          const SizedBox(height: 2),
-          Text(
-            label,
-            style: responsiveTextStyle(
-              context,
-              labelMedium.copyWith(color: selected ? const Color(0xFF16A34A) : Colors.grey),
-              labelSmall.copyWith(color: selected ? const Color(0xFF16A34A) : Colors.grey),
-            ),
-          ),
-        ],
-      ),
     );
   }
 } 

@@ -23,118 +23,134 @@ class _CustomerListScreenState extends State<CustomerListScreen> {
     return Scaffold(
       backgroundColor: appBackground,
       floatingActionButton: FloatingActionButton(
-        backgroundColor: primaryBlue,
+        backgroundColor: mainGreen,
         elevation: 8,
         onPressed: widget.onAddCustomer,
         child: const Icon(Icons.add, color: Colors.white, size: 32),
       ),
-      body: SafeArea(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Heading
-            Container(
-              color: Colors.white,
-              padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 12),
-              child: Row(
-                children: [
-                  IconButton(
-                    icon: const Icon(Icons.arrow_back, color: textPrimary),
-                    onPressed: () => Navigator.pop(context),
+      body: Center(
+        child: Container(
+          constraints: const BoxConstraints(maxWidth: 1200),
+          child: SafeArea(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Heading
+                Container(
+                  color: Colors.white,
+                  padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 12),
+                  child: Row(
+                    children: [
+                      IconButton(
+                        icon: const Icon(Icons.arrow_back, color: textPrimary),
+                        onPressed: () => Navigator.pop(context),
+                      ),
+                      Expanded(
+                        child: Text('Danh sách khách hàng', style: h2Mobile),
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.search, color: textPrimary),
+                        onPressed: () {
+                          // TODO: Hiển thị popup tìm kiếm
+                        },
+                      ),
+                    ],
                   ),
-                  Expanded(
-                    child: Text('Danh sách khách hàng', style: h2Mobile),
-                  ),
-                  IconButton(
-                    icon: const Icon(Icons.search, color: textPrimary),
-                    onPressed: () {
-                      // TODO: Hiển thị popup tìm kiếm
-                    },
-                  ),
-                ],
-              ),
-            ),
-            Container(
-              height: 1,
-              color: borderColor,
-            ),
-            // Body
-            Expanded(
-              child: Container(
-                color: appBackground,
-                padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 15),
-                width: double.infinity,
-                child: StreamBuilder<List<Customer>>(
-                  stream: _customerService.getCustomers(),
-                  builder: (context, snapshot) {
-                    if (snapshot.hasError) {
-                      return Center(child: Text('Lỗi: {snapshot.error}'));
-                    }
-                    if (!snapshot.hasData) {
-                      return const Center(child: CircularProgressIndicator());
-                    }
-                    final customers = snapshot.data!;
-                    if (customers.isEmpty) {
-                      return Center(
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Text('Chưa có khách hàng nào.', style: bodyMobile),
-                            const SizedBox(height: 16),
-                            ElevatedButton.icon(
-                              onPressed: _createDemoData,
-                              icon: const Icon(Icons.data_usage),
-                              label: const Text('Tạo dữ liệu demo'),
-                            ),
-                          ],
-                        ),
-                      );
-                    }
-                    return ListView.separated(
-                      itemCount: customers.length,
-                      separatorBuilder: (_, __) => const SizedBox(height: 12),
-                      itemBuilder: (context, i) {
-                        final customer = customers[i];
-                        return GestureDetector(
-                          onTap: () => widget.onCustomerTap?.call(customer),
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 16),
-                            decoration: BoxDecoration(
-                              color: Colors.white,
-                              borderRadius: BorderRadius.circular(10),
-                              border: Border.all(color: borderColor),
-                            ),
-                            child: Row(
+                ),
+                Container(
+                  height: 1,
+                  color: borderColor,
+                ),
+                // Body
+                Expanded(
+                  child: Container(
+                    color: appBackground,
+                    padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 15),
+                    child: StreamBuilder<List<Customer>>(
+                      stream: _customerService.getCustomers(),
+                      builder: (context, snapshot) {
+                        if (snapshot.hasError) {
+                          return Center(child: Text('Lỗi: ${snapshot.error}'));
+                        }
+                        if (!snapshot.hasData) {
+                          return const Center(child: CircularProgressIndicator());
+                        }
+                        final customers = snapshot.data!;
+                        if (customers.isEmpty) {
+                          return Center(
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
                               children: [
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      Text(customer.name, style: h3Mobile),
-                                      const SizedBox(height: 4),
-                                      Text(customer.phone, style: bodyMobile),
-                                      if (customer.email != null && customer.email!.isNotEmpty)
-                                        Text(customer.email!, style: smallMobile),
-                                    ],
-                                  ),
+                                Text('Chưa có khách hàng nào.', style: bodyMobile),
+                                const SizedBox(height: 16),
+                                ElevatedButton.icon(
+                                  onPressed: _createDemoData,
+                                  icon: const Icon(Icons.data_usage),
+                                  label: const Text('Tạo dữ liệu demo'),
                                 ),
-                                DesignSystemBadge(
-                                  text: 'Hoạt động',
-                                  variant: BadgeVariant.secondary,
-                                ),
-                                const SizedBox(width: 8),
-                                Icon(Icons.chevron_right, color: textSecondary, size: 20),
                               ],
                             ),
-                          ),
+                          );
+                        }
+                        return ListView.separated(
+                          itemCount: customers.length,
+                          separatorBuilder: (_, __) => const SizedBox(height: 12),
+                          itemBuilder: (context, i) {
+                            final customer = customers[i];
+                            return GestureDetector(
+                              onTap: () => widget.onCustomerTap?.call(customer),
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 16),
+                                decoration: BoxDecoration(
+                                  color: Colors.white,
+                                  borderRadius: BorderRadius.circular(10),
+                                  border: Border.all(color: borderColor),
+                                ),
+                                child: Row(
+                                  children: [
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          Text(customer.name ?? '', style: h3Mobile),
+                                          const SizedBox(height: 4),
+                                          Text(customer.phone ?? '', style: bodyMobile),
+                                          if (customer.email != null && customer.email!.isNotEmpty)
+                                            Text(customer.email!, style: smallMobile),
+                                          if (customer.birthday != null && customer.birthday!.isNotEmpty)
+                                            Text('Sinh: ${customer.birthday}', style: smallMobile),
+                                          if (customer.note != null && customer.note!.isNotEmpty)
+                                            Text('Ghi chú: ${customer.note}', style: smallMobile, maxLines: 1, overflow: TextOverflow.ellipsis),
+                                          Text(
+                                            customer.customerType == 'organization' ? 'Tổ chức' : 'Cá nhân',
+                                            style: TextStyle(
+                                              fontSize: 11,
+                                              color: customer.customerType == 'organization' ? Colors.blue : Colors.green,
+                                              fontWeight: FontWeight.w500,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                    DesignSystemBadge(
+                                      text: 'Hoạt động',
+                                      variant: BadgeVariant.secondary,
+                                    ),
+                                    const SizedBox(width: 8),
+                                    Icon(Icons.chevron_right, color: textSecondary, size: 20),
+                                  ],
+                                ),
+                              ),
+                            );
+                          },
                         );
                       },
-                    );
-                  },
+                    ),
+                  ),
                 ),
-              ),
+              ],
             ),
-          ],
+          ),
         ),
       ),
     );

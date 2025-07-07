@@ -79,7 +79,7 @@ class ExampleStandardScreen extends StatelessWidget {
     return Scaffold(
       backgroundColor: appBackground,
       floatingActionButton: FloatingActionButton(
-        backgroundColor: primaryBlue,
+        backgroundColor: mainGreen,
         elevation: 8,
         onPressed: () {},
         child: const Icon(Icons.add, color: Colors.white, size: 32),

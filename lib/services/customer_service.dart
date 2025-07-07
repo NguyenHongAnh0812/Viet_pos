@@ -20,6 +20,11 @@ class CustomerService {
     await _collection.add(customer.toMap());
   }
 
+  Future<DocumentReference> addCustomerAndGetId(Customer customer) async {
+    final docRef = await _collection.add(customer.toMap());
+    return docRef;
+  }
+
   Future<void> updateCustomer(String id, Map<String, dynamic> data) async {
     await _collection.doc(id).update(data);
   }
@@ -41,6 +46,9 @@ class CustomerService {
         'tax_code': '0123456789',
         'tags': ['VIP', 'Thường xuyên'],
         'company_id': null,
+        'birthday': '15/03/1985',
+        'note': 'Khách hàng VIP, thường xuyên mua hàng',
+        'customer_type': 'individual',
       },
       {
         'name': 'Trần Thị Bình',
@@ -52,6 +60,9 @@ class CustomerService {
         'tax_code': '0987654321',
         'tags': ['VIP'],
         'company_id': null,
+        'birthday': '22/07/1990',
+        'note': 'Khách hàng VIP, ưu tiên chiết khấu cao',
+        'customer_type': 'individual',
       },
       {
         'name': 'Lê Văn Cường',
@@ -63,6 +74,9 @@ class CustomerService {
         'tax_code': null,
         'tags': ['Mới'],
         'company_id': null,
+        'birthday': '08/12/1995',
+        'note': 'Khách hàng mới, cần tư vấn thêm',
+        'customer_type': 'individual',
       },
       {
         'name': 'Phạm Thị Dung',
@@ -74,6 +88,9 @@ class CustomerService {
         'tax_code': '1122334455',
         'tags': ['VIP', 'Doanh nghiệp'],
         'company_id': 'company_001',
+        'birthday': '30/01/1988',
+        'note': 'Khách hàng doanh nghiệp, chiết khấu cao',
+        'customer_type': 'organization',
       },
       {
         'name': 'Hoàng Văn Em',
@@ -85,6 +102,9 @@ class CustomerService {
         'tax_code': null,
         'tags': ['Thường xuyên'],
         'company_id': null,
+        'birthday': '14/09/1982',
+        'note': 'Khách hàng thường xuyên, ổn định',
+        'customer_type': 'individual',
       },
       {
         'name': 'Vũ Thị Phương',
@@ -96,6 +116,9 @@ class CustomerService {
         'tax_code': '5566778899',
         'tags': ['VIP', 'Doanh nghiệp'],
         'company_id': 'company_002',
+        'birthday': '25/11/1987',
+        'note': 'Khách hàng VIP doanh nghiệp',
+        'customer_type': 'organization',
       },
       {
         'name': 'Đặng Văn Giang',
@@ -107,6 +130,9 @@ class CustomerService {
         'tax_code': null,
         'tags': ['Mới'],
         'company_id': null,
+        'birthday': '03/06/1993',
+        'note': 'Khách hàng mới, cần theo dõi',
+        'customer_type': 'individual',
       },
       {
         'name': 'Bùi Thị Hoa',
@@ -118,6 +144,9 @@ class CustomerService {
         'tax_code': '9988776655',
         'tags': ['Thường xuyên'],
         'company_id': null,
+        'birthday': '19/04/1989',
+        'note': 'Khách hàng thường xuyên, ổn định',
+        'customer_type': 'individual',
       },
     ];
 

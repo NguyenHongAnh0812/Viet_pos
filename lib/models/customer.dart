@@ -2,35 +2,47 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 
 class Customer {
   final String id;
-  final String name;
+  final String? name;
   final String? gender;
-  final String phone;
+  final String? phone;
   final String? email;
   final String? address;
   final double? discount;
   final String? taxCode;
   final List<String>? tags;
   final String? companyId;
+  final String? orgName;
+  final String? orgAddress;
+  final String? invoiceEmail;
+  final String? birthday;
+  final String? note;
+  final String? customerType; // 'individual' hoặc 'organization'
 
   Customer({
     required this.id,
-    required this.name,
+    this.name,
     this.gender,
-    required this.phone,
+    this.phone,
     this.email,
     this.address,
     this.discount,
     this.taxCode,
     this.tags,
     this.companyId,
+    this.orgName,
+    this.orgAddress,
+    this.invoiceEmail,
+    this.birthday,
+    this.note,
+    this.customerType,
   });
 
   factory Customer.fromMap(String id, Map<String, dynamic> map) {
     return Customer(
       id: id,
-      name: map['name'] ?? '',
+      name: map['name'],
       gender: map['gender'],
-      phone: map['phone'] ?? '',
+      phone: map['phone'],
       email: map['email'],
       address: map['address'],
       discount: (map['discount'] is int)
@@ -39,6 +51,12 @@ class Customer {
       taxCode: map['tax_code'],
       tags: (map['tags'] as List?)?.map((e) => e.toString()).toList(),
       companyId: map['company_id'],
+      orgName: map['org_name'],
+      orgAddress: map['org_address'],
+      invoiceEmail: map['invoice_email'],
+      birthday: map['birthday'],
+      note: map['note'],
+      customerType: map['customer_type'],
     );
   }
 
@@ -53,6 +71,12 @@ class Customer {
       'tax_code': taxCode,
       'tags': tags,
       'company_id': companyId,
+      'org_name': orgName,
+      'org_address': orgAddress,
+      'invoice_email': invoiceEmail,
+      'birthday': birthday,
+      'note': note,
+      'customer_type': customerType,
     };
   }
 

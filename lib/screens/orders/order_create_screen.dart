@@ -13,9 +13,10 @@ import '../../models/payment.dart';
 import '../../services/product_service.dart';
 import '../../services/customer_service.dart';
 import '../../services/order_service.dart';
+import '../../widgets/invoice_qr_code.dart';
 
 class OrderCreateScreen extends StatefulWidget {
-  const OrderCreateScreen({Key? key}) : super(key: key);
+  const OrderCreateScreen({super.key});
 
   @override
   State<OrderCreateScreen> createState() => _OrderCreateScreenState();
@@ -32,7 +33,7 @@ class _OrderCreateScreenState extends State<OrderCreateScreen> {
   // Real data
   List<Product> _allProducts = [];
   List<Product> _searchResults = [];
-  List<OrderItem> _cart = [];
+  final List<_CartItem> _cart = [];
   List<Customer> _allCustomers = [];
   
   // Customer selection
@@ -127,8 +128,7 @@ class _OrderCreateScreenState extends State<OrderCreateScreen> {
         _customerSearchResults = [];
       } else {
         _customerSearchResults = _allCustomers
-            .where((c) => c.name.toLowerCase().contains(query) || 
-                         c.phone.contains(query))
+            .where((c) => (c.name ?? '').toLowerCase().contains(query) || (c.phone ?? '').contains(query))
             .toList();
       }
     });
@@ -136,22 +136,22 @@ class _OrderCreateScreenState extends State<OrderCreateScreen> {
 
   void _addToCart(Product product) {
     setState(() {
-      final idx = _cart.indexWhere((item) => item.productId == product.id);
+      final idx = _cart.indexWhere((item) => item.product.name == (product.tradeName.isNotEmpty ? product.tradeName : product.internalName));
       if (idx == -1) {
-        final orderItem = OrderItem.createFromProduct(
-          orderId: '', // Sẽ được set khi tạo order
-          productId: product.id,
-          productName: product.tradeName.isNotEmpty ? product.tradeName : product.internalName,
-          price: product.salePrice,
+        final cartItem = _CartItem(
+          product: _Product(
+            name: product.tradeName.isNotEmpty ? product.tradeName : product.internalName,
+            price: product.salePrice.toInt(),
+            stock: product.stockSystem,
+          ),
           quantity: 1,
         );
-        _cart.add(orderItem);
+        _cart.add(cartItem);
       } else {
         // Tăng số lượng
         final item = _cart[idx];
         _cart[idx] = item.copyWith(
           quantity: item.quantity + 1,
-          totalPrice: item.finalPrice * (item.quantity + 1),
         );
       }
       _searchController.clear();
@@ -171,7 +171,6 @@ class _OrderCreateScreenState extends State<OrderCreateScreen> {
       final newQuantity = (item.quantity + delta).clamp(1, 999); // Giới hạn stock
       _cart[index] = item.copyWith(
         quantity: newQuantity,
-        totalPrice: item.finalPrice * newQuantity,
       );
     });
   }
@@ -298,66 +297,65 @@ class _OrderCreateScreenState extends State<OrderCreateScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFF9FAFB),
-      body: SafeArea(
-        child: Column(
-          children: [
-            Container(
-              color: Colors.white,
-              child: Column(
-                children: [
-                  _OrderHeader(
-                    onSearchTap: _openProductSearchModal,
-                    showBack: _cart.isNotEmpty,
+      body: Center(
+        child: Container(
+          constraints: const BoxConstraints(maxWidth: 1200),
+          child: SafeArea(
+            child: Column(
+              children: [
+                Container(
+                  color: Colors.white,
+                  child: Column(
+                    children: [
+                      _OrderHeader(
+                        onSearchTap: _openProductSearchModal,
+                        showBack: _cart.isNotEmpty,
+                      ),
+                      _CustomerSection(
+                        customer: selectedCustomer,
+                        onSelectCustomer: (customer) {
+                          setState(() {
+                            selectedCustomer = customer;
+                          });
+                        },
+                      ),
+                    ],
                   ),
-                  _CustomerSection(
-                    customer: selectedCustomer,
-                    onSelectCustomer: (customer) {
-                      setState(() {
-                        selectedCustomer = customer;
-                      });
-                    },
-                  ),
-                ],
-              ),
+                ),
+                Container(height: 3, color: const Color(0xFFF0F4F0)),
+                Expanded(
+                  child: _cart.isEmpty
+                      ? const _EmptyCartIllustration()
+                      : ListView.builder(
+                          padding: const EdgeInsets.only(top: 8, bottom: 8),
+                          itemCount: _cart.length + 1, // +1 cho block chi tiết đơn hàng
+                          itemBuilder: (context, index) {
+                            if (index < _cart.length) {
+                              final item = _cart[index];
+                              return _CartItemWidget(
+                                item: item,
+                                onRemove: () => setState(() => _cart.removeAt(index)),
+                                onIncrease: () => _changeQuantity(index, 1),
+                                onDecrease: () => _changeQuantity(index, -1),
+                                onDiscountChanged: (discountAmount, isPercentage) {
+                                  setState(() {
+                                    _cart[index] = item.copyWith(
+                                      discountAmount: discountAmount.toDouble(),
+                                      isPercentageDiscount: isPercentage,
+                                    );
+                                  });
+                                },
+                              );
+                            } else {
+                              // Chỉ render 1 lần block chi tiết đơn hàng ở cuối danh sách
+                              return OrderDetailSummary(cart: _cart);
+                            }
+                          },
+                        ),
+                ),
+              ],
             ),
-            Container(height: 3, color: const Color(0xFFF0F4F0)),
-            Expanded(
-              child: _cart.isEmpty
-                  ? const _EmptyCartIllustration()
-                  : ListView.builder(
-                      padding: const EdgeInsets.only(top: 8, bottom: 8),
-                      itemCount: _cart.length + 1, // +1 cho block chi tiết đơn hàng
-                      itemBuilder: (context, index) {
-                        if (index < _cart.length) {
-                          final item = _cart[index];
-                          return _CartItemWidget(
-                            item: item,
-                            onRemove: () => setState(() => _cart.removeAt(index)),
-                            onIncrease: () => _changeQuantity(index, 1),
-                            onDecrease: () => _changeQuantity(index, -1),
-                            onDiscountChanged: (discountAmount, isPercentage) {
-                              setState(() {
-                                _cart[index] = item.copyWith(
-                                  discountAmount: discountAmount.toDouble(),
-                                  isPercentageDiscount: isPercentage,
-                                  finalPrice: isPercentage 
-                                    ? item.price - (item.price * discountAmount / 100)
-                                    : item.price - discountAmount,
-                                  totalPrice: (isPercentage 
-                                    ? item.price - (item.price * discountAmount / 100)
-                                    : item.price - discountAmount) * item.quantity,
-                                );
-                              });
-                            },
-                          );
-                        } else {
-                          // Chỉ render 1 lần block chi tiết đơn hàng ở cuối danh sách
-                          return OrderDetailSummary(cart: _cart);
-                        }
-                      },
-                    ),
-            ),
-          ],
+          ),
         ),
       ),
       bottomNavigationBar: _cart.isNotEmpty
@@ -385,7 +383,7 @@ class _OrderCreateScreenState extends State<OrderCreateScreen> {
                     MaterialPageRoute(
                       builder: (_) => OrderPaymentScreen(
                         total: _cart.fold(0.0, (sum, item) => sum + item.totalPrice).toInt(),
-                        cart: List<OrderItem>.from(_cart),
+                        cart: List<_CartItem>.from(_cart),
                         customer: selectedCustomer!,
                       ),
                     ),
@@ -496,7 +494,7 @@ class _CustomerSection extends StatelessWidget {
                 const Icon(Icons.person_add_alt, color: Color(0xFF16A34A)),
                 const SizedBox(width: 8),
                 Expanded(
-                  child: Text(c.name, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15)),
+                  child: Text(c.name ?? '', style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15)),
                 ),
                 const Icon(Icons.chevron_right, color: Colors.grey),
               ],
@@ -589,7 +587,7 @@ const String _cartSvg = '''
 ''';
 
 class _CartItemWidget extends StatelessWidget {
-  final OrderItem item;
+  final _CartItem item;
   final VoidCallback onRemove;
   final VoidCallback onIncrease;
   final VoidCallback onDecrease;
@@ -657,18 +655,18 @@ class _CartItemWidget extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(item.productName, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15)),
+                      Text(item.product.name, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15)),
                       const SizedBox(height: 2),
                       Row(
                         children: [
                           Text(
-                            _formatCurrency(item.finalPrice.toInt()) + '/đơn vị',
+                            '${_formatCurrency(item.finalPrice.toInt())}/đơn vị',
                             style: const TextStyle(color: Color(0xFF16A34A), fontSize: 13, fontWeight: FontWeight.w500),
                           ),
                           if (item.discountAmount > 0) ...[
                             const SizedBox(width: 6),
                             Text(
-                              _formatCurrency(item.price.toInt()) + '/đơn vị',
+                              '${_formatCurrency(item.product.price)}/đơn vị',
                               style: const TextStyle(
                                 color: Color(0xFF9CA3AF),
                                 fontSize: 13,
@@ -750,7 +748,7 @@ class _CartItemWidget extends StatelessWidget {
     showDialog(
       context: context,
       builder: (context) => _DiscountDialog(
-        originalPrice: item.price.toInt(),
+        originalPrice: item.product.price.toInt(),
         onDiscountChanged: onDiscountChanged,
       ),
     );
@@ -1022,9 +1020,9 @@ class _CartItem {
   double discountAmount;
   bool isPercentageDiscount;
   _CartItem({
-    required this.product, 
-    this.quantity = 1, 
-    this.discountAmount = 0, 
+    required this.product,
+    this.quantity = 1,
+    this.discountAmount = 0.0,
     this.isPercentageDiscount = false,
   });
   
@@ -1037,6 +1035,20 @@ class _CartItem {
   }
   
   double get totalPrice => finalPrice * quantity;
+  
+  _CartItem copyWith({
+    _Product? product,
+    int? quantity,
+    double? discountAmount,
+    bool? isPercentageDiscount,
+  }) {
+    return _CartItem(
+      product: product ?? this.product,
+      quantity: quantity ?? this.quantity,
+      discountAmount: discountAmount ?? this.discountAmount,
+      isPercentageDiscount: isPercentageDiscount ?? this.isPercentageDiscount,
+    );
+  }
 }
 class _Product {
   final String name;
@@ -1054,7 +1066,7 @@ class _CustomerInfo {
 // Thêm widget dialog chi tiết/chỉnh sửa khách hàng
 class CustomerDetailDialog extends StatefulWidget {
   final _CustomerInfo customer;
-  const CustomerDetailDialog({Key? key, required this.customer}) : super(key: key);
+  const CustomerDetailDialog({super.key, required this.customer});
 
   @override
   State<CustomerDetailDialog> createState() => _CustomerDetailDialogState();
@@ -1282,7 +1294,7 @@ class _CustomerDetailDialogState extends State<CustomerDetailDialog> {
 // 2. Tạo widget modal tìm kiếm sản phẩm
 class _ProductSearchModal extends StatefulWidget {
   final List<Product> allProducts;
-  const _ProductSearchModal({Key? key, required this.allProducts}) : super(key: key);
+  const _ProductSearchModal({super.key, required this.allProducts});
 
   @override
   State<_ProductSearchModal> createState() => _ProductSearchModalState();
@@ -1407,7 +1419,7 @@ class CustomerDemo {
 
 class CustomerPickerScreen extends StatefulWidget {
   final Customer? selectedCustomer;
-  const CustomerPickerScreen({Key? key, this.selectedCustomer}) : super(key: key);
+  const CustomerPickerScreen({super.key, this.selectedCustomer});
 
   @override
   State<CustomerPickerScreen> createState() => _CustomerPickerScreenState();
@@ -1454,8 +1466,8 @@ class _CustomerPickerScreenState extends State<CustomerPickerScreen> {
         _filteredCustomers = _allCustomers;
       } else {
         _filteredCustomers = _allCustomers.where((c) => 
-          c.name.toLowerCase().contains(query) || 
-          c.phone.contains(query)
+          (c.name ?? '').toLowerCase().contains(query) || 
+          (c.phone ?? '').contains(query)
         ).toList();
       }
     });
@@ -1535,10 +1547,14 @@ class _CustomerPickerScreenState extends State<CustomerPickerScreen> {
                   Expanded(
                     child: OutlinedButton.icon(
                       onPressed: () async {
-                        await Navigator.push(
+                        final result = await Navigator.push(
                           context,
                           MaterialPageRoute(builder: (_) => const AddCustomerScreen()),
                         );
+                        // Nếu có customer mới được thêm, tự động chọn và trở về
+                        if (result is Customer) {
+                          Navigator.pop(context, result);
+                        }
                       },
                       icon: const Icon(Icons.add, color: Colors.black),
                       label: const Text('Khách hàng mới', style: TextStyle(fontWeight: FontWeight.w600, color: Colors.black)),
@@ -1562,10 +1578,11 @@ class _CustomerPickerScreenState extends State<CustomerPickerScreen> {
                   await Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (_) => AddCustomerScreen(
-                        // Truyền thông tin khách hàng sang form
-                        key: UniqueKey(),
-                        // Ví dụ: initialName: selected.name, initialPhone: selected.phone, initialCompany: selected.companyId, ...
+                      builder: (_) => CustomerDetailScreen(
+                        customerId: selected.id,
+                        onSuccess: () {
+                          // Refresh customer data if needed
+                        },
                       ),
                     ),
                   );
@@ -1667,13 +1684,13 @@ class _CustomerPickerScreenState extends State<CustomerPickerScreen> {
 
 // Block Chi tiết đơn hàng
 class OrderDetailSummary extends StatelessWidget {
-  final List<OrderItem> cart;
-  const OrderDetailSummary({required this.cart});
+  final List<_CartItem> cart;
+  const OrderDetailSummary({super.key, required this.cart});
   @override
   Widget build(BuildContext context) {
     int totalQty = cart.fold(0, (sum, item) => sum + item.quantity);
-    double totalAmount = cart.fold(0.0, (sum, item) => sum + item.price * item.quantity);
-    double totalDiscount = cart.fold(0.0, (sum, item) => sum + (item.price - item.finalPrice) * item.quantity);
+    double totalAmount = cart.fold(0.0, (sum, item) => sum + item.product.price * item.quantity);
+    double totalDiscount = cart.fold(0.0, (sum, item) => sum + item.discountAmount * item.quantity);
     double totalPay = cart.fold(0.0, (sum, item) => sum + item.totalPrice);
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
@@ -1711,7 +1728,7 @@ class OrderDetailSummary extends StatelessWidget {
           Row(
             children: [
               const Expanded(child: Text('Tổng chiết khấu')),
-              Text('-' + _formatCurrency(totalDiscount.toInt())),
+              Text('-${_formatCurrency(totalDiscount.toInt())}'),
             ],
           ),
           const SizedBox(height: 8),
@@ -1729,9 +1746,9 @@ class OrderDetailSummary extends StatelessWidget {
 
 class OrderPaymentScreen extends StatefulWidget {
   final int total;
-  final List<OrderItem> cart;
+  final List<_CartItem> cart;
   final Customer customer;
-  const OrderPaymentScreen({Key? key, required this.total, required this.cart, required this.customer}) : super(key: key);
+  const OrderPaymentScreen({super.key, required this.total, required this.cart, required this.customer});
   @override
   State<OrderPaymentScreen> createState() => _OrderPaymentScreenState();
 }
@@ -1760,8 +1777,8 @@ class _OrderPaymentScreenState extends State<OrderPaymentScreen> {
       final orderCode = await orderService.generateOrderCode();
       
       // 2. Tính toán tổng tiền, chiết khấu, ...
-      final totalAmount = widget.cart.fold(0.0, (sum, item) => sum + item.price * item.quantity);
-      final discountAmount = widget.cart.fold(0.0, (sum, item) => sum + (item.price - item.finalPrice) * item.quantity);
+      final totalAmount = widget.cart.fold(0.0, (sum, item) => sum + item.product.price * item.quantity);
+      final discountAmount = widget.cart.fold(0.0, (sum, item) => sum + item.discountAmount * item.quantity);
       final finalAmount = widget.cart.fold(0.0, (sum, item) => sum + item.totalPrice);
       
       // 3. Tạo Order object
@@ -1783,23 +1800,41 @@ class _OrderPaymentScreenState extends State<OrderPaymentScreen> {
         customerPhone: widget.customer.phone,
       );
       
-      // 4. Tạo Payment object
+      // 4. Tạo OrderItem objects từ cart
+      final orderItems = widget.cart.map((cartItem) => OrderItem(
+        id: '',
+        orderId: '', // Sẽ được set trong service
+        productId: cartItem.product.name, // TODO: Thêm productId vào _Product
+        productName: cartItem.product.name,
+        price: cartItem.product.price.toDouble(),
+        quantity: cartItem.quantity,
+        discountAmount: cartItem.discountAmount,
+        isPercentageDiscount: cartItem.isPercentageDiscount,
+        finalPrice: cartItem.finalPrice,
+        totalPrice: cartItem.totalPrice,
+        createdAt: DateTime.now(),
+        updatedAt: DateTime.now(),
+      )).toList();
+      
+      // 5. Tạo Payment object
       final payment = Payment.create(
         orderId: '',
         amount: selectedAmount.toDouble(),
         method: paymentMethod!,
         status: 'completed',
+        reference: 'REF${DateTime.now().millisecondsSinceEpoch}',
+        note: 'Thanh toán ${paymentMethod == 'cash' ? 'tiền mặt' : 'chuyển khoản'}',
       );
       
-      // 5. Lưu order
+      // 6. Lưu order với separate collections
       final orderId = await orderService.createOrder(
         order: order,
-        items: widget.cart,
+        items: orderItems,
         payment: payment,
       );
       
       setState(() => _loading = false);
-      // 6. Chuyển sang màn hình xác nhận/thành công
+      // 7. Chuyển sang màn hình xác nhận/thành công
       if (mounted) {
         Navigator.pushReplacement(
           context,
@@ -1807,10 +1842,10 @@ class _OrderPaymentScreenState extends State<OrderPaymentScreen> {
             builder: (_) => OrderPaymentConfirmScreen(
               amount: selectedAmount,
               paymentMethod: paymentMethod!,
-              order: order,
+              order: order.copyWith(id: orderId),
               customer: widget.customer,
-              orderItems: widget.cart,
-              payment: payment,
+              orderItems: orderItems,
+              payment: payment.copyWith(orderId: orderId),
             ),
           ),
         );
@@ -2026,6 +2061,42 @@ class _OrderPaymentScreenState extends State<OrderPaymentScreen> {
                     ),
                   ),
                 ),
+                // QR Code cho thanh toán
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 18, 16, 0),
+                  child: Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 18),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text('QR Code Thanh toán', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 15)),
+                        const SizedBox(height: 14),
+                        Center(
+                          child: PaymentQRCode(
+                            orderCode: 'DH${DateTime.now().millisecondsSinceEpoch}',
+                            amount: selectedAmount.toDouble(),
+                            paymentMethod: paymentMethod ?? 'cash',
+                            size: 180,
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        Text(
+                          'Quét QR code để thanh toán nhanh',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Colors.grey.shade600,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
                 const SizedBox(height: 24),
               ],
             ),
@@ -2067,14 +2138,14 @@ class OrderPaymentConfirmScreen extends StatelessWidget {
   final Payment payment;
   
   const OrderPaymentConfirmScreen({
-    Key? key, 
+    super.key, 
     required this.amount, 
     required this.paymentMethod,
     required this.order,
     required this.customer,
     required this.orderItems,
     required this.payment,
-  }) : super(key: key);
+  });
   String _formatCurrency(int amount) {
     final s = amount.toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (m) => '${m[1]}.');
     return '$sđ';
@@ -2099,21 +2170,15 @@ class OrderPaymentConfirmScreen extends StatelessWidget {
           children: [
             if (paymentMethod == 'Chuyển khoản')
               Container(
-                width: 160,
-                height: 160,
+                width: 200,
+                height: 200,
                 margin: const EdgeInsets.only(bottom: 32),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFE9EBEE),
-                  borderRadius: BorderRadius.circular(16),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.06),
-                      blurRadius: 8,
-                      offset: const Offset(0, 2),
-                    ),
-                  ],
+                child: PaymentQRCode(
+                  orderCode: order.orderCode,
+                  amount: amount.toDouble(),
+                  paymentMethod: 'bank_transfer',
+                  size: 180,
                 ),
-                child: const Center(child: Text('QR Code', style: TextStyle(color: Colors.black54))),
               ),
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 18),
@@ -2172,12 +2237,12 @@ class OrderInvoiceScreen extends StatelessWidget {
   final Payment payment;
   
   const OrderInvoiceScreen({
-    Key? key, 
+    super.key, 
     required this.order, 
     required this.customer, 
     required this.orderItems, 
     required this.payment
-  }) : super(key: key);
+  });
   
   String _formatCurrency(int amount) {
     final s = amount.toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (m) => '${m[1]}.');
@@ -2383,7 +2448,7 @@ class OrderInvoiceScreen extends StatelessWidget {
                               _orderItem(item),
                               if (item != orderItems.last) const Divider(height: 1, color: Color(0xFFE5E7EB)),
                             ],
-                          )).toList(),
+                          )),
                         ],
                       ),
                     ),
@@ -2456,6 +2521,36 @@ class OrderInvoiceScreen extends StatelessWidget {
                                 const Text('Số tiền đã thanh toán:', style: TextStyle(fontWeight: FontWeight.bold)),
                                 Text(_formatCurrencyDouble(payment.amount), style: const TextStyle(color: Color(0xFF16A34A), fontWeight: FontWeight.bold, fontSize: 18)),
                               ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    // QR Code hóa đơn
+                    Container(
+                      padding: const EdgeInsets.all(16),
+                      margin: const EdgeInsets.only(bottom: 16),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(14),
+                        border: Border.all(color: Color(0xFFE5E7EB)),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: const [
+                              Icon(Icons.qr_code, size: 18, color: Color(0xFF16A34A)),
+                              SizedBox(width: 6),
+                              Text('QR Code Hóa đơn', style: TextStyle(fontWeight: FontWeight.bold)),
+                            ],
+                          ),
+                          const SizedBox(height: 12),
+                          Center(
+                            child: InvoiceQRCode(
+                              order: order,
+                              customer: customer,
+                              size: 150,
                             ),
                           ),
                         ],

@@ -53,3 +53,7 @@ app.*.map.json
 
 /build/
 build/
+build/*
+build/web/
+build
+ios/

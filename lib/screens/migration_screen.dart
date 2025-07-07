@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import '../services/migration_service.dart';
 import '../widgets/common/design_system.dart';
-import '../widgets/main_layout.dart';
 
 class MigrationScreen extends StatefulWidget {
   final VoidCallback? onBack;
@@ -137,7 +136,7 @@ class _MigrationScreenState extends State<MigrationScreen> {
                     children: [
                       Row(
                         children: [
-                          Icon(Icons.info_outline, color: primaryBlue),
+                          Icon(Icons.info_outline, color: mainGreen),
                           const SizedBox(width: 8),
                           Text('Thông tin Migration', style: h3),
                         ],
@@ -170,19 +169,19 @@ class _MigrationScreenState extends State<MigrationScreen> {
                         const SizedBox(height: 16),
                         _buildStatusItem(
                           'Cần migration',
-                          _status!.needsMigration,
+                          _status!.needsMigration ? 'Có' : 'Không',
                           Icons.warning,
                           Colors.orange,
                         ),
                         _buildStatusItem(
                           'Có dữ liệu product_companies',
-                          _status!.hasProductCompanyData,
+                          _status!.hasProductCompanyData ? 'Có' : 'Không',
                           Icons.check_circle,
                           Colors.green,
                         ),
                         _buildStatusItem(
                           'Migration hoàn tất',
-                          _status!.isComplete,
+                          _status!.isComplete ? 'Có' : 'Không',
                           Icons.done_all,
                           Colors.green,
                         ),
@@ -219,7 +218,7 @@ class _MigrationScreenState extends State<MigrationScreen> {
                                   height: 16,
                                   child: CircularProgressIndicator(strokeWidth: 2),
                                 )
-                              : const Icon(Icons.migration),
+                              : const Icon(Icons.sync, size: 24),
                             label: Text(_isMigrating ? 'Đang migration...' : 'Bắt đầu Migration'),
                             style: primaryButtonStyle,
                           ),
@@ -238,7 +237,7 @@ class _MigrationScreenState extends State<MigrationScreen> {
                         const SizedBox(height: 16),
                         _buildResultItem(
                           'Thành công',
-                          _result!.success,
+                          _result!.success ? 'Thành công' : 'Thất bại',
                           Icons.check_circle,
                           Colors.green,
                         ),
