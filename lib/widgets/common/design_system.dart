@@ -1205,7 +1205,7 @@ ThemeData get lightTheme => ThemeData(
     labelSmall: labelSmall,
   ),
   scaffoldBackgroundColor: appBackground,
-  cardTheme: CardThemeData(
+  cardTheme: CardTheme(
     color: cardBackground,
     elevation: 0,
     shape: RoundedRectangleBorder(
