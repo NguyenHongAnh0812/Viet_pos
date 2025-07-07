@@ -874,7 +874,7 @@ class _ProductListScreenState extends State<ProductListScreen> {
                         children: [
                       // Product List and Filter/Sort Row together in StreamBuilder
                       Padding(
-                        padding: isMobile ? const EdgeInsets.symmetric(horizontal: 15, vertical: 0) : const EdgeInsets.only(left: 16.0, right: 16.0, bottom: 80.0),
+                        padding: isMobile ? const EdgeInsets.symmetric(horizontal: 0, vertical: 0) : const EdgeInsets.only(left: 16.0, right: 16.0, bottom: 80.0),
                         child: StreamBuilder<List<Product>>(
                           stream: _productService.getProducts(),
                           builder: (context, snapshot) {
@@ -959,55 +959,11 @@ class _ProductListScreenState extends State<ProductListScreen> {
                                       height: 44,
                                   child: Row(
                                     children: [
-                                          // Trạng thái
-                                          InkWell(
-                                            onTap: () async {
-                                              // Mở popup chọn nhóm sản phẩm
-                                              final selected = await showModalBottomSheet<String>(
-                                                context: context,
-                                                builder: (context) {
-                                                  return SafeArea(
-                                                    child: ListView(
-                                                      shrinkWrap: true,
-                                                      children: getCategoriesFromProducts(filteredProducts).map((cat) => ListTile(
-                                                        title: Text(cat, style: TextStyle(
-                                                          color: cat == selectedCategory ? mainGreen : textPrimary,
-                                                          fontWeight: cat == selectedCategory ? FontWeight.bold : FontWeight.normal,
-                                                        )),
-                                                        onTap: () => Navigator.pop(context, cat),
-                                                        selected: cat == selectedCategory,
-                                                      )).toList(),
-                                                    ),
-                                                  );
-                                                },
-                                              );
-                                              if (selected != null && selected != selectedCategory) {
-                                            setState(() {
-                                                  tempSelectedCategory = selected;
-                                              _resetPagination();
-                                            });
-                                              }
-                                            },
-                                            child: Row(
-                                              children: [
-                                                Text(
-                                                  selectedCategory,
-                                                  style: TextStyle(
-                                                    color: mainGreen,
-                                                    fontWeight: FontWeight.w600,
-                                                    fontSize: 15,
-                                                  ),
-                                                ),
-                                                const Icon(Icons.keyboard_arrow_down, size: 18, color: mainGreen),
-                                              ],
-                                            ),
-                                          ),
+                               
                                           // Divider
                                           Container(
-                                            margin: const EdgeInsets.symmetric(horizontal: 12),
-                                            width: 1,
-                                            height: 20,
-                                            color: Color(0xFFE5E7EB),
+                                            margin: const EdgeInsets.symmetric(horizontal:8),
+                                           
                                           ),
                                           // Giá bán
                                           InkWell(
@@ -1111,12 +1067,12 @@ class _ProductListScreenState extends State<ProductListScreen> {
                                       ),
                                     ),
                                     const Divider(height: 1, color: Color(0xFFE5E7EB)),
-                                    const SizedBox(height: 8),
+       
                                     // Product List with modern card design
                                 Container(
                                   decoration: BoxDecoration(
                                         // color: Colors.grey[50], // Bỏ nền xám, để transparent
-                                        borderRadius: BorderRadius.circular(12),
+                                        borderRadius: BorderRadius.circular(0),
                                   ),
                                   child: Column(
                                     children: [
@@ -1200,21 +1156,21 @@ class _ProductListScreenState extends State<ProductListScreen> {
                                                 if (isMobile) {
                                                     // Mobile: render dạng card hiện đại
                                                     return Container(
-                                                      margin: const EdgeInsets.symmetric(vertical: 8),
+                                                      margin: const EdgeInsets.symmetric(vertical: 0),
                                                       decoration: BoxDecoration(
                                                         color: Colors.white,
-                                                        borderRadius: BorderRadius.circular(12),
+                                                        borderRadius: BorderRadius.circular(0),
                                                         boxShadow: [
                                                           BoxShadow(
                                                             color: Colors.black.withOpacity(0.08),
-                                                            blurRadius: 8,
+                                                            blurRadius: 0,
                                                             offset: const Offset(0, 2),
                                                           ),
                                                         ],
                                                       ),
                                                       child: InkWell(
                                                         onTap: () => widget.onProductTap?.call(product),
-                                                        borderRadius: BorderRadius.circular(12),
+                                                        borderRadius: BorderRadius.circular(0),
                                                         child: Padding(
                                                       padding: const EdgeInsets.all(16),
                                                       child: Column(
@@ -1478,7 +1434,7 @@ class _ProductListScreenState extends State<ProductListScreen> {
                                       ),
                                     ),
                                     // Pagination controls
-                                    if (filteredProducts.isNotEmpty) ...[
+                                    if (filteredProducts.length > itemsPerPage) ...[
                                       const SizedBox(height: 16),
                                       Container(
                                         decoration: BoxDecoration(
