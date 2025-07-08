@@ -16,8 +16,8 @@ import 'package:intl/intl.dart';
 /// - Blog titles sử dụng mainGreen theme color
 
 // ===================== COLORS =====================
-const Color mainGreen = Color(0xFF22C55E); // Màu xanh lá chủ đạo
-const Color secondaryGreen = Color(0xFF67C687); // --secondary
+const Color mainGreen = Color(0xFF3b9448); // Màu xanh lá chủ đạo
+const Color secondaryGreen = Color(0xFF3b9448); // --secondary
 const Color warningOrange = Color(0xFFFFB547); // --warning
 const Color destructiveRed = Color(0xFFFF5A5F); // --destructive
 const Color borderColor = Color(0xFFE5E7EB); // --border
@@ -43,7 +43,7 @@ const Color sidebarBorder = Color(0xFFE4E4E7);
 const Color sidebarHoverBackground = Color(0xFFF3F4F6); // sidebar hover background
 
 // Status colors
-const Color successGreen = Color(0xFF67C687);
+const Color successGreen = Color(0xFF3b9448);
 const Color errorRed = Color(0xFFFF5A5F);
 const Color infoBlue = Color(0xFF3A6FF8);
 
@@ -1205,7 +1205,7 @@ ThemeData get lightTheme => ThemeData(
     labelSmall: labelSmall,
   ),
   scaffoldBackgroundColor: appBackground,
-  cardTheme: const CardTheme(
+  cardTheme: const CardThemeData(
     color: cardBackground,
     elevation: 0,
     shape: RoundedRectangleBorder(

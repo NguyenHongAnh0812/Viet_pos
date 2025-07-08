@@ -363,7 +363,10 @@ class _InventoryScreenState extends State<InventoryScreen> with SingleTickerProv
         if (snapshot.hasData) {
           final items = snapshot.data!.docs;
           totalCount = items.length;
-          checkedCount = items.where((doc) => doc['checked'] == true).length;
+          checkedCount = items.where((doc) {
+            final data = doc.data() as Map<String, dynamic>;
+            return (data['checked'] ?? false) == true;
+          }).length;
         }
         final percent = totalCount == 0 ? 0 : (checkedCount / totalCount * 100).round();
         // Xác định màu và icon trạng thái

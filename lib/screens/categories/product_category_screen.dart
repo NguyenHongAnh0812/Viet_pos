@@ -89,7 +89,7 @@ class _ProductCategoryScreenState extends State<ProductCategoryScreen> with Sing
           },
         ),
         title: const Text(
-          'Danh mục hàng hóa',
+          'Danh mục sản phẩm',
           style: TextStyle(
             color: Colors.white,
             fontWeight: FontWeight.w700,

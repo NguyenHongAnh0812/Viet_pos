@@ -1025,7 +1025,7 @@ class _ProductListScreenState extends State<ProductListScreen> {
                                     children: [
                                       Expanded(
                                         child: Text(
-                                          'Hàng hóa (${filteredProducts.length})',
+                                          'Sản phẩm (${filteredProducts.length})',
                                           style: const TextStyle(
                                             color: Colors.white,
                                             fontWeight: FontWeight.bold,

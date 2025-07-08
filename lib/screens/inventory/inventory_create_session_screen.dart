@@ -38,17 +38,31 @@ class _InventoryCreateSessionScreenState extends State<InventoryCreateSessionScr
   List<Product> _selectedProductList = [];
   List<String> _allCategories = ['Kháng sinh', 'Vitamin', 'Thức ăn', 'Vaccine']; // TODO: lấy từ service thực tế
   List<String> _selectedCategories = [];
+  String? _userName;
 
   @override
   void initState() {
     super.initState();
     _loadProducts();
+    _loadUserName();
   }
 
   Future<void> _loadProducts() async {
     final products = await _productService.getProducts().first;
     setState(() {
       _allProducts = products;
+    });
+  }
+
+  Future<void> _loadUserName() async {
+    final user = FirebaseAuth.instance.currentUser;
+    String? name;
+    if (user != null) {
+      final userDoc = await FirebaseFirestore.instance.collection('users').doc(user.uid).get();
+      name = userDoc.data()?['name'] ?? user.email;
+    }
+    setState(() {
+      _userName = name;
     });
   }
 
@@ -442,7 +456,7 @@ class _InventoryCreateSessionScreenState extends State<InventoryCreateSessionScr
                 // Heading
                 Container(
                   width: double.infinity,
-                  padding: const EdgeInsets.only(top: 32, bottom: 18),
+                   padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
                   color: mainGreen,
                   child: Row(
                   children: [
@@ -549,91 +563,26 @@ class _InventoryCreateSessionScreenState extends State<InventoryCreateSessionScr
                         const SizedBox(height: 16),
                         Row(
                           children: [
-                            Expanded(child: Text('Người tạo phiếu', style: bodyLarge.copyWith(color: textPrimary))),
-                            Expanded(child: Text('Ngày kiểm kê', style: bodyLarge.copyWith(color: textPrimary))),
+                            Expanded(
+                              child: Text('Người tạo phiếu', style: bodyLarge.copyWith(color: textPrimary)),
+                            ),
+                            Text(
+                              _userName ?? '',
+                              style: bodyMobile.copyWith(color: textPrimary, fontWeight: FontWeight.w600),
+                              textAlign: TextAlign.right,
+                            ),
                           ],
                         ),
-                        const SizedBox(height: 8),
+                        const SizedBox(height: 12),
                         Row(
                           children: [
                             Expanded(
-                              child: TextFormField(
-                                controller: _creatorController,
-                                style: bodyMobile.copyWith(color: textPrimary),
-                                decoration: InputDecoration(
-                                  hintText: 'Nhập tên người tạo',
-                                  fillColor: Colors.white,
-                                  filled: true,
-                                  border: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(8),
-                                    borderSide: const BorderSide(color: borderColor),
-                                  ),
-                                  enabledBorder: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(8),
-                                    borderSide: const BorderSide(color: borderColor),
-                                  ),
-                                  focusedBorder: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(8),
-                                    borderSide: const BorderSide(color: mainGreen, width: 1.5),
-                                  ),
-                                  contentPadding: const EdgeInsets.symmetric(vertical: 0, horizontal: 16),
-                                ),
-                                validator: (value) {
-                                  if (value == null || value.trim().isEmpty) {
-                                    return 'Vui lòng nhập tên người tạo';
-                                  }
-                                  return null;
-                                },
-                              ),
+                              child: Text('Ngày kiểm kê', style: bodyLarge.copyWith(color: textPrimary)),
                             ),
-                            const SizedBox(width: 16),
-                            Expanded(
-                              child: GestureDetector(
-                              onTap: () async {
-                                final picked = await showDatePicker(
-                                  context: context,
-                                  initialDate: _selectedDate ?? DateTime.now(),
-                                  firstDate: DateTime(2020),
-                                  lastDate: DateTime(2100),
-                                  builder: (context, child) => Theme(
-                                    data: Theme.of(context).copyWith(
-                                      colorScheme: ColorScheme.light(
-                                        primary: mainGreen,
-                                        onPrimary: Colors.white,
-                                        surface: cardBackground,
-                                        onSurface: textPrimary,
-                                      ),
-                                    ),
-                                    child: child!,
-                                  ),
-                                );
-                                if (picked != null) {
-                                  setState(() {
-                                    _selectedDate = picked;
-                                  });
-                                }
-                              },
-                              child: Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                                decoration: BoxDecoration(
-                                  color: Colors.white,
-                                  border: Border.all(color: borderColor),
-                                  borderRadius: BorderRadius.circular(8),
-                                ),
-                                child: Row(
-                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                  children: [
-                                    Text(
-                                      _selectedDate != null
-                                          ? '${_selectedDate!.day}/${_selectedDate!.month}/${_selectedDate!.year}'
-                                          : 'Chọn ngày',
-                                      style: bodyMobile.copyWith(color: textPrimary),
-                                    ),
-                                    const Icon(Icons.calendar_today, color: textSecondary, size: 18),
-                                  ],
-                                  ),
-                                ),
-                              ),
+                            Text(
+                              '${DateTime.now().day}/${DateTime.now().month}/${DateTime.now().year}',
+                              style: bodyMobile.copyWith(color: textPrimary, fontWeight: FontWeight.w600),
+                              textAlign: TextAlign.right,
                             ),
                           ],
                         ),
@@ -659,6 +608,7 @@ class _InventoryCreateSessionScreenState extends State<InventoryCreateSessionScr
                   ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
+                    
                     children: [
                       Row(
                   children: [
@@ -674,12 +624,14 @@ class _InventoryCreateSessionScreenState extends State<InventoryCreateSessionScr
                             groupValue: _selectMode,
                             onChanged: (v) => setState(() => _selectMode = v ?? 0),
                             title: const Text('Tất cả các sản phẩm'),
+                            contentPadding: EdgeInsets.only(left: 20),
                           ),
                           RadioListTile<int>(
                             value: 1,
                             groupValue: _selectMode,
                             onChanged: (v) => setState(() => _selectMode = v ?? 1),
                             title: const Text('Theo danh mục'),
+                            contentPadding: EdgeInsets.only(left: 20),
                           ),
                           if (_selectMode == 1) ...[
                             const SizedBox(height: 8),
@@ -731,6 +683,7 @@ class _InventoryCreateSessionScreenState extends State<InventoryCreateSessionScr
                             groupValue: _selectMode,
                             onChanged: (v) => setState(() => _selectMode = v ?? 2),
                             title: const Text('Sản phẩm cụ thể'),
+                            contentPadding: EdgeInsets.only(left: 20),
                           ),
                           if (_selectMode == 2) ...[
         const SizedBox(height: 8),

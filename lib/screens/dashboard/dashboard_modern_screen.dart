@@ -47,30 +47,13 @@ class DashboardModernScreen extends StatelessWidget {
                         children: [
                           Row(
                             children: [
-                              Container(
-                                width: 40,
-                                height: 40,
-                                decoration: BoxDecoration(
-                                  color: mainGreen,
-                                  shape: BoxShape.circle,
-                                ),
-                                child: Center(
-                                  child: SvgPicture.asset(
-                                    'assets/icons/new_icon/favorite.svg',
-                                    width: 28,
-                                    height: 28,
-                                    colorFilter: ColorFilter.mode(appBackground, BlendMode.srcIn),
-                                  ),
-                                ),
+                              Image.asset(
+                                'assets/images/logo.png',
+                                width: 150,
+
+                                fit: BoxFit.contain,
                               ),
-                              const SizedBox(width: 12),
-                              Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text('VetPharm', style: responsiveTextStyle(context, h1, h1Mobile).copyWith(color: textPrimary)),
-                                  Text('Nhà thuốc thú y', style: responsiveTextStyle(context, bodySmall.copyWith(color: mainGreen), smallMobile.copyWith(color: mainGreen))),
-                                ],
-                              ),
+                             
                             ],
                           ),
                           Row(
@@ -102,7 +85,7 @@ class DashboardModernScreen extends StatelessWidget {
                   constraints: const BoxConstraints(maxWidth: 484),
                   child: SingleChildScrollView(
                     child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+                      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 20),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
@@ -168,7 +151,7 @@ class DashboardModernScreen extends StatelessWidget {
                                     // Tìm sản phẩm
                                     Expanded(
                                       child: SizedBox(
-                                        height: 52,
+                                        height: 40,
                                         child: OutlinedButton.icon(
                                           style: OutlinedButton.styleFrom(
                                             foregroundColor: textPrimary,
@@ -176,8 +159,8 @@ class DashboardModernScreen extends StatelessWidget {
                                             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                                             backgroundColor: Colors.white,
                                             textStyle: responsiveTextStyle(context, body, bodyMobile),
-                                            minimumSize: const Size(0, 52),
-                                            padding: const EdgeInsets.symmetric(horizontal: 8),
+                                            minimumSize: const Size(0, 40),
+                    
                                           ),
                                           onPressed: () {},
                                           icon: const Icon(Icons.search, size: 20),
@@ -193,7 +176,7 @@ class DashboardModernScreen extends StatelessWidget {
                                     // Quét mã
                                     Expanded(
                                       child: SizedBox(
-                                        height: 52,
+                                        height: 40,
                                         child: OutlinedButton.icon(
                                           style: OutlinedButton.styleFrom(
                                             foregroundColor: textPrimary,
@@ -201,8 +184,8 @@ class DashboardModernScreen extends StatelessWidget {
                                             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                                             backgroundColor: Colors.white,
                                             textStyle: responsiveTextStyle(context, body, bodyMobile),
-                                            minimumSize: const Size(0, 52),
-                                            padding: const EdgeInsets.symmetric(horizontal: 8),
+                                            minimumSize: const Size(0, 40),
+                 
                                           ),
                                           onPressed: () {},
                                           icon: const Icon(Icons.qr_code_scanner, size: 20),
