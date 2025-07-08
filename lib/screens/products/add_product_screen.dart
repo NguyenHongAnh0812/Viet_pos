@@ -15,7 +15,7 @@ import 'package:image_picker/image_picker.dart';
 import 'dart:io';
 import 'package:flutter/foundation.dart';
 // ignore: avoid_web_libraries_in_flutter
-import 'dart:html' as html;
+// import 'dart:html' as html if (dart.library.io) 'dart:io' as html;
 import 'package:collection/collection.dart';
 import '../../widgets/common/design_system.dart';
 import '../../models/product_category.dart';
@@ -184,28 +184,28 @@ class _AddProductScreenState extends State<AddProductScreen> with TickerProvider
   }
 
   Future<void> _pickMultiImageFromGallery() async {
-    if (kIsWeb) {
-      final input = html.FileUploadInputElement()..accept = 'image/*'..multiple = true;
-      input.click();
-      input.onChange.listen((event) {
-        final files = input.files;
-        if (files != null && files.isNotEmpty) {
-          int remain = 5 - _webImageBytesList.length;
-          if (files.length > remain) {
-            _showPopupNotification('Chỉ được chọn tối đa 5 ảnh', Icons.error_outline);
-          }
-          for (final file in files.take(remain)) {
-            final reader = html.FileReader();
-            reader.readAsArrayBuffer(file);
-            reader.onLoadEnd.listen((event) {
-              setState(() {
-                _webImageBytesList.add(reader.result as Uint8List);
-              });
-            });
-          }
-        }
-      });
-    } else {
+    // if (kIsWeb) {
+    //   final input = html.FileUploadInputElement()..accept = 'image/*'..multiple = true;
+    //   input.click();
+    //   input.onChange.listen((event) {
+    //     final files = input.files;
+    //     if (files != null && files.isNotEmpty) {
+    //       int remain = 5 - _webImageBytesList.length;
+    //       if (files.length > remain) {
+    //         _showPopupNotification('Chỉ được chọn tối đa 5 ảnh', Icons.error_outline);
+    //       }
+    //       for (final file in files.take(remain)) {
+    //         final reader = html.FileReader();
+    //         reader.readAsArrayBuffer(file);
+    //         reader.onLoadEnd.listen((event) {
+    //           setState(() {
+    //             _webImageBytesList.add(reader.result as Uint8List);
+    //           });
+    //         });
+    //       }
+    //     }
+    //   });
+    // } else {
       final pickedFiles = await _picker.pickMultiImage(imageQuality: 80);
       if (pickedFiles.isNotEmpty) {
         int remain = 5 - _productImageFiles.length;
@@ -216,7 +216,7 @@ class _AddProductScreenState extends State<AddProductScreen> with TickerProvider
           _productImageFiles.addAll(pickedFiles.take(remain).map((e) => File(e.path)));
         });
       }
-    }
+    // }
   }
 
   Future<void> _pickImageFromCamera() async {
@@ -274,11 +274,42 @@ class _AddProductScreenState extends State<AddProductScreen> with TickerProvider
     return urls;
   }
 
+  // Hàm kiểm tra trùng lặp trường dữ liệu
+  Future<bool> _isDuplicateField(String field, String value) async {
+    if (value.trim().isEmpty) return false;
+    final query = await FirebaseFirestore.instance
+        .collection('products')
+        .where(field, isEqualTo: value.trim())
+        .limit(1)
+        .get();
+    return query.docs.isNotEmpty;
+  }
+
   @override
   Future<void> _saveProduct() async {
     if (!_formKey.currentState!.validate()) return;
     setState(() => _isSaving = true);
     try {
+      // Kiểm tra trùng lặp các trường quan trọng
+      final tradeName = _commonNameController.text.trim();
+      final barcode = _barcodeController.text.trim();
+      final sku = _skuController.text.trim();
+
+      if (await _isDuplicateField('trade_name', tradeName)) {
+        _showPopupNotification('Tên thương mại đã tồn tại!', Icons.error_outline);
+        setState(() => _isSaving = false);
+        return;
+      }
+      if (barcode.isNotEmpty && await _isDuplicateField('barcode', barcode)) {
+        _showPopupNotification('Barcode đã tồn tại!', Icons.error_outline);
+        setState(() => _isSaving = false);
+        return;
+      }
+      if (sku.isNotEmpty && await _isDuplicateField('sku', sku)) {
+        _showPopupNotification('SKU đã tồn tại!', Icons.error_outline);
+        setState(() => _isSaving = false);
+        return;
+      }
       List<String> imageUrls = await _uploadAllImages();
       if (imageUrls.isNotEmpty) {
         _productImageUrls = imageUrls;
@@ -302,6 +333,7 @@ class _AddProductScreenState extends State<AddProductScreen> with TickerProvider
         'ingredients': _ingredientsController.text.trim(),
         'notes': _notesController.text.trim(),
         'status': _isActive ? 'active' : 'inactive',
+        'discontinue_reason': !_isActive ? _discontinueReasonController.text.trim() : null,
         'created_at': FieldValue.serverTimestamp(),
         'updated_at': FieldValue.serverTimestamp(),
         'images': imageUrls,
@@ -706,18 +738,46 @@ class _AddProductScreenState extends State<AddProductScreen> with TickerProvider
                   children: [
                     Text('Thông tin cơ bản', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: mainGreen)),
                     const SizedBox(height: space16),
-                    _buildFormField(label: 'Tên thương mại *', controller: _commonNameController),
+                    _buildFormField(
+                      label: 'Tên thương mại *',
+                      controller: _commonNameController,
+                      validator: (val) {
+                        if (val == null || val.trim().isEmpty) return 'Vui lòng nhập tên thương mại';
+                        return null;
+                      },
+                    ),
                     const SizedBox(height: space12),
-                    _buildFormField(label: 'Tên nội bộ', controller: _nameController),
+                    _buildFormField(
+                      label: 'Tên nội bộ',
+                      controller: _nameController,
+                    ),
                     const SizedBox(height: space12),
                     _buildFormField(label: 'Mô tả', controller: _descriptionController, minLines: 4, maxLines: 6),
                     
                     Row(
                       children: [
                         const SizedBox(height: space12),
-                        Expanded(child: _buildFormField(label: 'Barcode', controller: _barcodeController)),
+                        Expanded(
+                          child: _buildFormField(
+                            label: 'Barcode',
+                            controller: _barcodeController,
+                            validator: (val) {
+                              if (val == null || val.trim().isEmpty) return 'Vui lòng nhập Barcode';
+                              return null;
+                            },
+                          ),
+                        ),
                         const SizedBox(width: space12),
-                        Expanded(child: _buildFormField(label: 'SKU', controller: _skuController)),
+                        Expanded(
+                          child: _buildFormField(
+                            label: 'SKU',
+                            controller: _skuController,
+                            validator: (val) {
+                              if (val == null || val.trim().isEmpty) return 'Vui lòng nhập SKU';
+                              return null;
+                            },
+                          ),
+                        ),
                         const SizedBox(width: space12),
                         Expanded(child: _buildFormField(label: 'Đơn vị tính', controller: _unitController)),
                       ],
@@ -1070,15 +1130,36 @@ class _AddProductScreenState extends State<AddProductScreen> with TickerProvider
             children: [
               Text('Thông tin cơ bản', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: mainGreen)),
               const SizedBox(height: space16),
-              _buildFormField(label: 'Tên thương mại *', controller: _commonNameController),
+              _buildFormField(
+                label: 'Tên thương mại *',
+                controller: _commonNameController,
+                validator: (val) {
+                  if (val == null || val.trim().isEmpty) return 'Vui lòng nhập tên thương mại';
+                  return null;
+                },
+              ),
               const SizedBox(height: space12),
               _buildFormField(label: 'Tên nội bộ', controller: _nameController),
               const SizedBox(height: space12),
               _buildFormField(label: 'Mô tả', controller: _descriptionController, minLines: 4, maxLines: 6),
               const SizedBox(height: space12),
-              _buildFormField(label: 'Barcode', controller: _barcodeController),
+              _buildFormField(
+                label: 'Barcode',
+                controller: _barcodeController,
+                validator: (val) {
+                  if (val == null || val.trim().isEmpty) return 'Vui lòng nhập Barcode';
+                  return null;
+                },
+              ),
               const SizedBox(height: space12),
-              _buildFormField(label: 'SKU', controller: _skuController),
+              _buildFormField(
+                label: 'SKU',
+                controller: _skuController,
+                validator: (val) {
+                  if (val == null || val.trim().isEmpty) return 'Vui lòng nhập SKU';
+                  return null;
+                },
+              ),
               const SizedBox(height: space12),
               _buildFormField(label: 'Đơn vị tính', controller: _unitController),
               const SizedBox(height: space12),
@@ -1499,7 +1580,7 @@ class _AddProductScreenState extends State<AddProductScreen> with TickerProvider
         Container(
           padding: const EdgeInsets.all(8),
           decoration: BoxDecoration(
-            color: color.withValues(alpha: 0.1),
+            color: color.withOpacity(0.1),
             borderRadius: BorderRadius.circular(8),
           ),
           child: Icon(icon, color: color, size: 20),
@@ -1600,31 +1681,7 @@ class _AddProductScreenState extends State<AddProductScreen> with TickerProvider
               onChanged: onChanged,
               validator: validator,
               style: const TextStyle(fontSize: 15, height: 1.2),
-              decoration: InputDecoration(
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8),
-                  borderSide: BorderSide(color: Colors.grey[300]!),
-                ),
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8),
-                  borderSide: BorderSide(color: Colors.grey[300]!),
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8),
-                  borderSide: BorderSide(color: mainGreen, width: 2),
-                ),
-                errorBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8),
-                  borderSide: BorderSide(color: destructiveRed, width: 1),
-                ),
-                focusedErrorBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8),
-                  borderSide: BorderSide(color: destructiveRed, width: 2),
-                ),
-                contentPadding: EdgeInsets.symmetric(horizontal: inputPadding, vertical: maxLines > 1 || (minLines != null && minLines > 1) ? 12 : 0),
-                filled: true,
-                fillColor: Colors.white,
-              ),
+              decoration: designSystemInputDecoration(),
             ),
           ),
       ],
@@ -1751,7 +1808,7 @@ class _ProductSearchSheetState extends State<_ProductSearchSheet> {
                     final p = _results[index];
                     return ListTile(
                       title: Text(p.tradeName.isNotEmpty ? p.tradeName : p.internalName),
-                      subtitle: Text('Barcode:  0${p.barcode ?? ''} | SKU: ${p.sku ?? ''}'),
+                      subtitle: Text('Barcode: ${p.barcode ?? ''} | SKU: ${p.sku ?? ''}'),
                       onTap: () {
                         if (widget.onProductSelected != null) widget.onProductSelected!(p);
                         Navigator.of(context).pop();

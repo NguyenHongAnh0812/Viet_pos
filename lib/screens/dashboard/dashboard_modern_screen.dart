@@ -38,7 +38,7 @@ class DashboardModernScreen extends StatelessWidget {
               child: SafeArea(
                 bottom: false, // chỉ tránh notch phía trên
                 child: Padding(
-                  padding: const EdgeInsets.only(top: 0, bottom: 18),
+                  padding: const EdgeInsets.only(top: 10, bottom: 10),
                   child: Center(
                     child: Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 24),

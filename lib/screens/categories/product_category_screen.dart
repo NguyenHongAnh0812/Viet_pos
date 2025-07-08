@@ -26,11 +26,26 @@ class _ProductCategoryScreenState extends State<ProductCategoryScreen> with Sing
   String searchText = '';
   String sortOption = 'name_asc';
   final Set<String> _expandedCategories = {};
+  // Thêm biến quản lý trạng thái loading và count từng category
+  final Map<String, int?> _productCounts = {};
+  // Thêm biến stream
+  late final Stream<List<ProductCategory>> _categoryStream;
   
   // Duration for all animations
   static const Duration animDuration = Duration(milliseconds: 200);
 
-  void _toggleExpand(String categoryId) {
+  @override
+  void initState() {
+    super.initState();
+    _categoryStream = FirebaseFirestore.instance
+        .collection('categories')
+        .snapshots()
+        .map((snapshot) => snapshot.docs
+            .map((doc) => ProductCategory.fromFirestore(doc))
+            .toList());
+  }
+
+  void _toggleExpand(String categoryId) async {
     setState(() {
       if (_expandedCategories.contains(categoryId)) {
         _expandedCategories.remove(categoryId);
@@ -38,422 +53,220 @@ class _ProductCategoryScreenState extends State<ProductCategoryScreen> with Sing
         _expandedCategories.add(categoryId);
       }
     });
+    // Nếu chưa có count thì load, nhưng không hiện loading nữa
+    if (!_productCounts.containsKey(categoryId)) {
+      final count = await _getProductCountForCategory(categoryId);
+      setState(() {
+        _productCounts[categoryId] = count;
+      });
+    }
+  }
+
+  // Hàm lấy count cho 1 category
+  Future<int> _getProductCountForCategory(String categoryId) async {
+    final snapshot = await FirebaseFirestore.instance
+        .collection('product_category')
+        .where('category_id', isEqualTo: categoryId)
+        .get();
+    return snapshot.docs.length;
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      appBar: AppBar(
+        backgroundColor: const Color(0xFF4CAF50),
+        elevation: 0,
+        centerTitle: true,
+        leading: BackButton(
+          color: Colors.white,
+          onPressed: () {
+            if (Navigator.of(context).canPop()) {
+              Navigator.of(context).pop();
+            } else if (widget.onNavigate != null) {
+              widget.onNavigate!(MainPage.dashboard); // hoặc MainPage.home tuỳ app của bạn
+            }
+          },
+        ),
+        title: const Text(
+          'Danh mục hàng hóa',
+          style: TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.w700,
+            fontSize: 22,
+          ),
+        ),
+        iconTheme: const IconThemeData(color: Colors.white),
+      ),
       backgroundColor: appBackground,
-      body: Center(
+      body: Container(
         child: Container(
-          constraints: const BoxConstraints(maxWidth: 1200),
-          child: SingleChildScrollView(
-            child: Padding(
-              padding: const EdgeInsets.all(24),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Header
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      const Text(
-                        'Danh mục sản phẩm',
-                        style: TextStyle(
-                          color: Colors.black87,
-                          fontSize: 20,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                      ElevatedButton.icon(
-                        onPressed: () {
-                          if (widget.onNavigate != null) {
-                            widget.onNavigate!(MainPage.addProductCategory);
-                          }
-                        },
-                        icon: const Icon(Icons.add),
-                        label: const Text('Thêm danh mục'),
-                        style: primaryButtonStyle,
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 24),
-                  // Search and Sort Controls
-                  Padding(
-                    padding: const EdgeInsets.only(bottom: 24),
-                    child: Row(
-                      children: [
-                        // Search bar
-                        Expanded(
-                          child: TextField(
-                            controller: _searchController,
-                            onChanged: (value) => setState(() => searchText = value),
-                            decoration: searchInputDecoration(hint: 'Tìm kiếm danh mục...'),
-                          ),
-                        ),
-                        const SizedBox(width: 16),
-                        // Sort dropdown
-                        SizedBox(
-                          width: 200,
-                          child: ShopifyDropdown<String>(
-                            value: sortOption,
-                            items: const [
-                              'name_asc', 
-                              'name_desc', 
-                              'products_desc', 
-                              'products_asc', 
-                              'date_desc', 
-                              'date_asc'
-                            ],
-                            getLabel: (value) {
-                              switch (value) {
-                                case 'name_asc': return 'Tên: A-Z';
-                                case 'name_desc': return 'Tên: Z-A';
-                                case 'products_desc': return 'Số sản phẩm: Nhiều nhất';
-                                case 'products_asc': return 'Số sản phẩm: Ít nhất';
-                                case 'date_desc': return 'Ngày tạo: Mới nhất';
-                                case 'date_asc': return 'Ngày tạo: Cũ nhất';
-                                default: return '';
-                              }
-                            },
-                            onChanged: (value) {
-                              if (value != null) {
-                                setState(() => sortOption = value);
-                              }
-                            },
-                          ),
-                        ),
-                      ],
+          constraints: const BoxConstraints(maxWidth: 500),
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: StreamBuilder<List<ProductCategory>>(
+              stream: _categoryStream,
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const Center(
+                    child: Padding(
+                      padding: EdgeInsets.all(24),
+                      child: CircularProgressIndicator(),
                     ),
-                  ),
-                  // Table container
-                  Container(
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: borderColor),
+                  );
+                }
+                if (snapshot.hasError) {
+                  return Center(
+                    child: Padding(
+                      padding: const EdgeInsets.all(24),
+                      child: Text('Error:  {snapshot.error}'),
                     ),
-                    child: Column(
-                      children: [
-                        // Table Header
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-                          decoration: BoxDecoration(
-                            border: Border(bottom: BorderSide(color: borderColor)),
-                          ),
-                          child: Row(
-                            children: [
-                              const SizedBox(width: 40), // Space for arrow/bullet
-                              Expanded(
-                                child: Row(
-                                  children: const [
-                                    Expanded(
-                                      flex: 3,
-                                      child: Text(
-                                        'Tên danh mục',
-                                        style: TextStyle(
-                                          fontWeight: FontWeight.w600,
-                                          fontSize: 14,
-                                          color: textSecondary,
-                                        ),
-                                      ),
-                                    ),
-                                    SizedBox(width: 24),
-                                    SizedBox(
-                                      width: 120,
-                                      child: Text(
-                                        'Số sản phẩm',
-                                        style: TextStyle(
-                                          fontWeight: FontWeight.w600,
-                                          fontSize: 14,
-                                          color: textSecondary,
-                                        ),
-                                        textAlign: TextAlign.center,
-                                      ),
-                                    ),
-                                    SizedBox(width: 24),
-                                  ],
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        // Category List
-                        StreamBuilder<List<ProductCategory>>(
-                          stream: FirebaseFirestore.instance
-                              .collection('categories')
-                              .snapshots()
-                              .map((snapshot) => snapshot.docs
-                                  .map((doc) => ProductCategory.fromFirestore(doc))
-                                  .toList()),
-                          builder: (context, snapshot) {
-                            if (snapshot.connectionState == ConnectionState.waiting) {
-                              return const Center(
-                                child: Padding(
-                                  padding: EdgeInsets.all(24),
-                                  child: CircularProgressIndicator(),
-                                ),
-                              );
-                            }
-
-                            if (snapshot.hasError) {
-                              return Center(
-                                child: Padding(
-                                  padding: const EdgeInsets.all(24),
-                                  child: Text('Error: ${snapshot.error}'),
-                                ),
-                              );
-                            }
-
-                            var categories = snapshot.data ?? [];
-                            
-                            // Apply search filter
-                            if (searchText.isNotEmpty) {
-                              categories = categories.where((c) => c.name.toLowerCase().contains(searchText.toLowerCase())).toList();
-                            }
-                            
-                            // Fetch product counts for sorting if needed
-                            return FutureBuilder<Map<String, int>>(
-                              future: _getProductCounts(categories),
-                              builder: (context, productCountSnapshot) {
-                                if (productCountSnapshot.connectionState == ConnectionState.waiting) {
-                                  return const Center(
-                                    child: Padding(
-                                      padding: EdgeInsets.all(24),
-                                      child: CircularProgressIndicator(),
-                                    ),
-                                  );
-                                }
-
-                                final productCounts = productCountSnapshot.data ?? {};
-
-                                // Apply sorting
-                                categories.sort((a, b) {
-                                  switch (sortOption) {
-                                    case 'name_asc':
-                                      return a.name.toLowerCase().compareTo(b.name.toLowerCase());
-                                    case 'name_desc':
-                                      return b.name.toLowerCase().compareTo(a.name.toLowerCase());
-                                    case 'products_desc':
-                                      return (productCounts[b.id] ?? 0).compareTo(productCounts[a.id] ?? 0);
-                                    case 'products_asc':
-                                      return (productCounts[a.id] ?? 0).compareTo(productCounts[b.id] ?? 0);
-                                    case 'date_desc':
-                                      final dateA = a.createdAt?.toDate() ?? DateTime(1970);
-                                      final dateB = b.createdAt?.toDate() ?? DateTime(1970);
-                                      return dateB.compareTo(dateA);
-                                    case 'date_asc':
-                                      final dateA = a.createdAt?.toDate() ?? DateTime(1970);
-                                      final dateB = b.createdAt?.toDate() ?? DateTime(1970);
-                                      return dateA.compareTo(dateB);
-                                    default:
-                                      return 0;
-                                  }
-                                });
-
-                                // Build tree structure
-                                final Map<String?, List<ProductCategory>> categoryTree = {};
-                                for (var category in categories) {
-                                  // Only add search results and their parents
-                                  if (searchText.isNotEmpty) {
-                                    categoryTree.putIfAbsent(category.parentId, () => []).add(category);
-                                  } else {
-                                    final parentId = category.parentId;
-                                    categoryTree.putIfAbsent(parentId, () => []).add(category);
-                                  }
-                                }
-
-                                // Build list items starting with root categories
-                                final rootCategories = categoryTree[null] ?? [];
-                                
-                                if (categories.isEmpty) { // Changed from rootCategories.isEmpty
-                                  return const Center(
-                                    child: Padding(
-                                      padding: EdgeInsets.all(24),
-                                      child: Text('Không có danh mục nào phù hợp'),
-                                    ),
-                                  );
-                                }
-                                
-                                if (searchText.isNotEmpty) {
-                                  // Flatten list for search results
-                                  return Column(
-                                    children: _buildCategoryItems(categories, {}, 0, productCounts),
-                                  );
-                                }
-
-                                return Column(
-                                  children: _buildCategoryItems(rootCategories, categoryTree, 0, productCounts),
-                                );
-                              },
-                            );
-                          },
-                        ),
-                      ],
+                  );
+                }
+                var categories = snapshot.data ?? [];
+                // Apply search filter
+                if (searchText.isNotEmpty) {
+                  categories = categories.where((c) => c.name.toLowerCase().contains(searchText.toLowerCase())).toList();
+                }
+                // Build tree structure
+                final Map<String?, List<ProductCategory>> categoryTree = {};
+                for (var category in categories) {
+                  final parentId = category.parentId;
+                  categoryTree.putIfAbsent(parentId, () => []).add(category);
+                }
+                final rootCategories = categoryTree[null] ?? [];
+                if (categories.isEmpty) {
+                  return const Center(
+                    child: Padding(
+                      padding: EdgeInsets.all(24),
+                      child: Text('Không có danh mục nào phù hợp'),
                     ),
-                  ),
-                ],
-              ),
+                  );
+                }
+                return ListView(
+                  shrinkWrap: true,
+                  physics: const ClampingScrollPhysics(),
+                  children: _buildCategoryCards(rootCategories, categoryTree, 0),
+                );
+              },
             ),
           ),
         ),
       ),
-    );
-  }
-
-  List<Widget> _buildCategoryItems(
-    List<ProductCategory> categories,
-    Map<String?, List<ProductCategory>> categoryTree,
-    int level,
-    Map<String, int> productCounts,
-  ) {
-    final List<Widget> items = [];
-
-    for (var category in categories) {
-      final children = categoryTree[category.id] ?? [];
-      final hasChildren = children.isNotEmpty;
-      final isExpanded = _expandedCategories.contains(category.id);
-
-      items.add(
-        Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            _buildCategoryRow(category, level, categoryTree, productCounts),
-            if (hasChildren && searchText.isEmpty) // Don't show children expansion in search
-              AnimatedSize(
-                duration: animDuration,
-                curve: Curves.easeInOut,
-                alignment: Alignment.topCenter,
-                child: ClipRect(
-                  child: AnimatedContainer(
-                    duration: animDuration,
-                    height: isExpanded ? null : 0,
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: _buildCategoryItems(children, categoryTree, level + 1, productCounts),
-                    ),
-                  ),
-                ),
-              ),
-          ],
-        ),
-      );
-    }
-
-    return items;
-  }
-
-  Widget _buildCategoryRow(
-    ProductCategory category,
-    int level,
-    Map<String?, List<ProductCategory>> categoryTree,
-    Map<String, int> productCounts,
-  ) {
-    final hasChildren = (categoryTree[category.id] ?? []).isNotEmpty;
-    final isExpanded = _expandedCategories.contains(category.id);
-    final isChild = level > 0;
-    
-    final productCount = productCounts[category.id] ?? 0;
-
-    return InkWell(
-      onTap: () {
-        if (hasChildren) {
-          _toggleExpand(category.id);
-        } else {
-          if (widget.onCategorySelected != null) {
-            widget.onCategorySelected!(category);
+      floatingActionButton: FloatingActionButton(
+        backgroundColor: const Color(0xFF4CAF50),
+        shape: const CircleBorder(),
+        onPressed: () {
+          if (widget.onNavigate != null) {
+            widget.onNavigate!(MainPage.addProductCategory);
           }
-        }
-      },
-      child: Container(
-        decoration: BoxDecoration(
-          border: Border(top: BorderSide(color: borderColor)),
-        ),
-        padding: EdgeInsets.only(left: 24.0 + (level * 32.0), right: 24, top: 12, bottom: 12),
-        child: Row(
-          children: [
-            SizedBox(
-              width: 40,
-              child: hasChildren && searchText.isEmpty // No expand icon in search results
-                  ? IconButton(
-                      icon: Icon(
-                        isExpanded ? Icons.keyboard_arrow_down : Icons.keyboard_arrow_right,
-                        size: 20,
-                        color: Colors.grey[600],
-                      ),
-                      onPressed: () => _toggleExpand(category.id),
-                    )
-                  : isChild
-                      ? Container(
-                          width: 6,
-                          height: 6,
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            color: Colors.grey[600],
-                          ),
-                        )
-                      : null,
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Row(
-                children: [
-                  Expanded(
-                    flex: 3,
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          category.name ?? '',
-                          style: const TextStyle(
-                            fontWeight: FontWeight.w600,
-                            fontSize: 14,
-                          ),
-                        ),
-                        if (category.description.isNotEmpty) ...[
-                          const SizedBox(height: 4),
-                          Text(
-                            category.description,
-                            style: TextStyle(
-                              fontSize: 13,
-                              color: Colors.grey[600],
-                            ),
-                          ),
-                        ],
-                      ],
-                    ),
-                  ),
-                  const SizedBox(width: 24),
-                  SizedBox(
-                    width: 120,
-                    child: Text(
-                      productCount.toString(),
-                      style: const TextStyle(
-                        fontWeight: FontWeight.w600,
-                        fontSize: 14,
-                      ),
-                      textAlign: TextAlign.center,
-                    ),
-                  ),
-                  const SizedBox(width: 24),
-                ],
-              ),
-            ),
-          ],
-        ),
+        },
+        child: const Icon(Icons.add, color: Colors.white),
       ),
     );
   }
 
-  Future<Map<String, int>> _getProductCounts(List<ProductCategory> categories) async {
-    final Map<String, int> counts = {};
+  List<Widget> _buildCategoryCards(
+    List<ProductCategory> categories,
+    Map<String?, List<ProductCategory>> categoryTree,
+    int level,
+  ) {
+    final List<Widget> items = [];
     for (var category in categories) {
-      final snapshot = await FirebaseFirestore.instance
-          .collection('product_category')
-          .where('category_id', isEqualTo: category.id)
-          .get();
-      counts[category.id] = snapshot.docs.length;
+      final children = categoryTree[category.id] ?? [];
+      final hasChildren = children.isNotEmpty;
+      final isExpanded = _expandedCategories.contains(category.id);
+      final productCount = _productCounts[category.id];
+      items.add(
+        Container(
+          margin: const EdgeInsets.only(bottom: 12),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(16),
+            border: level == 0 ? Border.all(color: const Color(0xFFE0E0E0)) : null,
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.02),
+                blurRadius: 2,
+                offset: const Offset(0, 1),
+              ),
+            ],
+          ),
+          child: Column(
+            children: [
+              InkWell(
+                borderRadius: BorderRadius.circular(16),
+                onTap: () {
+                  if (hasChildren) {
+                    _toggleExpand(category.id);
+                  } else {
+                    if (widget.onCategorySelected != null) {
+                      widget.onCategorySelected!(category);
+                    } else {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text('Chọn: \'${category.name}\'')),
+                      );
+                    }
+                  }
+                },
+                child: Padding(
+                  padding: level == 0
+                      ? const EdgeInsets.symmetric(horizontal: 20, vertical: 18)
+                      : const EdgeInsets.symmetric(horizontal: 16, vertical: 0),
+                  child: Row(
+                    children: [
+                      if (hasChildren)
+                        Icon(
+                          isExpanded ? Icons.keyboard_arrow_down : Icons.keyboard_arrow_right,
+                          color: Colors.grey[700],
+                          size: 26,
+                        ),
+                      if (!hasChildren)
+                        const SizedBox(width: 2),
+                      const SizedBox(width: 2),
+                      Expanded(
+                        child: Text(
+                          category.name ?? '',
+                          style: const TextStyle(
+                            fontWeight: FontWeight.w700,
+                            fontSize: 20,
+                            color: Colors.black87,
+                          ),
+                        ),
+                      ),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFE8F5E9),
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: Text(
+                          (_productCounts[category.id] ?? 0).toString(),
+                          style: const TextStyle(
+                            color: Color(0xFF43A047),
+                            fontWeight: FontWeight.w600,
+                            fontSize: 18,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              if (hasChildren && isExpanded)
+                Container(
+                  padding: const EdgeInsets.only(left: 32, right: 8, bottom: 8),
+                  child: Column(
+                    children: _buildCategoryCards(children, categoryTree, level + 1),
+                  ),
+                ),
+            ],
+          ),
+        ),
+      );
     }
-    return counts;
+    return items;
   }
+
+  // Xoá hàm _getProductCounts cũ
 } 
