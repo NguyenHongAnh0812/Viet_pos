@@ -626,7 +626,7 @@ class MainLayoutState extends State<MainLayout> with TickerProviderStateMixin {
                     height: 20,
                     color: _currentPage == MainPage.productList ? Colors.green : Colors.grey
                   ),
-                  label: 'Hàng hoá',
+                  label: 'Sản phẩm',
                   selected: _currentPage == MainPage.productList,
                   onTap: () => _onNavTap(1),
                 ),
@@ -1013,8 +1013,6 @@ class MoreDashboardScreen extends StatelessWidget {
                         const SizedBox(height: 16),
                         _buildDesktopSettingsBlock('HỖ TRỢ', [
                           _SettingsListItem(icon: Icons.help_outline, label: 'Hướng dẫn sử dụng', onTap: () {/* TODO */}),
-                          _SettingsListItem(icon: Icons.chat, label: 'Chat với KiotViet', onTap: () {/* TODO */}),
-                          _SettingsListItem(icon: Icons.phone, label: 'Gọi tổng đài 19006522', onTap: () {/* TODO */}),
                         ], context),
                       ],
                     ),
@@ -1313,9 +1311,6 @@ class _MoreDashboardSheetContent extends StatelessWidget {
           title: 'HỖ TRỢ',
           items: [
             _SettingsListItem(icon: Icons.help_outline, label: 'Hướng dẫn sử dụng', onTap: () {/* TODO */}),
-            _SettingsListItem(icon: Icons.chat, label: 'Chat với KiotViet', onTap: () {/* TODO */}),
-            _SettingsListItem(icon: Icons.phone, label: 'Gọi tổng đài 19006522', onTap: () {/* TODO */}),
-            _SettingsListItem(icon: Icons.support_agent, label: 'Chuyên viên hỗ trợ qua Zalo', onTap: () {/* TODO */}),
             _SettingsListItem(icon: Icons.smart_toy, label: 'Gọi trợ lý ảo AI free', onTap: () {/* TODO */}),
           ],
         ),
