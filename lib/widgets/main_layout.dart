@@ -8,6 +8,7 @@ import '../screens/categories/add_product_category_screen.dart';
 import '../screens/inventory/inventory_screen.dart';
 import '../screens/inventory/inventory_history_screen.dart';
 import '../screens/inventory/inventory_detail_screen.dart';
+import '../screens/inventory/inventory_confirm_screen.dart';
 import '../screens/inventory/inventory_create_session_screen.dart';
 import '../screens/companies/company_screen.dart';
 import '../screens/companies/add_company_screen.dart';
@@ -49,6 +50,7 @@ enum MainPage {
   invoiceImportList, 
   invoiceImport, 
   inventoryDetail, 
+  inventoryConfirm,
   inventoryCreateSession, 
   companies, 
   addCompany, 
@@ -306,6 +308,22 @@ class MainLayoutState extends State<MainLayout> with TickerProviderStateMixin {
     });
   }
 
+  void openInventoryConfirm(String sessionId) {
+    setState(() {
+      _selectedInventorySessionId = sessionId;
+      _previousPage = _currentPage;
+      _currentPage = MainPage.inventoryConfirm;
+    });
+  }
+
+  void openInventoryHistory(String sessionId) {
+    setState(() {
+      _selectedInventorySessionId = sessionId;
+      _previousPage = _currentPage;
+      _currentPage = MainPage.inventoryHistory;
+    });
+  }
+
   void _openCompanyDetail(Company company) {
     setState(() {
       _previousPage = _currentPage;
@@ -442,11 +460,7 @@ class MainLayoutState extends State<MainLayout> with TickerProviderStateMixin {
       case MainPage.inventoryHistory:
         return InventoryHistoryScreen(
           key: const PageStorageKey('inventory-history'),
-          onBack: () {
-            setState(() {
-              _currentPage = MainPage.inventory;
-            });
-          },
+          sessionId: _selectedInventorySessionId!,
         );
       case MainPage.report:
         return const Center(child: Text('Báo cáo (chưa cài đặt)'));
@@ -490,6 +504,9 @@ class MainLayoutState extends State<MainLayout> with TickerProviderStateMixin {
       case MainPage.inventoryDetail:
         if (_selectedInventorySessionId == null) return const SizedBox();
         return InventoryDetailScreen(sessionId: _selectedInventorySessionId!);
+      case MainPage.inventoryConfirm:
+        if (_selectedInventorySessionId == null) return const SizedBox();
+        return InventoryConfirmScreen(sessionId: _selectedInventorySessionId!);
       case MainPage.inventoryCreateSession:
         return InventoryCreateSessionScreen();
       case MainPage.companies:

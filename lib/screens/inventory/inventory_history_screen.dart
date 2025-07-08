@@ -4,266 +4,298 @@ import '../../models/inventory_session.dart';
 import 'package:intl/intl.dart';
 import '../../widgets/common/design_system.dart';
 import '../../utils/inventory_status_mapper.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import '../../widgets/common/design_system.dart';
+import '../../models/product.dart';
+import '../../services/product_service.dart';
+import '../../services/inventory_item_service.dart';
+import '../../widgets/main_layout.dart';
 
 class InventoryHistoryScreen extends StatefulWidget {
-  final VoidCallback? onBack;
-  const InventoryHistoryScreen({super.key, this.onBack});
+  final String sessionId;
+  const InventoryHistoryScreen({super.key, required this.sessionId});
 
   @override
   State<InventoryHistoryScreen> createState() => _InventoryHistoryScreenState();
 }
 
 class _InventoryHistoryScreenState extends State<InventoryHistoryScreen> {
-  final _inventoryService = InventoryService();
-  String _search = '';
-  final _searchController = TextEditingController();
-  int _tabIndex = 0;
-  final List<String> _tabs = ['Tất cả', 'Phiếu tạm', 'Đã kiểm kê', 'Đã cập nhật tồn kho'];
-  DateTime? _selectedDate;
+  DocumentSnapshot? _sessionDoc;
+  List<Map<String, dynamic>> _items = [];
+  bool _loading = true;
+  final _productService = ProductService();
+  final _itemService = InventoryItemService();
 
-  void _showDatePicker() async {
-    final picked = await showModalBottomSheet<DateTime?>(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (context) {
-        DateTime tempDate = _selectedDate ?? DateTime.now();
-        return AnimatedPadding(
-          duration: const Duration(milliseconds: 200),
-          padding: MediaQuery.of(context).viewInsets,
-          child: Container(
-            decoration: const BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-            ),
-            padding: const EdgeInsets.all(24),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Text('Chọn ngày', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
-                const SizedBox(height: 16),
-                CalendarDatePicker(
-                  initialDate: tempDate,
-                  firstDate: DateTime(2020),
-                  lastDate: DateTime(2100),
-                  onDateChanged: (date) {
-                    tempDate = date;
-                  },
-                ),
-                const SizedBox(height: 16),
-                Row(
-                  children: [
-                    Expanded(
-                      child: OutlinedButton(
-                        onPressed: () => Navigator.pop(context),
-                        child: const Text('Hủy'),
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: ElevatedButton(
-                        onPressed: () => Navigator.pop(context, tempDate),
-                        style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF16A34A)),
-                        child: const Text('Chọn', style: TextStyle(color: Colors.white)),
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-        );
-      },
-    );
-    if (picked != null) {
-      setState(() => _selectedDate = picked);
-    }
+  @override
+  void initState() {
+    super.initState();
+    _fetchData();
+  }
+
+  Future<void> _fetchData() async {
+    final sessionDoc = await FirebaseFirestore.instance.collection('inventory_sessions').doc(widget.sessionId).get();
+    final products = await _productService.getProducts().first;
+    final itemsSnapshot = await FirebaseFirestore.instance
+        .collection('inventory_items')
+        .where('session_id', isEqualTo: widget.sessionId)
+        .get();
+    final itemsList = itemsSnapshot.docs.map((doc) {
+      final data = doc.data();
+      final productId = (data['product_id'] ?? '').toString();
+      final product = products.firstWhere(
+        (p) => p.id == productId,
+        orElse: () => Product(
+          id: '',
+          internalName: 'Sản phẩm không xác định',
+          tradeName: 'Sản phẩm không xác định',
+          unit: '',
+          description: '',
+          notes: '',
+          status: 'inactive',
+          createdAt: DateTime.now(),
+          updatedAt: DateTime.now(),
+        ),
+      );
+      return {
+        'id': doc.id,
+        'product_id': productId,
+        'product_name': product.tradeName,
+        'stock_system': data['stock_system'] ?? 0,
+        'stock_actual': data['stock_actual'] ?? 0,
+        'unit': product.unit,
+        'diff': data['diff'] ?? 0,
+      };
+    }).toList();
+    setState(() {
+      _sessionDoc = sessionDoc;
+      _items = itemsList.cast<Map<String, dynamic>>();
+      _loading = false;
+    });
   }
 
   @override
   Widget build(BuildContext context) {
+    if (_loading || _sessionDoc == null) {
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    }
+    final session = _sessionDoc!.data() as Map<String, dynamic>;
+    final total = _items.length;
+    final matched = _items.where((i) => (i['diff'] ?? 0) == 0).length;
+    final up = _items.where((i) => (i['diff'] ?? 0) > 0).length;
+    final down = _items.where((i) => (i['diff'] ?? 0) < 0).length;
+    final diffItems = _items.where((i) => (i['diff'] ?? 0) != 0).toList();
+    
     return Scaffold(
-      backgroundColor: const Color(0xFFF6F7F8),
-      body: SafeArea(
-        child: Column(
-          children: [
-            // AppBar xanh
-            Container(
-              color: const Color(0xFF16A34A),
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-              child: Row(
-                children: [
-                  IconButton(
-                    icon: const Icon(Icons.arrow_back, color: Colors.white),
-                    onPressed: widget.onBack,
-                  ),
-                  const SizedBox(width: 8),
-                  const Expanded(
-                    child: Text('Kiểm kê kho', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 20)),
-                  ),
-                  IconButton(
-                    icon: const Icon(Icons.calendar_today, color: Colors.white),
-                    onPressed: _showDatePicker,
-                  ),
-                ],
-              ),
-            ),
-            // Search box
-            Container(
-              color: Colors.white,
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-              child: TextField(
-                controller: _searchController,
-                decoration: InputDecoration(
-                  hintText: 'Nhập tên phiếu kiểm kê để tìm kiếm',
-                  prefixIcon: const Icon(Icons.search),
-                  contentPadding: const EdgeInsets.symmetric(vertical: 0, horizontal: 12),
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
-                  filled: true,
-                  fillColor: const Color(0xFFF6F7F8),
+      backgroundColor: appBackground,
+      appBar: AppBar(
+        backgroundColor: mainGreen,
+        elevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: Colors.white),
+          onPressed: () {
+            // Quay về danh sách kiểm kê
+            Navigator.of(context).popUntil((route) => route.isFirst);
+            final mainLayoutState = context.findAncestorStateOfType<MainLayoutState>();
+            if (mainLayoutState != null) {
+              mainLayoutState.onSidebarTap(MainPage.inventory);
+            }
+          },
+        ),
+        centerTitle: true,
+        title: Text('Lịch sử kiểm kê', style: h2Mobile.copyWith(color: Colors.white, fontWeight: FontWeight.bold)),
+      ),
+      body: SingleChildScrollView(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Thông tin phiếu kiểm kê
+              Container(
+                width: double.infinity,
+                margin: const EdgeInsets.only(bottom: 16),
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(12),
                 ),
-                onChanged: (v) => setState(() => _search = v),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('Thông tin phiếu kiểm kê', style: body.copyWith(color: mainGreen, fontWeight: FontWeight.bold)),
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        Expanded(child: Text('Tên phiếu:', style: body)),
+                        Expanded(child: Text(session['name'] ?? '', style: body.copyWith(fontWeight: FontWeight.w600))),
+                      ],
+                    ),
+                    const SizedBox(height: 2),
+                    Row(
+                      children: [
+                        Expanded(child: Text('Ngày kiểm kê:', style: body)),
+                        Expanded(child: Text(_formatDate(session['created_at']), style: body.copyWith(fontWeight: FontWeight.w600))),
+                      ],
+                    ),
+                    const SizedBox(height: 2),
+                    Row(
+                      children: [
+                        Expanded(child: Text('Người kiểm kê:', style: body)),
+                        Expanded(child: Text(session['created_by'] ?? '', style: body.copyWith(fontWeight: FontWeight.w600))),
+                      ],
+                    ),
+                    if (session['update_note'] != null && session['update_note'].toString().isNotEmpty) ...[
+                      const SizedBox(height: 2),
+                      Row(
+                        children: [
+                          Expanded(child: Text('Ghi chú cập nhật:', style: body)),
+                          Expanded(child: Text(session['update_note'] ?? '', style: body.copyWith(fontWeight: FontWeight.w600, fontStyle: FontStyle.italic))),
+                        ],
+                      ),
+                    ],
+                  ],
+                ),
               ),
-            ),
-            // Tab filter
-            Container(
-              color: Colors.white,
-              padding: const EdgeInsets.symmetric(horizontal: 0, vertical: 0),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                children: List.generate(_tabs.length, (i) {
-                  final selected = _tabIndex == i;
-                  return Expanded(
-                    child: GestureDetector(
-                      onTap: () => setState(() => _tabIndex = i),
-                      child: Container(
-                        margin: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
-                        padding: const EdgeInsets.symmetric(vertical: 8),
-                        decoration: BoxDecoration(
-                          color: selected ? const Color(0xFF16A34A) : const Color(0xFFF3F4F6),
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: Center(
-                          child: Text(
-                            _tabs[i],
-                            style: TextStyle(
-                              color: selected ? Colors.white : const Color(0xFF16A34A),
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        ),
+              // Kết quả kiểm kê
+              Container(
+                width: double.infinity,
+                margin: const EdgeInsets.only(bottom: 16),
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('Kết quả kiểm kê', style: body.copyWith(color: mainGreen, fontWeight: FontWeight.bold)),
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        Expanded(child: Text('Tổng sản phẩm kiểm kê:', style: body)),
+                        Text('$total', style: body.copyWith(fontWeight: FontWeight.w600)),
+                      ],
+                    ),
+                    Row(
+                      children: [
+                        Expanded(child: Text('Sản phẩm khớp:', style: body)),
+                        Text('$matched', style: body.copyWith(fontWeight: FontWeight.w600, color: mainGreen)),
+                      ],
+                    ),
+                    Row(
+                      children: [
+                        Expanded(child: Text('Sản phẩm lệch lên:', style: body)),
+                        Text('$up', style: body.copyWith(fontWeight: FontWeight.w600, color: Colors.orange)),
+                      ],
+                    ),
+                    Row(
+                      children: [
+                        Expanded(child: Text('Sản phẩm lệch xuống:', style: body)),
+                        Text('$down', style: body.copyWith(fontWeight: FontWeight.w600, color: Colors.red)),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+              // Chi tiết chênh lệch
+              if (diffItems.isNotEmpty)
+                Container(
+                  width: double.infinity,
+                  margin: const EdgeInsets.only(bottom: 16),
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('Chi tiết chênh lệch', style: body.copyWith(color: mainGreen, fontWeight: FontWeight.bold)),
+                      const SizedBox(height: 8),
+                      ...diffItems.map((item) => _buildDiffItem(item)).toList(),
+                    ],
+                  ),
+                ),
+              // Thông báo hoàn tất
+              Container(
+                width: double.infinity,
+                margin: const EdgeInsets.only(bottom: 16),
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.green[50],
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.green[200]!),
+                ),
+                child: const Column(
+                  children: [
+                    Icon(Icons.check_circle, color: Colors.green, size: 24),
+                    SizedBox(height: 8),
+                    Text(
+                      'Phiên kiểm kê đã hoàn tất',
+                      style: TextStyle(
+                        fontWeight: FontWeight.w600,
+                        color: Colors.green,
                       ),
                     ),
-                  );
-                }),
+                    SizedBox(height: 4),
+                    Text(
+                      'Tồn kho đã được cập nhật thành công',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(color: Colors.green),
+                    ),
+                  ],
+                ),
               ),
-            ),
-            // Danh sách kiểm kê
-            Expanded(
-              child: StreamBuilder<List<InventorySession>>(
-                stream: _inventoryService.getAllSessions(),
-                builder: (context, snapshot) {
-                  final sessions = (snapshot.data ?? [])
-                      .where((s) {
-                        final matchSearch = _search.isEmpty || s.note.toLowerCase().contains(_search.toLowerCase());
-                        // Lọc theo tab
-                        if (_tabIndex == 1) return s.status == 'draft' && matchSearch;
-                        if (_tabIndex == 2) return s.status == 'checked' && matchSearch;
-                        if (_tabIndex == 3) return s.status == 'updated' && matchSearch;
-                        return matchSearch;
-                      })
-                      .toList();
-                  if (sessions.isEmpty) {
-                    return const Center(child: Text('Không có phiên kiểm kê nào.', style: TextStyle(color: Colors.black54)));
-                  }
-                  return ListView.separated(
-                    padding: const EdgeInsets.all(16),
-                    itemCount: sessions.length,
-                    separatorBuilder: (_, __) => const SizedBox(height: 16),
-                    itemBuilder: (context, i) => _buildSessionCard(sessions[i]),
-                  );
-                },
-              ),
-            ),
-          ],
+              const SizedBox(height: 80),
+            ],
+          ),
         ),
       ),
     );
   }
 
-  Widget _buildSessionCard(InventorySession session) {
-    final dateStr = DateFormat('d/M/yyyy').format(session.createdAt);
-    final percent = session.totalCount == 0 ? 0 : (session.checkedCount / session.totalCount * 100).round();
-    
-    Color chipColor;
-    String chipText = InventoryStatusMapper.getStatusDisplayText(session.status);
-    if (session.status == 'updated') {
-      chipColor = const Color(0xFF16A34A);
-    } else if (session.status == 'checked') {
-      chipColor = const Color(0xFF2563eb);
-    } else {
-      chipColor = const Color(0xFF9CA3AF);
-    }
+  Widget _buildDiffItem(Map<String, dynamic> item) {
+    final diff = item['diff'] ?? 0;
+    final isUp = diff > 0;
     return Container(
+      margin: const EdgeInsets.only(bottom: 10),
+      padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 12),
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: const Color(0xFFE5E7EB)),
+        color: Colors.grey[50],
+        borderRadius: BorderRadius.circular(8),
       ),
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      child: Row(
         children: [
-          Row(
-            children: [
-              Expanded(
-                child: Text(session.note, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-              ),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                decoration: BoxDecoration(
-                  color: chipColor.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Text(
-                  chipText,
-                  style: TextStyle(color: chipColor, fontWeight: FontWeight.w600, fontSize: 13),
-                ),
-              ),
-            ],
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(item['product_name'] ?? '', style: body.copyWith(fontWeight: FontWeight.bold)),
+                const SizedBox(height: 2),
+                Text('Hệ thống: ${item['stock_system']} ${item['unit']} | Thực tế: ${item['stock_actual']} ${item['unit']}', style: body.copyWith(fontSize: 13, color: textSecondary)),
+              ],
+            ),
           ),
-          const SizedBox(height: 8),
-          Row(
-            children: [
-              const Icon(Icons.calendar_today, size: 16, color: Color(0xFF9CA3AF)),
-              const SizedBox(width: 4),
-              Text('Ngày tạo: $dateStr', style: const TextStyle(color: Color(0xFF6B7280), fontSize: 13)),
-              const SizedBox(width: 16),
-              const Icon(Icons.person, size: 16, color: Color(0xFF9CA3AF)),
-              const SizedBox(width: 4),
-              Text('Người tạo: ${session.createdBy}', style: const TextStyle(color: Color(0xFF6B7280), fontSize: 13)),
-            ],
-          ),
-          const SizedBox(height: 8),
-          Row(
-            children: [
-              Text('Tiến độ: ', style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 13)),
-              Text('${session.checkedCount}/${session.totalCount} sản phẩm ', style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
-              Text('($percent%)', style: const TextStyle(color: Color(0xFF16A34A), fontWeight: FontWeight.w600, fontSize: 13)),
-            ],
-          ),
-          const SizedBox(height: 8),
-          ClipRRect(
-            borderRadius: BorderRadius.circular(6),
-            child: LinearProgressIndicator(
-              value: session.totalCount == 0 ? 0 : session.checkedCount / session.totalCount,
-              minHeight: 8,
-              backgroundColor: const Color(0xFFF3F4F6),
-              valueColor: AlwaysStoppedAnimation<Color>(chipColor),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 2),
+            decoration: BoxDecoration(
+              color: isUp ? Colors.orange : Colors.red,
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: Text(
+              (diff > 0 ? '+$diff' : '$diff'),
+              style: body.copyWith(color: Colors.white, fontWeight: FontWeight.bold),
             ),
           ),
         ],
       ),
     );
+  }
+
+  String _formatDate(dynamic date) {
+    if (date == null) return '';
+    if (date is Timestamp) return '${date.toDate().day}/${date.toDate().month}/${date.toDate().year}';
+    if (date is DateTime) return '${date.day}/${date.month}/${date.year}';
+    return date.toString();
   }
 } 

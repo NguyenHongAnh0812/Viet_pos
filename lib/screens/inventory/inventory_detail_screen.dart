@@ -32,6 +32,7 @@ class _InventoryDetailScreenState extends State<InventoryDetailScreen> {
   final Map<String, TextEditingController> _noteControllers = {};
   List<Product> _products = [];
   Set<String> _selectedItemIds = {};
+  Set<String> _checkedItemIds = {};
 
   @override
   void initState() {
@@ -86,6 +87,7 @@ class _InventoryDetailScreenState extends State<InventoryDetailScreen> {
         'stock_invoice': product.stockInvoice ?? 0,
         'sku': product.sku ?? '',
         'barcode': product.barcode ?? '',
+        'checked': data['checked'] ?? false,
       };
     }).toList();
     setState(() {
@@ -93,6 +95,14 @@ class _InventoryDetailScreenState extends State<InventoryDetailScreen> {
       _items = itemsList.cast<Map<String, dynamic>>();
       _loading = false;
     });
+    // Sau khi lấy _items, khôi phục trạng thái checked từ DB
+    _checkedItemIds.clear();
+    for (final item in _items) {
+      if (item['checked'] == true) {
+        _checkedItemIds.add(item['id'] ?? item['product_id']);
+      }
+    }
+    setState(() {});
   }
 
   List<Map<String, dynamic>> get filteredItems {
@@ -147,6 +157,7 @@ class _InventoryDetailScreenState extends State<InventoryDetailScreen> {
         'note': note,
         'sku': item['sku'] ?? '',
         'barcode': item['barcode'] ?? '',
+        'checked': _checkedItemIds.contains(id), // Lưu trạng thái checked
       };
       if (docSnap.exists) {
         await docRef.update(data);
@@ -157,7 +168,7 @@ class _InventoryDetailScreenState extends State<InventoryDetailScreen> {
     await FirebaseFirestore.instance
         .collection('inventory_sessions')
         .doc(widget.sessionId)
-        .update({'status': 'đang kiểm kê'});
+        .update({'status': 'draft'});
     await _syncSessionProducts();
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -166,60 +177,46 @@ class _InventoryDetailScreenState extends State<InventoryDetailScreen> {
           backgroundColor: Colors.green,
         ),
       );
+      
+      // Quay về danh sách kiểm kê
+      final mainLayoutState = context.findAncestorStateOfType<MainLayoutState>();
+      if (mainLayoutState != null) {
+        mainLayoutState.onSidebarTap(MainPage.inventory);
+      } else {
+        Navigator.pop(context);
+      }
     }
   }
 
   bool get isCompleted {
     final data = _sessionDoc?.data() as Map<String, dynamic>?;
-    return (data?['status'] ?? '') == 'Đã hoàn tất';
+    return (data?['status'] ?? '') == 'checked';
   }
   bool get isUpdated {
     final data = _sessionDoc?.data() as Map<String, dynamic>?;
-    return (data?['status'] ?? '') == 'Đã cập nhật kho';
+    return (data?['status'] ?? '') == 'updated';
   }
 
   Future<void> _confirmCompleteInventory() async {
-    setState(() { _completeLoading = true; });
-    final notCheckedCount = _items.where((i) => i['stock_actual'] == null || i['stock_actual'].toString().isEmpty).length;
-    if (notCheckedCount > 0) {
-      final contentWidget = Text(
-        notCheckedCount > 0
-          ? 'Có $notCheckedCount sản phẩm chưa kiểm kê. Bạn vẫn muốn hoàn tất?'
-          : 'Sau khi hoàn tất, bạn không thể thay đổi số liệu kiểm kê.',
-        style: body,
-      );
-      final confirmed = await showDesignSystemDialog<bool>(
-        context: context,
-        title: 'Xác nhận hoàn tất phiên kiểm kê',
-        content: contentWidget,
-        icon: Icons.check_circle,
-        iconColor: Colors.green,
-          actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('Hủy'),
-          ),
-          ElevatedButton(
-            onPressed: () => Navigator.pop(context, true),
-            style: primaryButtonStyle,
-            child: const Text('Xác nhận'),
-          ),
-          ],
-      );
-      if (confirmed != true) {
-        setState(() { _completeLoading = false; });
-        return;
-      }
-    }
-    await FirebaseFirestore.instance.collection('inventory_sessions').doc(widget.sessionId).update({'status': 'Đã hoàn tất'});
-    await _syncSessionProducts();
-    await _fetchData();
-    if (mounted) {
+    try {
+      await FirebaseFirestore.instance.collection('inventory_sessions').doc(widget.sessionId).update({'status': 'checked'});
+      
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Đã hoàn tất kiểm kê!'), backgroundColor: Colors.green),
+        const SnackBar(content: Text('Đã xác nhận kiểm kê')),
+      );
+      
+      // Quay về danh sách kiểm kê
+      final mainLayoutState = context.findAncestorStateOfType<MainLayoutState>();
+      if (mainLayoutState != null) {
+        mainLayoutState.onSidebarTap(MainPage.inventory);
+      } else {
+        Navigator.pop(context);
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Lỗi khi xác nhận kiểm kê: $e')),
       );
     }
-    setState(() { _completeLoading = false; });
   }
 
   Future<void> _updateStock() async {
@@ -233,7 +230,7 @@ class _InventoryDetailScreenState extends State<InventoryDetailScreen> {
         debugPrint('Lỗi khi cập nhật productId=$productId: $e');
       }
     }
-    await FirebaseFirestore.instance.collection('inventory_sessions').doc(widget.sessionId).update({'status': 'Đã cập nhật kho'});
+    await FirebaseFirestore.instance.collection('inventory_sessions').doc(widget.sessionId).update({'status': 'updated'});
     await _syncSessionProducts();
     await _fetchData();
     if (mounted) {
@@ -245,10 +242,16 @@ class _InventoryDetailScreenState extends State<InventoryDetailScreen> {
 
   String get displayStatus {
     final status = (_sessionDoc?.data() as Map<String, dynamic>?)?['status'] ?? '';
-    if (status == 'in_progress' || status == 'đang kiểm kê') return 'Đang kiểm kê';
-    if (status == 'Đã hoàn tất') return 'Đã hoàn tất';
-    if (status == 'Đã cập nhật kho') return 'Đã cập nhật kho';
+    if (status == 'draft') return 'Đang kiểm kê';
+    if (status == 'checked') return 'Đã hoàn tất';
+    if (status == 'updated') return 'Đã cập nhật kho';
     return status;
+  }
+
+  void setActual(int v, String id, int systemStock) {
+    _actualControllers[id]?.text = v.toString();
+    _itemService.updateItem(id, {'stock_actual': v, 'diff': v - systemStock});
+    setState(() {});
   }
 
   @override
@@ -260,9 +263,9 @@ class _InventoryDetailScreenState extends State<InventoryDetailScreen> {
     final session = _sessionDoc!.data() as Map<String, dynamic>;
     final diffCount = _items.where((i) => (i['diff'] ?? 0) != 0).length;
     final totalProducts = _items.length;
-    final checkedCount = _selectedItemIds.length;
+    final checkedCount = _checkedItemIds.length;
     return Scaffold(
-      backgroundColor: appBackground,
+      backgroundColor: const Color(0xFFF6F7F8),
       body: Stack(
         children: [
           Column(
@@ -325,8 +328,8 @@ class _InventoryDetailScreenState extends State<InventoryDetailScreen> {
               // Body
               Expanded(
                 child: Container(
-                  color: appBackground,
-                  padding: const EdgeInsets.symmetric(horizontal: 0, vertical: 0),
+                  color: Colors.transparent,
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 0),
                   width: double.infinity,
                   child: SingleChildScrollView(
                     child: Padding(
@@ -373,15 +376,17 @@ class _InventoryDetailScreenState extends State<InventoryDetailScreen> {
                   const SizedBox(width: 16),
                   Expanded(
                     child: ElevatedButton(
-                      onPressed: checkedCount == totalProducts && totalProducts > 0 ? () {
-                        // Chuyển sang màn xác nhận kiểm kê
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => InventoryConfirmScreen(sessionId: widget.sessionId),
-                          ),
-                        );
-                      } : null,
+                      onPressed: (checkedCount == totalProducts && totalProducts > 0)
+                        ? () {
+                            // Chuyển sang màn xác nhận kiểm kê
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => InventoryConfirmScreen(sessionId: widget.sessionId),
+                              ),
+                            );
+                          }
+                        : null,
                       style: ElevatedButton.styleFrom(
                         backgroundColor: mainGreen,
                         foregroundColor: Colors.white,
@@ -558,70 +563,84 @@ class _InventoryDetailScreenState extends State<InventoryDetailScreen> {
   Widget _buildStyledMobileProductCard(BuildContext context, Map<String, dynamic> item) {
     final id = item['id'] ?? item['product_id'];
     final actualController = _actualControllers[id] ??= TextEditingController(text: (item['stock_actual']?.toString() ?? ''));
+    final noteController = _noteControllers[id] ??= TextEditingController(text: (item['note']?.toString() ?? ''));
     final systemStock = item['stock_system'] ?? 0;
+    final actualStock = int.tryParse(actualController.text) ?? 0;
+    final diff = actualController.text.isEmpty ? null : actualStock - systemStock;
+    final rowColor = actualController.text.isEmpty
+      ? Colors.grey[100]
+      : diff != null && diff > 0
+        ? Colors.green[50]
+        : diff != null && diff < 0
+          ? Colors.orange[50]
+          : Colors.white;
     final unit = item['unit'] ?? '';
-    final note = (item['note'] ?? '').toString();
-    int actualValue = int.tryParse(actualController.text) ?? 0;
-    void setActual(int v) {
-      actualController.text = v.toString();
-      _itemService.updateItem(id, {'stock_actual': v, 'diff': v - systemStock});
+    Color diffColor;
+    if (diff == null) {
+      diffColor = Colors.grey;
+    } else if (diff == 0) {
+      diffColor = Colors.green;
+    } else if (diff > 0) {
+      diffColor = Colors.orange;
+    } else {
+      diffColor = Colors.red;
     }
-    final isSelected = _selectedItemIds.contains(id);
-    if (isSelected) {
-      // Đã kiểm kê: chỉ còn tiêu đề, sku, mã vạch và nút check
+
+    // Nếu đã kiểm kê, chỉ hiển thị card rút gọn
+    if (_checkedItemIds.contains(id)) {
       return Container(
-        margin: const EdgeInsets.symmetric(vertical: 8),
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        margin: const EdgeInsets.only(bottom: 12),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         decoration: BoxDecoration(
           color: Colors.white,
-          borderRadius: BorderRadius.circular(14),
+          borderRadius: BorderRadius.circular(12),
           border: Border.all(color: Colors.grey.shade200, width: 1),
         ),
         child: Row(
           children: [
             Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text((item['product_name'] ?? '').toString(), style: body.copyWith(fontWeight: FontWeight.bold, color: textPrimary, fontSize: 15)),
-                  const SizedBox(height: 2),
-                  Text('SKU: ${item['sku'] ?? ''}', style: body.copyWith(fontSize: 11, color: textSecondary)),
-                  Text('Mã vạch: ${item['barcode'] ?? ''}', style: body.copyWith(fontSize: 11, color: textSecondary)),
-                ],
+              child: Text(
+                (item['product_name'] ?? '').toString(),
+                style: body.copyWith(fontWeight: FontWeight.bold, color: textPrimary, fontSize: 15),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
               ),
             ),
             GestureDetector(
-              onTap: () {
+              onTap: () async {
                 setState(() {
-                  _selectedItemIds.remove(id);
+                  _checkedItemIds.remove(id);
                 });
+                // Cập nhật trạng thái checked vào DB
+                await FirebaseFirestore.instance.collection('inventory_items').doc(id).update({'checked': false});
               },
               child: Container(
-                width: 28,
-                height: 28,
+                width: 32,
+                height: 32,
                 decoration: BoxDecoration(
-                  shape: BoxShape.circle,
                   color: mainGreen,
+                  shape: BoxShape.circle,
                 ),
-                child: const Icon(Icons.check, color: Colors.white, size: 18),
+                child: const Icon(Icons.check, color: Colors.white, size: 20),
               ),
             ),
           ],
         ),
       );
     }
-    // Chưa kiểm kê: full layout
+
+    // Card đầy đủ khi chưa kiểm kê
     return Container(
-      margin: const EdgeInsets.symmetric(vertical: 8),
+      margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(14),
+        color: rowColor,
+        borderRadius: BorderRadius.circular(12),
         border: Border.all(color: Colors.grey.shade200, width: 1),
       ),
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Tiêu đề, sku, mã vạch và nút check
           Row(
             children: [
               Expanded(
@@ -636,18 +655,20 @@ class _InventoryDetailScreenState extends State<InventoryDetailScreen> {
                 ),
               ),
               GestureDetector(
-                onTap: () {
+                onTap: () async {
                   setState(() {
-                    _selectedItemIds.add(id);
+                    _checkedItemIds.add(id);
                   });
+                  // Cập nhật trạng thái checked vào DB
+                  await FirebaseFirestore.instance.collection('inventory_items').doc(id).update({'checked': true});
                 },
                 child: Container(
-                  width: 28,
-                  height: 28,
+                  width: 32,
+                  height: 32,
                   decoration: BoxDecoration(
+                    color: Colors.white,
                     shape: BoxShape.circle,
                     border: Border.all(color: Colors.grey.shade300, width: 2),
-                    color: Colors.white,
                   ),
                   child: null,
                 ),
@@ -655,93 +676,98 @@ class _InventoryDetailScreenState extends State<InventoryDetailScreen> {
             ],
           ),
           const SizedBox(height: 12),
-          // Hai cột tồn kho
           Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Tồn hệ thống
+              Expanded(child: Text('Tồn hệ thống', style: body.copyWith(fontSize: 13, color: textSecondary))),
               Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Padding(
-                      padding: const EdgeInsets.only(left: 2),
-                      child: Text('Tồn hệ thống', style: body.copyWith(fontSize: 12, color: textSecondary)),
-                    ),
-                    const SizedBox(height: 2),
-                    Padding(
-                      padding: const EdgeInsets.only(left: 2),
-                      child: Text('$systemStock $unit', style: body.copyWith(fontWeight: FontWeight.bold, fontSize: 16, color: textPrimary)),
-                    ),
-                  ],
-                ),
+                child: Text('Tồn thực tế', style: body.copyWith(fontSize: 13, color: textSecondary), textAlign: TextAlign.right),
               ),
-              // Tồn thực tế
+            ],
+          ),
+          Row(
+            children: [
               Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.end,
-                  children: [
-                    Padding(
-                      padding: const EdgeInsets.only(right: 2),
-                      child: Text('Tồn thực tế', style: body.copyWith(fontSize: 12, color: textSecondary)),
-                    ),
-                    const SizedBox(height: 2),
-                    LayoutBuilder(
-                      builder: (context, constraints) {
-                        final inputWidth = constraints.maxWidth;
-                        return Container(
-                          width: inputWidth,
-                          height: 40,
-                          decoration: BoxDecoration(
-                            border: Border.all(color: Colors.grey.shade300),
-                            borderRadius: BorderRadius.circular(6),
-                            color: Colors.white,
+                child: Text('${systemStock}${unit.isNotEmpty ? ' $unit' : ''}', style: body.copyWith(fontWeight: FontWeight.bold, fontSize: 18)),
+              ),
+              Expanded(
+                child: LayoutBuilder(
+                  builder: (context, constraints) {
+                    final inputWidth = constraints.maxWidth;
+                    return Container(
+                      width: inputWidth * 0.7,
+                      height: 36,
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        border: Border.all(color: Color(0xFFE5E7EB)),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          SizedBox(
+                            width: 36,
+                            height: 36,
+                            child: IconButton(
+                              icon: const Icon(Icons.remove, size: 18),
+                              splashRadius: 18,
+                              padding: EdgeInsets.zero,
+                              onPressed: actualStock > 0 ? () {
+                                setActual(actualStock - 1, id, systemStock);
+                              } : null,
+                            ),
                           ),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              IconButton(
-                                icon: const Icon(Icons.remove, size: 18),
-                                splashRadius: 18,
-                                onPressed: actualValue > 0 ? () {
-                                  setState(() {
-                                    actualValue--;
-                                    setActual(actualValue);
-                                  });
-                                } : null,
+                          Expanded(
+                            child: Center(
+                              child: Text(
+                                actualController.text,
+                                style: body.copyWith(fontWeight: FontWeight.bold, fontSize: 16, color: textPrimary),
                               ),
-                              Expanded(
-                                child: Center(
-                                  child: Text(
-                                    actualValue.toString(),
-                                    style: body.copyWith(fontWeight: FontWeight.bold, fontSize: 16, color: textPrimary),
-                                  ),
-                                ),
-                              ),
-                              IconButton(
-                                icon: const Icon(Icons.add, size: 18),
-                                splashRadius: 18,
-                                onPressed: () {
-                                  setState(() {
-                                    actualValue++;
-                                    setActual(actualValue);
-                                  });
-                                },
-                              ),
-                            ],
+                            ),
                           ),
-                        );
-                      },
-                    ),
-                  ],
+                          SizedBox(
+                            width: 36,
+                            height: 36,
+                            child: IconButton(
+                              icon: const Icon(Icons.add, size: 18),
+                              splashRadius: 18,
+                              padding: EdgeInsets.zero,
+                              onPressed: () {
+                                setActual(actualStock + 1, id, systemStock);
+                              },
+                            ),
+                          ),
+                        ],
+                      ),
+                    );
+                  },
                 ),
               ),
             ],
           ),
-          if (note.isNotEmpty)
-            Padding(
+          // Block chênh lệch chỉ hiển thị khi số thực tế khác số hệ thống và chưa kiểm kê
+          if (actualController.text.isNotEmpty && diff != 0)
+            Container(
+              margin: const EdgeInsets.only(top: 10),
               padding: const EdgeInsets.only(top: 10),
-              child: Text('Ghi chú: $note', style: body.copyWith(fontSize: 11, color: Colors.grey)),
+              decoration: const BoxDecoration(
+                border: Border(top: BorderSide(color: Color(0xFFE5E7EB), width: 1)),
+              ),
+              child: Row(
+                children: [
+                  Text('Chênh lệch:', style: body.copyWith(fontSize: 13, color: textSecondary)),
+                  const SizedBox(width: 4),
+                  Text(
+                    (diff != null && diff > 0)
+                      ? '+$diff${unit.isNotEmpty ? ' $unit' : ''}'
+                      : (diff != null ? '$diff${unit.isNotEmpty ? ' $unit' : ''}' : ''),
+                    style: body.copyWith(
+                      fontWeight: FontWeight.bold,
+                      color: diffColor,
+                      fontSize: 14,
+                    ),
+                  ),
+                ],
+              ),
             ),
         ],
       ),
