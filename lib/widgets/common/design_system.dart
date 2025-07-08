@@ -111,7 +111,7 @@ const double sidebarWidth = 288.0;
 const double sidebarItemHeight = 40.0;
 const double headerHeight = 64.0;
 const double bottomNavHeight = 80.0;
-const double appMaxWidth = 1200.0; // Max width cho tất cả màn hình chính
+const double appMaxWidth = 720.0; // Max width cho tất cả màn hình chính
 
 // ===================== RESPONSIVE TYPOGRAPHY =====================
 TextStyle responsiveTextStyle(BuildContext context, TextStyle desktop, TextStyle mobile) {

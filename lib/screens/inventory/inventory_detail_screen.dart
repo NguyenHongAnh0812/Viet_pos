@@ -345,7 +345,7 @@ class _InventoryDetailScreenState extends State<InventoryDetailScreen> {
               // Heading xanh + progress bar
               Container(
                 width: double.infinity,
-                padding: const EdgeInsets.only(top: 32, left: 0, right: 0, bottom: 16),
+                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
                 color: mainGreen,
                 child: Column(
                   children: [
@@ -790,8 +790,8 @@ class _InventoryDetailScreenState extends State<InventoryDetailScreen> {
                   await FirebaseFirestore.instance.collection('inventory_items').doc(id).update({'checked': true});
                 },
                 child: Container(
-                  width: 32,
-                  height: 32,
+                  width: 29,
+                  height: 29,
                   decoration: BoxDecoration(
                     color: Colors.white,
                     shape: BoxShape.circle,
@@ -807,7 +807,7 @@ class _InventoryDetailScreenState extends State<InventoryDetailScreen> {
             children: [
               Expanded(child: Text('Tồn hệ thống', style: body.copyWith(fontSize: 13, color: textSecondary))),
               Expanded(
-                child: Text('Tồn thực tế', style: body.copyWith(fontSize: 13, color: textSecondary), textAlign: TextAlign.right),
+                child: Text('Tồn thực tế', style: body.copyWith(fontSize: 13, color: textSecondary), textAlign: TextAlign.left),
               ),
             ],
           ),

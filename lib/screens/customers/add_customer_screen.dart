@@ -189,14 +189,69 @@ class _AddCustomerScreenState extends State<AddCustomerScreen> {
         centerTitle: true,
       ),
       backgroundColor: const Color(0xFFF9FAFB),
+      bottomNavigationBar: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          boxShadow: [
+            BoxShadow(
+              color: Color(0x1A000000),
+              blurRadius: 4,
+              offset: Offset(0, -2),
+            ),
+          ],
+        ),
+        child: SafeArea(
+          child: Row(
+            children: [
+              Expanded(
+                child: OutlinedButton(
+                  onPressed: _saving ? null : () => Navigator.pop(context),
+                  style: OutlinedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    side: const BorderSide(color: Color(0xFFE0E0E0)),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                  ),
+                  child: const Text('Hủy', style: TextStyle(color: Colors.black)),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: ElevatedButton(
+                  onPressed: _saving ? null : _save,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF16A34A),
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                  ),
+                  child: _saving 
+                    ? const SizedBox(
+                        height: 20,
+                        width: 20,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                        ),
+                      )
+                    : const Text('Thêm khách hàng', style: TextStyle(color: Colors.white)),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
       body: Center(
         child: Container(
-          constraints: const BoxConstraints(maxWidth: 1200),
+          constraints: const BoxConstraints(maxWidth: 720),
           child: Form(
             key: _formKey,
             child: SingleChildScrollView(
               child: Padding(
-                padding: const EdgeInsets.all(16),
+                padding: const EdgeInsets.all(12),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -217,13 +272,13 @@ class _AddCustomerScreenState extends State<AddCustomerScreen> {
                                 child: GestureDetector(
                                   onTap: () => setState(() => gender = 'Anh'),
                                   child: Container(
-                                    padding: const EdgeInsets.symmetric(vertical: 12),
+                                    padding: const EdgeInsets.symmetric(vertical: 8),
                                     decoration: BoxDecoration(
-                                      color: gender == 'Anh' ? const Color(0xFF16A34A) : Colors.white,
+                                      color: Colors.white,
                                       border: Border.all(color: gender == 'Anh' ? const Color(0xFF16A34A) : const Color(0xFFE0E0E0)),
-                                      borderRadius: BorderRadius.circular(8),
+                                      borderRadius: BorderRadius.circular(6),
                                     ),
-                                    child: Text('Anh', textAlign: TextAlign.center, style: TextStyle(color: gender == 'Anh' ? Colors.white : Colors.black, fontWeight: FontWeight.w600)),
+                                    child: Text('Anh', textAlign: TextAlign.center, style: TextStyle(color: gender == 'Anh' ? const Color(0xFF16A34A) : Colors.black, fontWeight: FontWeight.w600, fontSize: 14)),
                                   ),
                                 ),
                               ),
@@ -232,13 +287,13 @@ class _AddCustomerScreenState extends State<AddCustomerScreen> {
                                 child: GestureDetector(
                                   onTap: () => setState(() => gender = 'Chị'),
                                   child: Container(
-                                    padding: const EdgeInsets.symmetric(vertical: 12),
+                                    padding: const EdgeInsets.symmetric(vertical: 8),
                                     decoration: BoxDecoration(
-                                      color: gender == 'Chị' ? const Color(0xFF16A34A) : Colors.white,
+                                      color: Colors.white,
                                       border: Border.all(color: gender == 'Chị' ? const Color(0xFF16A34A) : const Color(0xFFE0E0E0)),
-                                      borderRadius: BorderRadius.circular(8),
+                                      borderRadius: BorderRadius.circular(6),
                                     ),
-                                    child: Text('Chị', textAlign: TextAlign.center, style: TextStyle(color: gender == 'Chị' ? Colors.white : Colors.black, fontWeight: FontWeight.w600)),
+                                    child: Text('Chị', textAlign: TextAlign.center, style: TextStyle(color: gender == 'Chị' ? const Color(0xFF16A34A) : Colors.black, fontWeight: FontWeight.w600, fontSize: 14)),
                                   ),
                                 ),
                               ),
@@ -247,20 +302,71 @@ class _AddCustomerScreenState extends State<AddCustomerScreen> {
                           const SizedBox(height: 16),
                           TextFormField(
                             controller: _nameController,
-                            decoration: const InputDecoration(labelText: 'Họ và tên *'),
+                            decoration: InputDecoration(
+                              labelText: 'Họ và tên *',
+                              filled: true,
+                              fillColor: Colors.white,
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(8),
+                                borderSide: const BorderSide(color: Color(0xFFE0E0E0)),
+                              ),
+                              enabledBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(8),
+                                borderSide: const BorderSide(color: Color(0xFFE0E0E0)),
+                              ),
+                              focusedBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(8),
+                                borderSide: const BorderSide(color: Color(0xFF16A34A)),
+                              ),
+                              contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                            ),
                             validator: _validateName,
                           ),
                           const SizedBox(height: 12),
                           TextFormField(
                             controller: _phoneController,
-                            decoration: const InputDecoration(labelText: 'Số điện thoại *'),
+                            decoration: InputDecoration(
+                              labelText: 'Số điện thoại *',
+                              filled: true,
+                              fillColor: Colors.white,
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(8),
+                                borderSide: const BorderSide(color: Color(0xFFE0E0E0)),
+                              ),
+                              enabledBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(8),
+                                borderSide: const BorderSide(color: Color(0xFFE0E0E0)),
+                              ),
+                              focusedBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(8),
+                                borderSide: const BorderSide(color: Color(0xFF16A34A)),
+                              ),
+                              contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                            ),
                             keyboardType: TextInputType.phone,
                             validator: _validatePhone,
                           ),
                           const SizedBox(height: 12),
                           TextFormField(
                             controller: _emailController,
-                            decoration: const InputDecoration(labelText: 'Email'),
+                            decoration: InputDecoration(
+                              labelText: 'Email',
+                              filled: true,
+                              fillColor: Colors.white,
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(8),
+                                borderSide: const BorderSide(color: Color(0xFFE0E0E0)),
+                              ),
+                              enabledBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(8),
+                                borderSide: const BorderSide(color: Color(0xFFE0E0E0)),
+                              ),
+                              focusedBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(8),
+                                borderSide: const BorderSide(color: Color(0xFF16A34A)),
+                              ),
+                              contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                            ),
                             validator: _validateEmail,
                           ),
                           const SizedBox(height: 12),
@@ -268,6 +374,21 @@ class _AddCustomerScreenState extends State<AddCustomerScreen> {
                             controller: birthdayController,
                             decoration: InputDecoration(
                               labelText: 'Ngày sinh',
+                              filled: true,
+                              fillColor: Colors.white,
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(8),
+                                borderSide: const BorderSide(color: Color(0xFFE0E0E0)),
+                              ),
+                              enabledBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(8),
+                                borderSide: const BorderSide(color: Color(0xFFE0E0E0)),
+                              ),
+                              focusedBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(8),
+                                borderSide: const BorderSide(color: Color(0xFF16A34A)),
+                              ),
+                              contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
                               suffixIcon: IconButton(
                                 icon: const Icon(Icons.calendar_today, size: 20),
                                 onPressed: () async {
@@ -288,12 +409,46 @@ class _AddCustomerScreenState extends State<AddCustomerScreen> {
                           const SizedBox(height: 12),
                           TextFormField(
                             controller: _addressController,
-                            decoration: const InputDecoration(labelText: 'Địa chỉ'),
+                            decoration: InputDecoration(
+                              labelText: 'Địa chỉ',
+                              filled: true,
+                              fillColor: Colors.white,
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(8),
+                                borderSide: const BorderSide(color: Color(0xFFE0E0E0)),
+                              ),
+                              enabledBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(8),
+                                borderSide: const BorderSide(color: Color(0xFFE0E0E0)),
+                              ),
+                              focusedBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(8),
+                                borderSide: const BorderSide(color: Color(0xFF16A34A)),
+                              ),
+                              contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                            ),
                           ),
                           const SizedBox(height: 12),
                           TextFormField(
                             controller: noteController,
-                            decoration: const InputDecoration(labelText: 'Ghi chú'),
+                            decoration: InputDecoration(
+                              labelText: 'Ghi chú',
+                              filled: true,
+                              fillColor: Colors.white,
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(8),
+                                borderSide: const BorderSide(color: Color(0xFFE0E0E0)),
+                              ),
+                              enabledBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(8),
+                                borderSide: const BorderSide(color: Color(0xFFE0E0E0)),
+                              ),
+                              focusedBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(8),
+                                borderSide: const BorderSide(color: Color(0xFF16A34A)),
+                              ),
+                              contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                            ),
                           ),
                           const SizedBox(height: 12),
                           Row(
@@ -311,60 +466,99 @@ class _AddCustomerScreenState extends State<AddCustomerScreen> {
                             const SizedBox(height: 12),
                             TextFormField(
                               controller: orgNameController,
-                              decoration: const InputDecoration(labelText: 'Tên tổ chức *'),
+                              decoration: InputDecoration(
+                                labelText: 'Tên tổ chức *',
+                                filled: true,
+                                fillColor: Colors.white,
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(8),
+                                  borderSide: const BorderSide(color: Color(0xFFE0E0E0)),
+                                ),
+                                enabledBorder: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(8),
+                                  borderSide: const BorderSide(color: Color(0xFFE0E0E0)),
+                                ),
+                                focusedBorder: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(8),
+                                  borderSide: const BorderSide(color: Color(0xFF16A34A)),
+                                ),
+                                contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                              ),
                               validator: _validateOrgName,
                             ),
                             const SizedBox(height: 12),
                             TextFormField(
                               controller: taxController,
-                              decoration: const InputDecoration(labelText: 'Mã số thuế *'),
+                              decoration: InputDecoration(
+                                labelText: 'Mã số thuế *',
+                                filled: true,
+                                fillColor: Colors.white,
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(8),
+                                  borderSide: const BorderSide(color: Color(0xFFE0E0E0)),
+                                ),
+                                enabledBorder: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(8),
+                                  borderSide: const BorderSide(color: Color(0xFFE0E0E0)),
+                                ),
+                                focusedBorder: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(8),
+                                  borderSide: const BorderSide(color: Color(0xFF16A34A)),
+                                ),
+                                contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                              ),
                               validator: _validateTaxCode,
                             ),
                             const SizedBox(height: 12),
                             TextFormField(
                               controller: orgAddressController,
-                              decoration: const InputDecoration(labelText: 'Địa chỉ tổ chức'),
+                              decoration: InputDecoration(
+                                labelText: 'Địa chỉ tổ chức',
+                                filled: true,
+                                fillColor: Colors.white,
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(8),
+                                  borderSide: const BorderSide(color: Color(0xFFE0E0E0)),
+                                ),
+                                enabledBorder: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(8),
+                                  borderSide: const BorderSide(color: Color(0xFFE0E0E0)),
+                                ),
+                                focusedBorder: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(8),
+                                  borderSide: const BorderSide(color: Color(0xFF16A34A)),
+                                ),
+                                contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                              ),
                             ),
                             const SizedBox(height: 12),
                             TextFormField(
                               controller: invoiceEmailController,
-                              decoration: const InputDecoration(labelText: 'Email nhận hóa đơn'),
+                              decoration: InputDecoration(
+                                labelText: 'Email nhận hóa đơn',
+                                filled: true,
+                                fillColor: Colors.white,
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(8),
+                                  borderSide: const BorderSide(color: Color(0xFFE0E0E0)),
+                                ),
+                                enabledBorder: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(8),
+                                  borderSide: const BorderSide(color: Color(0xFFE0E0E0)),
+                                ),
+                                focusedBorder: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(8),
+                                  borderSide: const BorderSide(color: Color(0xFF16A34A)),
+                                ),
+                                contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                              ),
                               validator: _validateEmail,
                             ),
                           ],
                         ],
                       ),
                     ),
-                    const SizedBox(height: 20),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: OutlinedButton(
-                            onPressed: _saving ? null : () => Navigator.pop(context),
-                            child: const Text('Hủy'),
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: ElevatedButton(
-                            onPressed: _saving ? null : _save,
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: const Color(0xFF16A34A),
-                            ),
-                            child: _saving 
-                              ? const SizedBox(
-                                  height: 20,
-                                  width: 20,
-                                  child: CircularProgressIndicator(
-                                    strokeWidth: 2,
-                                    valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                                  ),
-                                )
-                              : const Text('Thêm khách hàng', style: TextStyle(color: Colors.white)),
-                          ),
-                        ),
-                      ],
-                    ),
+                    const SizedBox(height: 100), // Space for bottom buttons
                   ],
                 ),
               ),

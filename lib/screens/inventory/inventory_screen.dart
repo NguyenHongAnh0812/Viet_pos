@@ -70,8 +70,7 @@ class _InventoryScreenState extends State<InventoryScreen> with SingleTickerProv
     'Tháng trước',
     'Tuỳ chỉnh',
   ];
-
-
+  bool _hasActiveSession = false;
 
   void _showDatePicker() async {
     final picked = await showModalBottomSheet<DateTime?>(
@@ -224,7 +223,20 @@ class _InventoryScreenState extends State<InventoryScreen> with SingleTickerProv
       floatingActionButton: FloatingActionButton(
         backgroundColor: mainGreen,
         elevation: 8,
-        onPressed: () {
+        onPressed: () async {
+          // Kiểm tra trực tiếp trên Firestore
+          final snapshot = await FirebaseFirestore.instance
+              .collection('inventory_sessions')
+              .where('status', whereIn: ['draft', 'checked'])
+              .limit(1)
+              .get();
+          if (snapshot.docs.isNotEmpty) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Chỉ được phép có 1 phiên kiểm kê ở trạng thái nháp hoặc đang kiểm kê!')),
+            );
+            return;
+          }
+          // Nếu không có, cho phép tạo mới
           Navigator.push(
             context,
             MaterialPageRoute(
@@ -321,8 +333,11 @@ class _InventoryScreenState extends State<InventoryScreen> with SingleTickerProv
                 child: StreamBuilder<List<InventorySession>>(
                   stream: _inventoryService.getAllSessions(),
                   builder: (context, snapshot) {
-                    final sessions = (snapshot.data ?? [])
-                        .where((s) {
+                    final allSessions = snapshot.data ?? [];
+                    // Kiểm tra có phiên active không trên toàn bộ session
+                    _hasActiveSession = allSessions.any((s) => s.status == 'draft' || s.status == 'checked');
+                    // Sau đó mới filter theo tab để hiển thị
+                    final sessions = allSessions.where((s) {
                           final matchSearch = _searchController.text.isEmpty || s.note.toLowerCase().contains(_searchController.text.toLowerCase());
                           final matchTime = _matchTimeFilter(s.createdAt);
                           // Lọc theo tab
@@ -330,8 +345,7 @@ class _InventoryScreenState extends State<InventoryScreen> with SingleTickerProv
                           if (_tabIndex == 2) return s.status == 'checked' && matchSearch && matchTime;
                           if (_tabIndex == 3) return s.status == 'updated' && matchSearch && matchTime;
                           return matchSearch && matchTime;
-                        })
-                        .toList();
+                    }).toList();
                     if (sessions.isEmpty) {
                       return const Center(child: Text('Không có phiên kiểm kê nào.', style: TextStyle(color: Colors.black54)));
                     }

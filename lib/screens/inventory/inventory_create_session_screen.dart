@@ -344,9 +344,10 @@ class _InventoryCreateSessionScreenState extends State<InventoryCreateSessionScr
                 style: OutlinedButton.styleFrom(
                   foregroundColor: textPrimary,
                   side: const BorderSide(color: borderColor),
-                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  padding: const EdgeInsets.symmetric(vertical: 0),
+                  minimumSize: const Size(0, 40),
                   textStyle: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
                 ),
                 child: const Text('Hủy'),
               ),
@@ -434,9 +435,10 @@ class _InventoryCreateSessionScreenState extends State<InventoryCreateSessionScr
                 style: ElevatedButton.styleFrom(
                   backgroundColor: mainGreen,
                   foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  padding: const EdgeInsets.symmetric(vertical: 0),
+                  minimumSize: const Size(0, 40),
                   textStyle: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
                   elevation: 0,
                 ),
                 child: _saving ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white)) : const Text('Tạo phiếu'),
@@ -456,7 +458,7 @@ class _InventoryCreateSessionScreenState extends State<InventoryCreateSessionScr
                 // Heading
                 Container(
                   width: double.infinity,
-                   padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                   padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
                   color: mainGreen,
                   child: Row(
                   children: [
@@ -562,27 +564,23 @@ class _InventoryCreateSessionScreenState extends State<InventoryCreateSessionScr
                             ),
                         const SizedBox(height: 16),
                         Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            Expanded(
-                              child: Text('Người tạo phiếu', style: bodyLarge.copyWith(color: textPrimary)),
-                            ),
+                            Text('Người tạo phiếu', style: bodyLarge.copyWith(color: textPrimary)),
                             Text(
                               _userName ?? '',
                               style: bodyMobile.copyWith(color: textPrimary, fontWeight: FontWeight.w600),
-                              textAlign: TextAlign.right,
                             ),
                           ],
                         ),
                         const SizedBox(height: 12),
                         Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            Expanded(
-                              child: Text('Ngày kiểm kê', style: bodyLarge.copyWith(color: textPrimary)),
-                            ),
-                            Text(
+                            Text('Ngày kiểm kê', style: bodyLarge.copyWith(color: textPrimary)),
+                                    Text(
                               '${DateTime.now().day}/${DateTime.now().month}/${DateTime.now().year}',
                               style: bodyMobile.copyWith(color: textPrimary, fontWeight: FontWeight.w600),
-                              textAlign: TextAlign.right,
                             ),
                           ],
                         ),
@@ -706,7 +704,7 @@ class _InventoryCreateSessionScreenState extends State<InventoryCreateSessionScr
                                 ),
                               ],
                             ),
-                            const SizedBox(height: 8),
+                            const SizedBox(height: 12),
                             if (_selectedProductList.isEmpty)
                               const Text('Chưa có sản phẩm nào được chọn.'),
                             ..._selectedProductList.map((p) => Container(

@@ -16,6 +16,7 @@ import '../../services/order_service.dart';
 import '../../widgets/invoice_qr_code.dart';
 import '../../services/app_payment_setting_service.dart';
 import '../../models/app_payment_setting.dart';
+import 'qr_scanner_screen.dart';
 
 class OrderCreateScreen extends StatefulWidget {
   const OrderCreateScreen({super.key});
@@ -295,6 +296,58 @@ class _OrderCreateScreenState extends State<OrderCreateScreen> {
     }
   }
 
+  // 2. Thêm hàm quét QR code
+  void _openQRScanner() async {
+    final qrCode = await Navigator.push<String>(
+      context,
+      MaterialPageRoute(builder: (context) => const QRScannerScreen()),
+    );
+    
+    if (qrCode != null) {
+      // Tìm sản phẩm theo mã QR
+      final product = _findProductByQRCode(qrCode);
+      if (product != null) {
+        _addToCart(product);
+        // Hiển thị thông báo thành công
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Đã thêm ${product.tradeName.isNotEmpty ? product.tradeName : product.internalName} vào giỏ hàng'),
+              backgroundColor: mainGreen,
+              behavior: SnackBarBehavior.floating,
+            ),
+          );
+        }
+      } else {
+        // Hiển thị thông báo không tìm thấy sản phẩm
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Không tìm thấy sản phẩm với mã QR này'),
+              backgroundColor: Colors.red,
+              behavior: SnackBarBehavior.floating,
+            ),
+          );
+        }
+      }
+    }
+  }
+
+  // 3. Hàm tìm sản phẩm theo mã QR
+  Product? _findProductByQRCode(String qrCode) {
+    try {
+      // Tìm kiếm theo barcode, SKU, hoặc ID sản phẩm
+      return _allProducts.firstWhere(
+        (product) => 
+          (product.barcode?.toLowerCase() == qrCode.toLowerCase()) ||
+          (product.sku?.toLowerCase() == qrCode.toLowerCase()) ||
+          (product.id.toLowerCase() == qrCode.toLowerCase()),
+      );
+    } catch (e) {
+      return null;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -311,6 +364,7 @@ class _OrderCreateScreenState extends State<OrderCreateScreen> {
                     children: [
                       _OrderHeader(
                         onSearchTap: _openProductSearchModal,
+                        onQRScanTap: _openQRScanner,
                         showBack: _cart.isNotEmpty,
                       ),
                       _CustomerSection(
@@ -368,15 +422,68 @@ class _OrderCreateScreenState extends State<OrderCreateScreen> {
                 if (selectedCustomer == null) {
                   showDialog(
                     context: context,
-                    builder: (context) => AlertDialog(
-                      title: const Text('Thông báo'),
-                      content: const Text('Vui lòng chọn khách hàng trước khi tiếp tục.'),
-                      actions: [
-                        TextButton(
-                          onPressed: () => Navigator.pop(context),
-                          child: const Text('Đóng'),
+                    builder: (context) => Dialog(
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Container(
+                        padding: const EdgeInsets.all(20),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(12),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFFFEBEE),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: const Icon(
+                                Icons.warning_amber_rounded,
+                                color: Colors.red,
+                                size: 32,
+                              ),
+                            ),
+                            const SizedBox(height: 16),
+                            const Text(
+                              'Thông báo',
+                              style: TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            const Text(
+                              'Vui lòng chọn khách hàng trước khi tiếp tục.',
+                              textAlign: TextAlign.center,
+                              style: TextStyle(
+                                fontSize: 14,
+                                color: Colors.grey,
+                              ),
+                            ),
+                            const SizedBox(height: 20),
+                            SizedBox(
+                              width: double.infinity,
+                              child: ElevatedButton(
+                                onPressed: () => Navigator.pop(context),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: const Color(0xFF16A34A),
+                                  padding: const EdgeInsets.symmetric(vertical: 12),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                ),
+                                child: const Text(
+                                  'Đóng',
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
-                      ],
+                      ),
                     ),
                   );
                 } else {
@@ -400,8 +507,9 @@ class _OrderCreateScreenState extends State<OrderCreateScreen> {
 
 class _OrderHeader extends StatelessWidget {
   final VoidCallback onSearchTap;
+  final VoidCallback onQRScanTap;
   final bool showBack;
-  const _OrderHeader({required this.onSearchTap, this.showBack = false});
+  const _OrderHeader({required this.onSearchTap, required this.onQRScanTap, this.showBack = false});
   @override
   Widget build(BuildContext context) {
     return Padding(
@@ -426,33 +534,45 @@ class _OrderHeader extends StatelessWidget {
                 },
               ),
             Expanded(
-              child: GestureDetector(
-                onTap: onSearchTap,
-                child: AbsorbPointer(
-                  child: TextField(
-                    decoration: InputDecoration(
-                      hintText: 'Tên, mã sản phẩm',
-                      prefixIcon: const Icon(Icons.search, color: Colors.grey),
-                      suffixIcon: IconButton(
-                        icon: const Icon(Icons.density_medium, color: Color(0xFF16A34A)),
-                        onPressed: () {},
-                      ),
-                      filled: true,
-                      fillColor: Colors.white,
-                      contentPadding: const EdgeInsets.symmetric(vertical: 0, horizontal: 12),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(8),
-                        borderSide: BorderSide(color: Colors.grey[200]!),
-                      ),
-                      enabledBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(8),
-                        borderSide: BorderSide(color: Colors.grey[200]!),
+              child: Stack(
+                children: [
+                  GestureDetector(
+                    onTap: onSearchTap,
+                    child: AbsorbPointer(
+                      child: TextField(
+                        decoration: InputDecoration(
+                          hintText: 'Tên, mã sản phẩm',
+                          prefixIcon: const Icon(Icons.search, color: Colors.grey),
+                          filled: true,
+                          fillColor: Colors.white,
+                          contentPadding: const EdgeInsets.symmetric(vertical: 0, horizontal: 12),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8),
+                            borderSide: BorderSide(color: Colors.grey[200]!),
+                          ),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8),
+                            borderSide: BorderSide(color: Colors.grey[200]!),
+                          ),
+                        ),
+                        enabled: false,
+                        style: const TextStyle(fontSize: 16),
                       ),
                     ),
-                    enabled: false,
-                    style: const TextStyle(fontSize: 16),
                   ),
-                ),
+                  // QR Scanner button positioned on the right
+                  Positioned(
+                    right: 8,
+                    top: 0,
+                    bottom: 0,
+                    child: Center(
+                      child: IconButton(
+                        icon: const Icon(Icons.qr_code_scanner, color: Color(0xFF16A34A)),
+                        onPressed: onQRScanTap,
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ),
           ],
@@ -550,16 +670,19 @@ class _EmptyCartIllustration extends StatelessWidget {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          // SVG custom giỏ hàng trống
-          // SizedBox(
-          //   width: 120,
-          //   height: 120,
-          //   child: SvgPicture.string(_cartSvg),
-          // ),
-          // const SizedBox(height: 24),
+                     SizedBox(
+             width: 120,
+             height: 120,
+             child: SvgPicture.string(
+               '''<svg width="120" height="120" viewBox="0 0 120 120" fill="none"><circle cx="60" cy="60" r="50" fill="#F0F4F0" opacity="0.6"></circle><path d="M35 45 L85 45 L82 75 L38 75 Z" fill="none" stroke="#9CCC65" stroke-width="2" rx="2"></path><path d="M35 45 L30 35 L25 35" stroke="#9CCC65" stroke-width="2.5" stroke-linecap="round" fill="none"></path><line x1="45" y1="50" x2="45" y2="70" stroke="#AED581" stroke-width="1.5"></line><line x1="55" y1="50" x2="55" y2="70" stroke="#AED581" stroke-width="1.5"></line><line x1="65" y1="50" x2="65" y2="70" stroke="#AED581" stroke-width="1.5"></line><line x1="75" y1="50" x2="75" y2="70" stroke="#AED581" stroke-width="1.5"></line><line x1="40" y1="55" x2="80" y2="55" stroke="#AED581" stroke-width="1.5"></line><line x1="40" y1="65" x2="80" y2="65" stroke="#AED581" stroke-width="1.5"></line><circle cx="45" cy="85" r="4" fill="#9CCC65"></circle><circle cx="75" cy="85" r="4" fill="#9CCC65"></circle><rect x="48" y="52" width="6" height="4" rx="1" fill="#C8E6C9"></rect><rect x="58" y="58" width="4" height="6" rx="1" fill="#C8E6C9"></rect><circle cx="70" cy="60" r="2" fill="#C8E6C9"></circle></svg>''',
+               width: 120,
+               height: 120,
+             ),
+           ),
+          const SizedBox(height: 24),
           const Text(
             'Tìm kiếm sản phẩm để bắt đầu!',
-            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: Color(0xFF16A34A)),
+            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: mainGreen),
           ),
         ],
       ),
@@ -784,6 +907,7 @@ class _DiscountDialogState extends State<_DiscountDialog> {
   void _onDiscountChanged() {
     String value = _discountController.text.replaceAll('.', '').replaceAll('đ', '');
     double doubleValue = double.tryParse(value) ?? 0;
+    
     if (_isPercentage) {
       if (doubleValue > 100) doubleValue = 100;
       _discountController.value = TextEditingValue(
@@ -791,6 +915,10 @@ class _DiscountDialogState extends State<_DiscountDialog> {
         selection: TextSelection.collapsed(offset: doubleValue.toString().length),
       );
     } else {
+      // Giới hạn chiết khấu không vượt quá giá gốc
+      if (doubleValue > widget.originalPrice) {
+        doubleValue = widget.originalPrice.toDouble();
+      }
       // Định dạng tiền tệ khi nhập số tiền
       String formatted = _formatCurrency(doubleValue);
       _discountController.value = TextEditingValue(
@@ -798,6 +926,7 @@ class _DiscountDialogState extends State<_DiscountDialog> {
         selection: TextSelection.collapsed(offset: formatted.length - 1),
       );
     }
+    
     setState(() {
       _discountAmount = doubleValue;
     });
@@ -816,12 +945,16 @@ class _DiscountDialogState extends State<_DiscountDialog> {
     }
   }
 
+  bool get _isValidDiscount {
+    return _finalPrice >= 0;
+  }
+
   @override
   Widget build(BuildContext context) {
     return Dialog(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       child: Padding(
-        padding: const EdgeInsets.all(20),
+        padding: const EdgeInsets.all(16),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -849,14 +982,14 @@ class _DiscountDialogState extends State<_DiscountDialog> {
                       _discountController.text = _discountAmount > 0 ? _formatCurrency(_discountAmount) : '';
                     }),
                     child: Container(
-                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      padding: const EdgeInsets.symmetric(vertical: 8),
                       decoration: BoxDecoration(
-                        color: !_isPercentage ? const Color(0xFFE8F5E9) : Colors.white,
+                        color: Colors.white,
                         border: Border.all(color: !_isPercentage ? const Color(0xFF16A34A) : const Color(0xFFE0E0E0)),
-                        borderRadius: BorderRadius.circular(8),
+                        borderRadius: BorderRadius.circular(6),
                       ),
                       child: Center(
-                        child: Text('VNĐ', style: TextStyle(fontWeight: FontWeight.bold, color: !_isPercentage ? const Color(0xFF16A34A) : Colors.black)),
+                        child: Text('VNĐ', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14, color: !_isPercentage ? const Color(0xFF16A34A) : Colors.black)),
                       ),
                     ),
                   ),
@@ -869,14 +1002,14 @@ class _DiscountDialogState extends State<_DiscountDialog> {
                       _discountController.text = _discountAmount > 0 ? _discountAmount.toString() : '';
                     }),
                     child: Container(
-                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      padding: const EdgeInsets.symmetric(vertical: 8),
                       decoration: BoxDecoration(
-                        color: _isPercentage ? const Color(0xFFE8F5E9) : Colors.white,
+                        color: Colors.white,
                         border: Border.all(color: _isPercentage ? const Color(0xFF16A34A) : const Color(0xFFE0E0E0)),
-                        borderRadius: BorderRadius.circular(8),
+                        borderRadius: BorderRadius.circular(6),
                       ),
                       child: Center(
-                        child: Text('%', style: TextStyle(fontWeight: FontWeight.bold, color: _isPercentage ? const Color(0xFF16A34A) : Colors.black)),
+                        child: Text('%', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14, color: _isPercentage ? const Color(0xFF16A34A) : Colors.black)),
                       ),
                     ),
                   ),
@@ -889,7 +1022,21 @@ class _DiscountDialogState extends State<_DiscountDialog> {
               keyboardType: TextInputType.number,
               decoration: InputDecoration(
                 labelText: _isPercentage ? 'Phần trăm chiết khấu' : 'Số tiền chiết khấu',
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                filled: true,
+                fillColor: Colors.white,
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                  borderSide: const BorderSide(color: Color(0xFFE0E0E0)),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                  borderSide: const BorderSide(color: Color(0xFFE0E0E0)),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                  borderSide: const BorderSide(color: Color(0xFF16A34A)),
+                ),
+                contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
                 suffixText: _isPercentage ? '%' : 'đ',
               ),
             ),
@@ -898,20 +1045,40 @@ class _DiscountDialogState extends State<_DiscountDialog> {
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: const Color(0xFFE8F5E9),
+                color: _isValidDiscount ? Colors.white : const Color(0xFFFFEBEE),
+                border: Border.all(
+                  color: _isValidDiscount ? const Color(0xFFE0E0E0) : Colors.red,
+                ),
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Text('Giá sau chiết khấu:', style: TextStyle(fontWeight: FontWeight.w600)),
+                  Text(
+                    'Giá sau chiết khấu:',
+                    style: TextStyle(
+                      fontWeight: FontWeight.w600,
+                      color: _isValidDiscount ? Colors.black : Colors.red,
+                    ),
+                  ),
                   Text(
                     _formatCurrency(_finalPrice),
-                    style: const TextStyle(color: Color(0xFF16A34A), fontWeight: FontWeight.bold, fontSize: 16),
+                    style: TextStyle(
+                      color: _isValidDiscount ? const Color(0xFF16A34A) : Colors.red,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
+                    ),
                   ),
                 ],
               ),
             ),
+            if (!_isValidDiscount) ...[
+              const SizedBox(height: 8),
+              Text(
+                'Chiết khấu quá lớn! Giá sau chiết khấu không được âm.',
+                style: const TextStyle(color: Colors.red, fontSize: 12),
+              ),
+            ],
             const SizedBox(height: 20),
             // Buttons
             Row(
@@ -925,12 +1092,12 @@ class _DiscountDialogState extends State<_DiscountDialog> {
                 const SizedBox(width: 12),
                 Expanded(
                   child: ElevatedButton(
-                    onPressed: () {
+                    onPressed: _isValidDiscount ? () {
                       widget.onDiscountChanged(_discountAmount, _isPercentage);
                       Navigator.pop(context);
-                    },
+                    } : null,
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF16A34A),
+                      backgroundColor: _isValidDiscount ? const Color(0xFF16A34A) : Colors.grey,
                     ),
                     child: const Text('Áp dụng', style: TextStyle(color: Colors.white)),
                   ),
@@ -2386,18 +2553,14 @@ class OrderInvoiceScreen extends StatelessWidget {
                       ),
                       child: Column(
                         children: [
-                          Container(
-                            width: 56,
-                            height: 56,
-                            decoration: BoxDecoration(
-                              color: const Color(0xFFE8F5E9),
-                              borderRadius: BorderRadius.circular(28),
-                            ),
-                            child: const Icon(Icons.inventory_2, color: Color(0xFF16A34A), size: 32),
-                          ),
+                         
                           const SizedBox(height: 8),
-                          const Text('VetPharm', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
-                          const Text('Nhà thuốc thú y', style: TextStyle(color: Colors.black54)),
+                          Image.asset(
+                                'assets/images/logo.png',
+                                width: 150,
+
+                                fit: BoxFit.contain,
+                              ),
                           const SizedBox(height: 16),
                           // Line phân cách giống các block khác, có padding 2 bên
                           Padding(
@@ -2452,12 +2615,14 @@ class OrderInvoiceScreen extends StatelessWidget {
                               TextSpan(text: customer.name),
                             ]),
                           ),
-                          Text.rich(
-                            TextSpan(children: [
-                              const TextSpan(text: 'SĐT: ', style: TextStyle(fontWeight: FontWeight.bold)),
-                              TextSpan(text: customer.phone),
-                            ]),
-                          ),
+                          // Chỉ hiển thị SĐT nếu không phải khách lẻ (có customerType khác 'individual')
+                          if (customer.customerType != 'individual' && customer.phone != null && customer.phone!.isNotEmpty)
+                            Text.rich(
+                              TextSpan(children: [
+                                const TextSpan(text: 'SĐT: ', style: TextStyle(fontWeight: FontWeight.bold)),
+                                TextSpan(text: customer.phone),
+                              ]),
+                            ),
                           if (customer.address != null)
                             Text.rich(
                               TextSpan(children: [
@@ -2573,41 +2738,7 @@ class OrderInvoiceScreen extends StatelessWidget {
                         ],
                       ),
                     ),
-                    // Sau block Thông tin thanh toán, thêm 2 nút chia sẻ/in
-                    Padding(
-                      padding: const EdgeInsets.fromLTRB(4, 16, 4, 0),
-                      child: Row(
-                        children: [
-                          Expanded(
-                            child: OutlinedButton.icon(
-                              onPressed: () {},
-                              icon: const Icon(Icons.share_outlined, color: Color(0xFF222B45)),
-                              label: const Text('Chia sẻ', style: TextStyle(fontWeight: FontWeight.w600, color: Color(0xFF222B45))),
-                              style: OutlinedButton.styleFrom(
-                                side: const BorderSide(color: Color(0xFFE0E0E0)),
-                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                                padding: const EdgeInsets.symmetric(vertical: 14),
-                                backgroundColor: Colors.white,
-                              ),
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: OutlinedButton.icon(
-                              onPressed: () {},
-                              icon: const Icon(Icons.print_outlined, color: Color(0xFF222B45)),
-                              label: const Text('In', style: TextStyle(fontWeight: FontWeight.w600, color: Color(0xFF222B45))),
-                              style: OutlinedButton.styleFrom(
-                                side: const BorderSide(color: Color(0xFFE0E0E0)),
-                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                                padding: const EdgeInsets.symmetric(vertical: 14),
-                                backgroundColor: Colors.white,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
+
                   ],
                 ),
               ),
