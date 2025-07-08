@@ -686,15 +686,15 @@ class DesignSystemBadge extends StatelessWidget {
     
     switch (variant) {
       case BadgeVariant.secondary:
-        bg = secondaryGreen.withValues(alpha: 0.12);
+        bg = secondaryGreen.withOpacity(0.12);
         fg = secondaryGreen;
         break;
       case BadgeVariant.destructive:
-        bg = destructiveRed.withValues(alpha: 0.12);
+        bg = destructiveRed.withOpacity(0.12);
         fg = destructiveRed;
         break;
       case BadgeVariant.warning:
-        bg = warningOrange.withValues(alpha: 0.12);
+        bg = warningOrange.withOpacity(0.12);
         fg = warningOrange;
         break;
       case BadgeVariant.outline:
@@ -703,7 +703,7 @@ class DesignSystemBadge extends StatelessWidget {
         border = Border.all(color: borderColor, width: 1);
         break;
       default:
-        bg = mainGreen.withValues(alpha: 0.12);
+        bg = mainGreen.withOpacity(0.12);
         fg = mainGreen;
     }
     
@@ -898,22 +898,22 @@ class DesignSystemAlert extends StatelessWidget {
     
     switch (variant) {
       case AlertVariant.warning:
-        bg = warningOrange.withValues(alpha: 0.12);
+        bg = warningOrange.withOpacity(0.12);
         fg = warningOrange;
         displayIcon = icon ?? Icons.warning_amber_rounded;
         break;
       case AlertVariant.error:
-        bg = destructiveRed.withValues(alpha: 0.12);
+        bg = destructiveRed.withOpacity(0.12);
         fg = destructiveRed;
         displayIcon = icon ?? Icons.error_outline;
         break;
       case AlertVariant.success:
-        bg = secondaryGreen.withValues(alpha: 0.12);
+        bg = secondaryGreen.withOpacity(0.12);
         fg = secondaryGreen;
         displayIcon = icon ?? Icons.check_circle_outline;
         break;
       default:
-        bg = mainGreen.withValues(alpha: 0.12);
+        bg = mainGreen.withOpacity(0.12);
         fg = mainGreen;
         displayIcon = icon ?? Icons.info_outline;
     }
@@ -1205,7 +1205,7 @@ ThemeData get lightTheme => ThemeData(
     labelSmall: labelSmall,
   ),
   scaffoldBackgroundColor: appBackground,
-  cardTheme: const CardThemeData(
+  cardTheme: const CardTheme(
     color: cardBackground,
     elevation: 0,
     shape: RoundedRectangleBorder(
@@ -1747,7 +1747,7 @@ class _ShopifyDropdownItemState<T> extends State<_ShopifyDropdownItem<T>> {
           color: _hovering
               ? mutedBackground
               : widget.selected
-                  ? mutedBackground.withValues(alpha: 0.5)
+                  ? mutedBackground.withOpacity(0.5)
                   : Colors.transparent,
         ),
         child: Text(
@@ -1986,11 +1986,11 @@ Widget designSystemRangeSlider({
       rangeThumbShape: RoundRangeSliderThumbShape(enabledThumbRadius: thumbRadius),
       overlayShape: RoundSliderOverlayShape(overlayRadius: overlayRadius),
       thumbColor: activeColor ?? mainGreen,
-      overlayColor: (activeColor ?? mainGreen).withValues(alpha: 0.12),
+      overlayColor: (activeColor ?? mainGreen).withOpacity(0.12),
       valueIndicatorColor: activeColor ?? mainGreen,
       tickMarkShape: const RoundSliderTickMarkShape(),
       activeTickMarkColor: borderColor,
-      inactiveTickMarkColor: borderColor.withValues(alpha: 0.5),
+      inactiveTickMarkColor: borderColor.withOpacity(0.5),
     ),
     child: RangeSlider(
       values: values,
@@ -2034,7 +2034,7 @@ class TableDesignSystem {
   static EdgeInsets tableRowPadding = const EdgeInsets.symmetric(horizontal: 24, vertical: 16);
 
   static BoxDecoration tableRowDecoration = BoxDecoration(
-    border: Border(bottom: BorderSide(color: borderColor.withValues(alpha: 0.5))),
+    border: Border(bottom: BorderSide(color: borderColor.withOpacity(0.5))),
   );
 
   static TextStyle tableRowTextStyle = const TextStyle(

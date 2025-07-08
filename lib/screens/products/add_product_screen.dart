@@ -1499,7 +1499,7 @@ class _AddProductScreenState extends State<AddProductScreen> with TickerProvider
         Container(
           padding: const EdgeInsets.all(8),
           decoration: BoxDecoration(
-            color: color.withValues(alpha: 0.1),
+            color: color.withOpacity(0.1),
             borderRadius: BorderRadius.circular(8),
           ),
           child: Icon(icon, color: color, size: 20),
@@ -1751,7 +1751,7 @@ class _ProductSearchSheetState extends State<_ProductSearchSheet> {
                     final p = _results[index];
                     return ListTile(
                       title: Text(p.tradeName.isNotEmpty ? p.tradeName : p.internalName),
-                      subtitle: Text('Barcode:  0${p.barcode ?? ''} | SKU: ${p.sku ?? ''}'),
+                      subtitle: Text('Barcode: ${p.barcode ?? ''} | SKU: ${p.sku ?? ''}'),
                       onTap: () {
                         if (widget.onProductSelected != null) widget.onProductSelected!(p);
                         Navigator.of(context).pop();
