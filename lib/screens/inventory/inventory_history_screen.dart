@@ -3,6 +3,7 @@ import '../../services/inventory_service.dart';
 import '../../models/inventory_session.dart';
 import 'package:intl/intl.dart';
 import '../../widgets/common/design_system.dart';
+import '../../utils/inventory_status_mapper.dart';
 
 class InventoryHistoryScreen extends StatefulWidget {
   final VoidCallback? onBack;
@@ -193,17 +194,15 @@ class _InventoryHistoryScreenState extends State<InventoryHistoryScreen> {
   Widget _buildSessionCard(InventorySession session) {
     final dateStr = DateFormat('d/M/yyyy').format(session.createdAt);
     final percent = session.totalCount == 0 ? 0 : (session.checkedCount / session.totalCount * 100).round();
+    
     Color chipColor;
-    String chipText;
+    String chipText = InventoryStatusMapper.getStatusDisplayText(session.status);
     if (session.status == 'updated') {
       chipColor = const Color(0xFF16A34A);
-      chipText = 'Đã cập nhật tồn kho';
     } else if (session.status == 'checked') {
       chipColor = const Color(0xFF2563eb);
-      chipText = 'Đã kiểm kê';
     } else {
       chipColor = const Color(0xFF9CA3AF);
-      chipText = 'Phiếu tạm';
     }
     return Container(
       decoration: BoxDecoration(

@@ -13,6 +13,7 @@ import 'inventory_create_session_screen.dart';
 import '../../widgets/main_layout.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../widgets/common/design_system.dart';
+import '../../utils/inventory_status_mapper.dart';
 
 class InventoryScreen extends StatefulWidget {
   final VoidCallback? onBack;
@@ -66,6 +67,8 @@ class _InventoryScreenState extends State<InventoryScreen> with SingleTickerProv
     'Tháng trước',
     'Tuỳ chỉnh',
   ];
+
+
 
   void _showDatePicker() async {
     final picked = await showModalBottomSheet<DateTime?>(
@@ -228,6 +231,7 @@ class _InventoryScreenState extends State<InventoryScreen> with SingleTickerProv
           );
         },
         child: const Icon(Icons.add, color: Colors.white, size: 32),
+        shape: const CircleBorder(),
       ),
       body: SafeArea(
         child: isMobile ? _buildMobileLayout(context) : _buildDesktopLayout(context),
@@ -496,10 +500,10 @@ class _InventoryScreenState extends State<InventoryScreen> with SingleTickerProv
                                     flex: 2,
                                     child: Center(
                                       child: DesignSystemBadge(
-                                        text: session.status,
-                                        variant: session.status == 'Đã cập nhật kho'
+                                        text: InventoryStatusMapper.getStatusDisplayText(session.status),
+                                        variant: session.status == 'updated'
                                             ? BadgeVariant.secondary
-                                            : session.status == 'Đã hoàn tất'
+                                            : session.status == 'checked'
                                                 ? BadgeVariant.warning
                                                 : BadgeVariant.defaultVariant,
                                       ),
@@ -711,7 +715,7 @@ class _InventoryScreenState extends State<InventoryScreen> with SingleTickerProv
       createdBy: 'Chủ cửa hàng', // TODO: lấy user thực tế nếu có auth
       note: _noteController.text.trim(),
       products: sessionProducts,
-      status: 'done',
+      status: 'updated',
     );
     await _inventoryService.addSession(session);
     setState(() => _saving = false);
@@ -836,16 +840,13 @@ class _InventoryScreenState extends State<InventoryScreen> with SingleTickerProv
 
   Widget _buildMobileInventoryCard(BuildContext context, InventorySession session) {
     // Xác định màu và text trạng thái
-    String chipText;
+    String chipText = InventoryStatusMapper.getStatusDisplayText(session.status);
     BadgeVariant badgeVariant;
     if (session.status == 'updated') {
-      chipText = 'Đã cập nhật tồn kho';
       badgeVariant = BadgeVariant.secondary;
     } else if (session.status == 'checked') {
-      chipText = 'Đã kiểm kê';
       badgeVariant = BadgeVariant.defaultVariant;
     } else {
-      chipText = 'Phiếu tạm';
       badgeVariant = BadgeVariant.outline;
     }
     final percent = session.totalCount == 0 ? 0 : (session.checkedCount / session.totalCount * 100).round();

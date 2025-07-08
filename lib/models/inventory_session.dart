@@ -34,7 +34,7 @@ class InventorySession {
       createdAt: createdAt,
       createdBy: data['created_by'] ?? '',
       note: data['note'] ?? '',
-      status: data['status'] ?? 'done',
+      status: data['status'] ?? 'draft',
       products: (data['products'] as List<dynamic>? ?? []).map((p) => InventoryProduct.fromMap(p)).toList(),
     );
   }

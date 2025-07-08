@@ -526,7 +526,7 @@ class _InventoryDetailScreenState extends State<InventoryDetailScreen> {
             ? Column(
                 children: [
                   for (final item in filteredItems)
-                    _buildMobileProductCard(context, item),
+                    _buildStyledMobileProductCard(context, item),
                 ],
               )
             : _buildProductTable(context, isMobile),
@@ -689,151 +689,81 @@ class _InventoryDetailScreenState extends State<InventoryDetailScreen> {
     );
   }
 
-  Widget _buildMobileProductCard(BuildContext context, Map<String, dynamic> item) {
+  Widget _buildStyledMobileProductCard(BuildContext context, Map<String, dynamic> item) {
     final id = item['id'] ?? item['product_id'];
     final actualController = _actualControllers[id] ??= TextEditingController(text: (item['stock_actual']?.toString() ?? ''));
-    final noteController = _noteControllers[id] ??= TextEditingController(text: (item['note']?.toString() ?? ''));
     final systemStock = item['stock_system'] ?? 0;
-    final actualStock = int.tryParse(actualController.text) ?? 0;
-    final diff = actualController.text.isEmpty ? null : actualStock - systemStock;
-    final rowColor = actualController.text.isEmpty
-      ? Colors.grey[100]
-      : diff != null && diff > 0
-        ? Colors.green[50]
-        : diff != null && diff < 0
-          ? Colors.orange[50]
-          : Colors.white;
-    final borderColor = diff != null && diff > 0
-      ? Colors.green
-      : diff != null && diff < 0
-        ? warningOrange
-        : Colors.grey[300];
-    // State mở/đóng ô ghi chú cho từng item
-    final showNote = ValueNotifier(false);
-    return ValueListenableBuilder(
-      valueListenable: showNote,
-      builder: (context, bool isNoteOpen, _) {
-        return Container(
-          margin: const EdgeInsets.symmetric(vertical: 8),
-          padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(
-            color: rowColor,
-            borderRadius: BorderRadius.circular(8),
-            border: Border.all(color: borderColor ?? Colors.grey[300]!),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text((item['product_name'] ?? '').toString(), style: body.copyWith(fontWeight: FontWeight.bold, color: textPrimary, fontSize: 15)),
-              const SizedBox(height: 6),
-              Row(
-                children: [
-                  Expanded(child: Text('Hệ thống: $systemStock', style: body.copyWith(color: textSecondary, fontSize: 13))),
-                  Expanded(
-                    child: Align(
-                      alignment: Alignment.centerRight,
-                      child: Text('Tồn hóa đơn: ${item['stock_invoice']}', style: body.copyWith(color: textSecondary, fontSize: 13)),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 8),
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text('Chênh lệch:', style: body.copyWith(fontSize: 12, color: textSecondary)),
-                        const SizedBox(height: 2),
-                        diff == null
-                          ? Text('—', style: body.copyWith(color: textSecondary, fontWeight: FontWeight.bold, fontSize: 15))
-                          : diff > 0
-                            ? Text('+$diff', style: body.copyWith(color: Colors.green[700], fontWeight: FontWeight.bold, fontSize: 15))
-                            : diff < 0
-                              ? Text('$diff', style: body.copyWith(color: warningOrange, fontWeight: FontWeight.bold, fontSize: 15))
-                              : Text('0', style: body.copyWith(fontWeight: FontWeight.bold, fontSize: 15)),
-                      ],
-                    ),
-                  ),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.end,
-                      children: [
-                        Text('Số lượng thực tế', style: body.copyWith(fontSize: 12, color: Colors.green)),
-                        const SizedBox(height: 2),
-                        Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            // Icon mở/đóng ghi chú
-                            IconButton(
-                              icon: Icon(
-                                (isNoteOpen || (noteController.text.isNotEmpty)) ? Icons.edit_note : Icons.edit_note_outlined,
-                                color: (isNoteOpen || (noteController.text.isNotEmpty)) ? mainGreen : textSecondary,
-                              ),
-                              tooltip: isNoteOpen ? 'Ẩn ghi chú' : 'Thêm ghi chú',
-                              onPressed: () => showNote.value = !isNoteOpen,
-                            ),
-                            SizedBox(
-                              width: 90,
-                              child: (!isCompleted && !isUpdated)
-                                  ? TextField(
-                                      controller: actualController,
-                                      keyboardType: TextInputType.number,
-                                      textAlign: TextAlign.center,
-                                      inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                                      onChanged: (v) {
-                                        setState(() {});
-                                      },
-                                      enabled: !isCompleted && !isUpdated,
-                                      style: body.copyWith(fontSize: 15),
-                                      decoration: InputDecoration(
-                                        border: OutlineInputBorder(
-                                          borderRadius: BorderRadius.circular(8),
-                                          borderSide: BorderSide(color: borderColor ?? Colors.green, width: 2),
-                                        ),
-                                        isDense: true,
-                                        contentPadding: const EdgeInsets.symmetric(vertical: 8, horizontal: 8),
-                                      ),
-                                    )
-                                  : Text((item['stock_actual']?.toString() ?? '').isEmpty ? '—' : item['stock_actual'].toString(), style: body.copyWith(fontSize: 15)),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 8),
-              // Ô ghi chú chỉ hiển thị khi mở hoặc đã có text
-              if (isNoteOpen || noteController.text.isNotEmpty)
-                (!isCompleted && !isUpdated)
-                    ? TextField(
-                        controller: noteController,
-                        onChanged: (v) async {
-                          await _itemService.updateItem(item['id'], {'note': v});
-                        },
-                        enabled: !isCompleted && !isUpdated,
-                        style: body.copyWith(fontSize: 14),
+    final unit = item['unit'] ?? 'Viên';
+    final note = (item['note'] ?? '').toString();
+    return Container(
+      margin: const EdgeInsets.symmetric(vertical: 10),
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: Colors.grey.shade200, width: 1),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Left: Info
+          Expanded(
+            flex: 4,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text((item['product_name'] ?? '').toString(), style: body.copyWith(fontWeight: FontWeight.bold, color: textPrimary, fontSize: 18)),
+                const SizedBox(height: 6),
+                Text('SKU: ${item['sku'] ?? ''}', style: body.copyWith(color: textSecondary, fontSize: 14)),
+                Text('Mã vạch: ${item['barcode'] ?? ''}', style: body.copyWith(color: textSecondary, fontSize: 14)),
+                const SizedBox(height: 18),
+                Row(
+                  children: [
+                    Text('Tồn hệ thống', style: body.copyWith(fontSize: 15, color: textSecondary)),
+                    const SizedBox(width: 32),
+                    Text('Tồn thực tế', style: body.copyWith(fontSize: 15, color: textSecondary)),
+                  ],
+                ),
+                const SizedBox(height: 2),
+                Row(
+                  children: [
+                    Text('$systemStock $unit', style: body.copyWith(fontWeight: FontWeight.bold, fontSize: 20, color: textPrimary)),
+                    const SizedBox(width: 32),
+                    SizedBox(
+                      width: 120,
+                      child: TextField(
+                        controller: actualController,
+                        keyboardType: TextInputType.number,
+                        textAlign: TextAlign.right,
+                        inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                        style: body.copyWith(fontSize: 18, color: textPrimary),
                         decoration: InputDecoration(
-                          labelText: 'Ghi chú',
-                          hintText: 'Ghi chú...',
-                          hintStyle: body.copyWith(color: textSecondary, fontSize: 13),
-                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-                          enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide(color: borderColor ?? Colors.grey)),
-                          focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide(color: mainGreen, width: 1.5)),
-                          filled: true,
-                          fillColor: Colors.transparent,
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8),
+                            borderSide: BorderSide(color: Colors.grey.shade300),
+                          ),
                           isDense: true,
+                          contentPadding: const EdgeInsets.symmetric(vertical: 10, horizontal: 14),
                         ),
-                      )
-                    : Text('Ghi chú: ${(item['note'] ?? '').toString().trim().isEmpty ? '—' : item['note']}', style: body.copyWith(fontSize: 14)),
-            ],
+                      ),
+                    ),
+                  ],
+                ),
+                if (note.isNotEmpty)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 14),
+                    child: Text('Ghi chú: $note', style: body.copyWith(fontSize: 13, color: Colors.grey)),
+                  ),
+              ],
+            ),
           ),
-        );
-      },
+          // Right: Scan icon
+          Container(
+            margin: const EdgeInsets.only(left: 8, top: 2),
+            child: Icon(Icons.qr_code_scanner, color: mainGreen, size: 22),
+          ),
+        ],
+      ),
     );
   }
 
