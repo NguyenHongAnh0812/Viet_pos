@@ -14,6 +14,8 @@ import '../../services/product_service.dart';
 import '../../services/customer_service.dart';
 import '../../services/order_service.dart';
 import '../../widgets/invoice_qr_code.dart';
+import '../../services/app_payment_setting_service.dart';
+import '../../models/app_payment_setting.dart';
 
 class OrderCreateScreen extends StatefulWidget {
   const OrderCreateScreen({super.key});
@@ -1953,7 +1955,9 @@ class _OrderPaymentScreenState extends State<OrderPaymentScreen> {
                                             ),
                                             const SizedBox(height: 2),
                                             Text(
-                                              '~${_formatCurrency(((widget.total * percents[i] / 100).round() / 1000).round() * 1000)}',
+                                              percents[i] == 100
+                                                ? _formatCurrency(((widget.total * percents[i] / 100).round() / 1000).round() * 1000)
+                                                : '~${_formatCurrency(((widget.total * percents[i] / 100).round() / 1000).round() * 1000)}',
                                               style: TextStyle(
                                                 fontSize: 13,
                                                 color: selectedPercent == percents[i] ? const Color(0xFF16A34A) : const Color(0xFF9CA3AF),
@@ -1993,7 +1997,9 @@ class _OrderPaymentScreenState extends State<OrderPaymentScreen> {
                                             ),
                                             const SizedBox(height: 2),
                                             Text(
-                                              '~${_formatCurrency(((widget.total * percents[i] / 100).round() / 1000).round() * 1000)}',
+                                              percents[i] == 100
+                                                ? _formatCurrency(((widget.total * percents[i] / 100).round() / 1000).round() * 1000)
+                                                : '~${_formatCurrency(((widget.total * percents[i] / 100).round() / 1000).round() * 1000)}',
                                               style: TextStyle(
                                                 fontSize: 13,
                                                 color: selectedPercent == percents[i] ? const Color(0xFF16A34A) : const Color(0xFF9CA3AF),
@@ -2009,6 +2015,20 @@ class _OrderPaymentScreenState extends State<OrderPaymentScreen> {
                             ),
                           ],
                         ),
+                        if (selectedPercent != 100)
+                          Padding(
+                            padding: const EdgeInsets.only(top: 12),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                const Text('Còn lại', style: TextStyle(fontWeight: FontWeight.w500, fontSize: 15)),
+                                Text(
+                                  _formatCurrency(widget.total - selectedAmount),
+                                  style: const TextStyle(color: Colors.red, fontWeight: FontWeight.bold, fontSize: 17),
+                                ),
+                              ],
+                            ),
+                          ),
                       ],
                     ),
                   ),
@@ -2037,9 +2057,9 @@ class _OrderPaymentScreenState extends State<OrderPaymentScreen> {
                                   side: BorderSide(color: paymentMethod == 'Tiền mặt' ? const Color(0xFF16A34A) : const Color(0xFFE0E0E0), width: 1.5),
                                   backgroundColor: paymentMethod == 'Tiền mặt' ? const Color(0xFFE8F5E9) : Colors.white,
                                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                                  padding: const EdgeInsets.symmetric(vertical: 16),
+                                  padding: const EdgeInsets.symmetric(vertical: 10),
                                 ),
-                                child: Text('Tiền mặt', style: TextStyle(fontWeight: FontWeight.bold, color: paymentMethod == 'Tiền mặt' ? const Color(0xFF16A34A) : Colors.black, fontSize: 16)),
+                                child: Text('Tiền mặt', style: TextStyle(fontWeight: FontWeight.w500, color: Colors.black, fontSize: 14)),
                               ),
                             ),
                             const SizedBox(width: 16),
@@ -2050,9 +2070,9 @@ class _OrderPaymentScreenState extends State<OrderPaymentScreen> {
                                   side: BorderSide(color: paymentMethod == 'Chuyển khoản' ? const Color(0xFF16A34A) : const Color(0xFFE0E0E0), width: 1.5),
                                   backgroundColor: paymentMethod == 'Chuyển khoản' ? const Color(0xFFE8F5E9) : Colors.white,
                                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                                  padding: const EdgeInsets.symmetric(vertical: 16),
+                                  padding: const EdgeInsets.symmetric(vertical: 10),
                                 ),
-                                child: Text('Chuyển khoản', style: TextStyle(fontWeight: FontWeight.bold, color: paymentMethod == 'Chuyển khoản' ? const Color(0xFF16A34A) : Colors.black, fontSize: 16)),
+                                child: Text('Chuyển khoản', style: TextStyle(fontWeight: FontWeight.w500, color: Colors.black, fontSize: 14)),
                               ),
                             ),
                           ],
@@ -2136,15 +2156,64 @@ class OrderPaymentConfirmScreen extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             children: [
               if (paymentMethod == 'Chuyển khoản')
-                Container(
-                  width: 200,
-                  margin: const EdgeInsets.only(bottom: 32),
-                  child: PaymentQRCode(
-                    orderCode: order.orderCode,
-                    amount: amount.toDouble(),
-                    paymentMethod: 'bank_transfer',
-                    size: 180,
-                  ),
+                FutureBuilder<AppPaymentSetting?>(
+                  future: AppPaymentSettingService().getSetting(),
+                  builder: (context, snapshot) {
+                    if (snapshot.connectionState == ConnectionState.waiting) {
+                      return const CircularProgressIndicator();
+                    }
+                    
+                    final setting = snapshot.data;
+                    if (setting == null || setting.bankCode.isEmpty || setting.bankAccount.isEmpty) {
+                      return Container(
+                        width: 350,
+                        margin: const EdgeInsets.only(bottom: 32),
+                        padding: const EdgeInsets.all(20),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: Colors.orange),
+                        ),
+                        child: Column(
+                          children: [
+                            const Icon(Icons.warning, color: Colors.orange, size: 48),
+                            const SizedBox(height: 12),
+                            const Text(
+                              'Chưa cấu hình VietQR',
+                              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                              textAlign: TextAlign.center,
+                            ),
+                            const SizedBox(height: 8),
+                            const Text(
+                              'Vui lòng cấu hình thông tin ngân hàng trong Cài đặt > Cài đặt VietQR',
+                              style: TextStyle(fontSize: 14),
+                              textAlign: TextAlign.center,
+                            ),
+                          ],
+                        ),
+                      );
+                    }
+                    
+                    // Tạo URL VietQR động
+                    final qrUrl = 'https://img.vietqr.io/image/${setting.bankCode}-${setting.bankAccount}-compact2.png'
+                        '?amount=$amount'
+                        '&addInfo=Thanh+toan+don+${order.orderCode}';
+                    
+                    return Container(
+                      width: 350,
+                      margin: const EdgeInsets.only(bottom: 32),
+                      child: Column(
+                        children: [
+                          Image.network(
+                            qrUrl,
+                            width: 300,
+                            height: 300,
+                            errorBuilder: (context, error, stack) => const Text('Không tải được QR'),
+                          ),
+                        ],
+                      ),
+                    );
+                  },
                 ),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 18),
@@ -2233,7 +2302,17 @@ class OrderInvoiceScreen extends StatelessWidget {
               children: [
                 Text(item.productName, style: const TextStyle(fontWeight: FontWeight.w600)),
                 const SizedBox(height: 2),
-                Text('${item.quantity} x ${_formatCurrencyDouble(item.price)}', style: const TextStyle(color: Color(0xFF9CA3AF), fontSize: 13)),
+                Text('${item.price.toInt() != item.finalPrice.toInt() ? _formatCurrencyDouble(item.price) : ''}${item.price.toInt() != item.finalPrice.toInt() ? ' × ' : ''}${item.quantity}', style: const TextStyle(color: Color(0xFF9CA3AF), fontSize: 13)),
+                if (item.discountAmount > 0)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 2),
+                    child: Text(
+                      item.isPercentageDiscount
+                        ? 'Giảm: ${item.discountAmount.toStringAsFixed(0)}%'
+                        : 'Giảm: ${_formatCurrencyDouble(item.discountAmount)}',
+                      style: const TextStyle(color: Color(0xFF16A34A), fontSize: 13, fontWeight: FontWeight.w500),
+                    ),
+                  ),
               ],
             ),
           ),
@@ -2274,7 +2353,7 @@ class OrderInvoiceScreen extends StatelessWidget {
                     Expanded(
                       child: Center(
                         child: Text(
-                          'Hóa đơn #${order.orderCode}',
+                          '#${order.orderCode}',
                           style: const TextStyle(
                             fontWeight: FontWeight.w600,
                             fontSize: 18,
@@ -2284,7 +2363,7 @@ class OrderInvoiceScreen extends StatelessWidget {
                         ),
                       ),
                     ),
-                    const SizedBox(width: 48), // Để cân đối với IconButton bên trái
+                    const SizedBox(width: 48),
                   ],
                 ),
               ),
@@ -2459,26 +2538,11 @@ class OrderInvoiceScreen extends StatelessWidget {
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
                               const Text('Tổng chiết khấu:'),
-                              Text('-${_formatCurrencyDouble(order.discountAmount)}'),
+                              Text('-${_formatCurrencyDouble(order.discountAmount)}', style: const TextStyle(color: Colors.red)),
                             ],
                           ),
-                          const SizedBox(height: 8),
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              const Text('Đã thanh toán:'),
-                              Text(_formatCurrencyDouble(payment.amount)),
-                            ],
-                          ),
-                          const SizedBox(height: 8),
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              const Text('Còn lại:'),
-                              Text(_formatCurrencyDouble(order.finalAmount - payment.amount)),
-                            ],
-                          ),
-                          const SizedBox(height: 10),
+
+                           const SizedBox(height: 8),     
                           const Divider(height: 1, color: Color(0xFFE5E7EB)),
                           Padding(
                             padding: const EdgeInsets.symmetric(vertical: 8.0),
@@ -2490,6 +2554,22 @@ class OrderInvoiceScreen extends StatelessWidget {
                               ],
                             ),
                           ),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              const Text('Đã thanh toán:'),
+                              Text(_formatCurrencyDouble(payment.amount)),
+                            ],
+                          ),
+                             const SizedBox(height: 8),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              const Text('Còn lại:'),
+                              Text(_formatCurrencyDouble(order.finalAmount - payment.amount), style: const TextStyle(color: Colors.red)),
+                            ],
+                          ),
+                          const SizedBox(height: 10),
                         ],
                       ),
                     ),

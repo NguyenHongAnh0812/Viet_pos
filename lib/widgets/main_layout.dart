@@ -30,7 +30,7 @@ import '../screens/dashboard/dashboard_modern_screen.dart';
 import '../models/product.dart';
 import '../models/company.dart';
 import '../models/product_category.dart';
-import '../screens/settings_screen.dart';
+import '../screens/settings_screen.dart' show SettingsScreen, BankSettingForm, VietQRSettingsScreen;
 import '../screens/example_standard_screen.dart';
 
 // Định nghĩa enum cho các trang
@@ -870,153 +870,158 @@ class MoreDashboardScreen extends StatelessWidget {
       child: Container(
         constraints: const BoxConstraints(maxWidth: 1200),
         child: SingleChildScrollView(
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Left column - Store info and main features
-              Expanded(
-                flex: 2,
-                child: Padding(
-                  padding: const EdgeInsets.all(24),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // Header
-                      Container(
-                        padding: const EdgeInsets.all(24),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(16),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withOpacity(0.05),
-                              blurRadius: 10,
-                              offset: const Offset(0, 2),
-                            ),
-                          ],
-                        ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Row(
-                              children: [
-                                Container(
-                                  width: 60,
-                                  height: 60,
-                                  decoration: BoxDecoration(
-                                    color: Colors.green.withOpacity(0.1),
-                                    borderRadius: BorderRadius.circular(12),
-                                  ),
-                                  child: const Icon(
-                                    Icons.store,
-                                    color: Colors.green,
-                                    size: 30,
-                                  ),
-                                ),
-                                const SizedBox(width: 16),
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        'Cửa hàng ABC',
-                                        style: h2.copyWith(fontWeight: FontWeight.bold),
-                                      ),
-                                      const SizedBox(height: 4),
-                                      Text(
-                                        'Nhân viên kho',
-                                        style: body.copyWith(color: textSecondary),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                                IconButton(
-                                  icon: const Icon(Icons.edit, color: Colors.grey),
-                                  onPressed: () {/* TODO */},
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 16),
-                            Container(
-                              width: double.infinity,
-                              padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
-                              decoration: BoxDecoration(
-                                color: const Color(0xFFF3F6FA),
-                                borderRadius: BorderRadius.circular(8),
+          child: Builder(
+            builder: (context) => Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Left column - Store info and main features
+                Expanded(
+                  flex: 2,
+                  child: Padding(
+                    padding: const EdgeInsets.all(24),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // Header
+                        Container(
+                          padding: const EdgeInsets.all(24),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(16),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withOpacity(0.05),
+                                blurRadius: 10,
+                                offset: const Offset(0, 2),
                               ),
-                              child: Row(
+                            ],
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
                                 children: [
-                                  const Icon(Icons.info_outline, color: Colors.grey),
-                                  const SizedBox(width: 8),
-                                  Text(
-                                    'Thông tin cửa hàng',
-                                    style: body.copyWith(fontWeight: FontWeight.w600),
+                                  Container(
+                                    width: 60,
+                                    height: 60,
+                                    decoration: BoxDecoration(
+                                      color: Colors.green.withOpacity(0.1),
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                    child: const Icon(
+                                      Icons.store,
+                                      color: Colors.green,
+                                      size: 30,
+                                    ),
                                   ),
-                                  const Spacer(),
-                                  const Icon(Icons.chevron_right, color: Colors.grey),
+                                  const SizedBox(width: 16),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          'Cửa hàng ABC',
+                                          style: h2.copyWith(fontWeight: FontWeight.bold),
+                                        ),
+                                        const SizedBox(height: 4),
+                                        Text(
+                                          'Nhân viên kho',
+                                          style: body.copyWith(color: textSecondary),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  IconButton(
+                                    icon: const Icon(Icons.edit, color: Colors.grey),
+                                    onPressed: () {/* TODO */},
+                                  ),
                                 ],
                               ),
-                            ),
-                          ],
+                              const SizedBox(height: 16),
+                              Container(
+                                width: double.infinity,
+                                padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFFF3F6FA),
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: Row(
+                                  children: [
+                                    const Icon(Icons.info_outline, color: Colors.grey),
+                                    const SizedBox(width: 8),
+                                    Text(
+                                      'Thông tin cửa hàng',
+                                      style: body.copyWith(fontWeight: FontWeight.w600),
+                                    ),
+                                    const Spacer(),
+                                    const Icon(Icons.chevron_right, color: Colors.grey),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
-                      ),
-                      const SizedBox(height: 24),
-                      // Main features grid
-                      _buildDesktopGroup('Giao dịch', [
-                        _MoreDashboardItem(icon: Icons.shopping_cart, label: 'Tạo đơn', onTap: () { onNavigate(MainPage.orderCreate); }),
-                        _MoreDashboardItem(icon: Icons.receipt_long, label: 'Hóa đơn', onTap: () {/* TODO */}),
-                        _MoreDashboardItem(icon: Icons.store, label: 'Cửa hàng', onTap: () {/* TODO */}),
-                      ]),
-                      const SizedBox(height: 16),
-                      _buildDesktopGroup('Hàng hoá', [
-                        _MoreDashboardItem(icon: Icons.inventory_2, label: 'Hàng hoá', onTap: () { onNavigate(MainPage.productList); }),
-                        _MoreDashboardItem(icon: Icons.category, label: 'Danh mục', onTap: () { onNavigate(MainPage.productCategory); }),
-                        _MoreDashboardItem(icon: Icons.inventory, label: 'Tồn kho', onTap: () { onNavigate(MainPage.inventory); }),
-                      ]),
-                      const SizedBox(height: 16),
-                      _buildDesktopGroup('Đối tác', [
-                        _MoreDashboardItem(icon: Icons.people, label: 'Khách hàng', onTap: () { onNavigate(MainPage.customers); }),
-                        _MoreDashboardItem(icon: Icons.business, label: 'Nhà cung cấp', onTap: () { onNavigate(MainPage.companies); }),
-                      ]),
-                      const SizedBox(height: 16),
-                      _buildDesktopGroup('Báo cáo', [
-                        _MoreDashboardItem(icon: Icons.bar_chart, label: 'Doanh thu', onTap: () {/* TODO */}),
-                        _MoreDashboardItem(icon: Icons.inventory, label: 'Hàng tồn', onTap: () {/* TODO */}),
-                      ]),
-                      const SizedBox(height: 16),
-                      _buildDesktopGroup('Tài chính', [
-                        _MoreDashboardItem(icon: Icons.payments, label: 'Thanh toán', onTap: () {/* TODO */}),
-                        _MoreDashboardItem(icon: Icons.history, label: 'Lịch sử', onTap: () {/* TODO */}),
-                      ]),
-                    ],
+                        const SizedBox(height: 24),
+                        // Main features grid
+                        _buildDesktopGroup('Giao dịch', [
+                          _MoreDashboardItem(icon: Icons.shopping_cart, label: 'Tạo đơn', onTap: () { onNavigate(MainPage.orderCreate); }),
+                          _MoreDashboardItem(icon: Icons.receipt_long, label: 'Hóa đơn', onTap: () {/* TODO */}),
+                          _MoreDashboardItem(icon: Icons.store, label: 'Cửa hàng', onTap: () {/* TODO */}),
+                        ]),
+                        const SizedBox(height: 16),
+                        _buildDesktopGroup('Hàng hoá', [
+                          _MoreDashboardItem(icon: Icons.inventory_2, label: 'Hàng hoá', onTap: () { onNavigate(MainPage.productList); }),
+                          _MoreDashboardItem(icon: Icons.category, label: 'Danh mục', onTap: () { onNavigate(MainPage.productCategory); }),
+                          _MoreDashboardItem(icon: Icons.inventory, label: 'Tồn kho', onTap: () { onNavigate(MainPage.inventory); }),
+                        ]),
+                        const SizedBox(height: 16),
+                        _buildDesktopGroup('Đối tác', [
+                          _MoreDashboardItem(icon: Icons.people, label: 'Khách hàng', onTap: () { onNavigate(MainPage.customers); }),
+                          _MoreDashboardItem(icon: Icons.business, label: 'Nhà cung cấp', onTap: () { onNavigate(MainPage.companies); }),
+                        ]),
+                        const SizedBox(height: 16),
+                        _buildDesktopGroup('Báo cáo', [
+                          _MoreDashboardItem(icon: Icons.bar_chart, label: 'Doanh thu', onTap: () {/* TODO */}),
+                          _MoreDashboardItem(icon: Icons.inventory, label: 'Hàng tồn', onTap: () {/* TODO */}),
+                        ]),
+                        const SizedBox(height: 16),
+                        _buildDesktopGroup('Tài chính', [
+                          _MoreDashboardItem(icon: Icons.payments, label: 'Thanh toán', onTap: () {/* TODO */}),
+                          _MoreDashboardItem(icon: Icons.history, label: 'Lịch sử', onTap: () {/* TODO */}),
+                        ]),
+                      ],
+                    ),
                   ),
                 ),
-              ),
-              const SizedBox(width: 16),
-              // Right column - Settings and support
-              Expanded(
-                flex: 1,
-                child: Padding(
-                  padding: const EdgeInsets.all(24),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      _buildDesktopSettingsBlock('CÀI ĐẶT CHUNG', [
-                        _SettingsListItem(icon: Icons.store, label: 'Thiết lập cửa hàng', onTap: () {/* TODO */}),
-                        _SettingsListItem(icon: Icons.devices, label: 'Ứng dụng & thiết bị', onTap: () {/* TODO */}),
-                        _SettingsListItem(icon: Icons.group, label: 'Quản lý người dùng', onTap: () {/* TODO */}),
-                      ]),
-                      const SizedBox(height: 16),
-                      _buildDesktopSettingsBlock('HỖ TRỢ', [
-                        _SettingsListItem(icon: Icons.help_outline, label: 'Hướng dẫn sử dụng', onTap: () {/* TODO */}),
-                        _SettingsListItem(icon: Icons.chat, label: 'Chat với KiotViet', onTap: () {/* TODO */}),
-                        _SettingsListItem(icon: Icons.phone, label: 'Gọi tổng đài 19006522', onTap: () {/* TODO */}),
-                      ]),
-                    ],
+                const SizedBox(width: 16),
+                // Right column - Settings and support
+                Expanded(
+                  flex: 1,
+                  child: Padding(
+                    padding: const EdgeInsets.all(24),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        _buildDesktopSettingsBlock('CÀI ĐẶT CHUNG', [
+                          _SettingsListItem(icon: Icons.store, label: 'Thiết lập cửa hàng', onTap: () {/* TODO */}),
+                          _SettingsListItem(icon: Icons.devices, label: 'Ứng dụng & thiết bị', onTap: () {/* TODO */}),
+                          _SettingsListItem(icon: Icons.group, label: 'Quản lý người dùng', onTap: () {/* TODO */}),
+                          _SettingsListItem(icon: Icons.account_balance, label: 'Cài đặt VietQR', onTap: () {
+                            Navigator.of(context).push(MaterialPageRoute(builder: (_) => VietQRSettingsScreen()));
+                          }),
+                        ], context),
+                        const SizedBox(height: 16),
+                        _buildDesktopSettingsBlock('HỖ TRỢ', [
+                          _SettingsListItem(icon: Icons.help_outline, label: 'Hướng dẫn sử dụng', onTap: () {/* TODO */}),
+                          _SettingsListItem(icon: Icons.chat, label: 'Chat với KiotViet', onTap: () {/* TODO */}),
+                          _SettingsListItem(icon: Icons.phone, label: 'Gọi tổng đài 19006522', onTap: () {/* TODO */}),
+                        ], context),
+                      ],
+                    ),
                   ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),
@@ -1059,7 +1064,7 @@ class MoreDashboardScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildDesktopSettingsBlock(String title, List<_SettingsListItem> items) {
+  Widget _buildDesktopSettingsBlock(String title, List<_SettingsListItem> items, BuildContext context) {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -1299,6 +1304,9 @@ class _MoreDashboardSheetContent extends StatelessWidget {
             _SettingsListItem(icon: Icons.store, label: 'Thiết lập cửa hàng', onTap: () {/* TODO */}),
             _SettingsListItem(icon: Icons.devices, label: 'Ứng dụng & thiết bị', onTap: () {/* TODO */}),
             _SettingsListItem(icon: Icons.group, label: 'Quản lý người dùng', onTap: () {/* TODO */}),
+            _SettingsListItem(icon: Icons.account_balance, label: 'Cài đặt VietQR', onTap: () {
+              Navigator.of(context).push(MaterialPageRoute(builder: (_) => VietQRSettingsScreen()));
+            }),
           ],
         ),
         _buildSettingsBlock(

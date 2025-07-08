@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../widgets/common/design_system.dart';
+import '../screens/settings_screen.dart' show SettingsScreen, BankSettingForm;
 
 class DashboardModernScreen extends StatelessWidget {
   const DashboardModernScreen({super.key});
@@ -186,7 +187,21 @@ void showMoreSheet(BuildContext context) {
     ),
     builder: (context) {
       final items = [
-        {'icon': Icons.settings, 'label': 'Cài đặt'},
+        {'icon': Icons.settings, 'label': 'Cài đặt', 'onTap': () {
+          Navigator.pop(context);
+          Navigator.of(context).push(MaterialPageRoute(builder: (_) => SettingsScreen()));
+        }},
+        {'icon': Icons.account_balance, 'label': 'Cài đặt VietQR', 'onTap': () async {
+          Navigator.pop(context);
+          await showDialog(
+            context: context,
+            builder: (ctx) => AlertDialog(
+              title: const Text('Cài đặt tài khoản ngân hàng (VietQR)'),
+              content: SizedBox(width: 320, child: BankSettingForm()),
+              actions: [TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Đóng'))],
+            ),
+          );
+        }},
         {'icon': Icons.bar_chart, 'label': 'Báo cáo'},
         {'icon': Icons.receipt, 'label': 'Hóa đơn'},
         {'icon': Icons.account_circle, 'label': 'Tài khoản'},
@@ -200,16 +215,19 @@ void showMoreSheet(BuildContext context) {
           shrinkWrap: true,
           mainAxisSpacing: 16,
           crossAxisSpacing: 16,
-          children: items.map((item) => Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              CircleAvatar(
-                backgroundColor: mainGreen.withOpacity(0.1),
-                child: Icon(item['icon'] as IconData, color: mainGreen),
-              ),
-              const SizedBox(height: 8),
-              Text(item['label'] as String, style: bodySmall),
-            ],
+          children: items.map((item) => GestureDetector(
+            onTap: item['onTap'] as VoidCallback?,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                CircleAvatar(
+                  backgroundColor: mainGreen.withOpacity(0.1),
+                  child: Icon(item['icon'] as IconData, color: mainGreen),
+                ),
+                const SizedBox(height: 8),
+                Text(item['label'] as String, style: bodySmall),
+              ],
+            ),
           )).toList(),
         ),
       );
