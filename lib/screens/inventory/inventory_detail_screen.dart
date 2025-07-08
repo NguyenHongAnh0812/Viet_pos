@@ -7,6 +7,7 @@ import 'package:flutter/services.dart';
 import '../../services/product_service.dart';
 import '../../widgets/common/design_system.dart';
 import '../../models/product.dart';
+import 'inventory_confirm_screen.dart';
 
 class InventoryDetailScreen extends StatefulWidget {
   final String sessionId;
@@ -30,6 +31,7 @@ class _InventoryDetailScreenState extends State<InventoryDetailScreen> {
   final Map<String, TextEditingController> _actualControllers = {};
   final Map<String, TextEditingController> _noteControllers = {};
   List<Product> _products = [];
+  Set<String> _selectedItemIds = {};
 
   @override
   void initState() {
@@ -82,6 +84,8 @@ class _InventoryDetailScreenState extends State<InventoryDetailScreen> {
         'diff': data['diff'] ?? 0,
         'note': (data['note'] ?? '').toString(),
         'stock_invoice': product.stockInvoice ?? 0,
+        'sku': product.sku ?? '',
+        'barcode': product.barcode ?? '',
       };
     }).toList();
     setState(() {
@@ -141,6 +145,8 @@ class _InventoryDetailScreenState extends State<InventoryDetailScreen> {
         'stock_actual': actualStock,
         'diff': diff,
         'note': note,
+        'sku': item['sku'] ?? '',
+        'barcode': item['barcode'] ?? '',
       };
       if (docSnap.exists) {
         await docRef.update(data);
@@ -254,283 +260,143 @@ class _InventoryDetailScreenState extends State<InventoryDetailScreen> {
     final session = _sessionDoc!.data() as Map<String, dynamic>;
     final diffCount = _items.where((i) => (i['diff'] ?? 0) != 0).length;
     final totalProducts = _items.length;
+    final checkedCount = _selectedItemIds.length;
     return Scaffold(
       backgroundColor: appBackground,
-      body: SafeArea(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Heading
-            Container(
-              color: Colors.white,
-              padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 12),
-              child: Row(
-                children: [
-                  IconButton(
-                    icon: const Icon(Icons.arrow_back_ios_new, color: Color(0xFF222B45)),
-                    onPressed: () {
-                      final mainLayoutState = context.findAncestorStateOfType<MainLayoutState>();
-                      if (mainLayoutState != null) {
-                        mainLayoutState.onSidebarTap(MainPage.inventory);
-                      }
-                    },
-                  ),
-                  const SizedBox(width: 8),
-                  Text(
-                    'Chi tiết kiểm kê',
-                    style: h2Mobile,
-                  ),
-                ],
-              ),
-            ),
-            Container(
-              height: 1,
-              color: borderColor,
-            ),
-            // Body
-            Expanded(
-              child: Container(
-                color: appBackground,
-                padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 15),
-                width: double.infinity,
-                child: _buildBody(context, isMobile, session, diffCount, totalProducts),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildBody(BuildContext context, bool isMobile, Map<String, dynamic> session, int diffCount, int totalProducts) {
-    return SingleChildScrollView(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      body: Stack(
         children: [
-          // Header
-          Container(
-            width: double.infinity,
-            padding: isMobile ? const EdgeInsets.symmetric(horizontal: 15, vertical: 12) : const EdgeInsets.all(24),
-            margin: const EdgeInsets.only(bottom: 24),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(8),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.05),
-                  blurRadius: 10,
-                  offset: const Offset(0, 2),
-                ),
-              ],
-            ),
-            child: isMobile
-                ? Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          Expanded(
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Heading xanh + progress bar
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.only(top: 32, left: 0, right: 0, bottom: 16),
+                color: mainGreen,
+                child: Column(
+                  children: [
+                    Row(
+                      children: [
+                        IconButton(
+                          icon: const Icon(Icons.arrow_back, color: Colors.white),
+                          onPressed: () {
+                            final mainLayoutState = context.findAncestorStateOfType<MainLayoutState>();
+                            if (mainLayoutState != null) {
+                              mainLayoutState.onSidebarTap(MainPage.inventory);
+                            } else {
+                              Navigator.pop(context);
+                            }
+                          },
+                        ),
+                        Expanded(
+                          child: Center(
                             child: Text(
-                              session['name']?.isNotEmpty == true ? session['name'] : 'Kiểm kê kho',
-                              style: h2.copyWith(fontWeight: FontWeight.bold, color: textPrimary, fontSize: 18),
+                              'Kiểm kê kho',
+                              style: h2Mobile.copyWith(color: Colors.white, fontWeight: FontWeight.bold),
                             ),
                           ),
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                            decoration: BoxDecoration(
-                              border: Border.all(color: mainGreen),
-                              borderRadius: BorderRadius.circular(8),
+                        ),
+                        const SizedBox(width: 48), // Để cân icon back
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        Padding(
+                          padding: const EdgeInsets.only(left: 16),
+                          child: Text('$checkedCount/$totalProducts', style: body.copyWith(color: Colors.white, fontWeight: FontWeight.bold)),
+                        ),
+                        Expanded(
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 16),
+                            child: LinearProgressIndicator(
+                              value: totalProducts > 0 ? checkedCount / totalProducts : 0,
+                              backgroundColor: Colors.white.withOpacity(0.3),
                               color: Colors.white,
-                            ),
-                            child: Text(
-                              displayStatus,
-                              style: body.copyWith(color: mainGreen, fontWeight: FontWeight.bold, fontSize: 13),
+                              minHeight: 6,
                             ),
                           ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+              // Body
+              Expanded(
+                child: Container(
+                  color: appBackground,
+                  padding: const EdgeInsets.symmetric(horizontal: 0, vertical: 0),
+                  width: double.infinity,
+                  child: SingleChildScrollView(
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 0, vertical: 0),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const SizedBox(height: 12),
+                          ...filteredItems.map((item) => _buildStyledMobileProductCard(context, item)).toList(),
+                          const SizedBox(height: 80), // Để không bị che bởi footer
                         ],
                       ),
-                      const SizedBox(height: 10),
-                      _infoRowMobile('Ngày kiểm kê', (() {
-                        final createdAt = session['created_at'];
-                        if (createdAt is Timestamp) {
-                          return createdAt.toDate().toString().split(' ')[0];
-                        } else if (createdAt is DateTime) {
-                          return createdAt.toString().split(' ')[0];
-                        } else if (createdAt != null) {
-                          return DateTime.tryParse(createdAt.toString())?.toString().split(' ')[0] ?? '';
-                        } else {
-                          return '';
-                        }
-                      })()),
-                      _infoRowMobile('Cập nhật kho', displayStatus),
-                      _infoRowMobile('Người kiểm kê', _userInfo?['name'] ?? session['created_by'] ?? ''),
-                      if (_userInfo?['email'] != null)
-                        _infoRowMobile('Email', _userInfo?['email'] ?? ''),
-                      _infoRowMobile('Số sản phẩm', '$totalProducts'),
-                      _infoRowMobile('Số sản phẩm lệch', '$diffCount', color: diffCount > 0 ? warningOrange : textSecondary),
-                      if ((session['note'] ?? '').toString().isNotEmpty)
-                        _infoRowMobile('Ghi chú', session['note'] ?? ''),
-                    ],
-                  )
-                : Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Expanded(
-                        flex: 2,
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text('Ngày kiểm kê', style: body.copyWith(color: textSecondary)),
-                            const SizedBox(height: 4),
-                            (() {
-                              final createdAt = session['created_at'];
-                              if (createdAt is Timestamp) {
-                                return Text(createdAt.toDate().toString().split(' ')[0], style: body.copyWith(fontWeight: FontWeight.bold, color: textPrimary));
-                              } else if (createdAt is DateTime) {
-                                return Text(createdAt.toString().split(' ')[0], style: body.copyWith(fontWeight: FontWeight.bold, color: textPrimary));
-                              } else if (createdAt != null) {
-                                return Text(DateTime.tryParse(createdAt.toString())?.toString().split(' ')[0] ?? '', style: body.copyWith(fontWeight: FontWeight.bold, color: textPrimary));
-                              } else {
-                                return Text('', style: body);
-                              }
-                            })(),
-                            const SizedBox(height: 16),
-                            Text('Cập nhật kho', style: body.copyWith(fontWeight: FontWeight.w500, color: textPrimary)),
-                            const SizedBox(height: 4),
-                            Text(displayStatus, style: body.copyWith(fontWeight: FontWeight.w500, color: textPrimary)),
-                            const SizedBox(height: 16),
-                            Text('Ghi chú', style: body.copyWith(color: textSecondary)),
-                            const SizedBox(height: 4),
-                            Text(session['note'] ?? '', style: body.copyWith(fontWeight: FontWeight.w500, color: textPrimary)),
-                          ],
-                        ),
-                      ),
-                      Expanded(
-                        flex: 2,
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text('Người kiểm kê', style: body.copyWith(color: textSecondary)),
-                            const SizedBox(height: 4),
-                            Text(_userInfo?['name'] ?? session['created_by'] ?? '', style: body.copyWith(fontWeight: FontWeight.bold, color: textPrimary)),
-                            if (_userInfo?['email'] != null)
-                              Text(_userInfo?['email'] ?? '', style: body.copyWith(color: textSecondary)),
-                          ],
-                        ),
-                      ),
-                      Expanded(
-                        flex: 1,
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text('Số sản phẩm', style: body.copyWith(color: textSecondary)),
-                            const SizedBox(height: 4),
-                            Text('$totalProducts', style: body.copyWith(fontWeight: FontWeight.w500, color: textPrimary)),
-                          ],
-                        ),
-                      ),
-                      Expanded(
-                        flex: 1,
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text('Số sản phẩm lệch', style: body.copyWith(color: textSecondary)),
-                            const SizedBox(height: 4),
-                            Text('$diffCount', style: body.copyWith(fontWeight: FontWeight.bold, color: diffCount > 0 ? warningOrange : textSecondary)),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-          ),
-          // Search and action buttons
-          Row(
-            children: [
-              Expanded(
-                child: TextField(
-                  controller: _searchController,
-                  onChanged: (v) => setState(() => _searchText = v),
-                  decoration: InputDecoration(
-                    hintText: 'Tìm kiếm sản phẩm...',
-                    prefixIcon: const Icon(Icons.search, color: textSecondary),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8),
-                      borderSide: const BorderSide(color: borderColor),
                     ),
-                    enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8),
-                      borderSide: const BorderSide(color: borderColor),
-                    ),
-                    focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8),
-                      borderSide: const BorderSide(color: mainGreen, width: 1.5),
-                    ),
-                    filled: true,
-                    isDense: true,
-                     fillColor: Colors.transparent,
                   ),
                 ),
               ),
-              const SizedBox(width: 16),
-              if (!isCompleted && !isUpdated) ...[
-                const SizedBox(width: 16),
-                ElevatedButton(
-                      onPressed: _completeLoading
-                          ? null
-                          : () async {
-                              final confirmed = await showDesignSystemDialog<bool>(
-                                context: context,
-                                title: 'Xác nhận hoàn tất phiên kiểm kê',
-                                content: Text('Sau khi hoàn tất, bạn không thể thay đổi số liệu kiểm kê.', style: body),
-                                icon: Icons.check_circle,
-                                iconColor: Colors.green,
-                                  actions: [
-                                    TextButton(
-                                      onPressed: () => Navigator.pop(context, false),
-                                      child: const Text('Hủy'),
-                                    ),
-                                    ElevatedButton(
-                                      onPressed: () => Navigator.pop(context, true),
-                                    style: primaryButtonStyle,
-                                      child: _completeLoading
-                                          ? SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                                          : const Text('Xác nhận'),
-                                    ),
-                                  ],
-                              );
-                              if (confirmed == true) {
-                                _confirmCompleteInventory();
-                              }
-                            },
-                      style: primaryButtonStyle,
-                      child: _completeLoading
-                          ? SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                          : const Text('Hoàn tất kiểm kê'),
-                    ),
-              ] else if (isCompleted && !isUpdated) ...[
-                ElevatedButton(
-                  onPressed: _updateStockLoading ? null : _updateStock,
-                  style: primaryButtonStyle,
-                  child: _updateStockLoading
-                      ? SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                      : const Text('Cập nhật tồn kho'),
-                ),
-              ]
             ],
           ),
-          const SizedBox(height: 16),
-          // Table header
-
-          // Product list
-          isMobile
-            ? Column(
+          // Footer cố định
+          Positioned(
+            left: 0, right: 0, bottom: 0,
+            child: Container(
+              color: Colors.white,
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              child: Row(
                 children: [
-                  for (final item in filteredItems)
-                    _buildStyledMobileProductCard(context, item),
+                  Expanded(
+                    child: OutlinedButton(
+                      onPressed: () {
+                        // Lưu tạm
+                        _saveAsDraft();
+                      },
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: textPrimary,
+                        side: const BorderSide(color: borderColor),
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        textStyle: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                        backgroundColor: Colors.white,
+                      ),
+                      child: const Text('Lưu tạm'),
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: ElevatedButton(
+                      onPressed: checkedCount == totalProducts && totalProducts > 0 ? () {
+                        // Chuyển sang màn xác nhận kiểm kê
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => InventoryConfirmScreen(sessionId: widget.sessionId),
+                          ),
+                        );
+                      } : null,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: mainGreen,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        textStyle: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                        elevation: 0,
+                      ),
+                      child: const Text('Tiếp tục'),
+                    ),
+                  ),
                 ],
-              )
-            : _buildProductTable(context, isMobile),
-          const SizedBox(height: 24),
+              ),
+            ),
+          ),
         ],
       ),
     );
@@ -693,75 +559,190 @@ class _InventoryDetailScreenState extends State<InventoryDetailScreen> {
     final id = item['id'] ?? item['product_id'];
     final actualController = _actualControllers[id] ??= TextEditingController(text: (item['stock_actual']?.toString() ?? ''));
     final systemStock = item['stock_system'] ?? 0;
-    final unit = item['unit'] ?? 'Viên';
+    final unit = item['unit'] ?? '';
     final note = (item['note'] ?? '').toString();
+    int actualValue = int.tryParse(actualController.text) ?? 0;
+    void setActual(int v) {
+      actualController.text = v.toString();
+      _itemService.updateItem(id, {'stock_actual': v, 'diff': v - systemStock});
+    }
+    final isSelected = _selectedItemIds.contains(id);
+    if (isSelected) {
+      // Đã kiểm kê: chỉ còn tiêu đề, sku, mã vạch và nút check
+      return Container(
+        margin: const EdgeInsets.symmetric(vertical: 8),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: Colors.grey.shade200, width: 1),
+        ),
+        child: Row(
+          children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text((item['product_name'] ?? '').toString(), style: body.copyWith(fontWeight: FontWeight.bold, color: textPrimary, fontSize: 15)),
+                  const SizedBox(height: 2),
+                  Text('SKU: ${item['sku'] ?? ''}', style: body.copyWith(fontSize: 11, color: textSecondary)),
+                  Text('Mã vạch: ${item['barcode'] ?? ''}', style: body.copyWith(fontSize: 11, color: textSecondary)),
+                ],
+              ),
+            ),
+            GestureDetector(
+              onTap: () {
+                setState(() {
+                  _selectedItemIds.remove(id);
+                });
+              },
+              child: Container(
+                width: 28,
+                height: 28,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: mainGreen,
+                ),
+                child: const Icon(Icons.check, color: Colors.white, size: 18),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+    // Chưa kiểm kê: full layout
     return Container(
-      margin: const EdgeInsets.symmetric(vertical: 10),
-      padding: const EdgeInsets.all(20),
+      margin: const EdgeInsets.symmetric(vertical: 8),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(14),
         border: Border.all(color: Colors.grey.shade200, width: 1),
       ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      child: Column(
         children: [
-          // Left: Info
-          Expanded(
-            flex: 4,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text((item['product_name'] ?? '').toString(), style: body.copyWith(fontWeight: FontWeight.bold, color: textPrimary, fontSize: 18)),
-                const SizedBox(height: 6),
-                Text('SKU: ${item['sku'] ?? ''}', style: body.copyWith(color: textSecondary, fontSize: 14)),
-                Text('Mã vạch: ${item['barcode'] ?? ''}', style: body.copyWith(color: textSecondary, fontSize: 14)),
-                const SizedBox(height: 18),
-                Row(
+          // Tiêu đề, sku, mã vạch và nút check
+          Row(
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('Tồn hệ thống', style: body.copyWith(fontSize: 15, color: textSecondary)),
-                    const SizedBox(width: 32),
-                    Text('Tồn thực tế', style: body.copyWith(fontSize: 15, color: textSecondary)),
+                    Text((item['product_name'] ?? '').toString(), style: body.copyWith(fontWeight: FontWeight.bold, color: textPrimary, fontSize: 15)),
+                    const SizedBox(height: 2),
+                    Text('SKU: ${item['sku'] ?? ''}', style: body.copyWith(fontSize: 11, color: textSecondary)),
+                    Text('Mã vạch: ${item['barcode'] ?? ''}', style: body.copyWith(fontSize: 11, color: textSecondary)),
                   ],
                 ),
-                const SizedBox(height: 2),
-                Row(
+              ),
+              GestureDetector(
+                onTap: () {
+                  setState(() {
+                    _selectedItemIds.add(id);
+                  });
+                },
+                child: Container(
+                  width: 28,
+                  height: 28,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    border: Border.all(color: Colors.grey.shade300, width: 2),
+                    color: Colors.white,
+                  ),
+                  child: null,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          // Hai cột tồn kho
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Tồn hệ thống
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('$systemStock $unit', style: body.copyWith(fontWeight: FontWeight.bold, fontSize: 20, color: textPrimary)),
-                    const SizedBox(width: 32),
-                    SizedBox(
-                      width: 120,
-                      child: TextField(
-                        controller: actualController,
-                        keyboardType: TextInputType.number,
-                        textAlign: TextAlign.right,
-                        inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                        style: body.copyWith(fontSize: 18, color: textPrimary),
-                        decoration: InputDecoration(
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(8),
-                            borderSide: BorderSide(color: Colors.grey.shade300),
-                          ),
-                          isDense: true,
-                          contentPadding: const EdgeInsets.symmetric(vertical: 10, horizontal: 14),
-                        ),
-                      ),
+                    Padding(
+                      padding: const EdgeInsets.only(left: 2),
+                      child: Text('Tồn hệ thống', style: body.copyWith(fontSize: 12, color: textSecondary)),
+                    ),
+                    const SizedBox(height: 2),
+                    Padding(
+                      padding: const EdgeInsets.only(left: 2),
+                      child: Text('$systemStock $unit', style: body.copyWith(fontWeight: FontWeight.bold, fontSize: 16, color: textPrimary)),
                     ),
                   ],
                 ),
-                if (note.isNotEmpty)
-                  Padding(
-                    padding: const EdgeInsets.only(top: 14),
-                    child: Text('Ghi chú: $note', style: body.copyWith(fontSize: 13, color: Colors.grey)),
-                  ),
-              ],
+              ),
+              // Tồn thực tế
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.only(right: 2),
+                      child: Text('Tồn thực tế', style: body.copyWith(fontSize: 12, color: textSecondary)),
+                    ),
+                    const SizedBox(height: 2),
+                    LayoutBuilder(
+                      builder: (context, constraints) {
+                        final inputWidth = constraints.maxWidth;
+                        return Container(
+                          width: inputWidth,
+                          height: 40,
+                          decoration: BoxDecoration(
+                            border: Border.all(color: Colors.grey.shade300),
+                            borderRadius: BorderRadius.circular(6),
+                            color: Colors.white,
+                          ),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              IconButton(
+                                icon: const Icon(Icons.remove, size: 18),
+                                splashRadius: 18,
+                                onPressed: actualValue > 0 ? () {
+                                  setState(() {
+                                    actualValue--;
+                                    setActual(actualValue);
+                                  });
+                                } : null,
+                              ),
+                              Expanded(
+                                child: Center(
+                                  child: Text(
+                                    actualValue.toString(),
+                                    style: body.copyWith(fontWeight: FontWeight.bold, fontSize: 16, color: textPrimary),
+                                  ),
+                                ),
+                              ),
+                              IconButton(
+                                icon: const Icon(Icons.add, size: 18),
+                                splashRadius: 18,
+                                onPressed: () {
+                                  setState(() {
+                                    actualValue++;
+                                    setActual(actualValue);
+                                  });
+                                },
+                              ),
+                            ],
+                          ),
+                        );
+                      },
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          if (note.isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.only(top: 10),
+              child: Text('Ghi chú: $note', style: body.copyWith(fontSize: 11, color: Colors.grey)),
             ),
-          ),
-          // Right: Scan icon
-          Container(
-            margin: const EdgeInsets.only(left: 8, top: 2),
-            child: Icon(Icons.qr_code_scanner, color: mainGreen, size: 22),
-          ),
         ],
       ),
     );
