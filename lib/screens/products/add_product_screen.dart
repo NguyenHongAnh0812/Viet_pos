@@ -15,7 +15,7 @@ import 'package:image_picker/image_picker.dart';
 import 'dart:io';
 import 'package:flutter/foundation.dart';
 // ignore: avoid_web_libraries_in_flutter
-import 'dart:html' as html;
+// import 'dart:html' as html if (dart.library.io) 'dart:io' as html;
 import 'package:collection/collection.dart';
 import '../../widgets/common/design_system.dart';
 import '../../models/product_category.dart';
@@ -184,28 +184,28 @@ class _AddProductScreenState extends State<AddProductScreen> with TickerProvider
   }
 
   Future<void> _pickMultiImageFromGallery() async {
-    if (kIsWeb) {
-      final input = html.FileUploadInputElement()..accept = 'image/*'..multiple = true;
-      input.click();
-      input.onChange.listen((event) {
-        final files = input.files;
-        if (files != null && files.isNotEmpty) {
-          int remain = 5 - _webImageBytesList.length;
-          if (files.length > remain) {
-            _showPopupNotification('Chỉ được chọn tối đa 5 ảnh', Icons.error_outline);
-          }
-          for (final file in files.take(remain)) {
-            final reader = html.FileReader();
-            reader.readAsArrayBuffer(file);
-            reader.onLoadEnd.listen((event) {
-              setState(() {
-                _webImageBytesList.add(reader.result as Uint8List);
-              });
-            });
-          }
-        }
-      });
-    } else {
+    // if (kIsWeb) {
+    //   final input = html.FileUploadInputElement()..accept = 'image/*'..multiple = true;
+    //   input.click();
+    //   input.onChange.listen((event) {
+    //     final files = input.files;
+    //     if (files != null && files.isNotEmpty) {
+    //       int remain = 5 - _webImageBytesList.length;
+    //       if (files.length > remain) {
+    //         _showPopupNotification('Chỉ được chọn tối đa 5 ảnh', Icons.error_outline);
+    //       }
+    //       for (final file in files.take(remain)) {
+    //         final reader = html.FileReader();
+    //         reader.readAsArrayBuffer(file);
+    //         reader.onLoadEnd.listen((event) {
+    //           setState(() {
+    //             _webImageBytesList.add(reader.result as Uint8List);
+    //           });
+    //         });
+    //       }
+    //     }
+    //   });
+    // } else {
       final pickedFiles = await _picker.pickMultiImage(imageQuality: 80);
       if (pickedFiles.isNotEmpty) {
         int remain = 5 - _productImageFiles.length;
@@ -216,7 +216,7 @@ class _AddProductScreenState extends State<AddProductScreen> with TickerProvider
           _productImageFiles.addAll(pickedFiles.take(remain).map((e) => File(e.path)));
         });
       }
-    }
+    // }
   }
 
   Future<void> _pickImageFromCamera() async {
