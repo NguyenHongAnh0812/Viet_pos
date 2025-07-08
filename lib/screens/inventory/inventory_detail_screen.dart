@@ -7,6 +7,7 @@ import 'package:flutter/services.dart';
 import '../../services/product_service.dart';
 import '../../widgets/common/design_system.dart';
 import '../../models/product.dart';
+import 'inventory_confirm_screen.dart';
 
 class InventoryDetailScreen extends StatefulWidget {
   final String sessionId;
@@ -30,6 +31,8 @@ class _InventoryDetailScreenState extends State<InventoryDetailScreen> {
   final Map<String, TextEditingController> _actualControllers = {};
   final Map<String, TextEditingController> _noteControllers = {};
   List<Product> _products = [];
+  Set<String> _selectedItemIds = {};
+  Set<String> _checkedItemIds = {};
 
   @override
   void initState() {
@@ -82,6 +85,9 @@ class _InventoryDetailScreenState extends State<InventoryDetailScreen> {
         'diff': data['diff'] ?? 0,
         'note': (data['note'] ?? '').toString(),
         'stock_invoice': product.stockInvoice ?? 0,
+        'sku': product.sku ?? '',
+        'barcode': product.barcode ?? '',
+        'checked': data['checked'] ?? false,
       };
     }).toList();
     setState(() {
@@ -89,6 +95,14 @@ class _InventoryDetailScreenState extends State<InventoryDetailScreen> {
       _items = itemsList.cast<Map<String, dynamic>>();
       _loading = false;
     });
+    // Sau khi lấy _items, khôi phục trạng thái checked từ DB
+    _checkedItemIds.clear();
+    for (final item in _items) {
+      if (item['checked'] == true) {
+        _checkedItemIds.add(item['id'] ?? item['product_id']);
+      }
+    }
+    setState(() {});
   }
 
   List<Map<String, dynamic>> get filteredItems {
@@ -141,6 +155,9 @@ class _InventoryDetailScreenState extends State<InventoryDetailScreen> {
         'stock_actual': actualStock,
         'diff': diff,
         'note': note,
+        'sku': item['sku'] ?? '',
+        'barcode': item['barcode'] ?? '',
+        'checked': _checkedItemIds.contains(id), // Lưu trạng thái checked
       };
       if (docSnap.exists) {
         await docRef.update(data);
@@ -151,7 +168,7 @@ class _InventoryDetailScreenState extends State<InventoryDetailScreen> {
     await FirebaseFirestore.instance
         .collection('inventory_sessions')
         .doc(widget.sessionId)
-        .update({'status': 'đang kiểm kê'});
+        .update({'status': 'draft'});
     await _syncSessionProducts();
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -160,60 +177,46 @@ class _InventoryDetailScreenState extends State<InventoryDetailScreen> {
           backgroundColor: Colors.green,
         ),
       );
+      
+      // Quay về danh sách kiểm kê
+      final mainLayoutState = context.findAncestorStateOfType<MainLayoutState>();
+      if (mainLayoutState != null) {
+        mainLayoutState.onSidebarTap(MainPage.inventory);
+      } else {
+        Navigator.pop(context);
+      }
     }
   }
 
   bool get isCompleted {
     final data = _sessionDoc?.data() as Map<String, dynamic>?;
-    return (data?['status'] ?? '') == 'Đã hoàn tất';
+    return (data?['status'] ?? '') == 'checked';
   }
   bool get isUpdated {
     final data = _sessionDoc?.data() as Map<String, dynamic>?;
-    return (data?['status'] ?? '') == 'Đã cập nhật kho';
+    return (data?['status'] ?? '') == 'updated';
   }
 
   Future<void> _confirmCompleteInventory() async {
-    setState(() { _completeLoading = true; });
-    final notCheckedCount = _items.where((i) => i['stock_actual'] == null || i['stock_actual'].toString().isEmpty).length;
-    if (notCheckedCount > 0) {
-      final contentWidget = Text(
-        notCheckedCount > 0
-          ? 'Có $notCheckedCount sản phẩm chưa kiểm kê. Bạn vẫn muốn hoàn tất?'
-          : 'Sau khi hoàn tất, bạn không thể thay đổi số liệu kiểm kê.',
-        style: body,
-      );
-      final confirmed = await showDesignSystemDialog<bool>(
-        context: context,
-        title: 'Xác nhận hoàn tất phiên kiểm kê',
-        content: contentWidget,
-        icon: Icons.check_circle,
-        iconColor: Colors.green,
-          actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('Hủy'),
-          ),
-          ElevatedButton(
-            onPressed: () => Navigator.pop(context, true),
-            style: primaryButtonStyle,
-            child: const Text('Xác nhận'),
-          ),
-          ],
-      );
-      if (confirmed != true) {
-        setState(() { _completeLoading = false; });
-        return;
-      }
-    }
-    await FirebaseFirestore.instance.collection('inventory_sessions').doc(widget.sessionId).update({'status': 'Đã hoàn tất'});
-    await _syncSessionProducts();
-    await _fetchData();
-    if (mounted) {
+    try {
+      await FirebaseFirestore.instance.collection('inventory_sessions').doc(widget.sessionId).update({'status': 'checked'});
+      
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Đã hoàn tất kiểm kê!'), backgroundColor: Colors.green),
+        const SnackBar(content: Text('Đã xác nhận kiểm kê')),
+      );
+      
+      // Quay về danh sách kiểm kê
+      final mainLayoutState = context.findAncestorStateOfType<MainLayoutState>();
+      if (mainLayoutState != null) {
+        mainLayoutState.onSidebarTap(MainPage.inventory);
+      } else {
+        Navigator.pop(context);
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Lỗi khi xác nhận kiểm kê: $e')),
       );
     }
-    setState(() { _completeLoading = false; });
   }
 
   Future<void> _updateStock() async {
@@ -227,7 +230,7 @@ class _InventoryDetailScreenState extends State<InventoryDetailScreen> {
         debugPrint('Lỗi khi cập nhật productId=$productId: $e');
       }
     }
-    await FirebaseFirestore.instance.collection('inventory_sessions').doc(widget.sessionId).update({'status': 'Đã cập nhật kho'});
+    await FirebaseFirestore.instance.collection('inventory_sessions').doc(widget.sessionId).update({'status': 'updated'});
     await _syncSessionProducts();
     await _fetchData();
     if (mounted) {
@@ -239,10 +242,83 @@ class _InventoryDetailScreenState extends State<InventoryDetailScreen> {
 
   String get displayStatus {
     final status = (_sessionDoc?.data() as Map<String, dynamic>?)?['status'] ?? '';
-    if (status == 'in_progress' || status == 'đang kiểm kê') return 'Đang kiểm kê';
-    if (status == 'Đã hoàn tất') return 'Đã hoàn tất';
-    if (status == 'Đã cập nhật kho') return 'Đã cập nhật kho';
+    if (status == 'draft') return 'Đang kiểm kê';
+    if (status == 'checked') return 'Đã hoàn tất';
+    if (status == 'updated') return 'Đã cập nhật kho';
     return status;
+  }
+
+  String _formatDate(dynamic timestamp) {
+    if (timestamp == null) return 'Không rõ thời gian';
+    try {
+      if (timestamp is Timestamp) {
+        final date = timestamp.toDate();
+        return '${date.day}/${date.month}/${date.year} ${date.hour}:${date.minute.toString().padLeft(2, '0')}';
+      }
+      return 'Không rõ thời gian';
+    } catch (e) {
+      return 'Không rõ thời gian';
+    }
+  }
+
+  void _showFeedbackHistory(List<dynamic> feedbackHistory) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Row(
+          children: [
+            Icon(Icons.feedback, color: const Color(0xFFFF6B35)),
+            const SizedBox(width: 8),
+            Text('Lịch sử phản hồi', style: bodyLarge.copyWith(fontWeight: FontWeight.bold)),
+          ],
+        ),
+        content: SizedBox(
+          width: double.maxFinite,
+          child: ListView.builder(
+            shrinkWrap: true,
+            itemCount: feedbackHistory.length,
+            itemBuilder: (context, index) {
+              final feedback = feedbackHistory[feedbackHistory.length - 1 - index]; // Hiển thị mới nhất trước
+              return Container(
+                margin: const EdgeInsets.only(bottom: 12),
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFFF8F6),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: const Color(0xFFFF6B35).withOpacity(0.3)),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      feedback['note'] ?? 'Không có nội dung',
+                      style: body.copyWith(color: textPrimary),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'Bởi: ${feedback['user'] ?? 'Không rõ'} - ${_formatDate(feedback['timestamp'])}',
+                      style: bodySmall.copyWith(color: textSecondary),
+                    ),
+                  ],
+                ),
+              );
+            },
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text('Đóng', style: body.copyWith(color: textSecondary)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void setActual(int v, String id, int systemStock) {
+    _actualControllers[id]?.text = v.toString();
+    _itemService.updateItem(id, {'stock_actual': v, 'diff': v - systemStock});
+    setState(() {});
   }
 
   @override
@@ -254,283 +330,205 @@ class _InventoryDetailScreenState extends State<InventoryDetailScreen> {
     final session = _sessionDoc!.data() as Map<String, dynamic>;
     final diffCount = _items.where((i) => (i['diff'] ?? 0) != 0).length;
     final totalProducts = _items.length;
+    final checkedCount = _checkedItemIds.length;
+    
+    // Lấy lịch sử phản hồi
+    final List<dynamic> feedbackHistory = (session['feedback_history'] as List<dynamic>?) ?? [];
+    final hasFeedback = feedbackHistory.isNotEmpty;
     return Scaffold(
-      backgroundColor: appBackground,
-      body: SafeArea(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Heading
-            Container(
-              color: Colors.white,
-              padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 12),
-              child: Row(
-                children: [
-                  IconButton(
-                    icon: const Icon(Icons.arrow_back_ios_new, color: Color(0xFF222B45)),
-                    onPressed: () {
-                      final mainLayoutState = context.findAncestorStateOfType<MainLayoutState>();
-                      if (mainLayoutState != null) {
-                        mainLayoutState.onSidebarTap(MainPage.inventory);
-                      }
-                    },
-                  ),
-                  const SizedBox(width: 8),
-                  Text(
-                    'Chi tiết kiểm kê',
-                    style: h2Mobile,
-                  ),
-                ],
-              ),
-            ),
-            Container(
-              height: 1,
-              color: borderColor,
-            ),
-            // Body
-            Expanded(
-              child: Container(
-                color: appBackground,
-                padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 15),
-                width: double.infinity,
-                child: _buildBody(context, isMobile, session, diffCount, totalProducts),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildBody(BuildContext context, bool isMobile, Map<String, dynamic> session, int diffCount, int totalProducts) {
-    return SingleChildScrollView(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      backgroundColor: const Color(0xFFF6F7F8),
+      body: Stack(
         children: [
-          // Header
-          Container(
-            width: double.infinity,
-            padding: isMobile ? const EdgeInsets.symmetric(horizontal: 15, vertical: 12) : const EdgeInsets.all(24),
-            margin: const EdgeInsets.only(bottom: 24),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(8),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.05),
-                  blurRadius: 10,
-                  offset: const Offset(0, 2),
-                ),
-              ],
-            ),
-            child: isMobile
-                ? Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          Expanded(
-                            child: Text(
-                              session['name']?.isNotEmpty == true ? session['name'] : 'Kiểm kê kho',
-                              style: h2.copyWith(fontWeight: FontWeight.bold, color: textPrimary, fontSize: 18),
-                            ),
-                          ),
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                            decoration: BoxDecoration(
-                              border: Border.all(color: mainGreen),
-                              borderRadius: BorderRadius.circular(8),
-                              color: Colors.white,
-                            ),
-                            child: Text(
-                              displayStatus,
-                              style: body.copyWith(color: mainGreen, fontWeight: FontWeight.bold, fontSize: 13),
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 10),
-                      _infoRowMobile('Ngày kiểm kê', (() {
-                        final createdAt = session['created_at'];
-                        if (createdAt is Timestamp) {
-                          return createdAt.toDate().toString().split(' ')[0];
-                        } else if (createdAt is DateTime) {
-                          return createdAt.toString().split(' ')[0];
-                        } else if (createdAt != null) {
-                          return DateTime.tryParse(createdAt.toString())?.toString().split(' ')[0] ?? '';
-                        } else {
-                          return '';
-                        }
-                      })()),
-                      _infoRowMobile('Cập nhật kho', displayStatus),
-                      _infoRowMobile('Người kiểm kê', _userInfo?['name'] ?? session['created_by'] ?? ''),
-                      if (_userInfo?['email'] != null)
-                        _infoRowMobile('Email', _userInfo?['email'] ?? ''),
-                      _infoRowMobile('Số sản phẩm', '$totalProducts'),
-                      _infoRowMobile('Số sản phẩm lệch', '$diffCount', color: diffCount > 0 ? warningOrange : textSecondary),
-                      if ((session['note'] ?? '').toString().isNotEmpty)
-                        _infoRowMobile('Ghi chú', session['note'] ?? ''),
-                    ],
-                  )
-                : Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Expanded(
-                        flex: 2,
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text('Ngày kiểm kê', style: body.copyWith(color: textSecondary)),
-                            const SizedBox(height: 4),
-                            (() {
-                              final createdAt = session['created_at'];
-                              if (createdAt is Timestamp) {
-                                return Text(createdAt.toDate().toString().split(' ')[0], style: body.copyWith(fontWeight: FontWeight.bold, color: textPrimary));
-                              } else if (createdAt is DateTime) {
-                                return Text(createdAt.toString().split(' ')[0], style: body.copyWith(fontWeight: FontWeight.bold, color: textPrimary));
-                              } else if (createdAt != null) {
-                                return Text(DateTime.tryParse(createdAt.toString())?.toString().split(' ')[0] ?? '', style: body.copyWith(fontWeight: FontWeight.bold, color: textPrimary));
-                              } else {
-                                return Text('', style: body);
-                              }
-                            })(),
-                            const SizedBox(height: 16),
-                            Text('Cập nhật kho', style: body.copyWith(fontWeight: FontWeight.w500, color: textPrimary)),
-                            const SizedBox(height: 4),
-                            Text(displayStatus, style: body.copyWith(fontWeight: FontWeight.w500, color: textPrimary)),
-                            const SizedBox(height: 16),
-                            Text('Ghi chú', style: body.copyWith(color: textSecondary)),
-                            const SizedBox(height: 4),
-                            Text(session['note'] ?? '', style: body.copyWith(fontWeight: FontWeight.w500, color: textPrimary)),
-                          ],
-                        ),
-                      ),
-                      Expanded(
-                        flex: 2,
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text('Người kiểm kê', style: body.copyWith(color: textSecondary)),
-                            const SizedBox(height: 4),
-                            Text(_userInfo?['name'] ?? session['created_by'] ?? '', style: body.copyWith(fontWeight: FontWeight.bold, color: textPrimary)),
-                            if (_userInfo?['email'] != null)
-                              Text(_userInfo?['email'] ?? '', style: body.copyWith(color: textSecondary)),
-                          ],
-                        ),
-                      ),
-                      Expanded(
-                        flex: 1,
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text('Số sản phẩm', style: body.copyWith(color: textSecondary)),
-                            const SizedBox(height: 4),
-                            Text('$totalProducts', style: body.copyWith(fontWeight: FontWeight.w500, color: textPrimary)),
-                          ],
-                        ),
-                      ),
-                      Expanded(
-                        flex: 1,
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text('Số sản phẩm lệch', style: body.copyWith(color: textSecondary)),
-                            const SizedBox(height: 4),
-                            Text('$diffCount', style: body.copyWith(fontWeight: FontWeight.bold, color: diffCount > 0 ? warningOrange : textSecondary)),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-          ),
-          // Search and action buttons
-          Row(
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Expanded(
-                child: TextField(
-                  controller: _searchController,
-                  onChanged: (v) => setState(() => _searchText = v),
-                  decoration: InputDecoration(
-                    hintText: 'Tìm kiếm sản phẩm...',
-                    prefixIcon: const Icon(Icons.search, color: textSecondary),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8),
-                      borderSide: const BorderSide(color: borderColor),
+              // Heading xanh + progress bar
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.only(top: 32, left: 0, right: 0, bottom: 16),
+                color: mainGreen,
+                child: Column(
+                  children: [
+                    Row(
+                      children: [
+                        IconButton(
+                          icon: const Icon(Icons.arrow_back, color: Colors.white),
+                          onPressed: () {
+                            final mainLayoutState = context.findAncestorStateOfType<MainLayoutState>();
+                            if (mainLayoutState != null) {
+                              mainLayoutState.onSidebarTap(MainPage.inventory);
+                            } else {
+                              Navigator.pop(context);
+                            }
+                          },
+                        ),
+                        Expanded(
+                          child: Center(
+                            child: Text(
+                              'Kiểm kê kho',
+                              style: h2Mobile.copyWith(color: Colors.white, fontWeight: FontWeight.bold),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 48), // Để cân icon back
+                      ],
                     ),
-                    enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8),
-                      borderSide: const BorderSide(color: borderColor),
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        Padding(
+                          padding: const EdgeInsets.only(left: 16),
+                          child: Text('$checkedCount/$totalProducts', style: body.copyWith(color: Colors.white, fontWeight: FontWeight.bold)),
+                        ),
+                        Expanded(
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 16),
+                            child: LinearProgressIndicator(
+                              value: totalProducts > 0 ? checkedCount / totalProducts : 0,
+                              backgroundColor: Colors.white.withOpacity(0.3),
+                              color: Colors.white,
+                              minHeight: 6,
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
-                    focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8),
-                      borderSide: const BorderSide(color: mainGreen, width: 1.5),
-                    ),
-                    filled: true,
-                    isDense: true,
-                     fillColor: Colors.transparent,
-                  ),
+                  ],
                 ),
               ),
-              const SizedBox(width: 16),
-              if (!isCompleted && !isUpdated) ...[
-                const SizedBox(width: 16),
-                ElevatedButton(
-                      onPressed: _completeLoading
-                          ? null
-                          : () async {
-                              final confirmed = await showDesignSystemDialog<bool>(
-                                context: context,
-                                title: 'Xác nhận hoàn tất phiên kiểm kê',
-                                content: Text('Sau khi hoàn tất, bạn không thể thay đổi số liệu kiểm kê.', style: body),
-                                icon: Icons.check_circle,
-                                iconColor: Colors.green,
-                                  actions: [
+              // Body
+              Expanded(
+                child: Container(
+                  color: Colors.transparent,
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 0),
+                  width: double.infinity,
+                  child: SingleChildScrollView(
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 0, vertical: 0),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const SizedBox(height: 12),
+                          
+                          // Hiển thị phản hồi nếu có
+                          if (hasFeedback) ...[
+                            Container(
+                              margin: const EdgeInsets.only(bottom: 16),
+                              padding: const EdgeInsets.all(16),
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(color: const Color(0xFFFF6B35), width: 1),
+                              ),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Row(
+                                    children: [
+                                      Icon(
+                                        Icons.feedback,
+                                        color: const Color(0xFFFF6B35),
+                                        size: 20,
+                                      ),
+                                      const SizedBox(width: 8),
+                                      Text(
+                                        'Phản hồi gần nhất',
+                                        style: bodyLarge.copyWith(
+                                          color: const Color(0xFFFF6B35),
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  const SizedBox(height: 8),
+                                  Text(
+                                    feedbackHistory.last['note'] ?? 'Không có nội dung',
+                                    style: body.copyWith(color: textPrimary),
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    'Bởi: ${feedbackHistory.last['user'] ?? 'Không rõ'} - ${_formatDate(feedbackHistory.last['timestamp'])}',
+                                    style: bodySmall.copyWith(color: textSecondary),
+                                  ),
+                                  if (feedbackHistory.length > 1) ...[
+                                    const SizedBox(height: 8),
                                     TextButton(
-                                      onPressed: () => Navigator.pop(context, false),
-                                      child: const Text('Hủy'),
-                                    ),
-                                    ElevatedButton(
-                                      onPressed: () => Navigator.pop(context, true),
-                                    style: primaryButtonStyle,
-                                      child: _completeLoading
-                                          ? SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                                          : const Text('Xác nhận'),
+                                      onPressed: () => _showFeedbackHistory(feedbackHistory),
+                                      child: Text(
+                                        'Xem tất cả phản hồi (${feedbackHistory.length})',
+                                        style: bodySmall.copyWith(color: mainGreen),
+                                      ),
                                     ),
                                   ],
-                              );
-                              if (confirmed == true) {
-                                _confirmCompleteInventory();
-                              }
-                            },
-                      style: primaryButtonStyle,
-                      child: _completeLoading
-                          ? SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                          : const Text('Hoàn tất kiểm kê'),
+                                ],
+                              ),
+                            ),
+                          ],
+                          
+                          ...filteredItems.map((item) => _buildStyledMobileProductCard(context, item)).toList(),
+                          const SizedBox(height: 80), // Để không bị che bởi footer
+                        ],
+                      ),
                     ),
-              ] else if (isCompleted && !isUpdated) ...[
-                ElevatedButton(
-                  onPressed: _updateStockLoading ? null : _updateStock,
-                  style: primaryButtonStyle,
-                  child: _updateStockLoading
-                      ? SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                      : const Text('Cập nhật tồn kho'),
+                  ),
                 ),
-              ]
+              ),
             ],
           ),
-          const SizedBox(height: 16),
-          // Table header
-
-          // Product list
-          isMobile
-            ? Column(
+          // Footer cố định
+          Positioned(
+            left: 0, right: 0, bottom: 0,
+            child: Container(
+              color: Colors.white,
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              child: Row(
                 children: [
-                  for (final item in filteredItems)
-                    _buildStyledMobileProductCard(context, item),
+                  Expanded(
+                    child: OutlinedButton(
+                      onPressed: () {
+                        // Lưu tạm
+                        _saveAsDraft();
+                      },
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: textPrimary,
+                        side: const BorderSide(color: borderColor),
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        textStyle: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                        backgroundColor: Colors.white,
+                      ),
+                      child: const Text('Lưu tạm'),
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: ElevatedButton(
+                      onPressed: (checkedCount == totalProducts && totalProducts > 0)
+                        ? () {
+                            // Chuyển sang màn xác nhận kiểm kê
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => InventoryConfirmScreen(sessionId: widget.sessionId),
+                              ),
+                            );
+                          }
+                        : null,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: mainGreen,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        textStyle: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                        elevation: 0,
+                      ),
+                      child: const Text('Tiếp tục'),
+                    ),
+                  ),
                 ],
-              )
-            : _buildProductTable(context, isMobile),
-          const SizedBox(height: 24),
+              ),
+            ),
+          ),
         ],
       ),
     );
@@ -692,76 +690,212 @@ class _InventoryDetailScreenState extends State<InventoryDetailScreen> {
   Widget _buildStyledMobileProductCard(BuildContext context, Map<String, dynamic> item) {
     final id = item['id'] ?? item['product_id'];
     final actualController = _actualControllers[id] ??= TextEditingController(text: (item['stock_actual']?.toString() ?? ''));
+    final noteController = _noteControllers[id] ??= TextEditingController(text: (item['note']?.toString() ?? ''));
     final systemStock = item['stock_system'] ?? 0;
-    final unit = item['unit'] ?? 'Viên';
-    final note = (item['note'] ?? '').toString();
+    final actualStock = int.tryParse(actualController.text) ?? 0;
+    final diff = actualController.text.isEmpty ? null : actualStock - systemStock;
+    final rowColor = actualController.text.isEmpty
+      ? Colors.grey[100]
+      : diff != null && diff > 0
+        ? Colors.green[50]
+        : diff != null && diff < 0
+          ? Colors.orange[50]
+          : Colors.white;
+    final unit = item['unit'] ?? '';
+    Color diffColor;
+    if (diff == null) {
+      diffColor = Colors.grey;
+    } else if (diff == 0) {
+      diffColor = Colors.green;
+    } else if (diff > 0) {
+      diffColor = Colors.orange;
+    } else {
+      diffColor = Colors.red;
+    }
+
+    // Nếu đã kiểm kê, chỉ hiển thị card rút gọn
+    if (_checkedItemIds.contains(id)) {
+      return Container(
+        margin: const EdgeInsets.only(bottom: 12),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: Colors.grey.shade200, width: 1),
+        ),
+        child: Row(
+          children: [
+            Expanded(
+              child: Text(
+                (item['product_name'] ?? '').toString(),
+                style: body.copyWith(fontWeight: FontWeight.bold, color: textPrimary, fontSize: 15),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+            GestureDetector(
+              onTap: () async {
+                setState(() {
+                  _checkedItemIds.remove(id);
+                });
+                // Cập nhật trạng thái checked vào DB
+                await FirebaseFirestore.instance.collection('inventory_items').doc(id).update({'checked': false});
+              },
+              child: Container(
+                width: 32,
+                height: 32,
+                decoration: BoxDecoration(
+                  color: mainGreen,
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(Icons.check, color: Colors.white, size: 20),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    // Card đầy đủ khi chưa kiểm kê
     return Container(
-      margin: const EdgeInsets.symmetric(vertical: 10),
-      padding: const EdgeInsets.all(20),
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(14),
+        color: rowColor,
+        borderRadius: BorderRadius.circular(12),
         border: Border.all(color: Colors.grey.shade200, width: 1),
       ),
-      child: Row(
+      child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Left: Info
-          Expanded(
-            flex: 4,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text((item['product_name'] ?? '').toString(), style: body.copyWith(fontWeight: FontWeight.bold, color: textPrimary, fontSize: 18)),
-                const SizedBox(height: 6),
-                Text('SKU: ${item['sku'] ?? ''}', style: body.copyWith(color: textSecondary, fontSize: 14)),
-                Text('Mã vạch: ${item['barcode'] ?? ''}', style: body.copyWith(color: textSecondary, fontSize: 14)),
-                const SizedBox(height: 18),
-                Row(
+          Row(
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('Tồn hệ thống', style: body.copyWith(fontSize: 15, color: textSecondary)),
-                    const SizedBox(width: 32),
-                    Text('Tồn thực tế', style: body.copyWith(fontSize: 15, color: textSecondary)),
+                    Text((item['product_name'] ?? '').toString(), style: body.copyWith(fontWeight: FontWeight.bold, color: textPrimary, fontSize: 15)),
+                    const SizedBox(height: 2),
+                    Text('SKU: ${item['sku'] ?? ''}', style: body.copyWith(fontSize: 11, color: textSecondary)),
+                    Text('Mã vạch: ${item['barcode'] ?? ''}', style: body.copyWith(fontSize: 11, color: textSecondary)),
                   ],
                 ),
-                const SizedBox(height: 2),
-                Row(
-                  children: [
-                    Text('$systemStock $unit', style: body.copyWith(fontWeight: FontWeight.bold, fontSize: 20, color: textPrimary)),
-                    const SizedBox(width: 32),
-                    SizedBox(
-                      width: 120,
-                      child: TextField(
-                        controller: actualController,
-                        keyboardType: TextInputType.number,
-                        textAlign: TextAlign.right,
-                        inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                        style: body.copyWith(fontSize: 18, color: textPrimary),
-                        decoration: InputDecoration(
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(8),
-                            borderSide: BorderSide(color: Colors.grey.shade300),
-                          ),
-                          isDense: true,
-                          contentPadding: const EdgeInsets.symmetric(vertical: 10, horizontal: 14),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-                if (note.isNotEmpty)
-                  Padding(
-                    padding: const EdgeInsets.only(top: 14),
-                    child: Text('Ghi chú: $note', style: body.copyWith(fontSize: 13, color: Colors.grey)),
+              ),
+              GestureDetector(
+                onTap: () async {
+                  setState(() {
+                    _checkedItemIds.add(id);
+                  });
+                  // Cập nhật trạng thái checked vào DB
+                  await FirebaseFirestore.instance.collection('inventory_items').doc(id).update({'checked': true});
+                },
+                child: Container(
+                  width: 32,
+                  height: 32,
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    shape: BoxShape.circle,
+                    border: Border.all(color: Colors.grey.shade300, width: 2),
                   ),
-              ],
+                  child: null,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Expanded(child: Text('Tồn hệ thống', style: body.copyWith(fontSize: 13, color: textSecondary))),
+              Expanded(
+                child: Text('Tồn thực tế', style: body.copyWith(fontSize: 13, color: textSecondary), textAlign: TextAlign.right),
+              ),
+            ],
+          ),
+          Row(
+            children: [
+              Expanded(
+                child: Text('${systemStock}${unit.isNotEmpty ? ' $unit' : ''}', style: body.copyWith(fontWeight: FontWeight.bold, fontSize: 18)),
+              ),
+              Expanded(
+                child: LayoutBuilder(
+                  builder: (context, constraints) {
+                    final inputWidth = constraints.maxWidth;
+                    return Container(
+                      width: inputWidth * 0.7,
+                      height: 36,
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        border: Border.all(color: Color(0xFFE5E7EB)),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          SizedBox(
+                            width: 36,
+                            height: 36,
+                            child: IconButton(
+                              icon: const Icon(Icons.remove, size: 18),
+                              splashRadius: 18,
+                              padding: EdgeInsets.zero,
+                              onPressed: actualStock > 0 ? () {
+                                setActual(actualStock - 1, id, systemStock);
+                              } : null,
+                            ),
+                          ),
+                          Expanded(
+                            child: Center(
+                              child: Text(
+                                actualController.text,
+                                style: body.copyWith(fontWeight: FontWeight.bold, fontSize: 16, color: textPrimary),
+                              ),
+                            ),
+                          ),
+                          SizedBox(
+                            width: 36,
+                            height: 36,
+                            child: IconButton(
+                              icon: const Icon(Icons.add, size: 18),
+                              splashRadius: 18,
+                              padding: EdgeInsets.zero,
+                              onPressed: () {
+                                setActual(actualStock + 1, id, systemStock);
+                              },
+                            ),
+                          ),
+                        ],
+                      ),
+                    );
+                  },
+                ),
+              ),
+            ],
+          ),
+          // Block chênh lệch chỉ hiển thị khi số thực tế khác số hệ thống và chưa kiểm kê
+          if (actualController.text.isNotEmpty && diff != 0)
+            Container(
+              margin: const EdgeInsets.only(top: 10),
+              padding: const EdgeInsets.only(top: 10),
+              decoration: const BoxDecoration(
+                border: Border(top: BorderSide(color: Color(0xFFE5E7EB), width: 1)),
+              ),
+              child: Row(
+                children: [
+                  Text('Chênh lệch:', style: body.copyWith(fontSize: 13, color: textSecondary)),
+                  const SizedBox(width: 4),
+                  Text(
+                    (diff != null && diff > 0)
+                      ? '+$diff${unit.isNotEmpty ? ' $unit' : ''}'
+                      : (diff != null ? '$diff${unit.isNotEmpty ? ' $unit' : ''}' : ''),
+                    style: body.copyWith(
+                      fontWeight: FontWeight.bold,
+                      color: diffColor,
+                      fontSize: 14,
+                    ),
+                  ),
+                ],
+              ),
             ),
-          ),
-          // Right: Scan icon
-          Container(
-            margin: const EdgeInsets.only(left: 8, top: 2),
-            child: Icon(Icons.qr_code_scanner, color: mainGreen, size: 22),
-          ),
         ],
       ),
     );
