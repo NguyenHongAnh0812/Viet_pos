@@ -26,6 +26,7 @@ class Product {
   final String contraindication;
   final String direction;
   final String withdrawalTime;
+  final List<String> categoryIds;
 
   Product({
     required this.id,
@@ -53,6 +54,7 @@ class Product {
     this.contraindication = '',
     this.direction = '',
     this.withdrawalTime = '',
+    this.categoryIds = const [],
   });
 
   Map<String, dynamic> toMap() {
@@ -81,6 +83,7 @@ class Product {
       'contraindication': contraindication,
       'direction': direction,
       'withdrawal_time': withdrawalTime,
+      'category_ids': categoryIds,
     };
   }
 
@@ -130,6 +133,7 @@ class Product {
       contraindication: map['contraindication'] ?? '',
       direction: map['direction'] ?? '',
       withdrawalTime: map['withdrawal_time'] ?? '',
+      categoryIds: List<String>.from(map['category_ids'] ?? []),
     );
   }
 
@@ -164,6 +168,7 @@ class Product {
     String? contraindication,
     String? direction,
     String? withdrawalTime,
+    List<String>? categoryIds,
   }) {
     return Product(
       id: id ?? this.id,
@@ -191,6 +196,7 @@ class Product {
       contraindication: contraindication ?? this.contraindication,
       direction: direction ?? this.direction,
       withdrawalTime: withdrawalTime ?? this.withdrawalTime,
+      categoryIds: categoryIds ?? this.categoryIds,
     );
   }
 
@@ -220,6 +226,7 @@ class Product {
       'contraindication': raw['contraindication'] ?? '',
       'direction': raw['direction'] ?? '',
       'withdrawal_time': raw['withdrawal_time'] ?? '',
+      'category_ids': raw['category_ids'] ?? raw['categoryIds'] ?? const [],
     };
   }
 } 
