@@ -248,6 +248,73 @@ class _InventoryDetailScreenState extends State<InventoryDetailScreen> {
     return status;
   }
 
+  String _formatDate(dynamic timestamp) {
+    if (timestamp == null) return 'Không rõ thời gian';
+    try {
+      if (timestamp is Timestamp) {
+        final date = timestamp.toDate();
+        return '${date.day}/${date.month}/${date.year} ${date.hour}:${date.minute.toString().padLeft(2, '0')}';
+      }
+      return 'Không rõ thời gian';
+    } catch (e) {
+      return 'Không rõ thời gian';
+    }
+  }
+
+  void _showFeedbackHistory(List<dynamic> feedbackHistory) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Row(
+          children: [
+            Icon(Icons.feedback, color: const Color(0xFFFF6B35)),
+            const SizedBox(width: 8),
+            Text('Lịch sử phản hồi', style: bodyLarge.copyWith(fontWeight: FontWeight.bold)),
+          ],
+        ),
+        content: SizedBox(
+          width: double.maxFinite,
+          child: ListView.builder(
+            shrinkWrap: true,
+            itemCount: feedbackHistory.length,
+            itemBuilder: (context, index) {
+              final feedback = feedbackHistory[feedbackHistory.length - 1 - index]; // Hiển thị mới nhất trước
+              return Container(
+                margin: const EdgeInsets.only(bottom: 12),
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFFF8F6),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: const Color(0xFFFF6B35).withOpacity(0.3)),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      feedback['note'] ?? 'Không có nội dung',
+                      style: body.copyWith(color: textPrimary),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'Bởi: ${feedback['user'] ?? 'Không rõ'} - ${_formatDate(feedback['timestamp'])}',
+                      style: bodySmall.copyWith(color: textSecondary),
+                    ),
+                  ],
+                ),
+              );
+            },
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text('Đóng', style: body.copyWith(color: textSecondary)),
+          ),
+        ],
+      ),
+    );
+  }
+
   void setActual(int v, String id, int systemStock) {
     _actualControllers[id]?.text = v.toString();
     _itemService.updateItem(id, {'stock_actual': v, 'diff': v - systemStock});
@@ -264,6 +331,10 @@ class _InventoryDetailScreenState extends State<InventoryDetailScreen> {
     final diffCount = _items.where((i) => (i['diff'] ?? 0) != 0).length;
     final totalProducts = _items.length;
     final checkedCount = _checkedItemIds.length;
+    
+    // Lấy lịch sử phản hồi
+    final List<dynamic> feedbackHistory = (session['feedback_history'] as List<dynamic>?) ?? [];
+    final hasFeedback = feedbackHistory.isNotEmpty;
     return Scaffold(
       backgroundColor: const Color(0xFFF6F7F8),
       body: Stack(
@@ -338,6 +409,62 @@ class _InventoryDetailScreenState extends State<InventoryDetailScreen> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           const SizedBox(height: 12),
+                          
+                          // Hiển thị phản hồi nếu có
+                          if (hasFeedback) ...[
+                            Container(
+                              margin: const EdgeInsets.only(bottom: 16),
+                              padding: const EdgeInsets.all(16),
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(color: const Color(0xFFFF6B35), width: 1),
+                              ),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Row(
+                                    children: [
+                                      Icon(
+                                        Icons.feedback,
+                                        color: const Color(0xFFFF6B35),
+                                        size: 20,
+                                      ),
+                                      const SizedBox(width: 8),
+                                      Text(
+                                        'Phản hồi gần nhất',
+                                        style: bodyLarge.copyWith(
+                                          color: const Color(0xFFFF6B35),
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  const SizedBox(height: 8),
+                                  Text(
+                                    feedbackHistory.last['note'] ?? 'Không có nội dung',
+                                    style: body.copyWith(color: textPrimary),
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    'Bởi: ${feedbackHistory.last['user'] ?? 'Không rõ'} - ${_formatDate(feedbackHistory.last['timestamp'])}',
+                                    style: bodySmall.copyWith(color: textSecondary),
+                                  ),
+                                  if (feedbackHistory.length > 1) ...[
+                                    const SizedBox(height: 8),
+                                    TextButton(
+                                      onPressed: () => _showFeedbackHistory(feedbackHistory),
+                                      child: Text(
+                                        'Xem tất cả phản hồi (${feedbackHistory.length})',
+                                        style: bodySmall.copyWith(color: mainGreen),
+                                      ),
+                                    ),
+                                  ],
+                                ],
+                              ),
+                            ),
+                          ],
+                          
                           ...filteredItems.map((item) => _buildStyledMobileProductCard(context, item)).toList(),
                           const SizedBox(height: 80), // Để không bị che bởi footer
                         ],
