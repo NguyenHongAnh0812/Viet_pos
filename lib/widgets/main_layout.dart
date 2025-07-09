@@ -35,6 +35,8 @@ import '../screens/example_standard_screen.dart';
 import '../screens/users/user_list_screen.dart';
 import '../models/user.dart';
 import '../services/user_service.dart';
+import '../screens/users/permissions_overview_screen.dart';
+import '../screens/auth/login_screen.dart';
 
 // Định nghĩa enum cho các trang
 enum MainPage { 
@@ -66,6 +68,7 @@ enum MainPage {
   moreDashboard,
   demoLayout,
   users,
+  permissionsOverview,
 }
 
 class MainLayout extends StatefulWidget {
@@ -566,12 +569,27 @@ class MainLayoutState extends State<MainLayout> with TickerProviderStateMixin {
         return MoreDashboardScreen(onNavigate: onSidebarTap);
       case MainPage.demoLayout:
         return const ExampleStandardScreen();
+      case MainPage.users:
+        return const UserListScreen();
+      case MainPage.permissionsOverview:
+        return const PermissionsOverviewScreen();
       default:
         return const DashboardModernScreen();
     }
   }
 
   void _onNavTap(int index) {
+    final User? currentUser = _currentUser;
+    final bool isEmployee = currentUser?.role == UserRole.employee;
+    if (isEmployee) {
+      if (index == 0) {
+        setState(() { _currentPage = MainPage.dashboard; });
+      } else {
+        setState(() { _currentPage = MainPage.orderCreate; });
+      }
+      return;
+    }
+    // Logic cho admin và role khác
     MainPage targetPage;
     switch (index) {
       case 0:
@@ -592,7 +610,6 @@ class MainLayoutState extends State<MainLayout> with TickerProviderStateMixin {
       default:
         targetPage = MainPage.dashboard;
     }
-    
     setState(() {
       _currentPage = targetPage;
     });
@@ -600,6 +617,24 @@ class MainLayoutState extends State<MainLayout> with TickerProviderStateMixin {
 
   @override
   Widget build(BuildContext context) {
+    final User? currentUser = _currentUser;
+    if (currentUser == null) {
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    }
+    final bool isAdmin = currentUser.role == UserRole.admin;
+    final bool isEmployee = currentUser.role == UserRole.employee;
+
+    // Nếu employee cố truy cập màn khác ngoài dashboard và orderCreate thì tự động chuyển về dashboard
+    if (isEmployee && _currentPage != MainPage.dashboard && _currentPage != MainPage.orderCreate) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        setState(() {
+          _currentPage = MainPage.dashboard;
+        });
+      });
+    }
+
+    final bool canViewUsers = currentUser.hasPermission(Permission.viewUsers);
+
     return Scaffold(
       body: Column(
         children: [
@@ -624,61 +659,87 @@ class MainLayoutState extends State<MainLayout> with TickerProviderStateMixin {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceAround,
               children: [
-                _NavItem(
-                  icon: SvgPicture.asset(
-                    'assets/icons/new_icon/overview.svg', 
-                    width: 20,
-                    height: 20,
-                    color: _currentPage == MainPage.dashboard ? Colors.green : Colors.grey,
+                if (isEmployee) ...[
+                  _NavItem(
+                    icon: SvgPicture.asset(
+                      'assets/icons/new_icon/overview.svg',
+                      width: 20,
+                      height: 20,
+                      color: _currentPage == MainPage.dashboard ? Colors.green : Colors.grey,
+                    ),
+                    label: 'Tổng quan',
+                    selected: _currentPage == MainPage.dashboard,
+                    onTap: () => _onNavTap(0),
                   ),
-                  label: 'Tổng quan',
-                  selected: _currentPage == MainPage.dashboard,
-                  onTap: () => _onNavTap(0),
-                ),
-                _NavItem(
-                  icon: SvgPicture.asset(
-                    'assets/icons/new_icon/product.svg', 
-                    width: 20,
-                    height: 20,
-                    color: _currentPage == MainPage.productList ? Colors.green : Colors.grey
+                  _NavItem(
+                    icon: SvgPicture.asset(
+                      'assets/icons/new_icon/sell.svg',
+                      width: 20,
+                      height: 20,
+                      color: _currentPage == MainPage.orderCreate ? Colors.green : Colors.grey,
+                    ),
+                    label: 'Bán hàng',
+                    selected: _currentPage == MainPage.orderCreate,
+                    onTap: () => _onNavTap(1),
                   ),
-                  label: 'Sản phẩm',
-                  selected: _currentPage == MainPage.productList,
-                  onTap: () => _onNavTap(1),
-                ),
-                _NavItem(
-                  icon: SvgPicture.asset(
-                    'assets/icons/new_icon/sell.svg', 
-                    width: 20,
-                    height: 20,
-                    color: _currentPage == MainPage.orderCreate ? Colors.green : Colors.grey
+                ]
+                else ...[
+                  _NavItem(
+                    icon: SvgPicture.asset(
+                      'assets/icons/new_icon/overview.svg',
+                      width: 20,
+                      height: 20,
+                      color: _currentPage == MainPage.dashboard ? Colors.green : Colors.grey,
+                    ),
+                    label: 'Tổng quan',
+                    selected: _currentPage == MainPage.dashboard,
+                    onTap: () => _onNavTap(0),
                   ),
-                  label: 'Bán hàng',
-                  selected: _currentPage == MainPage.orderCreate,
-                  onTap: () => _onNavTap(2),
-                ),
-                _NavItem(
-                  icon: SvgPicture.asset(
-                    'assets/icons/new_icon/companies.svg', 
-                    width: 20,
-                    height: 20,
-                    color: _currentPage == MainPage.companies ? Colors.green : Colors.grey
+                  _NavItem(
+                    icon: SvgPicture.asset(
+                      'assets/icons/new_icon/product.svg',
+                      width: 20,
+                      height: 20,
+                      color: _currentPage == MainPage.productList ? Colors.green : Colors.grey,
+                    ),
+                    label: 'Sản phẩm',
+                    selected: _currentPage == MainPage.productList,
+                    onTap: () => _onNavTap(1),
                   ),
-                  label: 'Nhà cung cấp',
-                  selected: _currentPage == MainPage.companies,
-                  onTap: () => _onNavTap(3),
-                ),
-                _NavItem(
-                  icon: SvgPicture.asset(
-                    'assets/icons/new_icon/other.svg', 
-                    width: 20,
-                    height: 20,
-                    color: _currentPage == MainPage.moreDashboard ? Colors.green : Colors.grey
+                  _NavItem(
+                    icon: SvgPicture.asset(
+                      'assets/icons/new_icon/sell.svg',
+                      width: 20,
+                      height: 20,
+                      color: _currentPage == MainPage.orderCreate ? Colors.green : Colors.grey,
+                    ),
+                    label: 'Bán hàng',
+                    selected: _currentPage == MainPage.orderCreate,
+                    onTap: () => _onNavTap(2),
                   ),
-                  label: 'Thêm',
-                  selected: _currentPage == MainPage.moreDashboard,
-                  onTap: () => _onNavTap(4),
-                ),
+                  _NavItem(
+                    icon: SvgPicture.asset(
+                      'assets/icons/new_icon/companies.svg',
+                      width: 20,
+                      height: 20,
+                      color: _currentPage == MainPage.companies ? Colors.green : Colors.grey,
+                    ),
+                    label: 'Nhà cung cấp',
+                    selected: _currentPage == MainPage.companies,
+                    onTap: () => _onNavTap(3),
+                  ),
+                  _NavItem(
+                    icon: SvgPicture.asset(
+                      'assets/icons/new_icon/other.svg',
+                      width: 20,
+                      height: 20,
+                      color: _currentPage == MainPage.moreDashboard ? Colors.green : Colors.grey,
+                    ),
+                    label: 'Thêm',
+                    selected: _currentPage == MainPage.moreDashboard,
+                    onTap: () => _onNavTap(4),
+                  ),
+                ]
               ],
             ),
           ),
@@ -848,31 +909,28 @@ class MoreDashboardScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isMobile = MediaQuery.of(context).size.width < 600;
+    final mainLayoutState = context.findAncestorStateOfType<MainLayoutState>();
+    final User? currentUser = mainLayoutState?._currentUser;
     
+    final bool canViewUsers = currentUser?.hasPermission(Permission.viewUsers) ?? false;
+
     return Scaffold(
       backgroundColor: const Color(0xFFF9FAFB),
       body: SafeArea(
-        child: isMobile 
-          ? _buildMobileLayout()
-          : _buildDesktopLayout(),
+        child: MediaQuery.of(context).size.width < 600
+            ? _buildMobileLayout(context)
+            : _buildDesktopLayout(context),
       ),
     );
   }
 
-  Widget _buildMobileLayout() {
+  Widget _buildMobileLayout(BuildContext context) {
     return SingleChildScrollView(
       child: Padding(
         padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 12),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _StoreInfoBlock(
-              storeName: 'Cửa hàng',
-              role: 'Nhân viên kho',
-              onEdit: () {/* TODO: Sửa thông tin cửa hàng */},
-              onInfo: () {/* TODO: Xem thông tin cửa hàng */},
-            ),
             const SizedBox(height: 10),
             _MoreDashboardSheetContent(onNavigate: onNavigate),
           ],
@@ -881,7 +939,12 @@ class MoreDashboardScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildDesktopLayout() {
+  Widget _buildDesktopLayout(BuildContext context) {
+    final mainLayoutState = context.findAncestorStateOfType<MainLayoutState>();
+    final User? currentUser = mainLayoutState?._currentUser;
+    
+    final bool canViewUsers = currentUser?.hasPermission(Permission.viewUsers) ?? false;
+
     return Center(
       child: Container(
         constraints: const BoxConstraints(maxWidth: 1200),
@@ -1172,6 +1235,37 @@ class _MoreDashboardSheetContent extends StatelessWidget {
   final void Function(MainPage) onNavigate;
   const _MoreDashboardSheetContent({required this.onNavigate});
 
+  Future<void> _logout(BuildContext context) async {
+    final UserService _userService = UserService();
+    
+    // Hiển thị dialog xác nhận theo design system
+    final confirmed = await showLogoutDialog(context);
+
+    if (confirmed == true) {
+      try {
+        // Đăng xuất khỏi Firebase Auth
+        await _userService.signOut();
+        
+        // Hiển thị thông báo thành công
+        if (context.mounted) {
+          showSuccessSnackBar(context, 'Đã đăng xuất thành công');
+        }
+        
+        // Chuyển về màn hình login và xóa tất cả route
+        if (context.mounted) {
+          Navigator.of(context).pushAndRemoveUntil(
+            MaterialPageRoute(builder: (_) => const LoginScreen()),
+            (route) => false,
+          );
+        }
+      } catch (e) {
+        if (context.mounted) {
+          showErrorSnackBar(context, 'Có lỗi xảy ra: ${e.toString()}');
+        }
+      }
+    }
+  }
+
   Widget _buildGroup(String title, List<_MoreDashboardItem> items) {
     return Builder(
       builder: (context) {
@@ -1259,11 +1353,11 @@ class _MoreDashboardSheetContent extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Lấy user hiện tại từ MainLayoutState
     final mainLayoutState = context.findAncestorStateOfType<MainLayoutState>();
     final User? currentUser = mainLayoutState?._currentUser;
     final bool canViewUsers = currentUser?.hasPermission(Permission.viewUsers) ?? false;
 
+    print('TEST: currentUser = ${currentUser?.role.name}');
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -1418,6 +1512,10 @@ class _MoreDashboardSheetContent extends StatelessWidget {
             _SettingsListItem(icon: Icons.devices, label: 'Ứng dụng & thiết bị', onTap: () {/* TODO */}),
             if (canViewUsers)
               _SettingsListItem(icon: Icons.group, label: 'Quản lý người dùng', onTap: () { onNavigate(MainPage.users); }),
+            if (canViewUsers)
+              _SettingsListItem(icon: Icons.security, label: 'Phân quyền chi tiết', onTap: () {
+                onNavigate(MainPage.permissionsOverview);
+              }),
             _SettingsListItem(icon: Icons.account_balance, label: 'Cài đặt VietQR', onTap: () {
               Navigator.of(context).push(MaterialPageRoute(builder: (_) => VietQRSettingsScreen()));
             }),
@@ -1438,7 +1536,9 @@ class _MoreDashboardSheetContent extends StatelessWidget {
             _SettingsListItem(icon: Icons.file_upload, label: 'Import hóa đơn', onTap: () { onNavigate(MainPage.invoiceImportList); }),
             _SettingsListItem(icon: Icons.style, label: 'Style Guide', onTap: () { onNavigate(MainPage.styleGuide); }),
             _SettingsListItem(icon: Icons.screen_share, label: 'Demo Layout', onTap: () { onNavigate(MainPage.demoLayout); }),
-            _SettingsListItem(icon: Icons.logout, label: 'Đăng xuất', onTap: () {/* TODO: logout */}, isDestructive: true),
+            _SettingsListItem(icon: Icons.logout, label: 'Đăng xuất', onTap: () {
+              _logout(context);
+            }, isDestructive: true),
           ],
         ),
       ],

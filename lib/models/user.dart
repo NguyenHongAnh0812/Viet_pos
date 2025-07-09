@@ -82,7 +82,9 @@ class User {
 
   factory User.fromFirestore(DocumentSnapshot doc) {
     final data = doc.data() as Map<String, dynamic>;
-    
+    print('DEBUG: Firestore user data = ' + data.toString());
+    print('DEBUG: data["role"] =  [36m${data['role']} [0m, type = ${data['role']?.runtimeType}');
+    final String roleStr = (data['role'] ?? 'employee').toString().toLowerCase();
     return User(
       id: doc.id,
       email: data['email'] ?? '',
@@ -90,7 +92,7 @@ class User {
       phone: data['phone'],
       avatar: data['avatar'],
       role: UserRole.values.firstWhere(
-        (role) => role.name == (data['role'] ?? 'employee'),
+        (role) => role.name == roleStr,
         orElse: () => UserRole.employee,
       ),
       permissions: (data['permissions'] as List<dynamic>?)
@@ -98,7 +100,7 @@ class User {
                 (perm) => perm.name == p,
                 orElse: () => Permission.viewProducts,
               ))
-          .toList() ?? getDefaultPermissions(data['role'] ?? 'employee'),
+          .toList() ?? getDefaultPermissions(roleStr),
       isActive: data['isActive'] ?? true,
       createdAt: (data['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
       updatedAt: (data['updatedAt'] as Timestamp?)?.toDate() ?? DateTime.now(),

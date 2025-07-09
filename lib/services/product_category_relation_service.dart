@@ -71,6 +71,11 @@ class ProductCategoryRelationService {
     await batch.commit();
   }
 
+  // Xóa tất cả mối quan hệ của một danh mục (alias)
+  Future<void> deleteProductCategoryByCategoryId(String categoryId) async {
+    await deleteCategoryProducts(categoryId);
+  }
+
   // Lấy tất cả mối quan hệ của một sản phẩm
   Stream<List<ProductCategoryRelation>> getProductCategories(String productId) {
     return _firestore

@@ -113,11 +113,9 @@ class _MultiSelectDropdownState<T> extends State<MultiSelectDropdown<T>> {
                       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
                       child: TextField(
                         controller: tempSearchController,
-                        decoration: InputDecoration(
-                          hintText: 'Tìm kiếm...',
-                          isDense: true,
-                          contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                        decoration: searchInputDecoration(
+                          hint: 'Tìm kiếm...',
+                          prefixIcon: const Icon(Icons.search, color: textSecondary),
                         ),
                         style: body,
                         onChanged: (val) => setStateDialog(() { tempSearch = val.trim(); }),

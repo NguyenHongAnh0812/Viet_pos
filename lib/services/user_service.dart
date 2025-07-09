@@ -186,4 +186,45 @@ class UserService {
       'isActive': isActive,
     });
   }
+
+  // Kiểm tra xem có user nào trong hệ thống không
+  Future<bool> hasAnyUsers() async {
+    try {
+      final snapshot = await _firestore.collection(_collection).limit(1).get();
+      return snapshot.docs.isNotEmpty;
+    } catch (e) {
+      print('Error checking if users exist: $e');
+      return false;
+    }
+  }
+
+  // Kiểm tra xem có admin nào trong hệ thống không
+  Future<bool> hasAnyAdmins() async {
+    try {
+      final snapshot = await _firestore
+          .collection(_collection)
+          .where('role', isEqualTo: 'admin')
+          .limit(1)
+          .get();
+      return snapshot.docs.isNotEmpty;
+    } catch (e) {
+      print('Error checking if admins exist: $e');
+      return false;
+    }
+  }
+
+  // Xóa tất cả users (chỉ dùng cho testing)
+  Future<void> clearAllUsers() async {
+    try {
+      final snapshot = await _firestore.collection(_collection).get();
+      final batch = _firestore.batch();
+      for (final doc in snapshot.docs) {
+        batch.delete(doc.reference);
+      }
+      await batch.commit();
+      print('DEBUG: Cleared all users');
+    } catch (e) {
+      print('Error clearing users: $e');
+    }
+  }
 } 

@@ -9,6 +9,8 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../models/product_category.dart';
 import '../../widgets/common/design_system.dart';
 import 'add_product_category_screen.dart';
+import 'edit_product_category_screen.dart';
+
 
 class ProductCategoryScreen extends StatefulWidget {
   final Function(MainPage)? onNavigate;
@@ -74,11 +76,29 @@ class _ProductCategoryScreenState extends State<ProductCategoryScreen> with Sing
     return snapshot.docs.length;
   }
 
+  Future<void> _createSampleCategoryTree() async {
+    // Tạo cây mẫu: Thuốc (root) > Vitamin > Vitamin B, Kháng sinh, Thuốc giảm đau
+    final rootId = (await _categoryService.addCategory(ProductCategory(id: '', name: 'Thuốc', description: 'Danh mục thuốc chính')));
+    final snapshot = await _categoryService.getCategories().first;
+    final rootCat = snapshot.firstWhere((c) => c.name == 'Thuốc');
+    await _categoryService.addCategory(ProductCategory(id: '', name: 'Vitamin', description: 'Vitamin và khoáng chất', parentId: rootCat.id));
+    await _categoryService.addCategory(ProductCategory(id: '', name: 'Kháng sinh', description: 'Thuốc kháng sinh', parentId: rootCat.id));
+    await _categoryService.addCategory(ProductCategory(id: '', name: 'Thuốc giảm đau', description: 'Thuốc giảm đau, hạ sốt', parentId: rootCat.id));
+    // Thêm 1 cấp con cho Vitamin
+    final vitaminCat = (await _categoryService.getCategories().first).firstWhere((c) => c.name == 'Vitamin');
+    await _categoryService.addCategory(ProductCategory(id: '', name: 'Vitamin B', description: 'Vitamin nhóm B', parentId: vitaminCat.id));
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Đã tạo cây danh mục mẫu!'), backgroundColor: Colors.green),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: const Color(0xFF4CAF50),
+        backgroundColor: mainGreen,
         elevation: 0,
         centerTitle: true,
         leading: BackButton(
@@ -87,19 +107,22 @@ class _ProductCategoryScreenState extends State<ProductCategoryScreen> with Sing
             if (Navigator.of(context).canPop()) {
               Navigator.of(context).pop();
             } else if (widget.onNavigate != null) {
-              widget.onNavigate!(MainPage.moreDashboard); // hoặc MainPage.home tuỳ app của bạn
+              widget.onNavigate!(MainPage.moreDashboard);
             }
           },
         ),
-        title: const Text(
+        title: Text(
           'Danh mục sản phẩm',
-          style: TextStyle(
-            color: Colors.white,
-            fontWeight: FontWeight.w700,
-            fontSize: 18,
-          ),
+          style: h3.copyWith(color: Colors.white, fontWeight: FontWeight.w700),
         ),
         iconTheme: const IconThemeData(color: Colors.white),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.account_tree, color: Colors.white),
+            tooltip: 'Tạo cây danh mục mẫu',
+            onPressed: _createSampleCategoryTree,
+          ),
+        ],
       ),
       backgroundColor: appBackground,
       body: Container(
@@ -159,7 +182,7 @@ class _ProductCategoryScreenState extends State<ProductCategoryScreen> with Sing
         ),
       ),
       floatingActionButton: FloatingActionButton(
-        backgroundColor: const Color(0xFF4CAF50),
+        backgroundColor: mainGreen,
         shape: const CircleBorder(),
         onPressed: () async {
           // Mở trang thêm danh mục mới
@@ -167,13 +190,25 @@ class _ProductCategoryScreenState extends State<ProductCategoryScreen> with Sing
             context,
             MaterialPageRoute(
               builder: (context) => AddProductCategoryScreen(
-                onBack: () => Navigator.pop(context, true),
+                onBack: () => Navigator.pop(context), // Sửa lại, không trả về true
               ),
             ),
           );
           // Nếu thêm thành công, có thể reload lại dữ liệu nếu cần
           if (result == true) {
-            setState(() {}); // Gọi lại build để reload stream nếu cần
+            // Reset product counts để load lại số lượng sản phẩm cho danh mục mới
+            setState(() {
+              _productCounts.clear();
+            });
+            // Force reload counts cho tất cả categories sau khi thêm mới
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              _categoryStream.first.then((categories) {
+                if (mounted) {
+                  _forceReloadAllCounts(categories);
+                }
+              });
+            });
+            showSuccessSnackBar(context, 'Đã thêm danh mục thành công!');
           }
         },
         child: const Icon(Icons.add, color: Colors.white),
@@ -199,20 +234,20 @@ class _ProductCategoryScreenState extends State<ProductCategoryScreen> with Sing
             Container(
               decoration: BoxDecoration(
                 color: Colors.white,
-                borderRadius: BorderRadius.circular(16),
-                border: level == 0 ? Border.all(color: const Color(0xFFE0E0E0)) : null,
-                boxShadow: [
+                borderRadius: BorderRadius.circular(borderRadiusMedium),
+                border: level == 0 ? Border.all(color: borderColor) : null,
+                boxShadow: level == 0 ? [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.02),
-                    blurRadius: 2,
-                    offset: const Offset(0, 1),
+                    color: Colors.black.withOpacity(0.03),
+                    blurRadius: 6,
+                    offset: const Offset(0, 2),
                   ),
-                ],
+                ] : null,
               ),
               child: Column(
                 children: [
                   InkWell(
-                    borderRadius: BorderRadius.circular(16),
+                    borderRadius: BorderRadius.circular(borderRadiusMedium),
                     onTap: () {
                       if (hasChildren) {
                         _toggleExpand(category.id);
@@ -227,57 +262,110 @@ class _ProductCategoryScreenState extends State<ProductCategoryScreen> with Sing
                       }
                     },
                     child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
                       child: Row(
                         crossAxisAlignment: CrossAxisAlignment.center,
                         children: [
-                          if (hasChildren)
-                            Icon(
-                              isExpanded ? Icons.keyboard_arrow_down : Icons.keyboard_arrow_right,
-                              color: Colors.grey[700],
-                              size: 26,
-                            ),
-                          if (!hasChildren)
-                            SizedBox(width: 2),
-                          SizedBox(width: 2),
+                          // Icon theo level
+                          Icon(
+                            level == 0 ? Icons.category : Icons.subdirectory_arrow_right,
+                            color: level == 0 ? mainGreen : textSecondary,
+                            size: level == 0 ? 20 : 16,
+                          ),
+                          const SizedBox(width: 12),
+                          // Tiêu đề + badge: bấm vào sẽ sang màn hình sửa
                           Expanded(
-                            child: Text(
-                              category.name ?? '',
-                              style: responsiveTextStyle(
-                                context,
-                                bodyLarge.copyWith(fontWeight: FontWeight.w600, color: Colors.black87),
-                                body.copyWith(fontWeight: FontWeight.w600, color: Colors.black87),
+                            child: InkWell(
+                              borderRadius: BorderRadius.circular(8),
+                              onTap: () async {
+                                final result = await Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) => EditProductCategoryScreen(
+                                      category: category,
+                                      onBack: () => Navigator.pop(context), // Sửa lại, không trả về true
+                                    ),
+                                  ),
+                                );
+                                if (result == true) {
+                                  setState(() {
+                                    _productCounts.clear();
+                                  });
+                                  WidgetsBinding.instance.addPostFrameCallback((_) {
+                                    _categoryStream.first.then((categories) {
+                                      if (mounted) {
+                                        _forceReloadAllCounts(categories);
+                                      }
+                                    });
+                                  });
+                                  showSuccessSnackBar(context, 'Đã cập nhật danh mục thành công!');
+                                }
+                              },
+                              child: Row(
+                                children: [
+                                  Expanded(
+                                    child: Text(
+                                      category.name ?? '',
+                                      style: bodyLarge.copyWith(
+                                        color: level == 0 ? textPrimary : textSecondary,
+                                        fontWeight: level == 0 ? FontWeight.w600 : FontWeight.normal,
+                                      ),
+                                    ),
+                                  ),
+                                  Container(
+                                    margin: const EdgeInsets.only(left: 8),
+                                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                                    decoration: BoxDecoration(
+                                      color: mainGreen.withOpacity(0.1),
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                    child: _productCounts.containsKey(category.id)
+                                        ? Text(
+                                            _productCounts[category.id].toString(),
+                                            style: labelMedium.copyWith(
+                                              color: mainGreen,
+                                              fontWeight: FontWeight.w600,
+                                            ),
+                                          )
+                                        : SizedBox(
+                                            width: 12,
+                                            height: 12,
+                                            child: CircularProgressIndicator(
+                                              strokeWidth: 2,
+                                              valueColor: AlwaysStoppedAnimation<Color>(mainGreen),
+                                            ),
+                                          ),
+                                  ),
+                                ],
                               ),
                             ),
                           ),
-                          SizedBox(
-                            width: 48, // Đặt width cố định cho phần count để thẳng hàng
-                            child: Align(
-                              alignment: Alignment.centerRight,
-                              child: Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                                decoration: BoxDecoration(
-                                  color: const Color(0xFFE8F5E9),
-                                  borderRadius: BorderRadius.circular(20),
-                                ),
-                                child: Text(
-                                  (_productCounts[category.id] ?? 0).toString(),
-                                  style: responsiveTextStyle(
-                                    context,
-                                    labelLarge.copyWith(color: const Color(0xFF43A047), fontWeight: FontWeight.w600),
-                                    labelMedium.copyWith(color: const Color(0xFF43A047), fontWeight: FontWeight.w600),
+                          // Mũi tên expand/collapse (nếu có con)
+                          if (hasChildren)
+                            Padding(
+                              padding: const EdgeInsets.only(left: 8),
+                              child: InkWell(
+                                borderRadius: BorderRadius.circular(20),
+                                onTap: () => _toggleExpand(category.id),
+                                child: Container(
+                                  width: 32,
+                                  height: 32,
+                                  alignment: Alignment.center,
+                                  child: Icon(
+                                    isExpanded ? Icons.keyboard_arrow_down : Icons.keyboard_arrow_right,
+                                    color: textSecondary,
+                                    size: 20,
                                   ),
                                 ),
                               ),
                             ),
-                          ),
                         ],
                       ),
                     ),
                   ),
                   if (hasChildren && isExpanded)
                     Container(
-                      padding: const EdgeInsets.only(left: 32, right: 0, bottom: 8),
+                      padding: const EdgeInsets.only(left: 20, right: 0, bottom: 8),
                       child: Column(
                         children: _buildCategoryCards(children, categoryTree, level + 1),
                       ),
@@ -286,7 +374,7 @@ class _ProductCategoryScreenState extends State<ProductCategoryScreen> with Sing
               ),
             ),
             if (level == 0 && i < categories.length - 1)
-              SizedBox(height: 16), // Use spacing from design system if available
+              const SizedBox(height: space16),
           ],
         ),
       );
@@ -306,6 +394,19 @@ class _ProductCategoryScreenState extends State<ProductCategoryScreen> with Sing
           }
         });
       }
+    }
+  }
+
+  // Force reload counts cho tất cả categories
+  void _forceReloadAllCounts(List<ProductCategory> categories) {
+    for (var category in categories) {
+      _getProductCountForCategory(category.id).then((count) {
+        if (mounted) {
+          setState(() {
+            _productCounts[category.id] = count;
+          });
+        }
+      });
     }
   }
 } 
