@@ -71,6 +71,24 @@ class _ProductCategoryScreenState extends State<ProductCategoryScreen> with Sing
     return snapshot.docs.length;
   }
 
+  Future<void> _createSampleCategoryTree() async {
+    // Tạo cây mẫu: Thuốc (root) > Vitamin > Vitamin B, Kháng sinh, Thuốc giảm đau
+    final rootId = (await _categoryService.addCategory(ProductCategory(id: '', name: 'Thuốc', description: 'Danh mục thuốc chính')));
+    final snapshot = await _categoryService.getCategories().first;
+    final rootCat = snapshot.firstWhere((c) => c.name == 'Thuốc');
+    await _categoryService.addCategory(ProductCategory(id: '', name: 'Vitamin', description: 'Vitamin và khoáng chất', parentId: rootCat.id));
+    await _categoryService.addCategory(ProductCategory(id: '', name: 'Kháng sinh', description: 'Thuốc kháng sinh', parentId: rootCat.id));
+    await _categoryService.addCategory(ProductCategory(id: '', name: 'Thuốc giảm đau', description: 'Thuốc giảm đau, hạ sốt', parentId: rootCat.id));
+    // Thêm 1 cấp con cho Vitamin
+    final vitaminCat = (await _categoryService.getCategories().first).firstWhere((c) => c.name == 'Vitamin');
+    await _categoryService.addCategory(ProductCategory(id: '', name: 'Vitamin B', description: 'Vitamin nhóm B', parentId: vitaminCat.id));
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Đã tạo cây danh mục mẫu!'), backgroundColor: Colors.green),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -97,6 +115,13 @@ class _ProductCategoryScreenState extends State<ProductCategoryScreen> with Sing
           ),
         ),
         iconTheme: const IconThemeData(color: Colors.white),
+        actions: [
+          IconButton(
+            icon: Icon(Icons.account_tree, color: Colors.white),
+            tooltip: 'Tạo cây danh mục mẫu',
+            onPressed: _createSampleCategoryTree,
+          ),
+        ],
       ),
       backgroundColor: appBackground,
       body: Container(

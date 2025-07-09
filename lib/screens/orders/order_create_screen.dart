@@ -2699,15 +2699,16 @@ class OrderInvoiceScreen extends StatelessWidget {
                             ],
                           ),
                           const SizedBox(height: 8),
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              const Text('Tổng chiết khấu:'),
-                              Text('-${_formatCurrencyDouble(order.discountAmount)}', style: const TextStyle(color: Colors.red)),
-                            ],
-                          ),
-
-                           const SizedBox(height: 8),     
+                          if (order.discountAmount > 0) ...[
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                const Text('Tổng chiết khấu:'),
+                                Text('-${_formatCurrencyDouble(order.discountAmount)}', style: const TextStyle(color: Colors.red)),
+                              ],
+                            ),
+                            const SizedBox(height: 8),
+                          ],
                           const Divider(height: 1, color: Color(0xFFE5E7EB)),
                           Padding(
                             padding: const EdgeInsets.symmetric(vertical: 8.0),
@@ -2719,21 +2720,25 @@ class OrderInvoiceScreen extends StatelessWidget {
                               ],
                             ),
                           ),
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              const Text('Đã thanh toán:'),
-                              Text(_formatCurrencyDouble(payment.amount)),
-                            ],
-                          ),
-                             const SizedBox(height: 8),
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              const Text('Còn lại:'),
-                              Text(_formatCurrencyDouble(order.finalAmount - payment.amount), style: const TextStyle(color: Colors.red)),
-                            ],
-                          ),
+                          if (payment.amount > 0) ...[
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                const Text('Đã thanh toán:'),
+                                Text(_formatCurrencyDouble(payment.amount)),
+                              ],
+                            ),
+                            const SizedBox(height: 8),
+                          ],
+                          if ((order.finalAmount - payment.amount) > 0) ...[
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                const Text('Còn lại:'),
+                                Text(_formatCurrencyDouble(order.finalAmount - payment.amount), style: const TextStyle(color: Colors.red)),
+                              ],
+                            ),
+                          ],
                           const SizedBox(height: 10),
                         ],
                       ),

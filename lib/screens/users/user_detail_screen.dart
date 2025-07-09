@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../models/user.dart';
 import '../../services/user_service.dart';
 import '../../widgets/common/design_system.dart';
+import 'user_permissions_screen.dart';
 
 class UserDetailScreen extends StatefulWidget {
   final User user;
@@ -162,13 +163,13 @@ class _UserDetailScreenState extends State<UserDetailScreen> {
                                   Container(
                                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                                     decoration: BoxDecoration(
-                                      color: _isActive ? mainGreen.withOpacity(0.1) : destructiveRed.withOpacity(0.1),
+                                      color: widget.user.isActive ? mainGreen.withOpacity(0.1) : destructiveRed.withOpacity(0.1),
                                       borderRadius: BorderRadius.circular(12),
                                     ),
                                     child: Text(
-                                      _isActive ? 'Hoạt động' : 'Vô hiệu',
+                                      widget.user.isActive ? 'Hoạt động' : 'Vô hiệu',
                                       style: caption.copyWith(
-                                        color: _isActive ? mainGreen : destructiveRed,
+                                        color: widget.user.isActive ? mainGreen : destructiveRed,
                                         fontWeight: FontWeight.w600,
                                       ),
                                     ),
@@ -177,6 +178,26 @@ class _UserDetailScreenState extends State<UserDetailScreen> {
                               ),
                             ],
                           ),
+                        ),
+                        Column(
+                          children: [
+                            IconButton(
+                              icon: const Icon(Icons.edit, color: Colors.grey),
+                              onPressed: () {/* TODO: Edit user info */},
+                            ),
+                            IconButton(
+                              icon: const Icon(Icons.security, color: mainGreen),
+                              onPressed: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) => UserPermissionsScreen(user: widget.user),
+                                  ),
+                                );
+                              },
+                              tooltip: 'Phân quyền chi tiết',
+                            ),
+                          ],
                         ),
                       ],
                     ),
