@@ -73,7 +73,8 @@ enum MainPage {
 
 class MainLayout extends StatefulWidget {
   final Widget? child;
-  const MainLayout({super.key, this.child});
+  final MainPage initialPage;
+  const MainLayout({super.key, this.child, this.initialPage = MainPage.dashboard});
 
   @override
   State<MainLayout> createState() => MainLayoutState();
@@ -82,7 +83,7 @@ class MainLayout extends StatefulWidget {
 class MainLayoutState extends State<MainLayout> with TickerProviderStateMixin {
   bool _sidebarOpen = false;
   int _selectedIndex = 0;
-  MainPage _currentPage = MainPage.dashboard;
+  late MainPage _currentPage;
   MainPage? _previousPage;
   Product? _selectedProduct;
   Company? _selectedCompany;
@@ -138,6 +139,7 @@ class MainLayoutState extends State<MainLayout> with TickerProviderStateMixin {
     
     // Load current user
     _loadCurrentUser();
+    _currentPage = widget.initialPage;
   }
 
   @override

@@ -17,6 +17,7 @@ import '../../widgets/invoice_qr_code.dart';
 import '../../services/app_payment_setting_service.dart';
 import '../../models/app_payment_setting.dart';
 import 'qr_scanner_screen.dart';
+import '../../../widgets/main_layout.dart';
 
 class OrderCreateScreen extends StatefulWidget {
   const OrderCreateScreen({super.key});
@@ -146,6 +147,7 @@ class _OrderCreateScreenState extends State<OrderCreateScreen> {
             name: product.tradeName.isNotEmpty ? product.tradeName : product.internalName,
             price: product.salePrice.toInt(),
             stock: product.stockSystem,
+            unit: product.unit,
           ),
           quantity: 1,
         );
@@ -490,7 +492,7 @@ class _OrderCreateScreenState extends State<OrderCreateScreen> {
                     context,
                     MaterialPageRoute(
                       builder: (_) => OrderPaymentScreen(
-                        total: _cart.fold(0.0, (sum, item) => sum + item.totalPrice).toInt(),
+                        total: _cart.fold(0.0, (sum, item) => sum + item.totalPrice),
                         cart: List<_CartItem>.from(_cart),
                         customer: selectedCustomer!,
                       ),
@@ -765,13 +767,13 @@ class _CartItemWidget extends StatelessWidget {
                       Row(
                         children: [
                           Text(
-                            '${_formatCurrency(item.finalPrice.toInt())}/đơn vị',
+                            '${_formatCurrency(item.finalPrice.toInt())}/${item.product.unit.isNotEmpty ? item.product.unit : 'đơn vị'}',
                             style: const TextStyle(color: Color(0xFF16A34A), fontSize: 13, fontWeight: FontWeight.w500),
                           ),
                           if (item.discountAmount > 0) ...[
                             const SizedBox(width: 6),
                             Text(
-                              '${_formatCurrency(item.product.price)}/đơn vị',
+                              '${_formatCurrency(item.product.price)}/${item.product.unit.isNotEmpty ? item.product.unit : 'đơn vị'}',
                               style: const TextStyle(
                                 color: Color(0xFF9CA3AF),
                                 fontSize: 13,
@@ -1203,7 +1205,8 @@ class _Product {
   final String name;
   final int price;
   final int stock;
-  _Product({required this.name, required this.price, required this.stock});
+  final String unit;
+  _Product({required this.name, required this.price, required this.stock, this.unit = ''});
 }
 class _CustomerInfo {
   final String name;
@@ -1873,14 +1876,18 @@ class OrderDetailSummary extends StatelessWidget {
               Text(_formatCurrency(totalAmount.toInt())),
             ],
           ),
-          const SizedBox(height: 8),
-          Row(
-            children: [
-              const Expanded(child: Text('Tổng chiết khấu')),
-              Text('-${_formatCurrency(totalDiscount.toInt())}'),
-            ],
-          ),
-          const SizedBox(height: 8),
+          if (totalDiscount > 0) ...[
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                const Expanded(child: Text('Tổng chiết khấu')),
+                Text('-${_formatCurrency(totalDiscount.toInt())}'),
+              ],
+            ),
+          ],
+          const SizedBox(height: 10),
+          const Divider(height: 1, color: Color(0xFFE5E7EB)),
+          const SizedBox(height: 10),
           Row(
             children: [
               const Expanded(child: Text('Tổng thanh toán')),
@@ -1894,7 +1901,7 @@ class OrderDetailSummary extends StatelessWidget {
 }
 
 class OrderPaymentScreen extends StatefulWidget {
-  final int total;
+  final double total;
   final List<_CartItem> cart;
   final Customer customer;
   const OrderPaymentScreen({super.key, required this.total, required this.cart, required this.customer});
@@ -1909,11 +1916,14 @@ class _OrderPaymentScreenState extends State<OrderPaymentScreen> {
   bool _loading = false;
 
   int get selectedAmount {
+    if (selectedPercent == 100) {
+      return widget.total.round();
+    }
     return ((widget.total * selectedPercent / 100).round() / 1000).round() * 1000;
   }
 
-  String _formatCurrency(int amount) {
-    final s = amount.toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (m) => '${m[1]}.');
+  String _formatCurrency(num amount) {
+    final s = amount.toStringAsFixed(0).replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (m) => '${m[1]}.');
     return '$sđ';
   }
 
@@ -2041,7 +2051,7 @@ class _OrderPaymentScreenState extends State<OrderPaymentScreen> {
                     padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
                     decoration: BoxDecoration(
                       color: Colors.white,
-                      borderRadius: BorderRadius.circular(14),
+                      borderRadius: BorderRadius.circular(12),
                       boxShadow: [
                         BoxShadow(
                           color: Colors.black.withOpacity(0.04),
@@ -2059,20 +2069,32 @@ class _OrderPaymentScreenState extends State<OrderPaymentScreen> {
                     ),
                   ),
                 ),
-                // Chọn số tiền thanh toán
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 18, 16, 0),
+                const SizedBox(height: 10),
+                // 1. Thay thế block 'Chọn số tiền thanh toán'
+                Container(
+                  color: const Color(0xFFF6F7F8),
+                  padding: const EdgeInsets.symmetric(vertical: 8),
                   child: Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 18),
+                    margin: const EdgeInsets.symmetric(horizontal: 16),
                     decoration: BoxDecoration(
                       color: Colors.white,
-                      borderRadius: BorderRadius.circular(14),
+                      borderRadius: BorderRadius.circular(12),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.03),
+                          blurRadius: 4,
+                          offset: const Offset(0, 2),
+                        ),
+                      ],
                     ),
+                    padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 18),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text('Chọn số tiền thanh toán', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 15)),
+                        const Text(
+                          'Chọn số tiền thanh toán',
+                          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                        ),
                         const SizedBox(height: 14),
                         Column(
                           children: [
@@ -2101,10 +2123,11 @@ class _OrderPaymentScreenState extends State<OrderPaymentScreen> {
                                               ),
                                             ),
                                             const SizedBox(height: 2),
+                                            
                                             Text(
                                               percents[i] == 100
-                                                ? _formatCurrency(((widget.total * percents[i] / 100).round() / 1000).round() * 1000)
-                                                : '~${_formatCurrency(((widget.total * percents[i] / 100).round() / 1000).round() * 1000)}',
+                                                ? _formatCurrency(widget.total)
+                                                : '~${_formatCurrency(roundToNearest5000(widget.total * percents[i] / 100))}',
                                               style: TextStyle(
                                                 fontSize: 13,
                                                 color: selectedPercent == percents[i] ? const Color(0xFF16A34A) : const Color(0xFF9CA3AF),
@@ -2145,8 +2168,8 @@ class _OrderPaymentScreenState extends State<OrderPaymentScreen> {
                                             const SizedBox(height: 2),
                                             Text(
                                               percents[i] == 100
-                                                ? _formatCurrency(((widget.total * percents[i] / 100).round() / 1000).round() * 1000)
-                                                : '~${_formatCurrency(((widget.total * percents[i] / 100).round() / 1000).round() * 1000)}',
+                                                ? _formatCurrency(widget.total)
+                                                : '~${_formatCurrency(roundToNearest5000(widget.total * percents[i] / 100))}',
                                               style: TextStyle(
                                                 fontSize: 13,
                                                 color: selectedPercent == percents[i] ? const Color(0xFF16A34A) : const Color(0xFF9CA3AF),
@@ -2164,7 +2187,7 @@ class _OrderPaymentScreenState extends State<OrderPaymentScreen> {
                         ),
                         if (selectedPercent != 100)
                           Padding(
-                            padding: const EdgeInsets.only(top: 12),
+                            padding: const EdgeInsets.only(top: 16, bottom: 16),
                             child: Row(
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
@@ -2180,20 +2203,31 @@ class _OrderPaymentScreenState extends State<OrderPaymentScreen> {
                     ),
                   ),
                 ),
-                // Chọn phương thức thanh toán
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 18, 16, 0),
+                // 2. Thay thế block 'Chọn phương thức thanh toán'
+                Container(
+                  color: const Color(0xFFF6F7F8),
+                  padding: const EdgeInsets.symmetric(vertical: 8),
                   child: Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 18),
+                    margin: const EdgeInsets.symmetric(horizontal: 16),
                     decoration: BoxDecoration(
                       color: Colors.white,
-                      borderRadius: BorderRadius.circular(14),
+                      borderRadius: BorderRadius.circular(12),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.03),
+                          blurRadius: 4,
+                          offset: const Offset(0, 2),
+                        ),
+                      ],
                     ),
+                    padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 18),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text('Chọn phương thức thanh toán', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 15)),
+                        const Text(
+                          'Chọn phương thức thanh toán',
+                          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                        ),
                         const SizedBox(height: 14),
                         Row(
                           children: [
@@ -2204,9 +2238,10 @@ class _OrderPaymentScreenState extends State<OrderPaymentScreen> {
                                   side: BorderSide(color: paymentMethod == 'Tiền mặt' ? const Color(0xFF16A34A) : const Color(0xFFE0E0E0), width: 1.5),
                                   backgroundColor: paymentMethod == 'Tiền mặt' ? const Color(0xFFE8F5E9) : Colors.white,
                                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                                  padding: const EdgeInsets.symmetric(vertical: 10),
+                                     padding: const EdgeInsets.symmetric(horizontal: 26, vertical: 18),
+                                  minimumSize: const Size.fromHeight(46),
                                 ),
-                                child: Text('Tiền mặt', style: TextStyle(fontWeight: FontWeight.w500, color: Colors.black, fontSize: 14)),
+                                child: Text('Tiền mặt', style: TextStyle(fontWeight: FontWeight.w500, color: Colors.black, fontSize: 15)),
                               ),
                             ),
                             const SizedBox(width: 16),
@@ -2217,9 +2252,10 @@ class _OrderPaymentScreenState extends State<OrderPaymentScreen> {
                                   side: BorderSide(color: paymentMethod == 'Chuyển khoản' ? const Color(0xFF16A34A) : const Color(0xFFE0E0E0), width: 1.5),
                                   backgroundColor: paymentMethod == 'Chuyển khoản' ? const Color(0xFFE8F5E9) : Colors.white,
                                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                                  padding: const EdgeInsets.symmetric(vertical: 10),
+                                     padding: const EdgeInsets.symmetric(horizontal: 26, vertical: 18),
+                                  minimumSize: const Size.fromHeight(46),
                                 ),
-                                child: Text('Chuyển khoản', style: TextStyle(fontWeight: FontWeight.w500, color: Colors.black, fontSize: 14)),
+                                child: Text('Chuyển khoản', style: TextStyle(fontWeight: FontWeight.w500, color: Colors.black, fontSize: 15)),
                               ),
                             ),
                           ],
@@ -2360,13 +2396,9 @@ class OrderPaymentConfirmScreen extends StatelessWidget {
                           // Block nội dung chuyển khoản
                           Container(
                             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-                            decoration: BoxDecoration(
-                              color: Colors.white,
-                              borderRadius: BorderRadius.circular(8),
-                              border: Border.all(color: Color(0xFFE0E0E0)),
-                            ),
+          
                             child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
+                              crossAxisAlignment: CrossAxisAlignment.center,
                               children: [
                                 Text('Nội dung CK: Thanh toan don ${order.orderCode}', style: const TextStyle(fontWeight: FontWeight.w600)),
                                 Text('Tên chủ TK: ${setting.accountName}'),
@@ -2380,21 +2412,7 @@ class OrderPaymentConfirmScreen extends StatelessWidget {
                     );
                   },
                 ),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 18),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  border: Border.all(color: const Color(0xFF16A34A)),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Column(
-                  children: [
-                    const Text('Số tiền cần thanh toán:', style: TextStyle(color: Color(0xFF16A34A), fontWeight: FontWeight.w600)),
-                    const SizedBox(height: 4),
-                    Text(_formatCurrency(amount), style: const TextStyle(color: Color(0xFF16A34A), fontWeight: FontWeight.bold, fontSize: 24)),
-                  ],
-                ),
-              ),
+
             ],
           ),
         ),
@@ -2458,30 +2476,36 @@ class OrderInvoiceScreen extends StatelessWidget {
   Widget _orderItem(OrderItem item) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8),
-      child: Row(
+      child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(item.productName, style: const TextStyle(fontWeight: FontWeight.w600)),
-                const SizedBox(height: 2),
-                Text('${item.price.toInt() != item.finalPrice.toInt() ? _formatCurrencyDouble(item.price) : ''}${item.price.toInt() != item.finalPrice.toInt() ? ' × ' : ''}${item.quantity}', style: const TextStyle(color: Color(0xFF9CA3AF), fontSize: 13)),
-                if (item.discountAmount > 0)
-                  Padding(
-                    padding: const EdgeInsets.only(top: 2),
-                    child: Text(
-                      item.isPercentageDiscount
-                        ? 'Giảm: ${item.discountAmount.toStringAsFixed(0)}%'
-                        : 'Giảm: ${_formatCurrencyDouble(item.discountAmount)}',
-                      style: const TextStyle(color: Color(0xFF16A34A), fontSize: 13, fontWeight: FontWeight.w500),
-                    ),
-                  ),
-              ],
-            ),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: Text(item.productName, style: const TextStyle(fontWeight: FontWeight.w600)),
+              ),
+              Text(_formatCurrencyDouble(item.totalPrice), style: const TextStyle(fontWeight: FontWeight.w600)),
+            ],
           ),
-          Text(_formatCurrencyDouble(item.totalPrice), style: const TextStyle(fontWeight: FontWeight.w600)),
+          const SizedBox(height: 2),
+          Row(
+            children: [
+              Text(
+                _formatCurrencyDouble(item.price),
+                style: const TextStyle(color: Color(0xFF9CA3AF), fontSize: 13),
+              ),
+              Text(' × ${item.quantity}', style: const TextStyle(color: Color(0xFF9CA3AF), fontSize: 13)),
+            ],
+          ),
+          if (item.discountAmount > 0)
+            Padding(
+              padding: const EdgeInsets.only(top: 2),
+              child: Text(
+                'Giảm: ${item.isPercentageDiscount ? '${item.discountAmount.toStringAsFixed(0)}%' : _formatCurrencyDouble(item.discountAmount)}',
+                style: const TextStyle(color: Color(0xFF16A34A), fontSize: 13, fontWeight: FontWeight.w500),
+              ),
+            ),
         ],
       ),
     );
@@ -2605,8 +2629,7 @@ class OrderInvoiceScreen extends StatelessWidget {
                             ],
                           ),
                           const SizedBox(height: 10),
-                          const Divider(height: 1, color: Color(0xFFE5E7EB)),
-                          const SizedBox(height: 10),
+
                           Text.rich(
                             TextSpan(children: [
                               const TextSpan(text: 'Tên: ', style: TextStyle(fontWeight: FontWeight.bold)),
@@ -2651,7 +2674,7 @@ class OrderInvoiceScreen extends StatelessWidget {
                             ],
                           ),
                           const SizedBox(height: 10),
-                          const Divider(height: 1, color: Color(0xFFE5E7EB)),
+                 
                           ...orderItems.map((item) => Column(
                             children: [
                               _orderItem(item),
@@ -2673,71 +2696,61 @@ class OrderInvoiceScreen extends StatelessWidget {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Row(
+                           Row(
                             children: const [
                               Icon(Icons.credit_card, size: 18, color: Color(0xFF16A34A)),
                               SizedBox(width: 6),
                               Text('Thông tin thanh toán', style: TextStyle(fontWeight: FontWeight.bold)),
                             ],
                           ),
-                          const SizedBox(height: 10),
+                            const SizedBox(height: 10),
+         
                           Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
-                              const Text('Phương thức:'),
-                              Text(payment.method, style: const TextStyle(fontWeight: FontWeight.w600)),
+                              const Text('Tổng tiền hàng'),
+                              Text(_formatCurrencyDouble(order.totalAmount), style: const TextStyle(fontWeight: FontWeight.w500)),
                             ],
                           ),
-                          const SizedBox(height: 8),
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              const Text('Tổng tiền hàng:'),
-                              Text(_formatCurrencyDouble(order.totalAmount)),
-                            ],
-                          ),
-                          const SizedBox(height: 8),
                           if (order.discountAmount > 0) ...[
+                            const SizedBox(height: 8),
                             Row(
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
-                                const Text('Tổng chiết khấu:'),
-                                Text('-${_formatCurrencyDouble(order.discountAmount)}', style: const TextStyle(color: Colors.red)),
+                                const Text('Tổng chiết khấu'),
+                                Text('-${_formatCurrencyDouble(order.discountAmount)}', style: const TextStyle(color: Colors.red, fontWeight: FontWeight.w500)),
                               ],
                             ),
-                            const SizedBox(height: 8),
                           ],
+                          const SizedBox(height: 8),
                           const Divider(height: 1, color: Color(0xFFE5E7EB)),
-                          Padding(
-                            padding: const EdgeInsets.symmetric(vertical: 8.0),
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                const Text('Số tiền đã thanh toán:', style: TextStyle(fontWeight: FontWeight.bold)),
-                                Text(_formatCurrencyDouble(payment.amount), style: const TextStyle(color: Color(0xFF16A34A), fontWeight: FontWeight.bold, fontSize: 18)),
-                              ],
-                            ),
+                          const SizedBox(height: 8),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              const Text('Tổng thanh toán', style: TextStyle(fontWeight: FontWeight.bold)),
+                              Text(_formatCurrencyDouble(order.finalAmount), style: const TextStyle(fontWeight: FontWeight.bold)),
+                            ],
                           ),
-                          if (payment.amount > 0) ...[
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                const Text('Đã thanh toán:'),
-                                Text(_formatCurrencyDouble(payment.amount)),
-                              ],
-                            ),
                             const SizedBox(height: 8),
-                          ],
-                          if ((order.finalAmount - payment.amount) > 0) ...[
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text('Đã thanh toán (${payment.method})', style: const TextStyle(fontWeight: FontWeight.w500)),
+                              Text(_formatCurrencyDouble(payment.amount), style: const TextStyle(color: Color(0xFF16A34A), fontWeight: FontWeight.bold)),
+                            ],
+                          ),
+                          
+                          if (payment.amount < order.finalAmount) ...[
+                              const SizedBox(height: 8),
                             Row(
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
                                 const Text('Còn lại:'),
-                                Text(_formatCurrencyDouble(order.finalAmount - payment.amount), style: const TextStyle(color: Colors.red)),
+                                Text(_formatCurrencyDouble(order.finalAmount - payment.amount), style: const TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),
                               ],
                             ),
                           ],
-                          const SizedBox(height: 10),
                         ],
                       ),
                     ),
@@ -2756,7 +2769,7 @@ class OrderInvoiceScreen extends StatelessWidget {
                   onPressed: () {
                     Navigator.pushAndRemoveUntil(
                       context,
-                      MaterialPageRoute(builder: (_) => const OrderCreateScreen()),
+                      MaterialPageRoute(builder: (_) => MainLayout(initialPage: MainPage.orderCreate)),
                       (route) => false,
                     );
                   },
@@ -2800,6 +2813,11 @@ const Map<String, String> _bankNames = {
 
 String getBankName(String bankCode, String fallback) {
   return _bankNames[bankCode] ?? fallback;
+}
+
+// 1. Thêm hàm làm tròn về 5.000
+int roundToNearest5000(num value) {
+  return (value / 5000).round() * 5000;
 }
 
  

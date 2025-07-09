@@ -176,7 +176,7 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
                               ),
                               const SizedBox(height: 24),
                               Text(
-                                'VET-POS',
+                                'MAU-HIEN VET',
                                 style: h1.copyWith(
                                   color: mainGreen,
                                   fontWeight: FontWeight.bold,
