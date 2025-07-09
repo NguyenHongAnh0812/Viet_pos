@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import '../../widgets/common/design_system.dart';
+import '../../services/user_service.dart';
+import '../auth/login_screen.dart';
 
 class DashboardModernScreen extends StatelessWidget {
   const DashboardModernScreen({Key? key}) : super(key: key);
@@ -65,7 +67,25 @@ class DashboardModernScreen extends StatelessWidget {
                               ),
                               IconButton(
                                 icon: const Icon(Icons.logout, color: Colors.black87),
-                                onPressed: () {},
+                                onPressed: () async {
+                                  final confirmed = await showLogoutDialog(context);
+                                  if (confirmed == true) {
+                                    try {
+                                      await UserService().signOut();
+                                      if (context.mounted) {
+                                        showSuccessSnackBar(context, 'Đã đăng xuất thành công');
+                                        Navigator.of(context).pushAndRemoveUntil(
+                                          MaterialPageRoute(builder: (_) => const LoginScreen()),
+                                          (route) => false,
+                                        );
+                                      }
+                                    } catch (e) {
+                                      if (context.mounted) {
+                                        showErrorSnackBar(context, 'Có lỗi xảy ra: ${e.toString()}');
+                                      }
+                                    }
+                                  }
+                                },
                                 tooltip: 'Đăng xuất',
                               ),
                             ],

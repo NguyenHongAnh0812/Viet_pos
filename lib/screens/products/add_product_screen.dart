@@ -20,6 +20,7 @@ import 'package:collection/collection.dart';
 import '../../widgets/common/design_system.dart';
 import '../../models/product_category.dart';
 import '../../models/product.dart';
+import '../../widgets/custom/product_image_picker.dart';
 
 class AddProductScreen extends StatefulWidget {
   final VoidCallback? onBack;
@@ -306,10 +307,10 @@ class _AddProductScreenState extends State<AddProductScreen> with TickerProvider
         setState(() => _isSaving = false);
         return;
       }
-      // List<String> imageUrls = await _uploadAllImages();
-      // if (imageUrls.isNotEmpty) {
-      //   _productImageUrls = imageUrls;
-      // }
+      List<String> imageUrls = await _uploadAllImages();
+      if (imageUrls.isNotEmpty) {
+        _productImageUrls = imageUrls;
+      }
       final costPriceStr = _costPriceController.text.replaceAll(RegExp(r'[^0-9]'), '');
       final salePriceStr = _sellPriceController.text.replaceAll(RegExp(r'[^0-9]'), '');
       final costPrice = double.tryParse(costPriceStr) ?? 0.0;
@@ -332,8 +333,8 @@ class _AddProductScreenState extends State<AddProductScreen> with TickerProvider
         'discontinue_reason': !_isActive ? _discontinueReasonController.text.trim() : null,
         'created_at': FieldValue.serverTimestamp(),
         'updated_at': FieldValue.serverTimestamp(),
-        'images': [], // imageUrls,
-        'main_image': null, // imageUrls.isNotEmpty ? imageUrls[_mainImageIndex.clamp(0, imageUrls.length-1)] : null,
+        'images': imageUrls,
+        'main_image': imageUrls.isNotEmpty ? imageUrls[_mainImageIndex.clamp(0, imageUrls.length-1)] : null,
         'mfg_date': _mfgDate,
         'exp_date': _expDate,
         'origin': _originController.text.trim(),
@@ -610,7 +611,7 @@ class _AddProductScreenState extends State<AddProductScreen> with TickerProvider
     setState(() {
       if (kIsWeb && _webImageBytesList.isNotEmpty) {
         _webImageBytesList.removeAt(index);
-      } else if (_productImageFiles.isNotEmpty) {
+      } else if (!kIsWeb && _productImageFiles.isNotEmpty) {
         _productImageFiles.removeAt(index);
       } else if (_productImageUrls.isNotEmpty) {
         _productImageUrls.removeAt(index);
@@ -782,10 +783,10 @@ class _AddProductScreenState extends State<AddProductScreen> with TickerProvider
                 ),
               ),
               // Ảnh sản phẩm - Tạm thời ẩn, sẽ phát triển sau
-              // SectionCard(
-              //   padding: const EdgeInsets.all(16),
-              //   child: _buildProductImageBlock(),
-              // ),
+              SectionCard(
+                padding: const EdgeInsets.all(16),
+                child: _buildProductImageBlock(),
+              ),
               // Thông tin y tế
               SectionCard(
                 child: Column(
@@ -1201,8 +1202,8 @@ class _AddProductScreenState extends State<AddProductScreen> with TickerProvider
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         // 1. Ảnh sản phẩm - Tạm thời ẩn, sẽ phát triển sau
-        // _buildProductImageBlock(),
-        // const SizedBox(height: 16),
+        _buildProductImageBlock(),
+        const SizedBox(height: 16),
         // 2. Thông tin cơ bản
         SectionCard(
           padding: const EdgeInsets.all(16),
@@ -1594,143 +1595,91 @@ class _AddProductScreenState extends State<AddProductScreen> with TickerProvider
   }
 
   Widget _buildProductImageBlock() {
-    return SectionCard(
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-         Text('Ảnh sản phẩm', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: mainGreen)),
-          const SizedBox(height: 16),
-          // Hiển thị grid ảnh
-          if ((kIsWeb && _webImageBytesList.isNotEmpty) || _productImageFiles.isNotEmpty || _productImageUrls.isNotEmpty)
-            Column(
-              children: [
-                GridView.builder(
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: 5,
-                    crossAxisSpacing: 12,
-                    mainAxisSpacing: 12,
-                    childAspectRatio: 1,
-                  ),
-                  itemCount: kIsWeb ? _webImageBytesList.length : (_productImageFiles.isNotEmpty ? _productImageFiles.length : _productImageUrls.length),
-                  itemBuilder: (context, index) {
-                    Widget img;
-                    if (kIsWeb && _webImageBytesList.isNotEmpty) {
-                      img = Image.memory(_webImageBytesList[index], fit: BoxFit.cover);
-                    } else if (_productImageFiles.isNotEmpty) {
-                      img = Image.file(_productImageFiles[index], fit: BoxFit.cover);
-                    } else {
-                      img = Image.network(_productImageUrls[index], fit: BoxFit.cover);
-                    }
-                    return Stack(
-                      children: [
-                        ClipRRect(
-                          borderRadius: BorderRadius.circular(10),
-                          child: SizedBox.expand(child: img),
-                        ),
-                        Positioned(
-                          top: 4, right: 4,
-                          child: GestureDetector(
-                            onTap: () => _removeImageAt(index),
-                            child: Container(
-                              decoration: BoxDecoration(color: Colors.white, shape: BoxShape.circle, boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 2)]),
-                              child: const Icon(Icons.close, size: 18, color: Colors.red),
-                            ),
-                          ),
-                        ),
-                        if (index == _mainImageIndex)
-                          Positioned(
-                            bottom: 4, left: 4,
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                              decoration: BoxDecoration(color: Color(0xFF22C55E), borderRadius: BorderRadius.circular(8)),
-                              child: const Text('Đại diện', style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w600)),
-                            ),
-                          )
-                        else
-                          Positioned(
-                            bottom: 4, left: 4,
-                            child: GestureDetector(
-                              onTap: () => setState(() => _mainImageIndex = index),
-                              child: Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                                decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(8), border: Border.all(color: Color(0xFF22C55E))),
-                                child: const Text('Chọn đại diện', style: TextStyle(color: Color(0xFF22C55E), fontSize: 11, fontWeight: FontWeight.w600)),
-                              ),
-                            ),
-                          ),
-                      ],
-                    );
-                  },
-                ),
-                const SizedBox(height: 16),
-              ],
-            ),
-          // Nút upload nhiều ảnh
-          Row(
-            children: [
-              Expanded(
-                child: OutlinedButton(
-                  onPressed: (kIsWeb ? _webImageBytesList.length : _productImageFiles.length) >= 5 ? null : _pickMultiImageFromGallery,
-                  style: OutlinedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(vertical: 20),
-                    side: BorderSide(color: Colors.grey[300]!),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                    foregroundColor: Colors.grey[800],
-                    textStyle: const TextStyle(fontSize: 15, fontWeight: FontWeight.w500),
-                  ).copyWith(
-                    side: WidgetStateProperty.resolveWith((states) {
-                      if (states.contains(WidgetState.hovered) || states.contains(WidgetState.focused)) {
-                        return const BorderSide(color: Color(0xFF22C55E), width: 1.5);
-                      }
-                      return BorderSide(color: Colors.grey[300]!);
-                    }),
-                  ),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: const [
-                      Icon(Icons.upload_outlined, size: 28, color: Color(0xFF475569)),
-                      SizedBox(height: 8),
-                      Text('Tải ảnh', style: TextStyle(color: Color(0xFF475569), fontWeight: FontWeight.w500)),
-                    ],
-                  ),
-                ),
-              ),
-              if (!kIsWeb) ...[
-                const SizedBox(width: 16),
-                Expanded(
-                  child: OutlinedButton(
-                    onPressed: _productImageFiles.length >= 5 ? null : _pickImageFromCamera,
-                    style: OutlinedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(vertical: 20),
-                      side: BorderSide(color: Colors.grey[300]!),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                      foregroundColor: Colors.grey[800],
-                      textStyle: const TextStyle(fontSize: 15, fontWeight: FontWeight.w500),
-                    ).copyWith(
-                      side: WidgetStateProperty.resolveWith((states) {
-                        if (states.contains(WidgetState.hovered) || states.contains(WidgetState.focused)) {
-                          return const BorderSide(color: Color(0xFF22C55E), width: 1.5);
-                        }
-                        return BorderSide(color: Colors.grey[300]!);
-                      }),
-                    ),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: const [
-                        Icon(Icons.photo_camera_outlined, size: 28, color: Color(0xFF475569)),
-                        SizedBox(height: 8),
-                        Text('Chụp ảnh', style: TextStyle(color: Color(0xFF475569), fontWeight: FontWeight.w500)),
-                      ],
-                    ),
-                  ),
-                ),
-              ],
-            ],
+    return ProductImagePicker(
+      initialFiles: _productImageFiles,
+      initialWebImages: _webImageBytesList,
+      initialUrls: _productImageUrls,
+      mainImageIndex: _mainImageIndex,
+      onChanged: (files, webImages, urls, mainIdx) {
+        setState(() {
+          _productImageFiles
+            ..clear()
+            ..addAll(files);
+          _webImageBytesList
+            ..clear()
+            ..addAll(webImages);
+          _productImageUrls = List<String>.from(urls);
+          _mainImageIndex = mainIdx;
+        });
+      },
+      onUploadImages: (files, webImages) async {
+        // Gọi upload ảnh như cũ
+        List<String> urls = [];
+        if (kIsWeb && webImages.isNotEmpty) {
+          for (final bytes in webImages) {
+            final fileName = 'products/ [200~ [0m${DateTime.now().millisecondsSinceEpoch}_${urls.length}.web.jpg';
+            final ref = FirebaseStorage.instance.ref().child(fileName);
+            final uploadTask = await ref.putData(bytes);
+            final url = await uploadTask.ref.getDownloadURL();
+            urls.add(url);
+          }
+        } else if (files.isNotEmpty) {
+          for (final file in files) {
+            final fileName = 'products/${DateTime.now().millisecondsSinceEpoch}_${file.path.split('/').last}';
+            final ref = FirebaseStorage.instance.ref().child(fileName);
+            final uploadTask = await ref.putFile(file);
+            final url = await uploadTask.ref.getDownloadURL();
+            urls.add(url);
+          }
+        }
+        return urls;
+      },
+    );
+  }
+
+  Widget _buildGridImage(Widget image, {required VoidCallback onRemove}) {
+    return Stack(
+      children: [
+        ClipRRect(
+          borderRadius: BorderRadius.circular(12),
+          child: Container(
+            width: double.infinity,
+            height: double.infinity,
+            color: const Color(0xFFF3F4F6),
+            child: image,
           ),
-        ],
+        ),
+        Positioned(
+          top: 4,
+          right: 4,
+          child: GestureDetector(
+            onTap: onRemove,
+            child: Container(
+              decoration: const BoxDecoration(
+                color: Colors.white,
+                shape: BoxShape.circle,
+                boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 2)],
+              ),
+              child: const Icon(Icons.close, size: 18, color: Colors.red),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildGridAddButton() {
+    return GestureDetector(
+      onTap: (kIsWeb ? _webImageBytesList.length : _productImageFiles.length) < 5 ? _pickMultiImageFromGallery : null,
+      child: Container(
+        decoration: BoxDecoration(
+          color: const Color(0xFFF3F4F6),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: const Color(0xFFE5E7EB)),
+        ),
+        child: const Center(
+          child: Icon(Icons.add_a_photo, size: 36, color: Color(0xFF9CA3AF)),
+        ),
       ),
     );
   }

@@ -364,7 +364,6 @@ class _OrderCreateScreenState extends State<OrderCreateScreen> {
                     children: [
                       _OrderHeader(
                         onSearchTap: _openProductSearchModal,
-                        onQRScanTap: _openQRScanner,
                         showBack: _cart.isNotEmpty,
                       ),
                       _CustomerSection(
@@ -507,9 +506,8 @@ class _OrderCreateScreenState extends State<OrderCreateScreen> {
 
 class _OrderHeader extends StatelessWidget {
   final VoidCallback onSearchTap;
-  final VoidCallback onQRScanTap;
   final bool showBack;
-  const _OrderHeader({required this.onSearchTap, required this.onQRScanTap, this.showBack = false});
+  const _OrderHeader({required this.onSearchTap, this.showBack = false});
   @override
   Widget build(BuildContext context) {
     return Padding(
@@ -525,54 +523,36 @@ class _OrderHeader extends StatelessWidget {
               IconButton(
                 icon: const Icon(Icons.arrow_back, color: Colors.black),
                 onPressed: () {
-                  // Xóa hết item trong giỏ
                   final state = context.findAncestorStateOfType<_OrderCreateScreenState>();
                   state?._cart.clear();
                   state?.setState(() {});
-                  // Quay lại màn hình tạo đơn lúc đầu
                   Navigator.of(context).popUntil((route) => route.isFirst);
                 },
               ),
             Expanded(
-              child: Stack(
-                children: [
-                  GestureDetector(
-                    onTap: onSearchTap,
-                    child: AbsorbPointer(
-                      child: TextField(
-                        decoration: InputDecoration(
-                          hintText: 'Tên, mã sản phẩm',
-                          prefixIcon: const Icon(Icons.search, color: Colors.grey),
-                          filled: true,
-                          fillColor: Colors.white,
-                          contentPadding: const EdgeInsets.symmetric(vertical: 0, horizontal: 12),
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(8),
-                            borderSide: BorderSide(color: Colors.grey[200]!),
-                          ),
-                          enabledBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(8),
-                            borderSide: BorderSide(color: Colors.grey[200]!),
-                          ),
-                        ),
-                        enabled: false,
-                        style: const TextStyle(fontSize: 16),
+              child: GestureDetector(
+                onTap: onSearchTap,
+                child: AbsorbPointer(
+                  child: TextField(
+                    decoration: InputDecoration(
+                      hintText: 'Tên, mã sản phẩm',
+                      prefixIcon: const Icon(Icons.search, color: Colors.grey),
+                      filled: true,
+                      fillColor: Colors.white,
+                      contentPadding: const EdgeInsets.symmetric(vertical: 0, horizontal: 12),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8),
+                        borderSide: BorderSide(color: Colors.grey[200]!),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8),
+                        borderSide: BorderSide(color: Colors.grey[200]!),
                       ),
                     ),
+                    enabled: false,
+                    style: const TextStyle(fontSize: 16),
                   ),
-                  // QR Scanner button positioned on the right
-                  Positioned(
-                    right: 8,
-                    top: 0,
-                    bottom: 0,
-                    child: Center(
-                      child: IconButton(
-                        icon: const Icon(Icons.qr_code_scanner, color: Color(0xFF16A34A)),
-                        onPressed: onQRScanTap,
-                      ),
-                    ),
-                  ),
-                ],
+                ),
               ),
             ),
           ],
@@ -2717,15 +2697,16 @@ class OrderInvoiceScreen extends StatelessWidget {
                             ],
                           ),
                           const SizedBox(height: 8),
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              const Text('Tổng chiết khấu:'),
-                              Text('-${_formatCurrencyDouble(order.discountAmount)}', style: const TextStyle(color: Colors.red)),
-                            ],
-                          ),
-
-                           const SizedBox(height: 8),     
+                          if (order.discountAmount > 0) ...[
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                const Text('Tổng chiết khấu:'),
+                                Text('-${_formatCurrencyDouble(order.discountAmount)}', style: const TextStyle(color: Colors.red)),
+                              ],
+                            ),
+                            const SizedBox(height: 8),
+                          ],
                           const Divider(height: 1, color: Color(0xFFE5E7EB)),
                           Padding(
                             padding: const EdgeInsets.symmetric(vertical: 8.0),
@@ -2737,21 +2718,25 @@ class OrderInvoiceScreen extends StatelessWidget {
                               ],
                             ),
                           ),
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              const Text('Đã thanh toán:'),
-                              Text(_formatCurrencyDouble(payment.amount)),
-                            ],
-                          ),
-                             const SizedBox(height: 8),
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              const Text('Còn lại:'),
-                              Text(_formatCurrencyDouble(order.finalAmount - payment.amount), style: const TextStyle(color: Colors.red)),
-                            ],
-                          ),
+                          if (payment.amount > 0) ...[
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                const Text('Đã thanh toán:'),
+                                Text(_formatCurrencyDouble(payment.amount)),
+                              ],
+                            ),
+                            const SizedBox(height: 8),
+                          ],
+                          if ((order.finalAmount - payment.amount) > 0) ...[
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                const Text('Còn lại:'),
+                                Text(_formatCurrencyDouble(order.finalAmount - payment.amount), style: const TextStyle(color: Colors.red)),
+                              ],
+                            ),
+                          ],
                           const SizedBox(height: 10),
                         ],
                       ),

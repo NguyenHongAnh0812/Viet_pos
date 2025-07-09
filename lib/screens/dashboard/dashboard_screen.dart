@@ -285,7 +285,7 @@ class _BottomNavBar extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: [
               const _NavItem(icon: Icons.dashboard, label: 'Tổng quan 2', selected: true),
-              const _NavItem(icon: Icons.inventory_2, label: 'Hàng hoá'),
+              const _NavItem(icon: Icons.inventory_2, label: 'Sản phẩm'),
               const _NavItem(icon: Icons.shopping_cart, label: 'Bán hàng'),
               const _NavItem(icon: Icons.people, label: 'Nhà cung cấp'),
               _NavItem(

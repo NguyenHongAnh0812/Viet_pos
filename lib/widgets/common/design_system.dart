@@ -22,7 +22,7 @@ const Color warningOrange = Color(0xFFFFB547); // --warning
 const Color destructiveRed = Color(0xFFFF5A5F); // --destructive
 const Color borderColor = Color(0xFFE5E7EB); // --border
 
-const Color appBackground = Color(0xFFF0FDF4); // --background
+const Color appBackground = Color(0xFFF5F6FA); // --background, màu xám nhạt
 const Color cardBackground = Color(0xFFFFFFFF);
 const Color homePageBackground = Color(0xF0FDF4FF); // --card
 const Color textPrimary = Color(0xFF1E1E1E); // --foreground
@@ -2431,4 +2431,52 @@ class ExampleCategoryTreeTable extends StatelessWidget {
       );
     }).toList();
   }
+}
+
+// ===================== DIALOG COMPONENTS =====================
+Future<bool?> showLogoutDialog(BuildContext context) {
+  return showDialog<bool>(
+    context: context,
+    builder: (context) => AlertDialog(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(borderRadiusMedium)),
+      title: Text('Xác nhận đăng xuất', style: h3),
+      content: Text(
+        'Bạn có chắc chắn muốn đăng xuất khỏi hệ thống?',
+        style: body,
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(false),
+          style: ghostButtonStyle,
+          child: const Text('Hủy'),
+        ),
+        const SizedBox(width: space8),
+        ElevatedButton(
+          onPressed: () => Navigator.of(context).pop(true),
+          style: destructiveButtonStyle,
+          child: const Text('Đăng xuất'),
+        ),
+      ],
+      actionsPadding: const EdgeInsets.fromLTRB(modalPadding, 0, modalPadding, modalPadding),
+    ),
+  );
+}
+
+// ===================== SNACKBAR COMPONENTS =====================
+void showSuccessSnackBar(BuildContext context, String message) {
+  ScaffoldMessenger.of(context).showSnackBar(
+    SnackBar(
+      content: Text(message),
+      backgroundColor: mainGreen,
+    ),
+  );
+}
+
+void showErrorSnackBar(BuildContext context, String message) {
+  ScaffoldMessenger.of(context).showSnackBar(
+    SnackBar(
+      content: Text(message),
+      backgroundColor: destructiveRed,
+    ),
+  );
 }

@@ -1026,11 +1026,7 @@ class _ProductListScreenState extends State<ProductListScreen> {
                                       Expanded(
                                         child: Text(
                                           'Sản phẩm (${filteredProducts.length})',
-                                          style: const TextStyle(
-                                            color: Colors.white,
-                                            fontWeight: FontWeight.bold,
-                                            fontSize: 24,
-                                          ),
+                                             style: h2Mobile.copyWith(color: Colors.white),
                                         ),
                                       ),
                                       IconButton(
@@ -1053,7 +1049,7 @@ class _ProductListScreenState extends State<ProductListScreen> {
                                       ),
                                     ],
                                   ),
-                                  const SizedBox(height: 12),
+                                  const SizedBox(height: 4),
                                   // Đưa filter/sort lên header xanh
                                   Row(
                                     children: [
@@ -1061,11 +1057,11 @@ class _ProductListScreenState extends State<ProductListScreen> {
                                         onTap: _showCategoryFilterModal,
                                         child: Row(
                                           children: [
-                                            Text('Danh mục', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 16)),
+                                            Text('Danh mục', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 13)),
                                             if (selectedCategories.isNotEmpty)
                                               Padding(
                                                 padding: const EdgeInsets.only(left: 4),
-                                                child: Icon(Icons.check_circle, color: Colors.white, size: 16),
+                                                child: Icon(Icons.check_circle, color: Colors.white, size: 14),
                                               ),
                                           ],
                                         ),
@@ -1102,7 +1098,7 @@ class _ProductListScreenState extends State<ProductListScreen> {
                                                 style: TextStyle(
                                                   color: (sortOption == 'price_asc' || sortOption == 'price_desc') ? Colors.white : Colors.white70,
                                                   fontWeight: FontWeight.w600,
-                                                  fontSize: 16,
+                                                  fontSize: 13,
                                                 ),
                                               ),
                                               if (sortOption == 'price_asc')
@@ -1145,7 +1141,7 @@ class _ProductListScreenState extends State<ProductListScreen> {
                                                 style: TextStyle(
                                                   color: (sortOption == 'stock_asc' || sortOption == 'stock_desc') ? Colors.white : Colors.white70,
                                                   fontWeight: FontWeight.w600,
-                                                  fontSize: 16,
+                                                  fontSize: 13,
                                                 ),
                                               ),
                                               if (sortOption == 'stock_asc')
@@ -1376,20 +1372,20 @@ class _ProductListScreenState extends State<ProductListScreen> {
                                                       child: Column(
                                                         crossAxisAlignment: CrossAxisAlignment.start,
                                                         children: [
-                                                                              Text(product.tradeName, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                                                                              Text(product.tradeName, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
                                                           if (product.internalName.isNotEmpty)
                                                             Padding(
                                                               padding: const EdgeInsets.only(top: 2),
-                                                                                  child: Text(product.internalName, style: const TextStyle(fontSize: 14, color: Colors.black54)),
+                                                                                  child: Text(product.internalName, style: const TextStyle(fontSize: 12, color: Colors.black54)),
                                                                                 ),
                                                                               if ((product.barcode ?? '').isNotEmpty)
                                                                                 Padding(
                                                                                   padding: const EdgeInsets.only(top: 2),
-                                                                                  child: Text(product.barcode!, style: const TextStyle(fontSize: 13, color: Colors.black54)),
+                                                                                  child: Text(product.barcode!, style: const TextStyle(fontSize: 12, color: Colors.black54)),
                                                                                 ),
                                                                               Padding(
                                                                                 padding: const EdgeInsets.only(top: 8),
-                                                                                child: Text('Giá bán: ${formatCurrency(product.salePrice)}', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+                                                                                child: Text('Giá bán: ${formatCurrency(product.salePrice)}', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
                                                                               ),
                                                                             ],
                                                                           ),
@@ -1405,7 +1401,7 @@ class _ProductListScreenState extends State<ProductListScreen> {
                                                                               border: Border.all(color: mainGreen, width: 1),
                                                                               borderRadius: BorderRadius.circular(20),
                                                                             ),
-                                                                            child: Text('${product.stockSystem} ${product.unit}', style: const TextStyle(color: mainGreen, fontSize: 13, fontWeight: FontWeight.w500)),
+                                                                            child: Text('${product.stockSystem} ${product.unit}', style: const TextStyle(color: mainGreen, fontSize: 12, fontWeight: FontWeight.w500)),
                                                                           ),
                                                                         ),
                                                                       ],
@@ -1479,6 +1475,7 @@ class _ProductListScreenState extends State<ProductListScreen> {
                                                                       style: bodyLarge.copyWith(
                                                                         fontWeight: FontWeight.w600,
                                                                         color: Colors.black87,
+                                                                        fontSize: 14,
                                                                       ),
                                                                     ),
                                                                 if (product.internalName.isNotEmpty)
@@ -1860,7 +1857,7 @@ class _ProductSearchSheetState extends State<_ProductSearchSheet> {
                                           child: Column(
                                             crossAxisAlignment: CrossAxisAlignment.start,
                                             children: [
-                                              Text(p.tradeName, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                                              Text(p.tradeName, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
                                               if (p.internalName.isNotEmpty)
                                                 Padding(
                                                   padding: const EdgeInsets.only(top: 2),

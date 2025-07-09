@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 import '../../services/product_category_service.dart';
+import '../../services/product_category_relation_service.dart';
 
 import 'package:flutter/services.dart';
 
@@ -20,6 +21,7 @@ import 'package:collection/collection.dart';
 import '../../widgets/common/design_system.dart';
 import '../../models/product_category.dart';
 import '../../models/product.dart';
+import '../../widgets/custom/product_image_picker.dart';
 
 class EditProductScreen extends StatefulWidget {
   final Product product;
@@ -63,6 +65,7 @@ class _EditProductScreenState extends State<EditProductScreen> with TickerProvid
   final _categoryService = ProductCategoryService();
   final _companyService = CompanyService();
   final _productCompanyService = ProductCompanyService();
+  final ProductCategoryRelationService _productCategoryRelationService = ProductCategoryRelationService();
   bool _companiesLoading = true;
   bool _isSaving = false;
   final List<File> _productImageFiles = [];
@@ -83,6 +86,25 @@ class _EditProductScreenState extends State<EditProductScreen> with TickerProvid
     _loadCompanies();
     _loadCategories();
     _fillProductData();
+    _loadSelectedRelations(); // Thêm dòng này
+  }
+
+  Future<void> _loadSelectedRelations() async {
+    // Lấy danh mục từ bảng trung gian product_categories
+    final categoryIds = await _productCategoryRelationService.getCategoryIdsForProduct(widget.product.id);
+    
+    // Lấy nhà cung cấp từ bảng trung gian product_companies
+    final companyIds = await _productCompanyService.getCompanyIdsForProduct(widget.product.id);
+    
+    if (mounted) {
+      setState(() {
+        _selectedCompanyIds = companyIds;
+        // Map categoryIds sang ProductCategory objects (chỉ khi _allCategories đã được load)
+        if (_allCategories.isNotEmpty) {
+          _selectedCategories = _allCategories.where((c) => categoryIds.contains(c.id)).toList();
+        }
+      });
+    }
   }
 
   void _fillProductData() {
@@ -161,15 +183,18 @@ class _EditProductScreenState extends State<EditProductScreen> with TickerProvid
     if (mounted) {
       setState(() {
         _allCategories = _buildCategoryTree(categories);
-        // Load selected categories for this product
-        _loadSelectedCategories();
       });
+      // Sau khi load xong categories, lấy danh sách id từ bảng trung gian và map sang object
+      final categoryIds = await _productCategoryRelationService.getCategoryIdsForProduct(widget.product.id);
+      debugPrint('DEBUG: categoryIds from relation = ' + categoryIds.toString());
+      final selectedCats = _allCategories.where((c) => categoryIds.contains(c.id)).toList();
+      debugPrint('DEBUG: _selectedCategories = ' + selectedCats.map((c) => c.name + ' (${c.id})').toList().toString());
+      if (mounted) {
+        setState(() {
+          _selectedCategories = selectedCats;
+        });
+      }
     }
-  }
-
-  void _loadSelectedCategories() {
-    // TODO: Load selected categories based on product.categoryIds
-    // This will be implemented when category relation is available
   }
 
   // Hàm build tree phân cấp, trả về list đã sort theo cấp, mỗi item có level
@@ -188,6 +213,41 @@ class _EditProductScreenState extends State<EditProductScreen> with TickerProvid
     }
     addChildren(null, 0);
     return result;
+  }
+
+  // Helper method để lấy tất cả parent category IDs
+  Future<List<String>> _getAllParentCategoryIds(String categoryId) async {
+    List<String> parentIds = [];
+    String? currentId = categoryId;
+    
+    while (currentId != null && currentId.isNotEmpty) {
+      final doc = await FirebaseFirestore.instance.collection('categories').doc(currentId).get();
+      if (doc.exists) {
+        final data = doc.data()!;
+        final parentId = data['parentId'] as String?;
+        if (parentId != null && parentId.isNotEmpty) {
+          parentIds.add(parentId);
+          currentId = parentId;
+        } else {
+          break;
+        }
+      } else {
+        break;
+      }
+    }
+    
+    return parentIds;
+  }
+
+  // Helper method để lấy tất cả category IDs (bao gồm cả parent) cho một sản phẩm
+  Future<List<String>> _getAllCategoryIdsForProduct(List<String> selectedCategoryIds) async {
+    Set<String> allCategoryIds = {};
+    for (final categoryId in selectedCategoryIds) {
+      allCategoryIds.add(categoryId);
+      final parentIds = await _getAllParentCategoryIds(categoryId);
+      allCategoryIds.addAll(parentIds);
+    }
+    return allCategoryIds.toList();
   }
 
   void _addTag() {
@@ -372,6 +432,34 @@ class _EditProductScreenState extends State<EditProductScreen> with TickerProvid
           .doc(widget.product.id)
           .update(productData);
 
+      // Cập nhật mối quan hệ Product-Category
+      if (_selectedCategories.isNotEmpty) {
+        // Lấy tất cả category IDs (bao gồm cả parent categories)
+        final allCategoryIds = await _getAllCategoryIdsForProduct(_selectedCategories.map((c) => c.id).toList());
+        
+        // Xóa tất cả mối quan hệ cũ
+        await _productCategoryRelationService.deleteProductCategories(widget.product.id);
+        
+        // Lưu tất cả mối quan hệ mới vào product_categories collection
+        final batch = FirebaseFirestore.instance.batch();
+        for (final categoryId in allCategoryIds) {
+          final relationDocRef = FirebaseFirestore.instance.collection('product_categories').doc();
+          batch.set(relationDocRef, {
+            'product_id': widget.product.id,
+            'category_id': categoryId,
+            'created_at': FieldValue.serverTimestamp(),
+            'updated_at': FieldValue.serverTimestamp(),
+          });
+        }
+        await batch.commit();
+      }
+
+      // Cập nhật mối quan hệ Product-Company
+      await _productCompanyService.deleteProductCompanies(widget.product.id);
+      if (_selectedCompanyIds.isNotEmpty) {
+        await _productCompanyService.addProductCompanies(widget.product.id, _selectedCompanyIds);
+      }
+
       if (mounted) {
         _showPopupNotification('Cập nhật sản phẩm thành công!', Icons.check_circle);
         Navigator.of(context).pop();
@@ -455,142 +543,44 @@ class _EditProductScreenState extends State<EditProductScreen> with TickerProvid
   }
 
   Widget _buildProductImageBlock() {
-    final hasImage = _productImageFiles.isNotEmpty || _productImageUrls.isNotEmpty;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            Text('Ảnh sản phẩm', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: mainGreen)),
-            const Text(' *', style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),
-          ],
-        ),
-        const SizedBox(height: 16),
-        if (!hasImage)
-          Center(
-            child: Container(
-              width: 140,
-              height: 140,
-              decoration: BoxDecoration(
-                border: Border.all(color: Colors.grey, width: 1, style: BorderStyle.solid),
-                borderRadius: BorderRadius.circular(12),
-                color: Colors.grey[50],
-                // Custom dashed border can be added with a custom painter if needed
-              ),
-              child: Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(Icons.image, size: 48, color: Colors.grey[400]),
-                    const SizedBox(height: 8),
-                    Text('Product', style: TextStyle(color: Colors.grey[500], fontSize: 16)),
-                  ],
-                ),
-              ),
-            ),
-          ),
-        if (hasImage)
-          GridView.builder(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: 3,
-              crossAxisSpacing: 8,
-              mainAxisSpacing: 8,
-              childAspectRatio: 1,
-            ),
-            itemCount: _productImageFiles.length + _productImageUrls.length,
-            itemBuilder: (context, index) {
-              final isMain = index == _mainImageIndex;
-              return Stack(
-                children: [
-                  Container(
-                    width: double.infinity,
-                    height: double.infinity,
-                    decoration: BoxDecoration(
-                      border: Border.all(
-                        color: isMain ? mainGreen : Colors.grey[300]!,
-                        width: isMain ? 2 : 1,
-                      ),
-                      borderRadius: BorderRadius.circular(8),
-                      color: Colors.grey[100],
-                    ),
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(8),
-                      child: index < _productImageFiles.length
-                          ? Image.file(_productImageFiles[index], fit: BoxFit.cover, width: double.infinity, height: double.infinity)
-                          : Image.network(_productImageUrls[index - _productImageFiles.length], fit: BoxFit.cover, width: double.infinity, height: double.infinity),
-                    ),
-                  ),
-                  Positioned(
-                    top: 4,
-                    right: 4,
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        if (isMain)
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                            decoration: BoxDecoration(
-                              color: mainGreen,
-                              borderRadius: BorderRadius.circular(4),
-                            ),
-                            child: const Text('Chính', style: TextStyle(color: Colors.white, fontSize: 10)),
-                          ),
-                        IconButton(
-                          onPressed: () => _removeImage(index),
-                          icon: const Icon(Icons.close, color: Colors.red, size: 16),
-                          style: IconButton.styleFrom(
-                            backgroundColor: Colors.white,
-                            padding: const EdgeInsets.all(4),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  if (!isMain)
-                    Positioned(
-                      bottom: 4,
-                      left: 4,
-                      child: IconButton(
-                        onPressed: () => _setMainImage(index),
-                        icon: const Icon(Icons.star_border, color: Colors.orange, size: 16),
-                        style: IconButton.styleFrom(
-                          backgroundColor: Colors.white,
-                          padding: const EdgeInsets.all(4),
-                        ),
-                      ),
-                    ),
-                ],
-              );
-            },
-          ),
-        const SizedBox(height: 16),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            OutlinedButton.icon(
-              onPressed: _pickMultiImageFromGallery,
-              icon: const Icon(Icons.upload, size: 20),
-              label: const Text('Tải ảnh'),
-              style: OutlinedButton.styleFrom(
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-              ),
-            ),
-            const SizedBox(width: 12),
-            OutlinedButton.icon(
-              onPressed: () {/* TODO: implement camera picker */},
-              icon: const Icon(Icons.camera_alt, size: 20),
-              label: const Text('Chụp ảnh'),
-              style: OutlinedButton.styleFrom(
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-              ),
-            ),
-          ],
-        ),
-      ],
+    return ProductImagePicker(
+      initialFiles: _productImageFiles,
+      initialWebImages: _webImageBytesList,
+      initialUrls: _productImageUrls,
+      mainImageIndex: _mainImageIndex,
+      onChanged: (files, webImages, urls, mainIdx) {
+        setState(() {
+          _productImageFiles
+            ..clear()
+            ..addAll(files);
+          _webImageBytesList
+            ..clear()
+            ..addAll(webImages);
+          _productImageUrls = List<String>.from(urls);
+          _mainImageIndex = mainIdx;
+        });
+      },
+      onUploadImages: (files, webImages) async {
+        List<String> urls = [];
+        if (kIsWeb && webImages.isNotEmpty) {
+          for (final bytes in webImages) {
+            final fileName = 'products/${DateTime.now().millisecondsSinceEpoch}_${urls.length}.web.jpg';
+            final ref = FirebaseStorage.instance.ref().child(fileName);
+            final uploadTask = await ref.putData(bytes);
+            final url = await uploadTask.ref.getDownloadURL();
+            urls.add(url);
+          }
+        } else if (files.isNotEmpty) {
+          for (final file in files) {
+            final fileName = 'products/${DateTime.now().millisecondsSinceEpoch}_${file.path.split('/').last}';
+            final ref = FirebaseStorage.instance.ref().child(fileName);
+            final uploadTask = await ref.putFile(file);
+            final url = await uploadTask.ref.getDownloadURL();
+            urls.add(url);
+          }
+        }
+        return urls;
+      },
     );
   }
 
