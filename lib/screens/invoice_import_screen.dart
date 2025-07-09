@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:excel/excel.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import '../services/product_service.dart';
+
 import 'dart:io';
 import 'dart:async';
 
@@ -145,7 +145,7 @@ class _InvoiceImportScreenState extends State<InvoiceImportScreen> {
         });
       }
     } catch (e) {
-      print('Error checking memory: $e');
+
       setState(() {
         _memoryStatus = 'Không thể kiểm tra bộ nhớ: $e';
         _hasEnoughMemory = true; // Mặc định cho phép
@@ -181,7 +181,7 @@ class _InvoiceImportScreenState extends State<InvoiceImportScreen> {
         _memoryStatus += '\nBộ nhớ ước tính cho sản phẩm: ${(estimatedMemory / 1024 / 1024).toStringAsFixed(2)}MB';
       });
     } catch (e) {
-      print('Error estimating products memory: $e');
+
     }
   }
 
@@ -388,7 +388,7 @@ class _InvoiceImportScreenState extends State<InvoiceImportScreen> {
         _status = 'Đã tải ${allProducts.length} sản phẩm';
       });
     } catch (e) {
-      print('Error loading products: $e');
+
       setState(() {
         _status = 'Lỗi khi tải sản phẩm: $e';
       });
@@ -472,18 +472,18 @@ class _InvoiceImportScreenState extends State<InvoiceImportScreen> {
               // Cập nhật sản phẩm hiện có
               final doc = allProducts[searchKey]!;
               final currentStock = (doc['stock_invoice'] ?? 0).toDouble();
-              batch.update(doc.reference, {
+          batch.update(doc.reference, {
                 'stock_invoice': currentStock + quantity,
                 'cost_price': costPrice,
                 'updated_at': FieldValue.serverTimestamp(),
-              });
-              updatedCount++;
-            } else {
+          });
+          updatedCount++;
+        } else {
               // Tạo sản phẩm mới
-              final productData = {
+          final productData = {
                 'internal_name': internalName.isNotEmpty ? internalName : name,
                 'trade_name': name,
-                'unit': unit,
+            'unit': unit,
                 'stock_system': 0,
                 'stock_invoice': quantity,
                 'cost_price': costPrice,
@@ -495,16 +495,16 @@ class _InvoiceImportScreenState extends State<InvoiceImportScreen> {
                 'sale_price': 0,
                 'gross_profit': 0,
                 'auto_price': false,
-                'tags': [],
+            'tags': [],
                 'barcode': null,
                 'sku': null,
                 'created_at': FieldValue.serverTimestamp(),
                 'updated_at': FieldValue.serverTimestamp(),
-              };
+          };
               final docRef = FirebaseFirestore.instance.collection('products').doc();
-              batch.set(docRef, productData);
-              newCount++;
-            }
+          batch.set(docRef, productData);
+          newCount++;
+        }
             batchOperations++;
           } catch (e) {
             errorCount++;
@@ -692,7 +692,7 @@ class _InvoiceImportScreenState extends State<InvoiceImportScreen> {
         return Timestamp.fromDate(date);
       }
     } catch (e) {
-      print('Lỗi parse date: $dateStr - $e');
+
     }
     return Timestamp.now(); // Fallback to current time if parsing fails
   }
@@ -773,7 +773,7 @@ class _InvoiceImportScreenState extends State<InvoiceImportScreen> {
                                   rows: _mergedData.map((row) {
                                     final isMerged = mergedNames.contains(row['product']?.toString() ?? '');
                                     return DataRow(
-                                      color: isMerged ? MaterialStateProperty.all(Colors.yellow[100]) : null,
+                                      color: isMerged ? WidgetStateProperty.all(Colors.yellow[100]) : null,
                                       cells: [
                                         DataCell(SizedBox(width: colWidth, child: Align(alignment: Alignment.centerLeft, child: Text(row['product']?.toString() ?? '')))),
                                         DataCell(SizedBox(width: colWidth, child: Align(alignment: Alignment.centerLeft, child: Text(row['đơn vị tính']?.toString() ?? '')))),
@@ -994,8 +994,7 @@ class _InvoiceImportScreenState extends State<InvoiceImportScreen> {
                           icon: const Icon(Icons.cloud_upload),
                           label: const Text('Import đơn hàng vào hệ thống'),
                           onPressed: () async {
-                            print('Import button pressed');
-                            print('Excel data length: [32m${_excelData.length}[0m');
+
                             int orderCount = 0;
                             int itemCount = 0;
                             List<String> errorLogs = [];
@@ -1005,17 +1004,17 @@ class _InvoiceImportScreenState extends State<InvoiceImportScreen> {
 
                             // 1. Lấy map company tax_code -> company_id
                             final companySnapshot = await FirebaseFirestore.instance.collection('companies').get();
-                            print('Company snapshot: ${companySnapshot.docs.length}');
+
                             for (var doc in companySnapshot.docs) {
                               final taxCode = doc['tax_code']?.toString().trim() ?? '';
                               if (taxCode.isNotEmpty) {
                                 companyTaxToId[taxCode] = doc.id;
                               }
                             }
-                            print('companyTaxToId: $companyTaxToId');
+
                             // 2. Lấy map product name -> product_id
                             final productSnapshot = await FirebaseFirestore.instance.collection('products').get();
-                            print('Product snapshot: ${productSnapshot.docs.length}');
+
                             for (var doc in productSnapshot.docs) {
                               String name = '';
                               if (doc.data().containsKey('trade_name')) {
@@ -1027,7 +1026,6 @@ class _InvoiceImportScreenState extends State<InvoiceImportScreen> {
                                 productNameToId[name] = doc.id;
                               }
                             }
-                            print('productNameToId: $productNameToId');
 
                             for (final row in _excelData) {
                               final invoiceNumber = row['số hóa đơn']?.toString() ?? '';
@@ -1035,7 +1033,7 @@ class _InvoiceImportScreenState extends State<InvoiceImportScreen> {
                               final taxCode = row['mã số thuế']?.toString() ?? '';
                               final companyId = companyTaxToId[taxCode];
                               if (companyId == null) {
-                                print('Không tìm thấy công ty với mã số thuế: $taxCode (HĐ: $invoiceNumber)');
+                                debugPrint('Không tìm thấy công ty với mã số thuế: $taxCode (HĐ: $invoiceNumber)');
                                 errorLogs.add('Không tìm thấy công ty với mã số thuế: $taxCode (HĐ: $invoiceNumber)');
                                 continue;
                               }
@@ -1049,7 +1047,7 @@ class _InvoiceImportScreenState extends State<InvoiceImportScreen> {
                                     .get();
                                 DocumentReference orderRef;
                                 if (orderQuery.docs.isEmpty) {
-                                  print('Tạo mới order cho HĐ: $invoiceNumber');
+
                                   orderRef = await FirebaseFirestore.instance.collection('orders').add({
                                     'invoice_number': invoiceNumber,
                                     'serial': serial,
@@ -1065,7 +1063,7 @@ class _InvoiceImportScreenState extends State<InvoiceImportScreen> {
                                   });
                                   orderCount++;
                                 } else {
-                                  print('Order đã tồn tại cho HĐ: $invoiceNumber');
+
                                   orderRef = orderQuery.docs.first.reference;
                                 }
                                 orderRefs[invoiceNumber] = orderRef;
@@ -1076,7 +1074,7 @@ class _InvoiceImportScreenState extends State<InvoiceImportScreen> {
                               final productName = row['product']?.toString() ?? '';
                               final productId = productNameToId[productName];
                               if (productId == null) {
-                                print('Không tìm thấy sản phẩm: $productName (HĐ: $invoiceNumber)');
+                                debugPrint('Không tìm thấy sản phẩm: $productName (HĐ: $invoiceNumber)');
                                 errorLogs.add('Không tìm thấy sản phẩm: $productName (HĐ: $invoiceNumber)');
                                 continue;
                               }
@@ -1088,7 +1086,7 @@ class _InvoiceImportScreenState extends State<InvoiceImportScreen> {
                               final taxable = (row['tax-able']?.toString().toLowerCase() == 'true' || row['tax-able']?.toString() == '1');
                               final subTotal = quantity * price;
                               final total = subTotal - discount + (taxable ? subTotal * taxRate / 100 : 0);
-                              print('Tạo order_item: product=$productName, product_id=$productId, quantity=$quantity, price=$price, total=$total');
+
                               await orderRef.collection('order_items').add({
                                 'product_id': productId,
                                 'quantity': quantity,
@@ -1102,7 +1100,7 @@ class _InvoiceImportScreenState extends State<InvoiceImportScreen> {
                               itemCount++;
                             }
                             // 6. Hiển thị log
-                            print('Import xong: $orderCount đơn hàng, $itemCount sản phẩm. Lỗi: ${errorLogs.length}');
+
                             showDialog(
                               context: context,
                               builder: (_) => AlertDialog(

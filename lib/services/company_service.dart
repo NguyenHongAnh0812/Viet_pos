@@ -11,7 +11,7 @@ class CompanyService {
     });
   }
 
-  Future<void> addCompany(Company company) {
+  Future<DocumentReference> addCompany(Company company) {
     return _companiesCollection.add(company.toMap());
   }
 

@@ -1,9 +1,11 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/product.dart';
+import 'product_company_service.dart';
 
 class ProductService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final String _collection = 'products';
+  final ProductCompanyService _productCompanyService = ProductCompanyService();
 
   // Thêm sản phẩm mới
   Future<String> addProduct(Product product) async {
@@ -37,7 +39,7 @@ class ProductService {
         throw 'Tên danh pháp đã tồn tại';
       }
 
-      // Thêm sản phẩm mới
+      // Thêm sản phẩm mới (không xử lý category_ids)
       final docRef = await _firestore.collection(_collection).add(Product.normalizeProductData(product.toMap()));
       return docRef.id;
     } catch (e) {
@@ -60,7 +62,7 @@ class ProductService {
           final product = Product.fromMap(doc.id, doc.data());
           products.add(product);
         } catch (e) {
-          print('ERROR: Failed to parse product ${doc.id}: $e');
+
         }
       }
       return products;
@@ -84,9 +86,7 @@ class ProductService {
           } else if (oldCategoryId is List) {
             newCategoryIds = List<String>.from(oldCategoryId);
           }
-          
-          print('Migrate document ${doc.id}: category_id "$oldCategoryId" -> category_ids $newCategoryIds');
-          
+
           await _firestore.collection(_collection).doc(doc.id).update({
             'category_ids': newCategoryIds,
             'category_id': FieldValue.delete(), // Xóa trường cũ
@@ -98,8 +98,7 @@ class ProductService {
           final categoryIds = data['category_ids'] as List;
           if (categoryIds.isNotEmpty && categoryIds.first is! String) {
             final stringCategoryIds = List<String>.from(categoryIds.map((e) => e.toString()));
-            print('Fix document ${doc.id}: category_ids $categoryIds -> $stringCategoryIds');
-            
+
             await _firestore.collection(_collection).doc(doc.id).update({
               'category_ids': stringCategoryIds,
             });
@@ -109,10 +108,10 @@ class ProductService {
       }
       
       if (fixedCount > 0) {
-        print('Auto-fixed $fixedCount documents for category_ids migration');
+
       }
     } catch (e) {
-      print('Lỗi khi auto-fix dữ liệu: $e');
+
     }
   }
 
@@ -128,6 +127,10 @@ class ProductService {
   // Xóa sản phẩm
   Future<void> deleteProduct(String id) async {
     try {
+      // Xóa tất cả mối quan hệ Product-Company trước
+      await _productCompanyService.deleteProductCompanies(id);
+      
+      // Sau đó xóa sản phẩm
       await _firestore.collection(_collection).doc(id).delete();
     } catch (e) {
       throw 'Lỗi khi xóa sản phẩm: $e';

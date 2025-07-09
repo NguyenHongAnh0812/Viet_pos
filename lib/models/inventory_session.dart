@@ -34,7 +34,7 @@ class InventorySession {
       createdAt: createdAt,
       createdBy: data['created_by'] ?? '',
       note: data['note'] ?? '',
-      status: data['status'] ?? 'done',
+      status: data['status'] ?? 'draft',
       products: (data['products'] as List<dynamic>? ?? []).map((p) => InventoryProduct.fromMap(p)).toList(),
     );
   }
@@ -48,6 +48,9 @@ class InventorySession {
       'products': products.map((p) => p.toMap()).toList(),
     };
   }
+
+  int get totalCount => products.length;
+  int get checkedCount => products.where((p) => p.actualQty != null && p.actualQty > 0).length;
 }
 
 class InventoryProduct {

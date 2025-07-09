@@ -1,62 +1,75 @@
-# Database Structure: Bảng Product
+# Database Structure: Product Table
 
-| Tên trường         | Kiểu dữ liệu         | Mô tả                                                        |
-|--------------------|---------------------|--------------------------------------------------------------|
-| id                 | UUID / Integer      | Mã định danh sản phẩm                                        |
-| trade_name         | String              | Tên thương mại (hiển thị)                                    |
-| internal_name      | String              | Tên nội bộ dùng cho quản lý                                  |
-| barcode            | String              | Mã barcode sản phẩm                                          |
-| sku                | String              | Mã SKU sản phẩm                                              |                                       |
-| ingredients        | Text                | Thành phần                                                   |
-| usage              | Text                | Công dụng                                                    |
-| description        | Text                | Mô tả chi tiết sản phẩm                                      |
-| tags               | Array[String]       | Tags                                                         |
-| cost_price         | Decimal             | Giá vốn (giá nhập)                                           |
-| sale_price         | Decimal             | Giá bán                                                      |
-| grcss_profit       | Decimal             | Lợi nhuận gộp (tính theo chênh lệch giá bán và giá vốn)     |
-| auto_price         | Boolean             | Tự động tính giá bán theo lợi nhuận gộp                      |
-| stock_system     | Integer             | Số lượng tồn kho hiện tại                                    |
-| stock_invoice      | Integer             | Số lượng tồn kho hóa đơn                                     |
-| status             | Enum                | Trạng thái sản phẩm (active/inactive/discontinued)           |
-| discontinue_reason | Text (optional)     | Lý do ngừng bán nếu có                                       |
-| notes              | Text (optional)     | Ghi chú thêm                                                 |
-| created_at         | Timestamp           | Thời gian tạo                                                |
-| updated_at         | Timestamp           | Thời gian cập nhật cuối                                      |
+| Field Name         | Data Type         | Description                                                        |
+|--------------------|------------------|--------------------------------------------------------------------|
+| id                 | UUID / Integer   | Product unique identifier                                          |
+| trade_name         | String           | Trade name (displayed)                                             |
+| internal_name      | String           | Internal name for management                                       |
+| barcode            | String           | Product barcode                                                    |
+| sku                | String           | Product SKU                                                        |
+| ingredients        | Text             | Ingredients                                                        |
+| usage              | Text             | Usage                                                              |
+| description        | Text             | Product detailed description                                       |
+| tags               | Array[String]    | Tags                                                               |
+| cost_price         | Decimal          | Cost price (purchase price)                                        |
+| sale_price         | Decimal          | Sale price                                                         |
+| grcss_profit       | Decimal          | Gross profit (difference between sale and cost price)              |
+| auto_price         | Boolean          | Auto-calculate sale price by gross profit                          |
+| stock_system       | Integer          | Current stock quantity                                             |
+| stock_invoice      | Integer          | Invoice stock quantity                                             |
+| status             | Enum             | Product status (active/inactive/discontinued)                      |
+| discontinue_reason | Text (optional)  | Discontinue reason (if any)                                        |
+| notes              | Text (optional)  | Additional notes                                                   |
+| image_url          | String (optional)| Product image                                                      |
+| unit               | String (optional)| Unit (box, bottle, tablet, ...)                                    |
+| created_at         | Timestamp        | Created time                                                       |
+| updated_at         | Timestamp        | Last updated time                                                  |
 
-## Bảng: categories
-| Tên trường   | Kiểu dữ liệu | Ghi chú                                  |
-|--------------|--------------|------------------------------------------|
-| id           | String       | ID danh mục (Firestore auto hoặc custom) |
-| name         | String       | Tên danh mục                             |
-| parent_id    | String/null  | ID danh mục cha (nếu có)                 |
-| level        | Integer      | Cấp độ danh mục (0: gốc, 1: con, ...)    |
-| description  | String       | Mô tả                                    |
-| created_at   | Timestamp    | Ngày tạo                                 |
-| updated_at   | Timestamp    | Ngày cập nhật                            |
+## Table: categories
+| Field Name | Data Type | Description                                  |
+|------------|-----------|----------------------------------------------|
+| id         | String    | Category ID (Firestore auto or custom)       |
+| name       | String    | Category name                                |
+| parent_id  | String/null| Parent category ID (if any)                  |
+| level      | Integer   | Category level (0: root, 1: child, ...)      |
+| description| String    | Description                                  |
+| created_at | Timestamp | Created date                                 |
+| updated_at | Timestamp | Updated date                                 |
 
-## Bảng: product_category
-| Tên trường   | Kiểu dữ liệu | Ghi chú                                  |
-|--------------|--------------|------------------------------------------|
-| product_id   | String       | ID sản phẩm                              |
-| category_id  | String       | ID danh mục                              |
-| created_at   | Timestamp    | Ngày tạo bản ghi                         |
+## Table: product_category
+| Field Name | Data Type | Description                                  |
+|------------|-----------|----------------------------------------------|
+| product_id | String    | Product ID                                   |
+| category_id| String    | Category ID                                  |
+| created_at | Timestamp | Record created date                          |
 
-## Bảng: customer (Khách hàng)
-| Field      | Type   | Description                  |
-|------------|--------|------------------------------|
-| id         | UUID   | Unique customer ID           |
-| name       | string | Full name                    |
-| gender     | enum   | Male / Female / Other        |
-| phone      | string | Phone number                 |
-| email      | string | Email address                |
-| address    | string | Contact address              |
-| discount   | number | % discount (if any)          |
-| tax_code   | string | Tax identification number    |
-| tags       | array  | Optional tags                |
-| company_id | UUID   | FK to associated company     |
+## Table: customer
+| Field Name        | Data Type | Description                              |
+|------------------|-----------|------------------------------------------|
+| id               | UUID      | Unique customer ID                       |
+| name             | string    | Full name                                |
+| gender           | enum      | Male / Female / Other                    |
+| birthaday        | date      | Birthday                                 |
+| phone            | string    | Phone number                             |
+| email            | string    | Email address                            |
+| address          | string    | Contact address                          |
+| discount         | number    | % discount (if any)                      |
+| tax_code         | string    | Tax identification number                |
+| tags             | array     | Optional tags                            |
+| company_id       | UUID      | FK to associated company                 |
+| customer_group_id| UUID      | Customer group                           |
+| loyalty_point    | number    | Loyalty points                           |
+| debt             | number    | Current debt                             |
 
-## Bảng: company (Công ty)
-| Field         | Type      | Description                        |
+## Table: customer_group
+| Field Name | Data Type | Description                  |
+|------------|-----------|------------------------------|
+| id         | UUID      | Unique group ID              |
+| name       | string    | Group name                   |
+| note       | text      | Notes                        |
+
+## Table: company
+| Field Name    | Data Type | Description                        |
 |---------------|-----------|------------------------------------|
 | id            | UUID      | Unique company ID                  |
 | name          | string    | Company name                       |
@@ -73,68 +86,89 @@
 | status        | enum      | Active / Inactive                  |
 | tags          | array     | Tags                               |
 | note          | text      | Optional notes                     |
-| created_at    | Timestamp | Thời gian tạo                      |
-| updated_at    | Timestamp | Thời gian cập nhật                 |
+| created_at    | Timestamp | Created time                       |
+| updated_at    | Timestamp | Updated time                       |
 
-## Bảng: product_company
-| Field       | Type           | Description                                                    |
-|-------------|----------------|----------------------------------------------------------------|
-| product_id  | UUID / Integer | FK đến bảng product                                            |
-| company_id  | UUID / Integer | FK đến bảng company (nếu company có is_supplier = true)        |
-| created_at  | Timestamp      | Ngày liên kết                                                  |
+## Table: product_company
+| Field Name | Data Type      | Description                                                    |
+|------------|---------------|----------------------------------------------------------------|
+| product_id | UUID / Integer| FK to product table                                            |
+| company_id | UUID / Integer| FK to company table (if company is_supplier = true)            |
+| created_at | Timestamp     | Linked date                                                    |
 
-## Bảng: order (Đơn nhập hàng)
-| Field             | Type    | Description                                                                 |
-|-------------------|---------|-----------------------------------------------------------------------------|
-| id                | UUID    | Unique order ID                                                             |
-| serial            | string  | Order serial (e.g., PO-00001)                                               |
-| invoice_number    | string  | Invoice number                                                              |
-| created_date      | date    | Order creation date                                                         |
-| sub_total         | number  | Total before tax and discount                                               |
-| total_discounts   | number  | Total discounts applied                                                     |
-| tax               | number  | Tax amount                                                                  |
-| total             | number  | Grand total                                                                 |
-| payment_option    | string  | e.g., Bank transfer, Cash, etc.                                             |
-| customer_id       | UUID    | Optional (in case of supplier as customer)                                  |
-| company_id        | UUID    | Associated company                                                          |
-| discounts         | string  | Text or rules for discount                                                  |
-| item_count        | number  | Total number of items                                                       |
-| order_items_list  | array   | JSON array of order_items                                                   |
-| financial_status  | enum    | authorized / expired / paid / partially_paid / partially_refunded / pending / refunded / unpaid / voided |
-| status            | enum    | completed / canceled                                                        |
+## Table: order
+| Field Name         | Data Type | Description                                                                 |
+|--------------------|-----------|-----------------------------------------------------------------------------|
+| id                 | UUID      | Unique order ID                                                             |
+| serial             | string    | Order serial (e.g., PO-00001)                                               |
+| invoice_number     | string    | Invoice number                                                              |
+| created_date       | date      | Order creation date                                                         |
+| sub_total          | number    | Total before tax and discount                                               |
+| total_discounts    | number    | Total discounts applied                                                     |
+| tax                | number    | Tax amount                                                                  |
+| total              | number    | Grand total                                                                 |
+| payment_option     | string    | e.g., Bank transfer, Cash, etc.                                             |
+| customer_id        | UUID      | Optional (in case of supplier as customer)                                  |
+| company_id         | UUID      | Associated company                                                          |
+| discounts          | string    | Discount text or rules                                                      |
+| item_count         | number    | Total number of items                                                       |
+| order_items_list   | array     | JSON array of order_items                                                   |
+| financial_status   | enum      | authorized / expired / paid / partially_paid / partially_refunded / pending / refunded / unpaid / voided |
+| status             | enum      | completed / canceled                                                        |
+| order_type         | enum      | sale / purchase / return / ...                                              |
+| created_by         | UUID      | User who created the order                                                  |
+| note               | text      | Order notes                                                                 |
+| shipping_info      | string    | Shipping information (JSON/text)                                            |
+| payment_status     | enum      | paid / unpaid / partial / ... (if separated)                                |
 
-## Bảng: order_item (Chi tiết sản phẩm trong đơn)
-| Field           | Type    | Description                        |
-|-----------------|---------|------------------------------------|
-| id              | UUID    | Unique item ID                     |
-| order_id        | UUID    | Foreign key to order               |
-| product_id        | string  | FK to associated product           |
-| quantity        | number  | Quantity ordered                   |
-| price           | number  | Unit price                         |
-| sub_total       | number  | quantity x price                   |
-| discount_amount | number  | Discount on this item              |
-| tax_rate        | number  | Tax %                              |
-| taxable         | boolean | Is this item taxable?              |
-| total           | number  | Final total after discount and tax |
+## Table: order_item
+| Field Name           | Data Type | Description                        |
+|---------------------|-----------|------------------------------------|
+| id                  | UUID      | Unique item ID                     |
+| order_id            | UUID      | Foreign key to order               |
+| product_id          | string    | FK to associated product           |
+| quantity            | number    | Quantity ordered                   |
+| price               | number    | Unit price                         |
+| sub_total           | number    | quantity x price                   |
+| discount_amount     | number    | Discount on this item              |
+| tax_rate            | number    | Tax %                              |
+| taxable             | boolean   | Is this item taxable?              |
+| total               | number    | Final total after discount and tax |
+| unit                | string    | Unit                               |
+| product_name_snapshot| string   | Product name at the time of sale   |
+| vat_amount          | number    | VAT amount                         |
 
-## Bảng: discount (Khuyến mãi)
-| Field              | Type        | Description                                      |
-|--------------------|------------|--------------------------------------------------|
-| id                 | UUID       | Mã khuyến mãi                                     |
-| name               | string     | Tên chương trình khuyến mãi                      |
-| code               | string     | Mã áp dụng (nếu có)                              |
-| type               | enum       | amount / percent / gift_product                  |
-| value              | number     | Số tiền hoặc % giảm                              |
-| gift_product_id    | UUID/null  | Sản phẩm được tặng (nếu là gift)                 |
-| apply_scope        | enum       | order / product / category                       |
-| applied_products   | array      | Danh sách sản phẩm áp dụng (nếu type = product)  |
-| applied_categories | array      | Danh sách danh mục áp dụng                       |
-| customer_ids       | array      | Danh sách khách hàng áp dụng                     |
-| customer_group_ids | array      | Nhóm khách hàng áp dụng                          |
-| company_ids        | array      | Danh sách công ty áp dụng                        |
-| min_order_value    | number     | Giá trị đơn hàng tối thiểu (nếu có)              |
-| start_time         | datetime   | Thời gian bắt đầu                                |
-| end_time           | datetime   | Thời gian kết thúc                               |
-| status             | enum       | active / inactive / scheduled                    |
-| description        | text       | Ghi chú chương trình                             |
-| created_at         | datetime   | Ngày tạo                                         | 
+## Table: discount
+| Field Name         | Data Type | Description                                      |
+|--------------------|-----------|--------------------------------------------------|
+| id                 | UUID      | Discount ID                                      |
+| name               | string    | Promotion name                                   |
+| code               | string    | Discount code (if any)                           |
+| type               | enum      | amount / percent / gift_product                  |
+| value              | number    | Discount value or percent                        |
+| gift_product_id    | UUID/null | Gift product (if type = gift)                    |
+| apply_scope        | enum      | order / product / category                       |
+| applied_products   | array     | List of applied products (if type = product)     |
+| applied_categories | array     | List of applied categories                       |
+| customer_ids       | array     | List of applied customers                        |
+| customer_group_ids | array     | List of applied customer groups                  |
+| company_ids        | array     | List of applied companies                        |
+| min_order_value    | number    | Minimum order value (if any)                     |
+| start_time         | datetime  | Start time                                       |
+| end_time           | datetime  | End time                                         |
+| status             | enum      | active / inactive / scheduled                    |
+| description        | text      | Promotion notes                                  |
+| created_at         | datetime  | Created date                                     |
+| is_auto            | boolean   | Auto apply or require code                       |
+| max_uses           | number    | Maximum uses                                     |
+| used_count         | number    | Used count                                       |
+
+## Table: payment
+| Field Name | Data Type | Description                  |
+|------------|-----------|------------------------------|
+| id         | UUID      | Unique payment ID            |
+| order_id   | UUID      | FK to order table            |
+| amount     | number    | Payment amount               |
+| method     | string    | Payment method (cash, bank,...) |
+| paid_at    | datetime  | Payment date                 |
+| note       | text      | Notes                        | 

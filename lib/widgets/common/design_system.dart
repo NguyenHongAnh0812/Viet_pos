@@ -1,18 +1,30 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import '../../models/product.dart';
+import '../../models/product_category.dart';
+import 'package:intl/intl.dart';
 
 /// VET-POS Flutter Style Guide
 /// Based on the VET-POS web design system with consistent naming conventions
+/// 
+/// LAYOUT RULES:
+/// - Tất cả màn hình chính phải có max width 1200px (appMaxWidth)
+/// - Sử dụng Center widget để căn giữa nội dung
+/// - Responsive design: mobile < 768px, desktop >= 768px
+/// - Input fields phải có height cố định 40px
+/// - UI blocks phải flat (không có box shadow)
+/// - Blog titles sử dụng mainGreen theme color
 
 // ===================== COLORS =====================
-const Color primaryBlue = Color(0xFF3A6FF8); // --primary
-const Color secondaryGreen = Color(0xFF67C687); // --secondary
+const Color mainGreen = Color(0xFF3b9448); // Màu xanh lá chủ đạo
+const Color secondaryGreen = Color(0xFF3b9448); // --secondary
 const Color warningOrange = Color(0xFFFFB547); // --warning
 const Color destructiveRed = Color(0xFFFF5A5F); // --destructive
 const Color borderColor = Color(0xFFE5E7EB); // --border
 
-const Color appBackground = Color(0xFFF7F9FC); // --background (changed to white)
-const Color cardBackground = Color(0xFFFFFFFF); // --card
+const Color appBackground = Color(0xFFF5F6FA); // --background, màu xám nhạt
+const Color cardBackground = Color(0xFFFFFFFF);
+const Color homePageBackground = Color(0xF0FDF4FF); // --card
 const Color textPrimary = Color(0xFF1E1E1E); // --foreground
 const Color textSecondary = Color(0xFF71717A); // --muted-foreground
 const Color textMuted = Color(0xFF71717A); // --muted-foreground
@@ -31,7 +43,7 @@ const Color sidebarBorder = Color(0xFFE4E4E7);
 const Color sidebarHoverBackground = Color(0xFFF3F4F6); // sidebar hover background
 
 // Status colors
-const Color successGreen = Color(0xFF67C687);
+const Color successGreen = Color(0xFF3b9448);
 const Color errorRed = Color(0xFFFF5A5F);
 const Color infoBlue = Color(0xFF3A6FF8);
 
@@ -48,6 +60,7 @@ const double space24 = 24.0;
 const double space32 = 32.0;
 const double space48 = 48.0;
 const double space64 = 64.0;
+const double spaceMobile = 12.0; // Spacing cho mobile
 
 // Component specific spacing
 const double cardPadding = 24.0;
@@ -98,10 +111,36 @@ const double sidebarWidth = 288.0;
 const double sidebarItemHeight = 40.0;
 const double headerHeight = 64.0;
 const double bottomNavHeight = 80.0;
+const double appMaxWidth = 720.0; // Max width cho tất cả màn hình chính
 
 // ===================== RESPONSIVE TYPOGRAPHY =====================
 TextStyle responsiveTextStyle(BuildContext context, TextStyle desktop, TextStyle mobile) {
   return MediaQuery.of(context).size.width < 1024 ? mobile : desktop;
+}
+
+// ===================== LAYOUT HELPERS =====================
+/// Tạo Container với max width appMaxWidth để đảm bảo layout nhất quán
+Widget appMaxWidthContainer({required Widget child}) {
+  return Center(
+    child: Container(
+      constraints: const BoxConstraints(maxWidth: appMaxWidth),
+      child: child,
+    ),
+  );
+}
+
+/// Tạo Container với max width appMaxWidth và padding
+Widget appMaxWidthContainerWithPadding({
+  required Widget child, 
+  EdgeInsetsGeometry padding = const EdgeInsets.all(16),
+}) {
+  return Center(
+    child: Container(
+      constraints: const BoxConstraints(maxWidth: appMaxWidth),
+      padding: padding,
+      child: child,
+    ),
+  );
 }
 
 // ===================== TYPOGRAPHY =====================
@@ -155,7 +194,7 @@ TextStyle get captionMobile => getInterTextStyle(fontSize: 11, fontWeight: FontW
 const double buttonBorderRadius = 6.0;
 
 ButtonStyle primaryButtonStyle = ElevatedButton.styleFrom(
-  backgroundColor: primaryBlue,
+  backgroundColor: mainGreen,
   foregroundColor: Colors.white,
   minimumSize: const Size(buttonMinWidth, buttonHeightMedium),
   padding: const EdgeInsets.symmetric(horizontal: space20, vertical: space18),
@@ -216,7 +255,7 @@ ButtonStyle ghostBorderButtonStyle = OutlinedButton.styleFrom(
 
 // Button size variants
 ButtonStyle smallButtonStyle = ElevatedButton.styleFrom(
-  backgroundColor: primaryBlue,
+  backgroundColor: mainGreen,
   foregroundColor: Colors.white,
   minimumSize: const Size(buttonMinWidth, buttonHeightSmall),
   padding: const EdgeInsets.symmetric(horizontal: space12, vertical: space4),
@@ -226,7 +265,7 @@ ButtonStyle smallButtonStyle = ElevatedButton.styleFrom(
 );
 
 ButtonStyle largeButtonStyle = ElevatedButton.styleFrom(
-  backgroundColor: primaryBlue, 
+  backgroundColor: mainGreen, 
   foregroundColor: Colors.white,
   minimumSize: const Size(buttonMinWidth, buttonHeightLarge),
   padding: const EdgeInsets.symmetric(horizontal: space20, vertical: space12),
@@ -281,21 +320,6 @@ Card designSystemFormCard({required Widget child, String? title, EdgeInsetsGeome
   ),
 );
 
-// Box decoration for manual card styling
-BoxDecoration cardDecoration = BoxDecoration(
-  color: cardBackground,
-  borderRadius: BorderRadius.circular(borderRadiusMedium),
-  boxShadow: const [
-    BoxShadow(
-      color: Color(0x0A000000),
-      offset: Offset(0, 1),
-      blurRadius: 3,
-      spreadRadius: 0,
-    ),
-  ],
-  border: Border.all(color: borderColor, width: 1),
-);
-
 // ===================== INPUT =====================
 InputDecoration designSystemInputDecoration({
   String? label,
@@ -328,7 +352,7 @@ InputDecoration designSystemInputDecoration({
   ),
   focusedBorder: OutlineInputBorder(
     borderRadius: BorderRadius.circular(borderRadiusMedium),
-    borderSide: const BorderSide(color: primaryBlue, width: 2),
+    borderSide: const BorderSide(color: mainGreen, width: 2),
   ),
   errorBorder: OutlineInputBorder(
     borderRadius: BorderRadius.circular(borderRadiusMedium),
@@ -359,7 +383,7 @@ InputDecoration searchInputDecoration({
   ),
   focusedBorder: OutlineInputBorder(
     borderRadius: BorderRadius.circular(borderRadiusMedium),
-    borderSide: const BorderSide(color: primaryBlue, width: 2),
+    borderSide: const BorderSide(color: mainGreen, width: 2),
   ),
   hintStyle: mutedText,
 );
@@ -486,9 +510,9 @@ class DesignSystemCheckbox extends StatelessWidget {
             child: Checkbox(
               value: value,
               onChanged: enabled ? onChanged : null,
-              activeColor: primaryBlue,
+              activeColor: mainGreen,
               checkColor: Colors.white,
-              side: BorderSide(color: isChecked ? primaryBlue : borderColor, width: 1.5),
+              side: BorderSide(color: isChecked ? mainGreen : borderColor, width: 1.5),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(borderRadiusSmall),
               ),
@@ -506,9 +530,9 @@ class DesignSystemCheckbox extends StatelessWidget {
       child: Checkbox(
         value: value,
         onChanged: enabled ? onChanged : null,
-        activeColor: primaryBlue,
+        activeColor: mainGreen,
         checkColor: Colors.white,
-        side: BorderSide(color: isChecked ? primaryBlue : borderColor, width: 1.5),
+        side: BorderSide(color: isChecked ? mainGreen : borderColor, width: 1.5),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(borderRadiusSmall),
         ),
@@ -547,10 +571,10 @@ class DesignSystemRadio<T> extends StatelessWidget {
               value: value,
               groupValue: groupValue,
               onChanged: enabled ? onChanged : null,
-              activeColor: primaryBlue,
-              fillColor: MaterialStateProperty.resolveWith<Color>((states) {
-                if (states.contains(MaterialState.selected)) {
-                  return primaryBlue;
+              activeColor: mainGreen,
+              fillColor: WidgetStateProperty.resolveWith<Color>((states) {
+                if (states.contains(WidgetState.selected)) {
+                  return mainGreen;
                 }
                 return borderColor;
               }),
@@ -569,10 +593,10 @@ class DesignSystemRadio<T> extends StatelessWidget {
         value: value,
         groupValue: groupValue,
         onChanged: enabled ? onChanged : null,
-        activeColor: primaryBlue,
-        fillColor: MaterialStateProperty.resolveWith<Color>((states) {
-          if (states.contains(MaterialState.selected)) {
-            return primaryBlue;
+        activeColor: mainGreen,
+        fillColor: WidgetStateProperty.resolveWith<Color>((states) {
+          if (states.contains(WidgetState.selected)) {
+            return mainGreen;
           }
           return borderColor;
         }),
@@ -679,8 +703,8 @@ class DesignSystemBadge extends StatelessWidget {
         border = Border.all(color: borderColor, width: 1);
         break;
       default:
-        bg = primaryBlue.withOpacity(0.12);
-        fg = primaryBlue;
+        bg = mainGreen.withOpacity(0.12);
+        fg = mainGreen;
     }
     
     return Container(
@@ -811,20 +835,6 @@ Future<T?> showDesignSystemAlert<T>({
   );
 }
 
-// Dialog decoration for manual styling
-BoxDecoration dialogDecoration = BoxDecoration(
-  color: cardBackground,
-  borderRadius: BorderRadius.circular(borderRadiusLarge),
-  boxShadow: const [
-    BoxShadow(
-      color: Color(0x1A000000),
-      offset: Offset(0, 8),
-      blurRadius: 24,
-      spreadRadius: 0,
-    ),
-  ],
-);
-
 // Bottom sheet modal
 Future<T?> showDesignSystemBottomSheet<T>({
   required BuildContext context,
@@ -903,8 +913,8 @@ class DesignSystemAlert extends StatelessWidget {
         displayIcon = icon ?? Icons.check_circle_outline;
         break;
       default:
-        bg = primaryBlue.withOpacity(0.12);
-        fg = primaryBlue;
+        bg = mainGreen.withOpacity(0.12);
+        fg = mainGreen;
         displayIcon = icon ?? Icons.info_outline;
     }
     
@@ -1116,11 +1126,30 @@ BoxDecoration sidebarItemActiveDecoration = BoxDecoration(
 const String currencySymbol = '₫';
 const String currencyLocale = 'vi_VN';
 
+// Format tiền chuẩn: 1,500,000 ₫
 String formatCurrency(double amount) {
   return '${amount.toStringAsFixed(0).replaceAllMapped(
     RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
     (Match m) => '${m[1]},',
   )} $currencySymbol';
+}
+
+// Format tiền compact: 1.5M ₫ (cho số lớn)
+String formatCurrencyCompact(double amount) {
+  if (amount >= 1000000) {
+    final millions = amount / 1000000;
+    return '${millions.toStringAsFixed(millions.truncateToDouble() == millions ? 0 : 1)}M $currencySymbol';
+  } else if (amount >= 1000) {
+    final thousands = amount / 1000;
+    return '${thousands.toStringAsFixed(thousands.truncateToDouble() == thousands ? 0 : 0)}K $currencySymbol';
+  } else {
+    return formatCurrency(amount);
+  }
+}
+
+// Hàm helper để tạo NumberFormat instance
+NumberFormat getCurrencyFormatter() {
+  return NumberFormat.currency(locale: 'vi_VN', symbol: '₫', decimalDigits: 0);
 }
 
 // ===================== RESPONSIVE UTILITIES =====================
@@ -1152,7 +1181,7 @@ bool isDesktop(double screenWidth) => screenWidth >= 900;
 ThemeData get lightTheme => ThemeData(
   useMaterial3: true,
   colorScheme: ColorScheme.light(
-    primary: primaryBlue,
+    primary: mainGreen,
     secondary: secondaryGreen,
     error: destructiveRed,
     background: appBackground,
@@ -1176,12 +1205,12 @@ ThemeData get lightTheme => ThemeData(
     labelSmall: labelSmall,
   ),
   scaffoldBackgroundColor: appBackground,
-  cardTheme: CardThemeData(
+  cardTheme: const CardThemeData(
     color: cardBackground,
     elevation: 0,
     shape: RoundedRectangleBorder(
-      borderRadius: BorderRadius.circular(borderRadiusMedium),
-      side: const BorderSide(color: borderColor),
+      borderRadius: BorderRadius.all(Radius.circular(borderRadiusMedium)),
+      side: BorderSide(color: borderColor),
     ),
     margin: EdgeInsets.zero,
   ),
@@ -1221,18 +1250,6 @@ List<Widget> _withGap(List<Widget> children, double gap) {
   return result;
 }
 
-List<Widget> _withVerticalGap(List<Widget> children, double gap) {
-  if (children.isEmpty) return [];
-  final List<Widget> result = [];
-  for (int i = 0; i < children.length; i++) {
-    result.add(children[i]);
-    if (i < children.length - 1) {
-      result.add(SizedBox(height: gap));
-    }
-  }
-  return result;
-}
-
 /// ========================================
 /// USAGE EXAMPLES
 /// ========================================
@@ -1240,7 +1257,7 @@ List<Widget> _withVerticalGap(List<Widget> children, double gap) {
 /*
 // Example 1: Using colors
 Container(
-  color: primaryBlue,
+  color: mainGreen,
   child: Text(
     'Hello',
     style: TextStyle(color: Colors.white),
@@ -1963,14 +1980,14 @@ Widget designSystemRangeSlider({
 }) {
   return SliderTheme(
     data: SliderTheme.of(context).copyWith(
-      activeTrackColor: activeColor ?? primaryBlue,
+      activeTrackColor: activeColor ?? mainGreen,
       inactiveTrackColor: inactiveColor ?? borderColor,
       trackHeight: trackHeight,
       rangeThumbShape: RoundRangeSliderThumbShape(enabledThumbRadius: thumbRadius),
       overlayShape: RoundSliderOverlayShape(overlayRadius: overlayRadius),
-      thumbColor: activeColor ?? primaryBlue,
-      overlayColor: (activeColor ?? primaryBlue).withOpacity(0.12),
-      valueIndicatorColor: activeColor ?? primaryBlue,
+      thumbColor: activeColor ?? mainGreen,
+      overlayColor: (activeColor ?? mainGreen).withOpacity(0.12),
+      valueIndicatorColor: activeColor ?? mainGreen,
       tickMarkShape: const RoundSliderTickMarkShape(),
       activeTickMarkColor: borderColor,
       inactiveTickMarkColor: borderColor.withOpacity(0.5),
@@ -1982,6 +1999,484 @@ Widget designSystemRangeSlider({
       divisions: divisions,
       labels: label != null ? RangeLabels(label, label) : null,
       onChanged: onChanged,
+    ),
+  );
+}
+
+// ===== TABLE DESIGN SYSTEM =====
+
+/// Table Design System for consistent data presentation
+/// 
+/// Tables are used to display structured data in rows and columns.
+/// This system provides consistent styling for table containers, headers, and rows.
+class TableDesignSystem {
+  // Table Container Styles
+  static BoxDecoration tableContainerDecoration = BoxDecoration(
+    color: Colors.white,
+    borderRadius: BorderRadius.circular(8),
+    border: Border.all(color: borderColor),
+  );
+
+  // Table Header Styles
+  static BoxDecoration tableHeaderDecoration = BoxDecoration(
+    border: Border(bottom: BorderSide(color: borderColor)),
+  );
+
+  static EdgeInsets tableHeaderPadding = const EdgeInsets.symmetric(horizontal: 24, vertical: 16);
+
+  static TextStyle tableHeaderTextStyle = const TextStyle(
+    fontWeight: FontWeight.w600,
+    fontSize: 14,
+    color: textSecondary,
+  );
+
+  // Table Row Styles
+  static EdgeInsets tableRowPadding = const EdgeInsets.symmetric(horizontal: 24, vertical: 16);
+
+  static BoxDecoration tableRowDecoration = BoxDecoration(
+    border: Border(bottom: BorderSide(color: borderColor.withOpacity(0.5))),
+  );
+
+  static TextStyle tableRowTextStyle = const TextStyle(
+    fontWeight: FontWeight.w600,
+    fontSize: 14,
+  );
+
+  static TextStyle tableRowSubtitleStyle = TextStyle(
+    fontSize: 13,
+    color: Colors.grey[600],
+  );
+
+  // Table Loading State
+  static Widget tableLoadingState = const Center(
+    child: Padding(
+      padding: EdgeInsets.all(24),
+      child: CircularProgressIndicator(),
+    ),
+  );
+
+  // Table Empty State
+  static Widget tableEmptyState(String message) => Center(
+    child: Padding(
+      padding: const EdgeInsets.all(24),
+      child: Text(message),
+    ),
+  );
+
+  // Table Error State
+  static Widget tableErrorState(String error) => Center(
+    child: Padding(
+      padding: const EdgeInsets.all(24),
+      child: Text('Error: $error'),
+    ),
+  );
+}
+
+/// Standard table container widget
+class StandardTableContainer extends StatelessWidget {
+  final Widget child;
+  final EdgeInsets? padding;
+
+  const StandardTableContainer({
+    super.key,
+    required this.child,
+    this.padding,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: TableDesignSystem.tableContainerDecoration,
+      padding: padding,
+      child: child,
+    );
+  }
+}
+
+/// Standard table header widget
+class StandardTableHeader extends StatelessWidget {
+  final List<Widget> children;
+  final EdgeInsets? padding;
+
+  const StandardTableHeader({
+    super.key,
+    required this.children,
+    this.padding,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: padding ?? TableDesignSystem.tableHeaderPadding,
+      decoration: TableDesignSystem.tableHeaderDecoration,
+      child: Row(children: children),
+    );
+  }
+}
+
+/// Standard table row widget
+class StandardTableRow extends StatelessWidget {
+  final List<Widget> children;
+  final EdgeInsets? padding;
+  final VoidCallback? onTap;
+  final bool isSelectable;
+
+  const StandardTableRow({
+    super.key,
+    required this.children,
+    this.padding,
+    this.onTap,
+    this.isSelectable = true,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final rowContent = Container(
+      padding: padding ?? TableDesignSystem.tableRowPadding,
+      decoration: TableDesignSystem.tableRowDecoration,
+      child: Row(children: children),
+    );
+
+    if (!isSelectable || onTap == null) {
+      return rowContent;
+    }
+
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        child: rowContent,
+      ),
+    );
+  }
+}
+
+/// Table column with flexible width
+class TableColumn extends StatelessWidget {
+  final Widget child;
+  final int flex;
+  final CrossAxisAlignment alignment;
+  final EdgeInsets? padding;
+
+  const TableColumn({
+    super.key,
+    required this.child,
+    this.flex = 1,
+    this.alignment = CrossAxisAlignment.start,
+    this.padding,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Expanded(
+      flex: flex,
+      child: Container(
+        padding: padding,
+        child: child,
+      ),
+    );
+  }
+}
+
+/// Table column with fixed width
+class TableColumnFixed extends StatelessWidget {
+  final Widget child;
+  final double width;
+  final CrossAxisAlignment alignment;
+  final EdgeInsets? padding;
+
+  const TableColumnFixed({
+    super.key,
+    required this.child,
+    required this.width,
+    this.alignment = CrossAxisAlignment.start,
+    this.padding,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: width,
+      child: Container(
+        padding: padding,
+        child: child,
+      ),
+    );
+  }
+}
+
+// ===== SUBPAGE STYLEGUIDE =====
+
+/// Example: How to use Table Design System
+/// 
+/// This example shows how to create a product list table using the design system
+class ExampleProductTable extends StatelessWidget {
+  final List<Product> products;
+  final Function(Product)? onProductTap;
+  final Function(Product)? onEdit;
+  final Function(Product)? onDelete;
+
+  const ExampleProductTable({
+    super.key,
+    required this.products,
+    this.onProductTap,
+    this.onEdit,
+    this.onDelete,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    if (products.isEmpty) {
+      return StandardTableContainer(
+        child: TableDesignSystem.tableEmptyState('No products available'),
+      );
+    }
+
+    return StandardTableContainer(
+      child: Column(
+        children: [
+          StandardTableHeader(
+            children: [
+              TableColumn(
+                flex: 3,
+                child: Text('Product Name', style: TableDesignSystem.tableHeaderTextStyle),
+              ),
+              TableColumn(
+                flex: 1,
+                child: Text('Stock', style: TableDesignSystem.tableHeaderTextStyle),
+              ),
+              TableColumn(
+                flex: 1,
+                child: Text('Price', style: TableDesignSystem.tableHeaderTextStyle),
+              ),
+              if (onEdit != null || onDelete != null)
+                TableColumnFixed(
+                  width: 100,
+                  child: Text('Actions', style: TableDesignSystem.tableHeaderTextStyle),
+                ),
+            ],
+          ),
+          ...products.map((product) => StandardTableRow(
+            onTap: onProductTap != null ? () => onProductTap!(product) : null,
+            children: [
+              TableColumn(
+                flex: 3,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(product.internalName ?? '', style: TableDesignSystem.tableRowTextStyle),
+                    Text(product.tradeName ?? '', style: TableDesignSystem.tableRowSubtitleStyle),
+                  ],
+                ),
+              ),
+              TableColumn(
+                flex: 1,
+                child: Text((product.stockSystem ?? 0).toString(), style: TableDesignSystem.tableRowTextStyle),
+              ),
+              TableColumn(
+                flex: 1,
+                child: Text('\$${product.salePrice ?? 0}', style: TableDesignSystem.tableRowTextStyle),
+              ),
+              if (onEdit != null || onDelete != null)
+                TableColumnFixed(
+                  width: 100,
+                  child: Row(
+                    children: [
+                      if (onEdit != null)
+                        IconButton(
+                          icon: const Icon(Icons.edit, size: 20),
+                          onPressed: () => onEdit!(product),
+                        ),
+                      if (onDelete != null)
+                        IconButton(
+                          icon: const Icon(Icons.delete, size: 20, color: Colors.red),
+                          onPressed: () => onDelete!(product),
+                        ),
+                    ],
+                  ),
+                ),
+            ],
+          )),
+        ],
+      ),
+    );
+  }
+}
+
+/// Example: Hierarchical category table
+class ExampleCategoryTreeTable extends StatelessWidget {
+  final List<ProductCategory> categories;
+  final Function(ProductCategory)? onCategoryTap;
+  final Set<String> expandedCategories;
+  final Function(String) onToggleExpand;
+  final Map<String, int> categoryProductCounts; // Map category ID to product count
+
+  const ExampleCategoryTreeTable({
+    super.key,
+    required this.categories,
+    this.onCategoryTap,
+    required this.expandedCategories,
+    required this.onToggleExpand,
+    required this.categoryProductCounts,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    if (categories.isEmpty) {
+      return StandardTableContainer(
+        child: TableDesignSystem.tableEmptyState('No categories available'),
+      );
+    }
+
+    return StandardTableContainer(
+      child: Column(
+        children: [
+          StandardTableHeader(
+            children: [
+              TableColumn(
+                flex: 3,
+                child: Text('Category Name', style: TableDesignSystem.tableHeaderTextStyle),
+              ),
+              TableColumnFixed(
+                width: 120,
+                child: Text('Products', style: TableDesignSystem.tableHeaderTextStyle),
+              ),
+            ],
+          ),
+          ...buildCategoryTree(categories, level: 0),
+        ],
+      ),
+    );
+  }
+
+  List<Widget> buildCategoryTree(List<ProductCategory> categories, {int level = 0}) {
+    return categories.map((category) {
+      // Check if this category has children by looking for categories with this as parent
+      final hasChildren = categories.any((c) => c.parentId == category.id);
+      final isExpanded = expandedCategories.contains(category.id);
+      final isChild = level > 0;
+
+      return Column(
+        children: [
+          StandardTableRow(
+            onTap: () {
+              if (hasChildren) {
+                onToggleExpand(category.id);
+              } else if (onCategoryTap != null) {
+                onCategoryTap!(category);
+              }
+            },
+            children: [
+              TableColumn(
+                flex: 3,
+                child: Row(
+                  children: [
+                    SizedBox(width: level * 32), // Indentation
+                    SizedBox(
+                      width: 28,
+                      child: Center(
+                        child: hasChildren && !isChild
+                          ? AnimatedRotation(
+                              duration: const Duration(milliseconds: 200),
+                              turns: isExpanded ? 0.25 : 0,
+                              child: Icon(
+                                Icons.keyboard_arrow_right,
+                                size: 20,
+                                color: Colors.grey[600],
+                              ),
+                            )
+                          : isChild
+                            ? Container(
+                                width: 6,
+                                height: 6,
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  color: Colors.grey[600],
+                                ),
+                              )
+                            : null,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(category.name, style: TableDesignSystem.tableRowTextStyle),
+                          if (category.description.isNotEmpty)
+                            Text(category.description, style: TableDesignSystem.tableRowSubtitleStyle),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              TableColumnFixed(
+                width: 120,
+                child: Text(
+                  categoryProductCounts[category.id]?.toString() ?? '0',
+                  style: TableDesignSystem.tableRowTextStyle,
+                  textAlign: TextAlign.center,
+                ),
+              ),
+            ],
+          ),
+          if (hasChildren && isExpanded) ...[
+            ...buildCategoryTree(
+              categories.where((c) => c.parentId == category.id).toList(), 
+              level: level + 1
+            ),
+          ],
+        ],
+      );
+    }).toList();
+  }
+}
+
+// ===================== DIALOG COMPONENTS =====================
+Future<bool?> showLogoutDialog(BuildContext context) {
+  return showDialog<bool>(
+    context: context,
+    builder: (context) => AlertDialog(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(borderRadiusMedium)),
+      title: Text('Xác nhận đăng xuất', style: h3),
+      content: Text(
+        'Bạn có chắc chắn muốn đăng xuất khỏi hệ thống?',
+        style: body,
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(false),
+          style: ghostButtonStyle,
+          child: const Text('Hủy'),
+        ),
+        const SizedBox(width: space8),
+        ElevatedButton(
+          onPressed: () => Navigator.of(context).pop(true),
+          style: destructiveButtonStyle,
+          child: const Text('Đăng xuất'),
+        ),
+      ],
+      actionsPadding: const EdgeInsets.fromLTRB(modalPadding, 0, modalPadding, modalPadding),
+    ),
+  );
+}
+
+// ===================== SNACKBAR COMPONENTS =====================
+void showSuccessSnackBar(BuildContext context, String message) {
+  ScaffoldMessenger.of(context).showSnackBar(
+    SnackBar(
+      content: Text(message),
+      backgroundColor: mainGreen,
+    ),
+  );
+}
+
+void showErrorSnackBar(BuildContext context, String message) {
+  ScaffoldMessenger.of(context).showSnackBar(
+    SnackBar(
+      content: Text(message),
+      backgroundColor: destructiveRed,
     ),
   );
 }
