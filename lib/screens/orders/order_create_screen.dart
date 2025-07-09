@@ -2329,7 +2329,6 @@ class OrderPaymentConfirmScreen extends StatelessWidget {
                     if (snapshot.connectionState == ConnectionState.waiting) {
                       return const CircularProgressIndicator();
                     }
-                    
                     final setting = snapshot.data;
                     if (setting == null || setting.bankCode.isEmpty || setting.bankAccount.isEmpty) {
                       return Container(
@@ -2360,12 +2359,12 @@ class OrderPaymentConfirmScreen extends StatelessWidget {
                         ),
                       );
                     }
-                    
-                    // Tạo URL VietQR động
                     final qrUrl = 'https://img.vietqr.io/image/${setting.bankCode}-${setting.bankAccount}-compact2.png'
                         '?amount=$amount'
                         '&addInfo=Thanh+toan+don+${order.orderCode}';
-                    
+                    final bankName = (setting.bankName.isNotEmpty)
+                        ? setting.bankName
+                        : getBankName(setting.bankCode, setting.bankCode);
                     return Container(
                       width: 350,
                       margin: const EdgeInsets.only(bottom: 32),
@@ -2376,6 +2375,25 @@ class OrderPaymentConfirmScreen extends StatelessWidget {
                             width: 300,
                             height: 300,
                             errorBuilder: (context, error, stack) => const Text('Không tải được QR'),
+                          ),
+                          const SizedBox(height: 16),
+                          // Block nội dung chuyển khoản
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(color: Color(0xFFE0E0E0)),
+                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text('Nội dung CK: Thanh toan don ${order.orderCode}', style: const TextStyle(fontWeight: FontWeight.w600)),
+                                Text('Tên chủ TK: ${setting.accountName}'),
+                                Text('Số TK: ${setting.bankAccount}'),
+                                Text('Ngân hàng: $bankName'),
+                              ],
+                            ),
                           ),
                         ],
                       ),
@@ -2772,6 +2790,31 @@ class OrderInvoiceScreen extends StatelessWidget {
       // Xóa AppBar và bottomNavigationBar cũ
     );
   }
+}
+
+// Thêm mapping tên ngân hàng
+const Map<String, String> _bankNames = {
+  'VCB': 'Ngân hàng TMCP Ngoại thương Việt Nam (Vietcombank)',
+  'TCB': 'Ngân hàng TMCP Kỹ thương Việt Nam (Techcombank)',
+  'BIDV': 'Ngân hàng TMCP Đầu tư và Phát triển Việt Nam (BIDV)',
+  'MB': 'Ngân hàng TMCP Quân đội (MB Bank)',
+  'VIB': 'Ngân hàng TMCP Quốc tế Việt Nam (VIB)',
+  'ACB': 'Ngân hàng TMCP Á Châu (ACB)',
+  'VPB': 'Ngân hàng TMCP Việt Nam Thịnh Vượng (VPBank)',
+  'HDB': 'Ngân hàng TMCP Phát triển TP.HCM (HDBank)',
+  'SHB': 'Ngân hàng TMCP Sài Gòn - Hà Nội (SHB)',
+  'EIB': 'Ngân hàng TMCP Xuất Nhập Khẩu Việt Nam (Eximbank)',
+  'STB': 'Ngân hàng TMCP Sài Gòn Thương Tín (Sacombank)',
+  'SCB': 'Ngân hàng TMCP Sài Gòn (SCB)',
+  'OCB': 'Ngân hàng TMCP Phương Đông (OCB)',
+  'MSB': 'Ngân hàng TMCP Hàng Hải Việt Nam (MSB)',
+  'TPB': 'Ngân hàng TMCP Tiên Phong (TPBank)',
+  'VAB': 'Ngân hàng TMCP Việt Á (VietABank)',
+  // ... thêm các mã khác nếu cần
+};
+
+String getBankName(String bankCode, String fallback) {
+  return _bankNames[bankCode] ?? fallback;
 }
 
  
