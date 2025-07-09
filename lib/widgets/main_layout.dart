@@ -624,8 +624,6 @@ class MainLayoutState extends State<MainLayout> with TickerProviderStateMixin {
     final bool isAdmin = currentUser.role == UserRole.admin;
     final bool isEmployee = currentUser.role == UserRole.employee;
 
- print('AAAA: currentUser = ${currentUser.role.name}');
-
     // Nếu employee cố truy cập màn khác ngoài dashboard và orderCreate thì tự động chuyển về dashboard
     if (isEmployee && _currentPage != MainPage.dashboard && _currentPage != MainPage.orderCreate) {
       WidgetsBinding.instance.addPostFrameCallback((_) {

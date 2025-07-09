@@ -4,6 +4,7 @@ import '../../models/product_category.dart';
 import '../../widgets/common/design_system.dart';
 import '../../models/product.dart';
 import '../../services/product_service.dart';
+import '../../services/product_category_service.dart';
 import '../../services/product_category_relation_service.dart';
 import '../../models/product_category_relation.dart';
 
@@ -23,6 +24,7 @@ class _AddProductCategoryScreenState extends State<AddProductCategoryScreen> {
   bool _isSaving = false;
 
   final ProductService _productService = ProductService();
+  final ProductCategoryService _categoryService = ProductCategoryService();
   final ProductCategoryRelationService _relationService = ProductCategoryRelationService();
   List<Product> _allProducts = [];
   List<Product> _selectedProducts = [];
@@ -189,31 +191,34 @@ class _AddProductCategoryScreenState extends State<AddProductCategoryScreen> {
     }
     setState(() => _isSaving = true);
     try {
-      // Lưu danh mục
-      final docRef = await FirebaseFirestore.instance.collection('categories').add({
-        'name': name,
-        'description': _descController.text.trim(),
-        if (_selectedParentId != null) 'parentId': _selectedParentId,
-        'created_at': FieldValue.serverTimestamp(),
-        'updated_at': FieldValue.serverTimestamp(),
-      });
-      // Lưu liên kết sản phẩm-danh mục
-      if (_selectedProducts.isNotEmpty) {
-        for (final product in _selectedProducts) {
-          await _relationService.addProductCategory(ProductCategoryRelation(
-            id: '',
-            productId: product.id,
-            categoryId: docRef.id,
-            createdAt: DateTime.now(),
-            updatedAt: DateTime.now(),
-          ));
+      // Tạo ProductCategory object với isSmart = false (manual category)
+      final category = ProductCategory(
+        id: '',
+        name: name,
+        description: _descController.text.trim(),
+        parentId: _selectedParentId,
+        isSmart: false, // Chưa phát triển smart category
+      );
+      
+      // Sử dụng service để lưu với đầy đủ hierarchy calculation
+      final categoryId = await _categoryService.addCategory(category);
+      
+              // Lưu liên kết sản phẩm-danh mục
+        if (_selectedProducts.isNotEmpty) {
+          for (final product in _selectedProducts) {
+            await _relationService.addProductCategory(ProductCategoryRelation(
+              id: '',
+              productId: product.id,
+              categoryId: categoryId,
+              createdAt: DateTime.now(),
+              updatedAt: DateTime.now(),
+            ));
+          }
         }
-      }
+      
       Navigator.of(context).pop(true);
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Lỗi: $e')),
-      );
+      showErrorSnackBar(context, 'Lỗi: $e');
     } finally {
       setState(() => _isSaving = false);
     }
@@ -342,7 +347,7 @@ class _AddProductCategoryScreenState extends State<AddProductCategoryScreen> {
                       const SizedBox(height: 16),
                       Text('Danh mục cha', style: bodyLarge.copyWith(fontWeight: FontWeight.w600, color: textPrimary)),
                       const SizedBox(height: 8),
-                      _ParentCategoryDropdown(
+                      _ParentCategorySelector(
                         selectedId: _selectedParentId,
                         onChanged: (id) => setState(() => _selectedParentId = id),
                       ),
@@ -441,16 +446,16 @@ class _AddProductCategoryScreenState extends State<AddProductCategoryScreen> {
   }
 }
 
-class _ParentCategoryDropdown extends StatefulWidget {
+class _ParentCategorySelector extends StatefulWidget {
   final String? selectedId;
   final ValueChanged<String?> onChanged;
-  const _ParentCategoryDropdown({required this.selectedId, required this.onChanged});
+  const _ParentCategorySelector({required this.selectedId, required this.onChanged});
 
   @override
-  State<_ParentCategoryDropdown> createState() => _ParentCategoryDropdownState();
+  State<_ParentCategorySelector> createState() => _ParentCategorySelectorState();
 }
 
-class _ParentCategoryDropdownState extends State<_ParentCategoryDropdown> {
+class _ParentCategorySelectorState extends State<_ParentCategorySelector> {
   List<ProductCategory> _categories = [];
   bool _loading = true;
 
@@ -461,48 +466,267 @@ class _ParentCategoryDropdownState extends State<_ParentCategoryDropdown> {
   }
 
   Future<void> _fetchCategories() async {
-    final snapshot = await FirebaseFirestore.instance.collection('categories').get();
-    setState(() {
-      _categories = snapshot.docs.map((doc) => ProductCategory.fromFirestore(doc)).toList();
-      _loading = false;
+    try {
+      final snapshot = await FirebaseFirestore.instance.collection('categories').get();
+      setState(() {
+        _categories = snapshot.docs.map((doc) => ProductCategory.fromFirestore(doc)).toList();
+        _loading = false;
+      });
+    } catch (e) {
+      setState(() {
+        _loading = false;
+      });
+      print('Error fetching categories: $e');
+    }
+  }
+
+  // Sắp xếp categories theo cây thư mục
+  List<ProductCategory> _buildCategoryTree(List<ProductCategory> categories) {
+    final Map<String?, List<ProductCategory>> categoryTree = {};
+    
+    // Nhóm categories theo parentId
+    for (var category in categories) {
+      final parentId = category.parentId;
+      categoryTree.putIfAbsent(parentId, () => []).add(category);
+    }
+    
+    // Sắp xếp từng nhóm theo tên
+    categoryTree.forEach((key, value) {
+      value.sort((a, b) => a.name.compareTo(b.name));
     });
+    
+    // Tạo danh sách phẳng theo thứ tự cây
+    List<ProductCategory> result = [];
+    void addCategories(String? parentId, int level) {
+      final children = categoryTree[parentId] ?? [];
+      for (var child in children) {
+        // Cập nhật level nếu chưa có
+        if (child.level == null) {
+          child = child.copyWith(level: level);
+        }
+        result.add(child);
+        // Đệ quy cho các con
+        addCategories(child.id, level + 1);
+      }
+    }
+    
+    addCategories(null, 0);
+    return result;
+  }
+
+  void _showCategoryPicker() async {
+    if (_loading) return;
+    
+    final sortedCategories = _buildCategoryTree(_categories);
+    
+    final result = await showModalBottomSheet<String?>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => Container(
+        height: MediaQuery.of(context).size.height * 0.7,
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        ),
+        child: Column(
+          children: [
+            // Header
+            Container(
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.05),
+                    blurRadius: 10,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+              ),
+              child: Row(
+                children: [
+                  const Icon(Icons.category, color: mainGreen, size: 24),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      'Chọn danh mục cha',
+                      style: h3.copyWith(color: textPrimary),
+                    ),
+                  ),
+                  IconButton(
+                    onPressed: () => Navigator.pop(context),
+                    icon: const Icon(Icons.close, color: textSecondary),
+                  ),
+                ],
+              ),
+            ),
+            // Content
+            Expanded(
+              child: ListView(
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                children: [
+                                     // Option "Không chọn"
+                   InkWell(
+                     onTap: () => Navigator.pop(context, null),
+                     borderRadius: BorderRadius.circular(8),
+                     child: Container(
+                       padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+                       decoration: BoxDecoration(
+                         color: widget.selectedId == null ? mainGreen.withOpacity(0.1) : Colors.transparent,
+                         borderRadius: BorderRadius.circular(8),
+                       ),
+                       child: Row(
+                         children: [
+                           Icon(
+                             Icons.add_circle_outline,
+                             color: widget.selectedId == null ? mainGreen : textSecondary,
+                             size: 18,
+                           ),
+                           const SizedBox(width: 12),
+                           Text(
+                             'Không chọn danh mục cha',
+                             style: bodyLarge.copyWith(
+                               color: widget.selectedId == null ? mainGreen : textPrimary,
+                               fontWeight: widget.selectedId == null ? FontWeight.w600 : FontWeight.normal,
+                             ),
+                           ),
+                         ],
+                       ),
+                     ),
+                   ),
+                  const SizedBox(height: 16),
+                                     // Categories list
+                   ...sortedCategories.map((cat) {
+                     final level = cat.level ?? 0;
+                     final isSelected = widget.selectedId == cat.id;
+                     
+                     return Container(
+                       margin: const EdgeInsets.only(bottom: 4),
+                       child: InkWell(
+                         onTap: () => Navigator.pop(context, cat.id),
+                         borderRadius: BorderRadius.circular(8),
+                         child: Container(
+                           padding: EdgeInsets.only(
+                             left: 16 + (level * 20),
+                             right: 16,
+                             top: 10,
+                             bottom: 10,
+                           ),
+                           decoration: BoxDecoration(
+                             color: isSelected ? mainGreen.withOpacity(0.1) : Colors.transparent,
+                             borderRadius: BorderRadius.circular(8),
+                           ),
+                           child: Row(
+                             children: [
+                               // Icon theo level
+                               Icon(
+                                 level == 0 ? Icons.category : Icons.subdirectory_arrow_right,
+                                 color: isSelected ? mainGreen : (level == 0 ? textPrimary : textSecondary),
+                                 size: level == 0 ? 18 : 14,
+                               ),
+                               const SizedBox(width: 12),
+                               Expanded(
+                                 child: Row(
+                                   children: [
+                                     Expanded(
+                                       child: Text(
+                                         cat.name,
+                                         style: bodyLarge.copyWith(
+                                           color: isSelected ? mainGreen : (level == 0 ? textPrimary : textSecondary),
+                                           fontWeight: level == 0 ? FontWeight.w600 : FontWeight.normal,
+                                         ),
+                                       ),
+                                     ),
+                                     if (level > 0)
+                                       Container(
+                                         padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                         decoration: BoxDecoration(
+                                           color: mainGreen.withOpacity(0.1),
+                                           borderRadius: BorderRadius.circular(6),
+                                         ),
+                                         child: Text(
+                                           'Lv $level',
+                                           style: TextStyle(
+                                             color: mainGreen,
+                                             fontSize: 10,
+                                             fontWeight: FontWeight.w600,
+                                           ),
+                                         ),
+                                       ),
+                                   ],
+                                 ),
+                               ),
+                               if (isSelected)
+                                 const Icon(Icons.check_circle, color: mainGreen, size: 18),
+                             ],
+                           ),
+                         ),
+                       ),
+                     );
+                   }).toList(),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+    
+    if (result != null) {
+      widget.onChanged(result);
+    }
+  }
+
+  String _getSelectedCategoryName() {
+    if (widget.selectedId == null) return 'Chọn danh mục cha (tùy chọn)';
+    final selected = _categories.firstWhere(
+      (cat) => cat.id == widget.selectedId,
+      orElse: () => ProductCategory(id: '', name: 'Không tìm thấy'),
+    );
+    return selected.name;
   }
 
   @override
   Widget build(BuildContext context) {
     if (_loading) {
-      return const Center(child: CircularProgressIndicator());
+      return Container(
+        height: inputHeight,
+        decoration: BoxDecoration(
+          color: cardBackground,
+          border: Border.all(color: borderColor),
+          borderRadius: BorderRadius.circular(borderRadiusMedium),
+        ),
+        child: const Center(child: CircularProgressIndicator()),
+      );
     }
-    // Lọc chỉ lấy 2 cấp đầu: root và con trực tiếp
-    final rootCategories = _categories.where((cat) => cat.parentId == null || cat.parentId == '').toList();
-    final level1Categories = _categories.where((cat) => rootCategories.any((root) => cat.parentId == root.id)).toList();
-    final parentOptions = [
-      null,
-      ...rootCategories,
-      ...level1Categories,
-    ];
-    return DesignSystemDropdownMenu<String?>(
-      value: widget.selectedId,
-      items: parentOptions.map((cat) {
-        if (cat == null) {
-          return const DropdownMenuItem<String?>(
-            value: null,
-            child: Text('Chọn danh mục cha (tùy chọn)'),
-          );
-        }
-        // Nếu là level 1 thì thụt vào
-        return DropdownMenuItem<String?>(
-          value: cat.id,
-          child: cat.level == 1
-              ? Padding(
-                  padding: const EdgeInsets.only(left: 24),
-                  child: Text(cat.name),
-                )
-              : Text(cat.name),
-        );
-      }).toList(),
-      onChanged: widget.onChanged,
-      hint: 'Chọn danh mục cha (tùy chọn)',
+    
+    return InkWell(
+      onTap: _showCategoryPicker,
+      borderRadius: BorderRadius.circular(borderRadiusMedium),
+      child: Container(
+        height: inputHeight,
+        padding: const EdgeInsets.symmetric(horizontal: inputPadding, vertical: 8),
+        decoration: BoxDecoration(
+          color: cardBackground,
+          border: Border.all(color: borderColor),
+          borderRadius: BorderRadius.circular(borderRadiusMedium),
+        ),
+        child: Row(
+          children: [
+            Expanded(
+              child: Text(
+                _getSelectedCategoryName(),
+                style: body.copyWith(
+                  color: widget.selectedId == null ? textSecondary : textPrimary,
+                ),
+              ),
+            ),
+            const Icon(Icons.keyboard_arrow_down, color: textSecondary),
+          ],
+        ),
+      ),
     );
   }
 } 

@@ -22,7 +22,7 @@ const Color warningOrange = Color(0xFFFFB547); // --warning
 const Color destructiveRed = Color(0xFFFF5A5F); // --destructive
 const Color borderColor = Color(0xFFE5E7EB); // --border
 
-const Color appBackground = Color(0xFFF0FDF4); // --background
+const Color appBackground = Color(0xFFF5F6FA); // --background, màu xám nhạt
 const Color cardBackground = Color(0xFFFFFFFF);
 const Color homePageBackground = Color(0xF0FDF4FF); // --card
 const Color textPrimary = Color(0xFF1E1E1E); // --foreground

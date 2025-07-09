@@ -177,7 +177,7 @@ class ProductCategoryService {
 
   // === CREATE CATEGORY WITH PATH CALCULATION ===
 
-  Future<void> addCategory(ProductCategory category) async {
+  Future<String> addCategory(ProductCategory category) async {
     // Calculate path and level
     final pathData = await _calculatePath(category.parentId, category.name);
     
@@ -198,6 +198,8 @@ class ProductCategoryService {
     
     // Update children paths if this category has children
     await _updateChildrenPaths(docRef.id, pathData['path']);
+    
+    return docRef.id; // Trả về ID của category vừa tạo
   }
 
   // === UPDATE CHILDREN PATHS ===
@@ -315,6 +317,46 @@ class ProductCategoryService {
         'created_at': FieldValue.serverTimestamp(),
       });
     }
+
+    await batch.commit();
+  }
+
+  // === UPDATE CATEGORY (SIMPLE VERSION) ===
+
+  Future<void> updateCategorySimple(ProductCategory category) async {
+    final batch = _firestore.batch();
+    
+    // Get current category data
+    final categoryDoc = await _firestore.collection(_collection).doc(category.id).get();
+    if (!categoryDoc.exists) throw Exception('Category not found');
+
+    final currentData = categoryDoc.data()!;
+    final oldParentId = currentData['parentId'] as String?;
+    
+    // Check if parent is changing
+    bool parentChanged = (oldParentId != category.parentId);
+    
+    Map<String, dynamic> updateData = {
+      'name': category.name,
+      'description': category.description,
+      'parentId': category.parentId,
+      'updated_at': FieldValue.serverTimestamp(),
+    };
+
+    // If parent is changing, recalculate path
+    if (parentChanged) {
+      final pathData = await _calculatePath(category.parentId, category.name);
+      updateData['path'] = pathData['path'];
+      updateData['pathArray'] = pathData['pathArray'];
+      updateData['level'] = pathData['level'];
+      
+      // Update children paths
+      await _updateChildrenPaths(category.id, pathData['path']);
+    }
+
+    // Update category
+    final categoryRef = _firestore.collection('categories').doc(category.id);
+    batch.update(categoryRef, updateData);
 
     await batch.commit();
   }
