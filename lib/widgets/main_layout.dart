@@ -32,6 +32,9 @@ import '../models/company.dart';
 import '../models/product_category.dart';
 import '../screens/settings_screen.dart' show SettingsScreen, BankSettingForm, VietQRSettingsScreen;
 import '../screens/example_standard_screen.dart';
+import '../screens/users/user_list_screen.dart';
+import '../models/user.dart';
+import '../services/user_service.dart';
 
 // Định nghĩa enum cho các trang
 enum MainPage { 
@@ -62,6 +65,7 @@ enum MainPage {
   orderCreate,
   moreDashboard,
   demoLayout,
+  users,
 }
 
 class MainLayout extends StatefulWidget {
@@ -104,6 +108,8 @@ class MainLayoutState extends State<MainLayout> with TickerProviderStateMixin {
   int productListKey = 0;
 
   String? _selectedInventorySessionId;
+  User? _currentUser;
+  final UserService _userService = UserService();
 
   // Trạng thái mở/đóng cho từng mục cha
   final Map<String, bool> _openMenus = {
@@ -126,6 +132,9 @@ class MainLayoutState extends State<MainLayout> with TickerProviderStateMixin {
       parent: _navAnimationController,
       curve: Curves.easeInOut,
     );
+    
+    // Load current user
+    _loadCurrentUser();
   }
 
   @override
@@ -176,6 +185,13 @@ class MainLayoutState extends State<MainLayout> with TickerProviderStateMixin {
       stockRange = const RangeValues(0, 99999);
       status = 'Tất cả';
       selectedTags.clear();
+    });
+  }
+
+  Future<void> _loadCurrentUser() async {
+    final user = await _userService.getCurrentUser();
+    setState(() {
+      _currentUser = user;
     });
   }
 
@@ -852,7 +868,7 @@ class MoreDashboardScreen extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             _StoreInfoBlock(
-              storeName: 'Cửa hàng ABC',
+              storeName: 'Cửa hàng',
               role: 'Nhân viên kho',
               onEdit: () {/* TODO: Sửa thông tin cửa hàng */},
               onInfo: () {/* TODO: Xem thông tin cửa hàng */},
@@ -969,8 +985,8 @@ class MoreDashboardScreen extends StatelessWidget {
                           _MoreDashboardItem(icon: Icons.store, label: 'Cửa hàng', onTap: () {/* TODO */}),
                         ]),
                         const SizedBox(height: 16),
-                        _buildDesktopGroup('Hàng hoá', [
-                          _MoreDashboardItem(icon: Icons.inventory_2, label: 'Hàng hoá', onTap: () { onNavigate(MainPage.productList); }),
+                        _buildDesktopGroup('Sản phẩm', [
+                          _MoreDashboardItem(icon: Icons.inventory_2, label: 'Sản phẩm', onTap: () { onNavigate(MainPage.productList); }),
                           _MoreDashboardItem(icon: Icons.category, label: 'Danh mục', onTap: () { onNavigate(MainPage.productCategory); }),
                           _MoreDashboardItem(icon: Icons.inventory, label: 'Tồn kho', onTap: () { onNavigate(MainPage.inventory); }),
                         ]),
@@ -1005,7 +1021,7 @@ class MoreDashboardScreen extends StatelessWidget {
                         _buildDesktopSettingsBlock('CÀI ĐẶT CHUNG', [
                           _SettingsListItem(icon: Icons.store, label: 'Thiết lập cửa hàng', onTap: () {/* TODO */}),
                           _SettingsListItem(icon: Icons.devices, label: 'Ứng dụng & thiết bị', onTap: () {/* TODO */}),
-                          _SettingsListItem(icon: Icons.group, label: 'Quản lý người dùng', onTap: () {/* TODO */}),
+                          _SettingsListItem(icon: Icons.group, label: 'Quản lý người dùng', onTap: () { onNavigate(MainPage.users); }),
                           _SettingsListItem(icon: Icons.account_balance, label: 'Cài đặt VietQR', onTap: () {
                             Navigator.of(context).push(MaterialPageRoute(builder: (_) => VietQRSettingsScreen()));
                           }),
@@ -1243,17 +1259,116 @@ class _MoreDashboardSheetContent extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Lấy user hiện tại từ MainLayoutState
+    final mainLayoutState = context.findAncestorStateOfType<MainLayoutState>();
+    final User? currentUser = mainLayoutState?._currentUser;
+    final bool canViewUsers = currentUser?.hasPermission(Permission.viewUsers) ?? false;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        // Thông tin người dùng hiện tại
+        if (currentUser != null)
+          Container(
+            margin: const EdgeInsets.only(bottom: 18),
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(16),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.03),
+                  blurRadius: 6,
+                  offset: const Offset(0, 2),
+                ),
+              ],
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    CircleAvatar(
+                      radius: 20,
+                      backgroundColor: Color(currentUser.roleColor).withOpacity(0.1),
+                      child: Text(
+                        currentUser.name?.substring(0, 1).toUpperCase() ?? 
+                        currentUser.email.substring(0, 1).toUpperCase(),
+                        style: TextStyle(
+                          color: Color(currentUser.roleColor),
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            currentUser.name ?? 'Chưa có tên',
+                            style: h4.copyWith(fontWeight: FontWeight.w600),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            currentUser.email,
+                            style: body.copyWith(color: textSecondary),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: Color(currentUser.roleColor).withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Text(
+                        currentUser.roleDisplayName,
+                        style: caption.copyWith(
+                          color: Color(currentUser.roleColor),
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: currentUser.isActive ? mainGreen.withOpacity(0.1) : destructiveRed.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Text(
+                        currentUser.isActive ? 'Hoạt động' : 'Vô hiệu',
+                        style: caption.copyWith(
+                          color: currentUser.isActive ? mainGreen : destructiveRed,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'Quyền: ${currentUser.permissions.length} quyền',
+                  style: small.copyWith(color: textSecondary),
+                ),
+              ],
+            ),
+          ),
         _buildGroup('Giao dịch', [
           _MoreDashboardItem(icon: Icons.shopping_cart, label: 'Tạo đơn', onTap: () { onNavigate(MainPage.orderCreate); }),
           _MoreDashboardItem(icon: Icons.receipt_long, label: 'Hóa đơn', onTap: () {/* TODO: navigate to invoice list */}),
           _MoreDashboardItem(icon: Icons.store, label: 'Cửa hàng', onTap: () {/* TODO: navigate to store info */}),
         ]),
         const SizedBox(height: 10),
-        _buildGroup('Hàng hoá', [
-          _MoreDashboardItem(icon: Icons.inventory_2, label: 'Hàng hoá', onTap: () { onNavigate(MainPage.productList); }),
+        _buildGroup('Sản phẩm', [
+          _MoreDashboardItem(icon: Icons.inventory_2, label: 'Sản phẩm', onTap: () { onNavigate(MainPage.productList); }),
           _MoreDashboardItem(icon: Icons.category, label: 'Danh mục', onTap: () { onNavigate(MainPage.productCategory); }),
           _MoreDashboardItem(icon: Icons.upload, label: 'Xuất kho', onTap: () {/* TODO: navigate to export stock */}),
           _MoreDashboardItem(icon: Icons.download, label: 'Nhập kho', onTap: () {/* TODO: navigate to import stock */}),
@@ -1301,7 +1416,8 @@ class _MoreDashboardSheetContent extends StatelessWidget {
           items: [
             _SettingsListItem(icon: Icons.store, label: 'Thiết lập cửa hàng', onTap: () {/* TODO */}),
             _SettingsListItem(icon: Icons.devices, label: 'Ứng dụng & thiết bị', onTap: () {/* TODO */}),
-            _SettingsListItem(icon: Icons.group, label: 'Quản lý người dùng', onTap: () {/* TODO */}),
+            if (canViewUsers)
+              _SettingsListItem(icon: Icons.group, label: 'Quản lý người dùng', onTap: () { onNavigate(MainPage.users); }),
             _SettingsListItem(icon: Icons.account_balance, label: 'Cài đặt VietQR', onTap: () {
               Navigator.of(context).push(MaterialPageRoute(builder: (_) => VietQRSettingsScreen()));
             }),

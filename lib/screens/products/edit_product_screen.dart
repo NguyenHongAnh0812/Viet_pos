@@ -56,7 +56,9 @@ class _EditProductScreenState extends State<EditProductScreen> with TickerProvid
   List<String> _selectedCompanyIds = [];
   List<Company> _allCompanies = [];
   bool _isActive = true;
-  final bool _autoCalculatePrice = true;
+  // 1. State cho auto tính giá và lợi nhuận gộp
+  bool _autoCalculatePrice = true;
+  double _profitMargin = 20.0;
   static const double _defaultProfitMargin = 20.0;
   final _categoryService = ProductCategoryService();
   final _companyService = CompanyService();
@@ -76,6 +78,8 @@ class _EditProductScreenState extends State<EditProductScreen> with TickerProvid
   void initState() {
     super.initState();
     _profitMarginController.text = _defaultProfitMargin.toStringAsFixed(0);
+    _autoCalculatePrice = true;
+    _profitMargin = double.tryParse(_profitMarginController.text) ?? 20.0;
     _loadCompanies();
     _loadCategories();
     _fillProductData();
@@ -107,8 +111,8 @@ class _EditProductScreenState extends State<EditProductScreen> with TickerProvid
     // Fill status
     _isActive = product.status == 'active';
     
-    // Fill existing images (Product model doesn't have images field yet)
-    _productImageUrls = [];
+    // Fill existing images
+    _productImageUrls = List<String>.from(product.images ?? []);
     
     // Calculate profit margin
     if (product.costPrice > 0 && product.salePrice > 0) {
@@ -204,18 +208,14 @@ class _EditProductScreenState extends State<EditProductScreen> with TickerProvid
 
   void _calculateSalePrice() {
     if (!_autoCalculatePrice) return;
-    final costPrice = _parseCurrency(_costPriceController.text);
-    final profitMargin = double.tryParse(_profitMarginController.text) ?? _defaultProfitMargin;
-    if (costPrice > 0) {
-      final salePrice = costPrice * (1 + profitMargin / 100);
-      final formattedPrice = formatCurrency(salePrice);
-      _sellPriceController.value = TextEditingValue(
-        text: formattedPrice,
-        selection: TextSelection.collapsed(offset: formattedPrice.length),
-      );
-    } else {
-      _sellPriceController.text = '';
-    }
+    final costPriceStr = _costPriceController.text.replaceAll(RegExp(r'[^0-9]'), '');
+    final costPrice = double.tryParse(costPriceStr) ?? 0.0;
+    final salePrice = costPrice * (1 + _profitMargin / 100);
+    final formattedPrice = formatCurrency(salePrice);
+    _sellPriceController.value = TextEditingValue(
+      text: formattedPrice,
+      selection: TextSelection.collapsed(offset: formattedPrice.length),
+    );
   }
 
   Future<void> _pickMultiImageFromGallery() async {
@@ -332,8 +332,9 @@ class _EditProductScreenState extends State<EditProductScreen> with TickerProvid
 
     try {
       // Upload new images
-      final newImageUrls = await _uploadImages();
-      final allImageUrls = [..._productImageUrls, ...newImageUrls];
+      // final newImageUrls = await _uploadImages();
+      // final allImageUrls = [..._productImageUrls, ...newImageUrls];
+      final allImageUrls = [..._productImageUrls];
 
       // Prepare product data
       final productData = {
@@ -386,6 +387,7 @@ class _EditProductScreenState extends State<EditProductScreen> with TickerProvid
     }
   }
 
+  // 1. Sửa _buildFormField để input 1 dòng luôn height 40px
   Widget _buildFormField({
     required String label,
     TextEditingController? controller,
@@ -393,6 +395,8 @@ class _EditProductScreenState extends State<EditProductScreen> with TickerProvid
     TextInputType? keyboardType,
     int minLines = 1,
     int maxLines = 1,
+    Function(String)? onChanged,
+    bool enabled = true,
   }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -402,24 +406,49 @@ class _EditProductScreenState extends State<EditProductScreen> with TickerProvid
         if (child != null)
           child
         else
-          TextFormField(
-            controller: controller,
-            keyboardType: keyboardType,
-            minLines: minLines,
-            maxLines: maxLines,
-            style: const TextStyle(fontSize: 15),
-            decoration: InputDecoration(
-              border: OutlineInputBorder(borderRadius: BorderRadius.circular(borderRadiusMedium)),
-              contentPadding: EdgeInsets.symmetric(horizontal: inputPadding, vertical: minLines > 1 ? 12 : 0),
-              filled: true,
-              fillColor: Colors.white,
+          SizedBox(
+            height: (maxLines == 1 && minLines == 1) ? inputHeight : null,
+            child: TextFormField(
+              controller: controller,
+              keyboardType: keyboardType,
+              minLines: minLines,
+              maxLines: maxLines,
+              style: const TextStyle(fontSize: 15),
+              decoration: InputDecoration(
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(borderRadiusMedium)),
+                contentPadding: EdgeInsets.symmetric(horizontal: inputPadding, vertical: minLines > 1 ? 12 : 0),
+                filled: true,
+                fillColor: Colors.white,
+              ),
+              onChanged: (val) {
+                // Format tiền cho trường Giá nhập
+                if (label.contains('Giá nhập') && controller != null) {
+                  String numbers = val.replaceAll(RegExp(r'[^0-9]'), '');
+                  if (numbers.isEmpty) {
+                    controller.text = '';
+                  } else {
+                    double value = double.tryParse(numbers) ?? 0;
+                    String formatted = formatCurrency(value);
+                    int newOffset = formatted.length;
+                    controller.value = TextEditingValue(
+                      text: formatted,
+                      selection: TextSelection.collapsed(offset: newOffset),
+                    );
+                  }
+                  if (onChanged != null) onChanged(val);
+                  if (_autoCalculatePrice) _calculateSalePrice();
+                } else {
+                  if (onChanged != null) onChanged(val);
+                }
+              },
+              validator: (value) {
+                if (label.contains('*') && (value == null || value.trim().isEmpty)) {
+                  return 'Vui lòng nhập $label';
+                }
+                return null;
+              },
+              enabled: enabled,
             ),
-            validator: (value) {
-              if (label.contains('*') && (value == null || value.trim().isEmpty)) {
-                return 'Vui lòng nhập $label';
-              }
-              return null;
-            },
           ),
       ],
     );
@@ -668,11 +697,11 @@ class _EditProductScreenState extends State<EditProductScreen> with TickerProvid
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Ảnh sản phẩm lên đầu
-              SectionCard(
-                padding: const EdgeInsets.all(16),
-                child: _buildProductImageBlock(),
-              ),
+              // Ảnh sản phẩm lên đầu - Tạm thời ẩn, sẽ phát triển sau
+              // SectionCard(
+              //   padding: const EdgeInsets.all(16),
+              //   child: _buildProductImageBlock(),
+              // ),
               // Thông tin cơ bản
               SectionCard(
                 child: Column(
@@ -957,12 +986,12 @@ class _EditProductScreenState extends State<EditProductScreen> with TickerProvid
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Ảnh sản phẩm lên đầu
-        SectionCard(
-          padding: const EdgeInsets.all(16),
-          child: _buildProductImageBlock(),
-        ),
-        const SizedBox(height: 16),
+        // Ảnh sản phẩm lên đầu - Tạm thời ẩn, sẽ phát triển sau
+        // SectionCard(
+        //   padding: const EdgeInsets.all(16),
+        //   child: _buildProductImageBlock(),
+        // ),
+        // const SizedBox(height: 16),
         // Thông tin cơ bản
         SectionCard(
           child: Column(
@@ -1063,18 +1092,121 @@ class _EditProductScreenState extends State<EditProductScreen> with TickerProvid
         SectionCard(
           padding: const EdgeInsets.all(20),
           decoration: BoxDecoration(
-            color: Color(0xFFF0FDF4),
+            color: Colors.white,
             borderRadius: BorderRadius.circular(6),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('Giá & Tồn kho', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: mainGreen)),
+              Text('Giá', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: mainGreen)),
               const SizedBox(height: space16),
-              _buildFormField(label: 'Giá nhập', controller: _costPriceController, keyboardType: TextInputType.number),
-              const SizedBox(height: space12),
-              _buildFormField(label: 'Giá bán', controller: _sellPriceController, keyboardType: TextInputType.number),
-              const SizedBox(height: space12),
+              Row(
+                children: [
+                  Checkbox(
+                    value: _autoCalculatePrice,
+                    onChanged: (val) {
+                      setState(() {
+                        _autoCalculatePrice = val ?? true;
+                        if (_autoCalculatePrice) _calculateSalePrice();
+                      });
+                    },
+                    activeColor: mainGreen,
+                  ),
+                  const Text('Tính giá tự động'),
+                ],
+              ),
+              const SizedBox(height: 8),
+              _buildFormField(
+                label: 'Giá nhập *',
+                controller: _costPriceController,
+                keyboardType: TextInputType.number,
+              ),
+              if (_autoCalculatePrice) ...[
+                const SizedBox(height: 16),
+                Padding(
+                  padding: const EdgeInsets.only(left: 0, right: 0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Lợi nhuận gộp (%)',
+                        style: TextStyle(
+                          fontWeight: FontWeight.w700,
+                          color: mainGreen,
+                          fontSize: 14,
+                        ),
+                        textAlign: TextAlign.left,
+                      ),
+                      const SizedBox(height: 10),
+                      SliderTheme(
+                        data: SliderTheme.of(context).copyWith(
+                          activeTrackColor: mainGreen,
+                          inactiveTrackColor: mainGreen.withOpacity(0.15),
+                          thumbColor: Colors.white,
+                          overlayColor: mainGreen.withOpacity(0.15),
+                          thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 12, elevation: 2, pressedElevation: 4),
+                          trackHeight: 4,
+                          valueIndicatorColor: mainGreen,
+                          overlayShape: const RoundSliderOverlayShape(overlayRadius: 18),
+                          tickMarkShape: const RoundSliderTickMarkShape(),
+                          showValueIndicator: ShowValueIndicator.never,
+                        ),
+                        child: Slider(
+                          value: _profitMargin,
+                          min: 0,
+                          max: 100,
+                          divisions: 100,
+                          label: '${_profitMargin.round()}%',
+                          onChanged: (val) {
+                            setState(() {
+                              _profitMargin = val;
+                              _profitMarginController.text = _profitMargin.toStringAsFixed(0);
+                              _calculateSalePrice();
+                            });
+                          },
+                        ),
+                      ),
+                      Center(
+                        child: Text(
+                          '${_profitMargin.round()}%',
+                          style: TextStyle(
+                            fontWeight: FontWeight.w700,
+                            color: mainGreen,
+                            fontSize: 16,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+              const SizedBox(height: 8),
+              _buildFormField(
+                label: 'Giá bán *',
+                controller: _sellPriceController,
+                keyboardType: TextInputType.number,
+                enabled: !_autoCalculatePrice,
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 16),
+        // Tồn kho
+        SectionCard(
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+             color: Colors.white,
+            borderRadius: BorderRadius.circular(6),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Text('Tồn kho', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: mainGreen)),
+                ],
+              ),
+              const SizedBox(height: 16),
               _buildFormField(label: 'Số lượng', controller: _quantityController, keyboardType: TextInputType.number),
             ],
           ),

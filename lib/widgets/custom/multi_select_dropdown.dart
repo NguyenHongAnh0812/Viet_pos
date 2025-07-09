@@ -17,6 +17,7 @@ class MultiSelectDropdown<T> extends StatefulWidget {
   final ValueChanged<List<T>> onSelectionChanged;
   final String hint;
   final bool isTreeMode;
+  final String? selectedLabel; // Thêm tham số này
 
   const MultiSelectDropdown({
     super.key,
@@ -26,6 +27,7 @@ class MultiSelectDropdown<T> extends StatefulWidget {
     required this.onSelectionChanged,
     this.hint = 'Chọn một hoặc nhiều',
     this.isTreeMode = false,
+    this.selectedLabel,
   });
 
   @override
@@ -232,7 +234,10 @@ class _MultiSelectDropdownState<T> extends State<MultiSelectDropdown<T>> {
       return widget.hint;
     }
     final count = _currentSelectedValues.length;
-    return '$count nhà cung cấp được chọn';
+    if (widget.selectedLabel != null && widget.selectedLabel!.isNotEmpty) {
+      return '$count ${widget.selectedLabel} được chọn';
+    }
+    return '$count mục được chọn'; // fallback mặc định
   }
 
   @override

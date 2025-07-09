@@ -55,7 +55,8 @@ class _AddProductScreenState extends State<AddProductScreen> with TickerProvider
   List<String> _selectedCompanyIds = [];
   List<Company> _allCompanies = [];
   bool _isActive = true;
-  final bool _autoCalculatePrice = true;
+  bool _autoCalculatePrice = true; // Đổi thành biến mutable
+  double _profitMargin = 20.0; // Thêm biến lợi nhuận gộp
   static const double _defaultProfitMargin = 20.0;
   final _categoryService = ProductCategoryService();
   final _companyService = CompanyService();
@@ -78,7 +79,7 @@ class _AddProductScreenState extends State<AddProductScreen> with TickerProvider
   void initState() {
     super.initState();
     _tabController = TabController(length: 3, vsync: this);
-    _profitMarginController.text = _defaultProfitMargin.toStringAsFixed(0);
+    _profitMarginController.text = _profitMargin.toStringAsFixed(0); // Đồng bộ controller
     _loadCompanies();
     _loadCategories();
   }
@@ -170,17 +171,12 @@ class _AddProductScreenState extends State<AddProductScreen> with TickerProvider
     if (!_autoCalculatePrice) return;
     final costPriceStr = _costPriceController.text.replaceAll(RegExp(r'[^0-9]'), '');
     final costPrice = double.tryParse(costPriceStr) ?? 0.0;
-    final profitMargin = double.tryParse(_profitMarginController.text) ?? _defaultProfitMargin;
-    if (costPrice > 0) {
-      final salePrice = costPrice * (1 + profitMargin / 100);
-      final formattedPrice = formatCurrency(salePrice);
-      _sellPriceController.value = TextEditingValue(
-        text: formattedPrice,
-        selection: TextSelection.collapsed(offset: formattedPrice.length),
-      );
-    } else {
-      _sellPriceController.text = '';
-    }
+    final salePrice = costPrice * (1 + _profitMargin / 100);
+    final formattedPrice = formatCurrency(salePrice);
+    _sellPriceController.value = TextEditingValue(
+      text: formattedPrice,
+      selection: TextSelection.collapsed(offset: formattedPrice.length),
+    );
   }
 
   Future<void> _pickMultiImageFromGallery() async {
@@ -310,10 +306,10 @@ class _AddProductScreenState extends State<AddProductScreen> with TickerProvider
         setState(() => _isSaving = false);
         return;
       }
-      List<String> imageUrls = await _uploadAllImages();
-      if (imageUrls.isNotEmpty) {
-        _productImageUrls = imageUrls;
-      }
+      // List<String> imageUrls = await _uploadAllImages();
+      // if (imageUrls.isNotEmpty) {
+      //   _productImageUrls = imageUrls;
+      // }
       final costPriceStr = _costPriceController.text.replaceAll(RegExp(r'[^0-9]'), '');
       final salePriceStr = _sellPriceController.text.replaceAll(RegExp(r'[^0-9]'), '');
       final costPrice = double.tryParse(costPriceStr) ?? 0.0;
@@ -336,8 +332,8 @@ class _AddProductScreenState extends State<AddProductScreen> with TickerProvider
         'discontinue_reason': !_isActive ? _discontinueReasonController.text.trim() : null,
         'created_at': FieldValue.serverTimestamp(),
         'updated_at': FieldValue.serverTimestamp(),
-        'images': imageUrls,
-        'main_image': imageUrls.isNotEmpty ? imageUrls[_mainImageIndex.clamp(0, imageUrls.length-1)] : null,
+        'images': [], // imageUrls,
+        'main_image': null, // imageUrls.isNotEmpty ? imageUrls[_mainImageIndex.clamp(0, imageUrls.length-1)] : null,
         'mfg_date': _mfgDate,
         'exp_date': _expDate,
         'origin': _originController.text.trim(),
@@ -785,11 +781,11 @@ class _AddProductScreenState extends State<AddProductScreen> with TickerProvider
                   ],
                 ),
               ),
-              // Ảnh sản phẩm
-              SectionCard(
-                padding: const EdgeInsets.all(16),
-                child: _buildProductImageBlock(),
-              ),
+              // Ảnh sản phẩm - Tạm thời ẩn, sẽ phát triển sau
+              // SectionCard(
+              //   padding: const EdgeInsets.all(16),
+              //   child: _buildProductImageBlock(),
+              // ),
               // Thông tin y tế
               SectionCard(
                 child: Column(
@@ -878,6 +874,7 @@ class _AddProductScreenState extends State<AddProductScreen> with TickerProvider
                             onSelectionChanged: (values) { setState(() { _selectedCategories = values; }); },
                             hint: 'Chọn danh mục',
                             isTreeMode: true,
+                            selectedLabel: 'danh mục',
                           ),
                         ),
                       ),
@@ -897,6 +894,7 @@ class _AddProductScreenState extends State<AddProductScreen> with TickerProvider
                           initialSelectedValues: _selectedCompanyIds,
                           onSelectionChanged: (values) { setState(() { _selectedCompanyIds = values; }); },
                           hint: 'Chọn nhà cung cấp',
+                          selectedLabel: 'nhà cung cấp',
                         ),
                       ),
                     )),
@@ -931,7 +929,7 @@ class _AddProductScreenState extends State<AddProductScreen> with TickerProvider
               SectionCard(
                 padding: const EdgeInsets.all(20),
                 decoration: BoxDecoration(
-                  color: Color(0xFFF0FDF4),
+                  color: Colors.white,
                   borderRadius: BorderRadius.circular(6),
                 ),
                 child: Column(
@@ -941,10 +939,93 @@ class _AddProductScreenState extends State<AddProductScreen> with TickerProvider
                     const SizedBox(height: space12),
                     Row(
                       children: [
-                        Expanded(child: _buildFormField(label: 'Giá nhập', controller: _costPriceController, keyboardType: TextInputType.number)),
-                        const SizedBox(width: space12),
-                        Expanded(child: _buildFormField(label: 'Giá bán', controller: _sellPriceController, keyboardType: TextInputType.number)),
+                        Checkbox(
+                          value: _autoCalculatePrice,
+                          onChanged: (val) {
+                            setState(() {
+                              _autoCalculatePrice = val ?? true;
+                              if (_autoCalculatePrice) _calculateSalePrice();
+                            });
+                          },
+                          activeColor: mainGreen,
+                        ),
+                        const Text('Tính giá tự động'),
                       ],
+                    ),
+                    const SizedBox(height: 8),
+                    _buildFormField(
+                      label: 'Giá nhập *',
+                      controller: _costPriceController,
+                      keyboardType: TextInputType.number,
+                      onChanged: (val) {
+                        if (_autoCalculatePrice) _calculateSalePrice();
+                      },
+                    ),
+                    if (_autoCalculatePrice) ...[
+                      const SizedBox(height: 16),
+                      Padding(
+                        padding: const EdgeInsets.only(left: 0, right: 0), // Giữ lề trái sát với tiêu đề, có thể chỉnh nếu cần
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Lợi nhuận gộp (%)',
+                              style: TextStyle(
+                                fontWeight: FontWeight.w700,
+                                color: mainGreen,
+                                fontSize: 14,
+                              ),
+                              textAlign: TextAlign.left,
+                            ),
+                             const SizedBox(height: 4),
+                            SliderTheme(
+                              data: SliderTheme.of(context).copyWith(
+                                activeTrackColor: mainGreen,
+                                inactiveTrackColor: mainGreen.withOpacity(0.15),
+                                thumbColor: Colors.white,
+                                overlayColor: mainGreen.withOpacity(0.15),
+                                thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 12, elevation: 2, pressedElevation: 4),
+                                trackHeight: 4,
+                                valueIndicatorColor: mainGreen,
+                                overlayShape: const RoundSliderOverlayShape(overlayRadius: 18),
+                                tickMarkShape: const RoundSliderTickMarkShape(),
+                                showValueIndicator: ShowValueIndicator.never,
+                              ),
+                              child: Slider(
+                                value: _profitMargin,
+                                min: 0,
+                                max: 100,
+                                divisions: 100,
+                                label: '${_profitMargin.round()}%',
+                                onChanged: (val) {
+                                  setState(() {
+                                    _profitMargin = val;
+                                    _profitMarginController.text = _profitMargin.toStringAsFixed(0);
+                                    _calculateSalePrice();
+                                  });
+                                },
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      Center(
+                        child: Text(
+                          '${_profitMargin.round()}%',
+                          style: TextStyle(
+                            fontWeight: FontWeight.w700,
+                            color: mainGreen,
+                            fontSize: 16,
+                          ),
+                        ),
+                      ),
+                    ],
+                    const SizedBox(height: 8),
+                    _buildFormField(
+                      label: 'Giá bán *',
+                      controller: _sellPriceController,
+                      keyboardType: TextInputType.number,
+                      enabled: !_autoCalculatePrice,
                     ),
                   ],
                 ),
@@ -953,7 +1034,7 @@ class _AddProductScreenState extends State<AddProductScreen> with TickerProvider
               SectionCard(
                 padding: const EdgeInsets.all(20),
                 decoration: BoxDecoration(
-                  color: Color(0xFFF0FDF4),
+                    color: Colors.white,
                   borderRadius: BorderRadius.circular(6),
                 ),
                 child: Column(
@@ -1119,9 +1200,9 @@ class _AddProductScreenState extends State<AddProductScreen> with TickerProvider
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // 1. Ảnh sản phẩm
-        _buildProductImageBlock(),
-        const SizedBox(height: 16),
+        // 1. Ảnh sản phẩm - Tạm thời ẩn, sẽ phát triển sau
+        // _buildProductImageBlock(),
+        // const SizedBox(height: 16),
         // 2. Thông tin cơ bản
         SectionCard(
           padding: const EdgeInsets.all(16),
@@ -1192,6 +1273,7 @@ class _AddProductScreenState extends State<AddProductScreen> with TickerProvider
                       onSelectionChanged: (values) { setState(() { _selectedCategories = values; }); },
                       hint: 'Chọn danh mục',
                       isTreeMode: true,
+                      selectedLabel: 'danh mục',
                     ),
                   ),
                 ),
@@ -1211,6 +1293,7 @@ class _AddProductScreenState extends State<AddProductScreen> with TickerProvider
                     initialSelectedValues: _selectedCompanyIds,
                     onSelectionChanged: (values) { setState(() { _selectedCompanyIds = values; }); },
                     hint: 'Chọn nhà cung cấp',
+                    selectedLabel: 'nhà cung cấp',
                   ),
                 ),
               )),
@@ -1246,7 +1329,7 @@ class _AddProductScreenState extends State<AddProductScreen> with TickerProvider
         SectionCard(
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: Color(0xFFF0FDF4),
+             color: Colors.white,
             borderRadius: BorderRadius.circular(6),
           ),
           child: Column(
@@ -1261,10 +1344,93 @@ class _AddProductScreenState extends State<AddProductScreen> with TickerProvider
               const SizedBox(height: space16),
               Row(
                 children: [
-                  Expanded(child: _buildFormField(label: 'Giá nhập', controller: _costPriceController, keyboardType: TextInputType.number)),
-                  const SizedBox(width: space12),
-                  Expanded(child: _buildFormField(label: 'Giá bán', controller: _sellPriceController, keyboardType: TextInputType.number)),
+                  Checkbox(
+                    value: _autoCalculatePrice,
+                    onChanged: (val) {
+                      setState(() {
+                        _autoCalculatePrice = val ?? true;
+                        if (_autoCalculatePrice) _calculateSalePrice();
+                      });
+                    },
+                    activeColor: mainGreen,
+                  ),
+                  const Text('Tính giá tự động'),
                 ],
+              ),
+              const SizedBox(height: 8),
+              _buildFormField(
+                label: 'Giá nhập *',
+                controller: _costPriceController,
+                keyboardType: TextInputType.number,
+                onChanged: (val) {
+                  if (_autoCalculatePrice) _calculateSalePrice();
+                },
+              ),
+              if (_autoCalculatePrice) ...[
+                const SizedBox(height: 16),
+                Padding(
+                  padding: const EdgeInsets.only(left: 0, right: 0), // Giữ lề trái sát với tiêu đề, có thể chỉnh nếu cần
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Lợi nhuận gộp (%)',
+                        style: TextStyle(
+                          fontWeight: FontWeight.w700,
+                          color: mainGreen,
+                          fontSize: 14,
+                        ),
+                        textAlign: TextAlign.left,
+                      ),
+                       const SizedBox(height: 4),
+                      SliderTheme(
+                        data: SliderTheme.of(context).copyWith(
+                          activeTrackColor: mainGreen,
+                          inactiveTrackColor: mainGreen.withOpacity(0.15),
+                          thumbColor: Colors.white,
+                          overlayColor: mainGreen.withOpacity(0.15),
+                          thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 12, elevation: 2, pressedElevation: 4),
+                          trackHeight: 4,
+                          valueIndicatorColor: mainGreen,
+                          overlayShape: const RoundSliderOverlayShape(overlayRadius: 18),
+                          tickMarkShape: const RoundSliderTickMarkShape(),
+                          showValueIndicator: ShowValueIndicator.never,
+                        ),
+                        child: Slider(
+                          value: _profitMargin,
+                          min: 0,
+                          max: 100,
+                          divisions: 100,
+                          label: '${_profitMargin.round()}%',
+                          onChanged: (val) {
+                            setState(() {
+                              _profitMargin = val;
+                              _profitMarginController.text = _profitMargin.toStringAsFixed(0);
+                              _calculateSalePrice();
+                            });
+                          },
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Center(
+                  child: Text(
+                    '${_profitMargin.round()}%',
+                    style: TextStyle(
+                      fontWeight: FontWeight.w700,
+                      color: mainGreen,
+                      fontSize: 16,
+                    ),
+                  ),
+                ),
+              ],
+              const SizedBox(height: 8),
+              _buildFormField(
+                label: 'Giá bán *',
+                controller: _sellPriceController,
+                keyboardType: TextInputType.number,
+                enabled: !_autoCalculatePrice,
               ),
             ],
           ),
@@ -1274,7 +1440,7 @@ class _AddProductScreenState extends State<AddProductScreen> with TickerProvider
         SectionCard(
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: Color(0xFFF0FDF4),
+            color: Colors.white,
             borderRadius: BorderRadius.circular(6),
           ),
           child: Column(
@@ -1433,7 +1599,7 @@ class _AddProductScreenState extends State<AddProductScreen> with TickerProvider
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text('Ảnh sản phẩm', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 16, color: Color(0xFF22C55E))),
+         Text('Ảnh sản phẩm', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: mainGreen)),
           const SizedBox(height: 16),
           // Hiển thị grid ảnh
           if ((kIsWeb && _webImageBytesList.isNotEmpty) || _productImageFiles.isNotEmpty || _productImageUrls.isNotEmpty)
@@ -1527,7 +1693,7 @@ class _AddProductScreenState extends State<AddProductScreen> with TickerProvider
                     children: const [
                       Icon(Icons.upload_outlined, size: 28, color: Color(0xFF475569)),
                       SizedBox(height: 8),
-                      Text('Tải nhiều ảnh', style: TextStyle(color: Color(0xFF475569), fontWeight: FontWeight.w500)),
+                      Text('Tải ảnh', style: TextStyle(color: Color(0xFF475569), fontWeight: FontWeight.w500)),
                     ],
                   ),
                 ),
@@ -1678,7 +1844,28 @@ class _AddProductScreenState extends State<AddProductScreen> with TickerProvider
               inputFormatters: inputFormatters,
               maxLines: maxLines,
               minLines: minLines,
-              onChanged: onChanged,
+              onChanged: (val) {
+                // Format tiền cho trường Giá nhập
+                if (label.contains('Giá nhập') && controller != null) {
+                  String numbers = val.replaceAll(RegExp(r'[^0-9]'), '');
+                  if (numbers.isEmpty) {
+                    controller.text = '';
+                  } else {
+                    double value = double.tryParse(numbers) ?? 0;
+                    String formatted = formatCurrency(value);
+                    int newOffset = formatted.length;
+                    controller.value = TextEditingValue(
+                      text: formatted,
+                      selection: TextSelection.collapsed(offset: newOffset),
+                    );
+                  }
+                  if (onChanged != null) onChanged(val);
+                  // Nếu tự động tính giá bán thì cập nhật luôn
+                  if (_autoCalculatePrice) _calculateSalePrice();
+                } else {
+                  if (onChanged != null) onChanged(val);
+                }
+              },
               validator: validator,
               style: const TextStyle(fontSize: 15, height: 1.2),
               decoration: designSystemInputDecoration(),

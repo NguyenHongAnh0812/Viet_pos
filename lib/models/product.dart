@@ -27,6 +27,7 @@ class Product {
   final String direction;
   final String withdrawalTime;
   final List<String> categoryIds;
+  final List<String> images;
 
   Product({
     required this.id,
@@ -55,6 +56,7 @@ class Product {
     this.direction = '',
     this.withdrawalTime = '',
     this.categoryIds = const [],
+    this.images = const [],
   });
 
   Map<String, dynamic> toMap() {
@@ -84,6 +86,7 @@ class Product {
       'direction': direction,
       'withdrawal_time': withdrawalTime,
       'category_ids': categoryIds,
+      'images': images,
     };
   }
 
@@ -134,6 +137,7 @@ class Product {
       direction: map['direction'] ?? '',
       withdrawalTime: map['withdrawal_time'] ?? '',
       categoryIds: List<String>.from(map['category_ids'] ?? []),
+      images: List<String>.from(map['images'] ?? []),
     );
   }
 
@@ -169,6 +173,7 @@ class Product {
     String? direction,
     String? withdrawalTime,
     List<String>? categoryIds,
+    List<String>? images,
   }) {
     return Product(
       id: id ?? this.id,
@@ -197,6 +202,7 @@ class Product {
       direction: direction ?? this.direction,
       withdrawalTime: withdrawalTime ?? this.withdrawalTime,
       categoryIds: categoryIds ?? this.categoryIds,
+      images: images ?? this.images,
     );
   }
 
@@ -227,6 +233,7 @@ class Product {
       'direction': raw['direction'] ?? '',
       'withdrawal_time': raw['withdrawal_time'] ?? '',
       'category_ids': raw['category_ids'] ?? raw['categoryIds'] ?? const [],
+      'images': List<String>.from(raw['images'] ?? []),
     };
   }
 } 

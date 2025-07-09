@@ -1669,7 +1669,7 @@ class _CustomerPickerScreenState extends State<CustomerPickerScreen> {
             child: TextField(
               controller: _searchController,
               decoration: InputDecoration(
-                hintText: 'SĐT/Tên',
+                hintText: 'Nhập tên, số điện thoại',
                 prefixIcon: const Icon(Icons.search, color: Colors.grey),
                 filled: true,
                 fillColor: Colors.white,
