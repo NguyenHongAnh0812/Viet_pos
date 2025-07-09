@@ -29,6 +29,12 @@ class ProductCategory {
 
   factory ProductCategory.fromFirestore(DocumentSnapshot doc) {
     Map<String, dynamic> data = doc.data() as Map<String, dynamic>;
+    int? levelValue;
+    if (data['level'] is int) {
+      levelValue = data['level'];
+    } else if (data['level'] != null) {
+      levelValue = int.tryParse(data['level'].toString());
+    }
     return ProductCategory(
       id: doc.id,
       name: data['name'] ?? '',
@@ -38,7 +44,7 @@ class ProductCategory {
       pathArray: data['pathArray'] != null 
           ? List<String>.from(data['pathArray']) 
           : null,
-      level: data['level'],
+      level: levelValue,
       isSmart: data['is_smart'] ?? false,
       conditionType: data['condition_type'],
       conditions: List<Map<String, dynamic>>.from(data['conditions'] ?? []),
