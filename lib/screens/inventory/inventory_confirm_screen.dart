@@ -8,7 +8,8 @@ import '../../widgets/main_layout.dart';
 
 class InventoryConfirmScreen extends StatefulWidget {
   final String sessionId;
-  const InventoryConfirmScreen({super.key, required this.sessionId});
+  final bool fromDetail;
+  const InventoryConfirmScreen({super.key, required this.sessionId, this.fromDetail = false});
 
   @override
   State<InventoryConfirmScreen> createState() => _InventoryConfirmScreenState();
@@ -86,7 +87,17 @@ class _InventoryConfirmScreenState extends State<InventoryConfirmScreen> {
         elevation: 0,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Colors.white),
-          onPressed: () => Navigator.pop(context),
+          onPressed: () {
+            if (widget.fromDetail) {
+              Navigator.pop(context);
+            } else {
+              Navigator.pushAndRemoveUntil(
+                context,
+                MaterialPageRoute(builder: (_) => MainLayout(initialPage: MainPage.inventory)),
+                (route) => false,
+              );
+            }
+          },
         ),
         centerTitle: true,
         title: Text(session['name'] ?? '', style: h2Mobile.copyWith(color: Colors.white, fontWeight: FontWeight.bold)),
@@ -211,27 +222,33 @@ class _InventoryConfirmScreenState extends State<InventoryConfirmScreen> {
                       await FirebaseFirestore.instance.collection('inventory_sessions').doc(widget.sessionId).update({'status': 'checked'});
                       
                       ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Đã xác nhận kiểm kê')),
+                        SnackBar(
+                          content: Text('Đã xác nhận kiểm kê'),
+                          backgroundColor: mainGreen,
+                        ),
                       );
                       
-                      // Quay về danh sách kiểm kê
+                      // Luôn đảm bảo về danh sách kiểm kê
                       if (mounted) {
-                        Navigator.of(context).popUntil((route) => route.isFirst);
-                        final mainLayoutState = context.findAncestorStateOfType<MainLayoutState>();
-                        if (mainLayoutState != null) {
-                          mainLayoutState.onSidebarTap(MainPage.inventory);
-                        }
+                        Navigator.pushAndRemoveUntil(
+                          context,
+                          MaterialPageRoute(builder: (_) => MainLayout(initialPage: MainPage.inventory)),
+                          (route) => false,
+                        );
                       }
                     } catch (e) {
                       ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text('Lỗi khi xác nhận kiểm kê: $e')),
+                        SnackBar(
+                          content: Text('Lỗi khi xác nhận kiểm kê: $e'),
+                          backgroundColor: mainGreen,
+                        ),
                       );
                     }
                   },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: mainGreen,
                     foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    minimumSize: const Size.fromHeight(40),
                     textStyle: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                     elevation: 0,
@@ -251,41 +268,67 @@ class _InventoryConfirmScreenState extends State<InventoryConfirmScreen> {
                                 return StatefulBuilder(
                                   builder: (context, setState) {
                                     return AlertDialog(
-                                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
-                                      contentPadding: const EdgeInsets.fromLTRB(24, 20, 24, 8),
-                                      title: const Text('Phản hồi về phiên kiểm kê'),
-                                      content: TextField(
-                                        decoration: const InputDecoration(
-                                          labelText: 'Nội dung phản hồi',
-                                          border: OutlineInputBorder(),
+                                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                                      contentPadding: const EdgeInsets.fromLTRB(24, 32, 24, 24),
+                                      title: Center(
+                                        child: Text(
+                                          'Phản hồi về phiên kiểm kê',
+                                          style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 18),
+                                          textAlign: TextAlign.center,
                                         ),
-                                        minLines: 2,
-                                        maxLines: 5,
-                                        onChanged: (value) => feedback = value,
                                       ),
-                                      actionsPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                                      content: Padding(
+                                        padding: const EdgeInsets.only(bottom: 24),
+                                        child: TextField(
+                                          decoration: InputDecoration(
+                                            labelText: 'Nội dung phản hồi',
+                                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                                            filled: true,
+                                            fillColor: Color(0xFFF6F7F8),
+                                            contentPadding: EdgeInsets.symmetric(vertical: 22, horizontal: 16),
+                                          ),
+                                          minLines: 5,
+                                          maxLines: 8,
+                                          onChanged: (value) => feedback = value,
+                                          style: const TextStyle(fontSize: 16),
+                                        ),
+                                      ),
+                                      actionsAlignment: MainAxisAlignment.center,
+                                     
                                       actions: [
-                                        ElevatedButton(
-                                          onPressed: () => Navigator.pop(context, true),
-                                          style: ElevatedButton.styleFrom(
-                                            backgroundColor: mainGreen,
-                                            foregroundColor: Colors.white,
-                                            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
-                                          ),
-                                          child: const Text('Xác nhận'),
+                                        Row(
+                                          mainAxisAlignment: MainAxisAlignment.center,
+                                          children: [
+                                            SizedBox(
+                                              width: 120,
+                                              height: 40,
+                                              child: ElevatedButton(
+                                                onPressed: () => Navigator.pop(context, true),
+                                                style: ElevatedButton.styleFrom(
+                                                  backgroundColor: mainGreen,
+                                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                                                  elevation: 0,
+                                                ),
+                                                child: const Text('Xác nhận', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 16)),
+                                              ),
+                                            ),
+                                            const SizedBox(width: 16),
+                                            SizedBox(
+                                              width: 120,
+                                              height: 40,
+                                              child: OutlinedButton(
+                                                onPressed: () => Navigator.pop(context, false),
+                                                style: OutlinedButton.styleFrom(
+                                                  foregroundColor: mainGreen,
+                                                  side: BorderSide(color: mainGreen),
+                                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                                                ),
+                                                child: const Text('Hủy', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 16)),
+                                              ),
+                                            ),
+                                          ],
                                         ),
-                                        const SizedBox(width: 8),
-                                        OutlinedButton(
-                                          onPressed: () => Navigator.pop(context, false),
-                                          style: OutlinedButton.styleFrom(
-                                            foregroundColor: mainGreen,
-                                            side: BorderSide(color: mainGreen),
-                                            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
-                                          ),
-                                          child: const Text('Hủy'),
-                                        ),
+                                        const SizedBox(height: 16),
                                       ],
                                     );
                                   },
@@ -311,20 +354,23 @@ class _InventoryConfirmScreenState extends State<InventoryConfirmScreen> {
                               });
                               if (mounted) {
                                 ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(content: Text('Đã gửi phản hồi và chuyển về phiếu tạm')),
+                                  SnackBar(
+                                    content: Text('Đã gửi phản hồi và chuyển về phiếu tạm'),
+                                    backgroundColor: mainGreen,
+                                  ),
                                 );
-                                Navigator.of(context).popUntil((route) => route.isFirst);
-                                final mainLayoutState = context.findAncestorStateOfType<MainLayoutState>();
-                                if (mainLayoutState != null) {
-                                  mainLayoutState.onSidebarTap(MainPage.inventory);
-                                }
+                                Navigator.pushAndRemoveUntil(
+                                  context,
+                                  MaterialPageRoute(builder: (_) => MainLayout(initialPage: MainPage.inventory)),
+                                  (route) => false,
+                                );
                               }
                             }
                           },
                           style: OutlinedButton.styleFrom(
                             foregroundColor: mainGreen,
                             side: BorderSide(color: mainGreen),
-                            padding: const EdgeInsets.symmetric(vertical: 16),
+                            minimumSize: const Size.fromHeight(40),
                             textStyle: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15),
                             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                           ),
@@ -343,8 +389,8 @@ class _InventoryConfirmScreenState extends State<InventoryConfirmScreen> {
                                   builder: (context, setState) {
                                     return AlertDialog(
                                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
-                                      contentPadding: const EdgeInsets.fromLTRB(24, 20, 24, 8),
-                                      title: const Text('Xác nhận cập nhật tồn kho'),
+                                      contentPadding: const EdgeInsets.fromLTRB(24, 32, 24, 24),
+                                      title: const Text('Xác nhận cập nhật tồn kho', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 18)),
                                       content: Column(
                                         mainAxisSize: MainAxisSize.min,
                                         children: [
@@ -357,19 +403,22 @@ class _InventoryConfirmScreenState extends State<InventoryConfirmScreen> {
                                             decoration: const InputDecoration(
                                               labelText: 'Ghi chú (tùy chọn)',
                                               border: OutlineInputBorder(),
+                                              contentPadding: EdgeInsets.symmetric(vertical: 18, horizontal: 12),
                                             ),
+                                            minLines: 2,
+                                            maxLines: 4,
                                             onChanged: (value) => note = value,
                                           ),
                                         ],
                                       ),
-                                      actionsPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                                    
                                       actions: [
                                         ElevatedButton(
                                           onPressed: () => Navigator.pop(context, true),
                                           style: ElevatedButton.styleFrom(
                                             backgroundColor: mainGreen,
                                             foregroundColor: Colors.white,
-                                            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                                            padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 12),
                                             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
                                           ),
                                           child: const Text('Xác nhận'),
@@ -380,7 +429,7 @@ class _InventoryConfirmScreenState extends State<InventoryConfirmScreen> {
                                           style: OutlinedButton.styleFrom(
                                             foregroundColor: mainGreen,
                                             side: BorderSide(color: mainGreen),
-                                            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                                            padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 12),
                                             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
                                           ),
                                           child: const Text('Hủy'),
@@ -395,20 +444,23 @@ class _InventoryConfirmScreenState extends State<InventoryConfirmScreen> {
                               await _updateStock(note: note);
                               if (mounted) {
                                 ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(content: Text('Đã cập nhật tồn kho thành công')),
+                                  SnackBar(
+                                    content: Text('Đã cập nhật tồn kho thành công'),
+                                    backgroundColor: mainGreen,
+                                  ),
                                 );
-                                Navigator.of(context).popUntil((route) => route.isFirst);
-                                final mainLayoutState = context.findAncestorStateOfType<MainLayoutState>();
-                                if (mainLayoutState != null) {
-                                  mainLayoutState.onSidebarTap(MainPage.inventory);
-                                }
+                                Navigator.pushAndRemoveUntil(
+                                  context,
+                                  MaterialPageRoute(builder: (_) => MainLayout(initialPage: MainPage.inventory)),
+                                  (route) => false,
+                                );
                               }
                             }
                           },
                           style: ElevatedButton.styleFrom(
                             backgroundColor: mainGreen,
                             foregroundColor: Colors.white,
-                            padding: const EdgeInsets.symmetric(vertical: 16),
+                            minimumSize: const Size.fromHeight(40),
                             textStyle: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15),
                             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                             elevation: 0,

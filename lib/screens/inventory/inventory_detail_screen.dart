@@ -172,9 +172,9 @@ class _InventoryDetailScreenState extends State<InventoryDetailScreen> {
     await _syncSessionProducts();
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
+        SnackBar(
           content: Text('Đã lưu nháp thành công'),
-          backgroundColor: Colors.green,
+          backgroundColor: mainGreen,
         ),
       );
       
@@ -202,7 +202,10 @@ class _InventoryDetailScreenState extends State<InventoryDetailScreen> {
       await FirebaseFirestore.instance.collection('inventory_sessions').doc(widget.sessionId).update({'status': 'checked'});
       
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Đã xác nhận kiểm kê')),
+        SnackBar(
+          content: Text('Đã xác nhận kiểm kê'),
+          backgroundColor: mainGreen,
+        ),
       );
       
       // Quay về danh sách kiểm kê
@@ -214,7 +217,10 @@ class _InventoryDetailScreenState extends State<InventoryDetailScreen> {
       }
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Lỗi khi xác nhận kiểm kê: $e')),
+        SnackBar(
+          content: Text('Lỗi khi xác nhận kiểm kê: $e'),
+          backgroundColor: mainGreen,
+        ),
       );
     }
   }
@@ -234,7 +240,12 @@ class _InventoryDetailScreenState extends State<InventoryDetailScreen> {
     await _syncSessionProducts();
     await _fetchData();
     if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Đã cập nhật tồn kho thành công!'), backgroundColor: Colors.green));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Đã cập nhật tồn kho thành công!'),
+          backgroundColor: mainGreen,
+        ),
+      );
       setState(() {});
     }
     setState(() { _updateStockLoading = false; });
@@ -354,12 +365,12 @@ class _InventoryDetailScreenState extends State<InventoryDetailScreen> {
                         IconButton(
                           icon: const Icon(Icons.arrow_back, color: Colors.white),
                           onPressed: () {
-                            final mainLayoutState = context.findAncestorStateOfType<MainLayoutState>();
-                            if (mainLayoutState != null) {
-                              mainLayoutState.onSidebarTap(MainPage.inventory);
-                            } else {
-                              Navigator.pop(context);
-                            }
+                            // Luôn đảm bảo về danh sách kiểm kê
+                            Navigator.pushAndRemoveUntil(
+                              context,
+                              MaterialPageRoute(builder: (_) => MainLayout(initialPage: MainPage.inventory)),
+                              (route) => false,
+                            );
                           },
                         ),
                         Expanded(
@@ -492,7 +503,7 @@ class _InventoryDetailScreenState extends State<InventoryDetailScreen> {
                       style: OutlinedButton.styleFrom(
                         foregroundColor: textPrimary,
                         side: const BorderSide(color: borderColor),
-                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        minimumSize: const Size.fromHeight(40),
                         textStyle: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15),
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                         backgroundColor: Colors.white,
@@ -509,7 +520,7 @@ class _InventoryDetailScreenState extends State<InventoryDetailScreen> {
                             Navigator.push(
                               context,
                               MaterialPageRoute(
-                                builder: (context) => InventoryConfirmScreen(sessionId: widget.sessionId),
+                                builder: (context) => InventoryConfirmScreen(sessionId: widget.sessionId, fromDetail: true),
                               ),
                             );
                           }
@@ -517,7 +528,7 @@ class _InventoryDetailScreenState extends State<InventoryDetailScreen> {
                       style: ElevatedButton.styleFrom(
                         backgroundColor: mainGreen,
                         foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        minimumSize: const Size.fromHeight(40),
                         textStyle: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15),
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                         elevation: 0,
@@ -715,6 +726,19 @@ class _InventoryDetailScreenState extends State<InventoryDetailScreen> {
 
     // Nếu đã kiểm kê, chỉ hiển thị card rút gọn
     if (_checkedItemIds.contains(id)) {
+      final int diff = actualController.text.isNotEmpty ? (int.tryParse(actualController.text) ?? 0) - ((systemStock ?? 0) as int) : 0;
+      Color badgeColor;
+      String badgeText;
+      if (diff > 0) {
+        badgeColor = const Color(0xFFFFC107); // vàng/cam
+        badgeText = '+$diff';
+      } else if (diff < 0) {
+        badgeColor = Colors.red;
+        badgeText = '$diff';
+      } else {
+        badgeColor = Colors.green;
+        badgeText = '0';
+      }
       return Container(
         margin: const EdgeInsets.only(bottom: 12),
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
@@ -724,13 +748,24 @@ class _InventoryDetailScreenState extends State<InventoryDetailScreen> {
           border: Border.all(color: Colors.grey.shade200, width: 1),
         ),
         child: Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
             Expanded(
-              child: Text(
-                (item['product_name'] ?? '').toString(),
-                style: body.copyWith(fontWeight: FontWeight.bold, color: textPrimary, fontSize: 15),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    (item['product_name'] ?? '').toString(),
+                    style: body.copyWith(fontWeight: FontWeight.bold, color: textPrimary, fontSize: 15),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    'Tồn thực tế: ${actualController.text}${unit.isNotEmpty ? ' $unit' : ''}',
+                    style: body.copyWith(fontSize: 13, color: Colors.grey, fontWeight: FontWeight.w500),
+                  ),
+                ],
               ),
             ),
             GestureDetector(
@@ -742,13 +777,17 @@ class _InventoryDetailScreenState extends State<InventoryDetailScreen> {
                 await FirebaseFirestore.instance.collection('inventory_items').doc(id).update({'checked': false});
               },
               child: Container(
-                width: 32,
-                height: 32,
+                width: 30,
+                height: 30,
                 decoration: BoxDecoration(
-                  color: mainGreen,
+                  color: badgeColor,
                   shape: BoxShape.circle,
                 ),
-                child: const Icon(Icons.check, color: Colors.white, size: 20),
+                alignment: Alignment.center,
+                child: Text(
+                  badgeText,
+                  style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14),
+                ),
               ),
             ),
           ],
@@ -761,7 +800,7 @@ class _InventoryDetailScreenState extends State<InventoryDetailScreen> {
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: rowColor,
+        color: Colors.white,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: Colors.grey.shade200, width: 1),
       ),
@@ -777,7 +816,6 @@ class _InventoryDetailScreenState extends State<InventoryDetailScreen> {
                     Text((item['product_name'] ?? '').toString(), style: body.copyWith(fontWeight: FontWeight.bold, color: textPrimary, fontSize: 15)),
                     const SizedBox(height: 2),
                     Text('SKU: ${item['sku'] ?? ''}', style: body.copyWith(fontSize: 11, color: textSecondary)),
-                    Text('Mã vạch: ${item['barcode'] ?? ''}', style: body.copyWith(fontSize: 11, color: textSecondary)),
                   ],
                 ),
               ),
@@ -805,24 +843,27 @@ class _InventoryDetailScreenState extends State<InventoryDetailScreen> {
           const SizedBox(height: 12),
           Row(
             children: [
-              Expanded(child: Text('Tồn hệ thống', style: body.copyWith(fontSize: 13, color: textSecondary))),
+              Expanded(child: Text('Tồn hệ thống', style: body.copyWith(fontSize: 13, color: Colors.black))),
               Expanded(
-                child: Text('Tồn thực tế', style: body.copyWith(fontSize: 13, color: textSecondary), textAlign: TextAlign.left),
+                child: Text('Tồn thực tế', style: body.copyWith(fontSize: 13, color: Colors.black), textAlign: TextAlign.left),
               ),
+              const SizedBox(width: 6),
             ],
           ),
+
           Row(
             children: [
               Expanded(
                 child: Text('${systemStock}${unit.isNotEmpty ? ' $unit' : ''}', style: body.copyWith(fontWeight: FontWeight.bold, fontSize: 18)),
               ),
+              const SizedBox(height: 6),
               Expanded(
                 child: LayoutBuilder(
                   builder: (context, constraints) {
                     final inputWidth = constraints.maxWidth;
                     return Container(
                       width: inputWidth * 0.7,
-                      height: 36,
+                      height: 40,
                       decoration: BoxDecoration(
                         color: Colors.white,
                         border: Border.all(color: Color(0xFFE5E7EB)),
@@ -835,7 +876,7 @@ class _InventoryDetailScreenState extends State<InventoryDetailScreen> {
                             width: 36,
                             height: 36,
                             child: IconButton(
-                              icon: const Icon(Icons.remove, size: 18),
+                              icon: const Icon(Icons.remove, size: 16),
                               splashRadius: 18,
                               padding: EdgeInsets.zero,
                               onPressed: actualStock > 0 ? () {
@@ -872,6 +913,7 @@ class _InventoryDetailScreenState extends State<InventoryDetailScreen> {
             ],
           ),
           // Block chênh lệch chỉ hiển thị khi số thực tế khác số hệ thống và chưa kiểm kê
+           const SizedBox(width: 6),
           if (actualController.text.isNotEmpty && diff != 0)
             Container(
               margin: const EdgeInsets.only(top: 10),
@@ -880,9 +922,9 @@ class _InventoryDetailScreenState extends State<InventoryDetailScreen> {
                 border: Border(top: BorderSide(color: Color(0xFFE5E7EB), width: 1)),
               ),
               child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text('Chênh lệch:', style: body.copyWith(fontSize: 13, color: textSecondary)),
-                  const SizedBox(width: 4),
+                  Text('Chênh lệch:', style: body.copyWith(fontSize: 13, color: Colors.black)),
                   Text(
                     (diff != null && diff > 0)
                       ? '+$diff${unit.isNotEmpty ? ' $unit' : ''}'
