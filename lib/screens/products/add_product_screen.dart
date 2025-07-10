@@ -22,6 +22,33 @@ import '../../models/product_category.dart';
 import '../../models/product.dart';
 import '../../widgets/custom/product_image_picker.dart';
 
+class CurrencyInputFormatter extends TextInputFormatter {
+  @override
+  TextEditingValue formatEditUpdate(
+    TextEditingValue oldValue,
+    TextEditingValue newValue,
+  ) {
+    // Chỉ cho phép số
+    String numbers = newValue.text.replaceAll(RegExp(r'[^0-9]'), '');
+    
+    if (numbers.isEmpty) {
+      return const TextEditingValue(
+        text: '',
+        selection: TextSelection.collapsed(offset: 0),
+      );
+    }
+    
+    // Format thành tiền tệ
+    double value = double.tryParse(numbers) ?? 0;
+    String formatted = formatCurrency(value);
+    
+    return TextEditingValue(
+      text: formatted,
+      selection: TextSelection.collapsed(offset: formatted.length),
+    );
+  }
+}
+
 class AddProductScreen extends StatefulWidget {
   final VoidCallback? onBack;
   const AddProductScreen({super.key, this.onBack});
@@ -57,8 +84,12 @@ class _AddProductScreenState extends State<AddProductScreen> with TickerProvider
   List<Company> _allCompanies = [];
   bool _isActive = true;
   bool _autoCalculatePrice = true; // Đổi thành biến mutable
-  double _profitMargin = 20.0; // Thêm biến lợi nhuận gộp
-  static const double _defaultProfitMargin = 20.0;
+  double _profitMarginMin = 20.0; // Thêm biến lợi nhuận gộp min
+  double _profitMarginMax = 30.0; // Thêm biến lợi nhuận gộp max
+  static const double _defaultProfitMarginMin = 20.0;
+  static const double _defaultProfitMarginMax = 30.0;
+  final _minPriceController = TextEditingController();
+  final _maxPriceController = TextEditingController();
   final _categoryService = ProductCategoryService();
   final _companyService = CompanyService();
   final _productCompanyService = ProductCompanyService();
@@ -80,7 +111,7 @@ class _AddProductScreenState extends State<AddProductScreen> with TickerProvider
   void initState() {
     super.initState();
     _tabController = TabController(length: 3, vsync: this);
-    _profitMarginController.text = _profitMargin.toStringAsFixed(0); // Đồng bộ controller
+    _profitMarginController.text = _defaultProfitMarginMin.toStringAsFixed(0); // Đồng bộ controller
     _loadCompanies();
     _loadCategories();
   }
@@ -107,6 +138,8 @@ class _AddProductScreenState extends State<AddProductScreen> with TickerProvider
     _contraindicationController.dispose();
     _directionController.dispose();
     _withdrawalTimeController.dispose();
+    _minPriceController.dispose();
+    _maxPriceController.dispose();
     super.dispose();
   }
 
@@ -172,12 +205,66 @@ class _AddProductScreenState extends State<AddProductScreen> with TickerProvider
     if (!_autoCalculatePrice) return;
     final costPriceStr = _costPriceController.text.replaceAll(RegExp(r'[^0-9]'), '');
     final costPrice = double.tryParse(costPriceStr) ?? 0.0;
-    final salePrice = costPrice * (1 + _profitMargin / 100);
+    // Tính giá bán dựa trên trung bình của min và max
+    final averageProfitMargin = (_profitMarginMin + _profitMarginMax) / 2;
+    final salePrice = costPrice / (1 - averageProfitMargin / 100);
     final formattedPrice = formatCurrency(salePrice);
     _sellPriceController.value = TextEditingValue(
       text: formattedPrice,
       selection: TextSelection.collapsed(offset: formattedPrice.length),
     );
+  }
+
+  // Helper methods để tính và hiển thị giá tiền
+  String _getMinPriceText() {
+    final costPriceStr = _costPriceController.text.replaceAll(RegExp(r'[^0-9]'), '');
+    final costPrice = double.tryParse(costPriceStr) ?? 0.0;
+    final minPrice = costPrice / (1 - _profitMarginMin / 100);
+    return formatCurrency(minPrice);
+  }
+
+  String _getMaxPriceText() {
+    final costPriceStr = _costPriceController.text.replaceAll(RegExp(r'[^0-9]'), '');
+    final costPrice = double.tryParse(costPriceStr) ?? 0.0;
+    final maxPrice = costPrice / (1 - _profitMarginMax / 100);
+    return formatCurrency(maxPrice);
+  }
+
+  String _getAveragePriceText() {
+    if (_autoCalculatePrice) {
+      final costPriceStr = _costPriceController.text.replaceAll(RegExp(r'[^0-9]'), '');
+      final costPrice = double.tryParse(costPriceStr) ?? 0.0;
+      final averageProfitMargin = (_profitMarginMin + _profitMarginMax) / 2;
+      final averagePrice = costPrice / (1 - averageProfitMargin / 100);
+      return formatCurrency(averagePrice);
+    } else {
+      // Tính trung bình từ giá min và max nhập thủ công
+      final minPrice = _parseCurrency(_minPriceController.text);
+      final maxPrice = _parseCurrency(_maxPriceController.text);
+      final averagePrice = (minPrice + maxPrice) / 2;
+      // Tự động cập nhật giá bán
+      _sellPriceController.text = formatCurrency(averagePrice);
+      return formatCurrency(averagePrice);
+    }
+  }
+
+  double _parseCurrency(String text) {
+    // Remove currency symbol and commas, then parse as double
+    final cleanText = text.replaceAll(RegExp(r'[^\d.]'), '');
+    return double.tryParse(cleanText) ?? 0.0;
+  }
+
+  // Tính lợi nhuận từ giá bán
+  double _calculateProfitFromSalePrice() {
+    final costPriceStr = _costPriceController.text.replaceAll(RegExp(r'[^0-9]'), '');
+    final costPrice = double.tryParse(costPriceStr) ?? 0.0;
+    final salePrice = _parseCurrency(_sellPriceController.text);
+    
+    if (costPrice > 0 && salePrice > 0) {
+      // Công thức: Lợi nhuận = (1 - Giá nhập / Giá bán) * 100
+      return ((1 - costPrice / salePrice) * 100).round().toDouble();
+    }
+    return 0.0;
   }
 
   Future<void> _pickMultiImageFromGallery() async {
@@ -639,7 +726,7 @@ class _AddProductScreenState extends State<AddProductScreen> with TickerProvider
                   children: [
                     IconButton(
                       icon: const Icon(Icons.arrow_back, color: Colors.white),
-                      onPressed: widget.onBack,
+                      onPressed: widget.onBack ?? () => Navigator.of(context).pop(),
                     ),
                     Expanded(
                       child: Text(
@@ -684,7 +771,13 @@ class _AddProductScreenState extends State<AddProductScreen> with TickerProvider
                 children: [
                   Expanded(
                     child: OutlinedButton(
-                      onPressed: _isSaving ? null : () => Navigator.of(context).maybePop(),
+                      onPressed: _isSaving ? null : () {
+                        if (widget.onBack != null) {
+                          widget.onBack!();
+                        } else {
+                          Navigator.of(context).pop();
+                        }
+                      },
                       style: OutlinedButton.styleFrom(
                         foregroundColor: textPrimary,
                         side: const BorderSide(color: borderColor),
@@ -959,75 +1052,328 @@ class _AddProductScreenState extends State<AddProductScreen> with TickerProvider
                       controller: _costPriceController,
                       keyboardType: TextInputType.number,
                       onChanged: (val) {
-                        if (_autoCalculatePrice) _calculateSalePrice();
+                        if (_autoCalculatePrice) {
+                          _calculateSalePrice();
+                          setState(() {}); // Trigger rebuild to update price displays
+                        }
                       },
                     ),
                     if (_autoCalculatePrice) ...[
-                      const SizedBox(height: 16),
-                      Padding(
-                        padding: const EdgeInsets.only(left: 0, right: 0), // Giữ lề trái sát với tiêu đề, có thể chỉnh nếu cần
+                      const SizedBox(height: space16),
+                      // Min slider
+                      Row(
+                        children: [
+                          Expanded(
+                            flex: 3,
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Min: ${_profitMarginMin.round()}%',
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.w600,
+                                    color: mainGreen,
+                                    fontSize: 12,
+                                  ),
+                                ),
+                                const SizedBox(height: 8),
+                                SliderTheme(
+                                  data: SliderTheme.of(context).copyWith(
+                                    activeTrackColor: mainGreen,
+                                    inactiveTrackColor: mainGreen.withOpacity(0.15),
+                                    thumbColor: Colors.white,
+                                    overlayColor: mainGreen.withOpacity(0.15),
+                                    thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 8, elevation: 2, pressedElevation: 4),
+                                    trackHeight: 3,
+                                    valueIndicatorColor: mainGreen,
+                                    overlayShape: const RoundSliderOverlayShape(overlayRadius: 14),
+                                    tickMarkShape: const RoundSliderTickMarkShape(),
+                                    showValueIndicator: ShowValueIndicator.never,
+                                  ),
+                                  child: Slider(
+                                    value: _profitMarginMin,
+                                    min: 0,
+                                    max: 100,
+                                    divisions: 100,
+                                    label: '${_profitMarginMin.round()}%',
+                                    onChanged: (val) {
+                                      setState(() {
+                                        _profitMarginMin = val;
+                                        if (_profitMarginMin > _profitMarginMax) {
+                                          _profitMarginMax = _profitMarginMin;
+                                        }
+                                        _calculateSalePrice();
+                                      });
+                                    },
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          // Hiển thị giá tiền bên phải
+                          Expanded(
+                            flex: 1,
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.end,
+                              children: [
+                                Text(
+                                  'Giá min:',
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.w600,
+                                    color: textSecondary,
+                                    fontSize: 11,
+                                  ),
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  _getMinPriceText(),
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.w700,
+                                    color: mainGreen,
+                                    fontSize: 12,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: space12),
+                      // Max slider
+                      Row(
+                        children: [
+                          Expanded(
+                            flex: 3,
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Max: ${_profitMarginMax.round()}%',
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.w600,
+                                    color: mainGreen,
+                                    fontSize: 12,
+                                  ),
+                                ),
+                                const SizedBox(height: 8),
+                                SliderTheme(
+                                  data: SliderTheme.of(context).copyWith(
+                                    activeTrackColor: mainGreen,
+                                    inactiveTrackColor: mainGreen.withOpacity(0.15),
+                                    thumbColor: Colors.white,
+                                    overlayColor: mainGreen.withOpacity(0.15),
+                                    thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 8, elevation: 2, pressedElevation: 4),
+                                    trackHeight: 3,
+                                    valueIndicatorColor: mainGreen,
+                                    overlayShape: const RoundSliderOverlayShape(overlayRadius: 14),
+                                    tickMarkShape: const RoundSliderTickMarkShape(),
+                                    showValueIndicator: ShowValueIndicator.never,
+                                  ),
+                                  child: Slider(
+                                    value: _profitMarginMax,
+                                    min: 0,
+                                    max: 100,
+                                    divisions: 100,
+                                    label: '${_profitMarginMax.round()}%',
+                                    onChanged: (val) {
+                                      setState(() {
+                                        _profitMarginMax = val;
+                                        if (_profitMarginMax < _profitMarginMin) {
+                                          _profitMarginMin = _profitMarginMax;
+                                        }
+                                        _calculateSalePrice();
+                                      });
+                                    },
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          // Hiển thị giá tiền bên phải
+                          Expanded(
+                            flex: 1,
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.end,
+                              children: [
+                                Text(
+                                  'Giá max:',
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.w600,
+                                    color: textSecondary,
+                                    fontSize: 11,
+                                  ),
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  _getMaxPriceText(),
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.w700,
+                                    color: mainGreen,
+                                    fontSize: 12,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: space12),
+                      // Hiển thị giá trung bình
+                      Center(
                         child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              'Lợi nhuận gộp (%)',
+                              'Giá bán (trung bình):',
+                              style: TextStyle(
+                                fontWeight: FontWeight.w600,
+                                color: textSecondary,
+                                fontSize: 11,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              _getAveragePriceText(),
                               style: TextStyle(
                                 fontWeight: FontWeight.w700,
                                 color: mainGreen,
                                 fontSize: 14,
                               ),
-                              textAlign: TextAlign.left,
                             ),
-                             const SizedBox(height: 4),
-                            SliderTheme(
-                              data: SliderTheme.of(context).copyWith(
-                                activeTrackColor: mainGreen,
-                                inactiveTrackColor: mainGreen.withOpacity(0.15),
-                                thumbColor: Colors.white,
-                                overlayColor: mainGreen.withOpacity(0.15),
-                                thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 12, elevation: 2, pressedElevation: 4),
-                                trackHeight: 4,
-                                valueIndicatorColor: mainGreen,
-                                overlayShape: const RoundSliderOverlayShape(overlayRadius: 18),
-                                tickMarkShape: const RoundSliderTickMarkShape(),
-                                showValueIndicator: ShowValueIndicator.never,
-                              ),
-                              child: Slider(
-                                value: _profitMargin,
-                                min: 0,
-                                max: 100,
-                                divisions: 100,
-                                label: '${_profitMargin.round()}%',
-                                onChanged: (val) {
-                                  setState(() {
-                                    _profitMargin = val;
-                                    _profitMarginController.text = _profitMargin.toStringAsFixed(0);
-                                    _calculateSalePrice();
-                                  });
-                                },
+                            const SizedBox(height: 2),
+                            Text(
+                              'Lợi nhuận: ${((_profitMarginMin + _profitMarginMax) / 2).round()}%',
+                              style: TextStyle(
+                                fontWeight: FontWeight.w600,
+                                color: textSecondary,
+                                fontSize: 10,
                               ),
                             ),
                           ],
                         ),
                       ),
-                      Center(
-                        child: Text(
-                          '${_profitMargin.round()}%',
-                          style: TextStyle(
-                            fontWeight: FontWeight.w700,
-                            color: mainGreen,
-                            fontSize: 16,
-                          ),
-                        ),
-                      ),
                     ],
                     const SizedBox(height: 8),
-                    _buildFormField(
-                      label: 'Giá bán *',
-                      controller: _sellPriceController,
-                      keyboardType: TextInputType.number,
-                      enabled: !_autoCalculatePrice,
-                    ),
+                    if (_autoCalculatePrice) ...[
+                      _buildFormField(
+                        label: 'Giá bán *',
+                        controller: _sellPriceController,
+                        keyboardType: TextInputType.number,
+                        enabled: false,
+                      ),
+                    ] else ...[
+                      Row(
+                        children: [
+                          Expanded(
+                            child: _buildFormField(
+                              label: 'Giá min',
+                              controller: _minPriceController,
+                              keyboardType: TextInputType.number,
+                              inputFormatters: [
+                                FilteringTextInputFormatter.digitsOnly,
+                                CurrencyInputFormatter(),
+                              ],
+                              onChanged: (val) {
+                                setState(() {}); // Trigger rebuild to update average price
+                              },
+                            ),
+                          ),
+                          const SizedBox(width: space12),
+                          Expanded(
+                            child: _buildFormField(
+                              label: 'Giá max',
+                              controller: _maxPriceController,
+                              keyboardType: TextInputType.number,
+                              inputFormatters: [
+                                FilteringTextInputFormatter.digitsOnly,
+                                CurrencyInputFormatter(),
+                              ],
+                              onChanged: (val) {
+                                setState(() {}); // Trigger rebuild to update average price
+                              },
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: space12),
+                      // Hiển thị giá bán tự động tính từ trung bình và lợi nhuận
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Giá bán (tự động):',
+                                  style: TextStyle(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w500,
+                                    color: textPrimary,
+                                  ),
+                                ),
+                                const SizedBox(height: space8),
+                                Container(
+                                  height: inputHeight,
+                                  padding: const EdgeInsets.symmetric(horizontal: inputPadding),
+                                  decoration: BoxDecoration(
+                                    border: Border.all(color: Colors.grey[300]!),
+                                    borderRadius: BorderRadius.circular(borderRadiusMedium),
+                                    color: Colors.grey[100],
+                                  ),
+                                  child: Center(
+                                    child: Text(
+                                      _getAveragePriceText(),
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.w700,
+                                        color: mainGreen,
+                                        fontSize: 15,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(width: space12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Lợi nhuận:',
+                                  style: TextStyle(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w500,
+                                    color: textPrimary,
+                                  ),
+                                ),
+                                const SizedBox(height: space8),
+                                Container(
+                                  height: inputHeight,
+                                  padding: const EdgeInsets.symmetric(horizontal: inputPadding),
+                                  decoration: BoxDecoration(
+                                    border: Border.all(color: Colors.grey[300]!),
+                                    borderRadius: BorderRadius.circular(borderRadiusMedium),
+                                    color: Colors.white,
+                                  ),
+                                  child: Center(
+                                    child: Text(
+                                      '${_calculateProfitFromSalePrice().round()}%',
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.w700,
+                                        color: mainGreen,
+                                        fontSize: 15,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
                   ],
                 ),
               ),
@@ -1359,18 +1705,22 @@ class _AddProductScreenState extends State<AddProductScreen> with TickerProvider
                 ],
               ),
               const SizedBox(height: 8),
-              _buildFormField(
-                label: 'Giá nhập *',
-                controller: _costPriceController,
-                keyboardType: TextInputType.number,
-                onChanged: (val) {
-                  if (_autoCalculatePrice) _calculateSalePrice();
-                },
-              ),
+                                  _buildFormField(
+                      label: 'Giá nhập *',
+                      controller: _costPriceController,
+                      keyboardType: TextInputType.number,
+                      inputFormatters: [
+                        FilteringTextInputFormatter.digitsOnly,
+                        CurrencyInputFormatter(),
+                      ],
+                      onChanged: (val) {
+                        if (_autoCalculatePrice) _calculateSalePrice();
+                      },
+                    ),
               if (_autoCalculatePrice) ...[
                 const SizedBox(height: 16),
                 Padding(
-                  padding: const EdgeInsets.only(left: 0, right: 0), // Giữ lề trái sát với tiêu đề, có thể chỉnh nếu cần
+                  padding: const EdgeInsets.only(left: 0, right: 0),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -1383,56 +1733,316 @@ class _AddProductScreenState extends State<AddProductScreen> with TickerProvider
                         ),
                         textAlign: TextAlign.left,
                       ),
-                       const SizedBox(height: 4),
-                      SliderTheme(
-                        data: SliderTheme.of(context).copyWith(
-                          activeTrackColor: mainGreen,
-                          inactiveTrackColor: mainGreen.withOpacity(0.15),
-                          thumbColor: Colors.white,
-                          overlayColor: mainGreen.withOpacity(0.15),
-                          thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 12, elevation: 2, pressedElevation: 4),
-                          trackHeight: 4,
-                          valueIndicatorColor: mainGreen,
-                          overlayShape: const RoundSliderOverlayShape(overlayRadius: 18),
-                          tickMarkShape: const RoundSliderTickMarkShape(),
-                          showValueIndicator: ShowValueIndicator.never,
-                        ),
-                        child: Slider(
-                          value: _profitMargin,
-                          min: 0,
-                          max: 100,
-                          divisions: 100,
-                          label: '${_profitMargin.round()}%',
-                          onChanged: (val) {
-                            setState(() {
-                              _profitMargin = val;
-                              _profitMarginController.text = _profitMargin.toStringAsFixed(0);
-                              _calculateSalePrice();
-                            });
-                          },
+                      const SizedBox(height: 10),
+                      // Min slider
+                      Row(
+                        children: [
+                          Expanded(
+                            flex: 3,
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Min: ${_profitMarginMin.round()}%',
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.w600,
+                                    color: mainGreen,
+                                    fontSize: 12,
+                                  ),
+                                ),
+                                const SizedBox(height: 8),
+                                SliderTheme(
+                                  data: SliderTheme.of(context).copyWith(
+                                    activeTrackColor: mainGreen,
+                                    inactiveTrackColor: mainGreen.withOpacity(0.15),
+                                    thumbColor: Colors.white,
+                                    overlayColor: mainGreen.withOpacity(0.15),
+                                    thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 10, elevation: 2, pressedElevation: 4),
+                                    trackHeight: 3,
+                                    valueIndicatorColor: mainGreen,
+                                    overlayShape: const RoundSliderOverlayShape(overlayRadius: 16),
+                                    tickMarkShape: const RoundSliderTickMarkShape(),
+                                    showValueIndicator: ShowValueIndicator.never,
+                                  ),
+                                  child: Slider(
+                                    value: _profitMarginMin,
+                                    min: 0,
+                                    max: 100,
+                                    divisions: 100,
+                                    label: '${_profitMarginMin.round()}%',
+                                    onChanged: (val) {
+                                      setState(() {
+                                        _profitMarginMin = val;
+                                        if (_profitMarginMin > _profitMarginMax) {
+                                          _profitMarginMax = _profitMarginMin;
+                                        }
+                                        _calculateSalePrice();
+                                      });
+                                    },
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(width: 16),
+                          // Hiển thị giá tiền bên phải
+                          Expanded(
+                            flex: 1,
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.end,
+                              children: [
+                                Text(
+                                  'Giá min:',
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.w600,
+                                    color: textSecondary,
+                                    fontSize: 12,
+                                  ),
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  _getMinPriceText(),
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.w700,
+                                    color: mainGreen,
+                                    fontSize: 14,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 16),
+                      // Max slider
+                      Row(
+                        children: [
+                          Expanded(
+                            flex: 3,
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Max: ${_profitMarginMax.round()}%',
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.w600,
+                                    color: mainGreen,
+                                    fontSize: 12,
+                                  ),
+                                ),
+                                const SizedBox(height: 8),
+                                SliderTheme(
+                                  data: SliderTheme.of(context).copyWith(
+                                    activeTrackColor: mainGreen,
+                                    inactiveTrackColor: mainGreen.withOpacity(0.15),
+                                    thumbColor: Colors.white,
+                                    overlayColor: mainGreen.withOpacity(0.15),
+                                    thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 10, elevation: 2, pressedElevation: 4),
+                                    trackHeight: 3,
+                                    valueIndicatorColor: mainGreen,
+                                    overlayShape: const RoundSliderOverlayShape(overlayRadius: 16),
+                                    tickMarkShape: const RoundSliderTickMarkShape(),
+                                    showValueIndicator: ShowValueIndicator.never,
+                                  ),
+                                  child: Slider(
+                                    value: _profitMarginMax,
+                                    min: 0,
+                                    max: 100,
+                                    divisions: 100,
+                                    label: '${_profitMarginMax.round()}%',
+                                    onChanged: (val) {
+                                      setState(() {
+                                        _profitMarginMax = val;
+                                        if (_profitMarginMax < _profitMarginMin) {
+                                          _profitMarginMin = _profitMarginMax;
+                                        }
+                                        _calculateSalePrice();
+                                      });
+                                    },
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(width: 16),
+                          // Hiển thị giá tiền bên phải
+                          Expanded(
+                            flex: 1,
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.end,
+                              children: [
+                                Text(
+                                  'Giá max:',
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.w600,
+                                    color: textSecondary,
+                                    fontSize: 12,
+                                  ),
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  _getMaxPriceText(),
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.w700,
+                                    color: mainGreen,
+                                    fontSize: 14,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 16),
+                      // Hiển thị giá trung bình
+                      Center(
+                        child: Column(
+                          children: [
+                            Text(
+                              'Giá bán (trung bình):',
+                              style: TextStyle(
+                                fontWeight: FontWeight.w600,
+                                color: textSecondary,
+                                fontSize: 12,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              _getAveragePriceText(),
+                              style: TextStyle(
+                                fontWeight: FontWeight.w700,
+                                color: mainGreen,
+                                fontSize: 16,
+                              ),
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              'Lợi nhuận: ${((_profitMarginMin + _profitMarginMax) / 2).round()}%',
+                              style: TextStyle(
+                                fontWeight: FontWeight.w600,
+                                color: textSecondary,
+                                fontSize: 11,
+                              ),
+                            ),
+                          ],
                         ),
                       ),
                     ],
                   ),
                 ),
-                Center(
-                  child: Text(
-                    '${_profitMargin.round()}%',
-                    style: TextStyle(
-                      fontWeight: FontWeight.w700,
-                      color: mainGreen,
-                      fontSize: 16,
-                    ),
-                  ),
-                ),
               ],
               const SizedBox(height: 8),
-              _buildFormField(
-                label: 'Giá bán *',
-                controller: _sellPriceController,
-                keyboardType: TextInputType.number,
-                enabled: !_autoCalculatePrice,
-              ),
+              if (_autoCalculatePrice) ...[
+                _buildFormField(
+                  label: 'Giá bán *',
+                  controller: _sellPriceController,
+                  keyboardType: TextInputType.number,
+                  enabled: false,
+                ),
+              ] else ...[
+                _buildFormField(
+                  label: 'Giá min',
+                  controller: _minPriceController,
+                  keyboardType: TextInputType.number,
+                  inputFormatters: [
+                    FilteringTextInputFormatter.digitsOnly,
+                    CurrencyInputFormatter(),
+                  ],
+                  onChanged: (val) {
+                    setState(() {}); // Trigger rebuild to update average price
+                  },
+                ),
+                const SizedBox(height: space12),
+                _buildFormField(
+                  label: 'Giá max',
+                  controller: _maxPriceController,
+                  keyboardType: TextInputType.number,
+                  inputFormatters: [
+                    FilteringTextInputFormatter.digitsOnly,
+                    CurrencyInputFormatter(),
+                  ],
+                  onChanged: (val) {
+                    setState(() {}); // Trigger rebuild to update average price
+                  },
+                ),
+                const SizedBox(height: space12),
+                // Hiển thị giá bán tự động tính từ trung bình và lợi nhuận
+                Row(
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Giá bán (tự động):',
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w500,
+                              color: textPrimary,
+                            ),
+                          ),
+                          const SizedBox(height: space8),
+                          Container(
+                            height: inputHeight,
+                            padding: const EdgeInsets.symmetric(horizontal: inputPadding),
+                            decoration: BoxDecoration(
+                              border: Border.all(color: Colors.grey[300]!),
+                              borderRadius: BorderRadius.circular(borderRadiusMedium),
+                              color: Colors.grey[100],
+                            ),
+                            child: Center(
+                              child: Text(
+                                _getAveragePriceText(),
+                                style: TextStyle(
+                                  fontWeight: FontWeight.w700,
+                                  color: mainGreen,
+                                  fontSize: 15,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: space12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Lợi nhuận:',
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w500,
+                              color: textPrimary,
+                            ),
+                          ),
+                          const SizedBox(height: space8),
+                          Container(
+                            height: inputHeight,
+                            padding: const EdgeInsets.symmetric(horizontal: inputPadding),
+                            decoration: BoxDecoration(
+                              border: Border.all(color: Colors.grey[300]!),
+                              borderRadius: BorderRadius.circular(borderRadiusMedium),
+                              color: Colors.white,
+                            ),
+                            child: Center(
+                              child: Text(
+                                '${_calculateProfitFromSalePrice().round()}%',
+                                style: TextStyle(
+                                  fontWeight: FontWeight.w700,
+                                  color: mainGreen,
+                                  fontSize: 15,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ],
             ],
           ),
         ),
@@ -1794,25 +2404,11 @@ class _AddProductScreenState extends State<AddProductScreen> with TickerProvider
               maxLines: maxLines,
               minLines: minLines,
               onChanged: (val) {
-                // Format tiền cho trường Giá nhập
-                if (label.contains('Giá nhập') && controller != null) {
-                  String numbers = val.replaceAll(RegExp(r'[^0-9]'), '');
-                  if (numbers.isEmpty) {
-                    controller.text = '';
-                  } else {
-                    double value = double.tryParse(numbers) ?? 0;
-                    String formatted = formatCurrency(value);
-                    int newOffset = formatted.length;
-                    controller.value = TextEditingValue(
-                      text: formatted,
-                      selection: TextSelection.collapsed(offset: newOffset),
-                    );
-                  }
-                  if (onChanged != null) onChanged(val);
-                  // Nếu tự động tính giá bán thì cập nhật luôn
-                  if (_autoCalculatePrice) _calculateSalePrice();
-                } else {
-                  if (onChanged != null) onChanged(val);
+                if (onChanged != null) onChanged(val);
+                // Nếu tự động tính giá bán thì cập nhật luôn
+                if (_autoCalculatePrice && label.contains('Giá nhập')) {
+                  _calculateSalePrice();
+                  setState(() {}); // Trigger rebuild to update price displays
                 }
               },
               validator: validator,
