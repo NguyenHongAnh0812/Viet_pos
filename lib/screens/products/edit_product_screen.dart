@@ -785,45 +785,47 @@ class _EditProductScreenState extends State<EditProductScreen> with TickerProvid
           // Footer nút Hủy/Lưu cố định
           Positioned(
             left: 0, right: 0, bottom: 0,
-            child: Container(
-              color: Colors.white,
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: OutlinedButton(
-                      onPressed: _isSaving ? null : () {
-                        if (widget.onBack != null) {
-                          widget.onBack!();
-                        } else {
-                          Navigator.of(context).pop();
-                        }
-                      },
-                      style: OutlinedButton.styleFrom(
-                        foregroundColor: textPrimary,
-                        side: const BorderSide(color: borderColor),
-                        padding: const EdgeInsets.symmetric(vertical: 16),
-                        textStyle: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15),
+            child: SafeArea(
+              child: Container(
+                color: Colors.white,
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton(
+                        onPressed: _isSaving ? null : () {
+                          if (widget.onBack != null) {
+                            widget.onBack!();
+                          } else {
+                            Navigator.of(context).pop();
+                          }
+                        },
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: textPrimary,
+                          side: const BorderSide(color: borderColor),
+                          padding: const EdgeInsets.symmetric(vertical: 16),
+                          textStyle: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15),
+                        ),
+                        child: const Text('Hủy'),
                       ),
-                      child: const Text('Hủy'),
                     ),
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: ElevatedButton(
-                      onPressed: _isSaving ? null : _saveProduct,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: mainGreen,
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(vertical: 16),
-                        textStyle: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                        elevation: 0,
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: ElevatedButton(
+                        onPressed: _isSaving ? null : _saveProduct,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: mainGreen,
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(vertical: 16),
+                          textStyle: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                          elevation: 0,
+                        ),
+                        child: Text(_isSaving ? 'Đang lưu...' : 'Lưu sản phẩm'),
                       ),
-                      child: Text(_isSaving ? 'Đang lưu...' : 'Cập nhật sản phẩm'),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
           ),

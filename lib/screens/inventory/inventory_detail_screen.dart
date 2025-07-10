@@ -489,54 +489,56 @@ class _InventoryDetailScreenState extends State<InventoryDetailScreen> {
           // Footer cố định
           Positioned(
             left: 0, right: 0, bottom: 0,
-            child: Container(
-              color: Colors.white,
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: OutlinedButton(
-                      onPressed: () {
-                        // Lưu tạm
-                        _saveAsDraft();
-                      },
-                      style: OutlinedButton.styleFrom(
-                        foregroundColor: textPrimary,
-                        side: const BorderSide(color: borderColor),
-                        minimumSize: const Size.fromHeight(40),
-                        textStyle: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                        backgroundColor: Colors.white,
+            child: SafeArea(
+              child: Container(
+                color: Colors.white,
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton(
+                        onPressed: () {
+                          // Lưu tạm
+                          _saveAsDraft();
+                        },
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: textPrimary,
+                          side: const BorderSide(color: borderColor),
+                          minimumSize: const Size.fromHeight(40),
+                          textStyle: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                          backgroundColor: Colors.white,
+                        ),
+                        child: const Text('Lưu tạm'),
                       ),
-                      child: const Text('Lưu tạm'),
                     ),
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: ElevatedButton(
-                      onPressed: (checkedCount == totalProducts && totalProducts > 0)
-                        ? () {
-                            // Chuyển sang màn xác nhận kiểm kê
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => InventoryConfirmScreen(sessionId: widget.sessionId, fromDetail: true),
-                              ),
-                            );
-                          }
-                        : null,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: mainGreen,
-                        foregroundColor: Colors.white,
-                        minimumSize: const Size.fromHeight(40),
-                        textStyle: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                        elevation: 0,
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: ElevatedButton(
+                        onPressed: (checkedCount == totalProducts && totalProducts > 0)
+                          ? () {
+                              // Chuyển sang màn xác nhận kiểm kê
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => InventoryConfirmScreen(sessionId: widget.sessionId, fromDetail: true),
+                                ),
+                              );
+                            }
+                          : null,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: mainGreen,
+                          foregroundColor: Colors.white,
+                          minimumSize: const Size.fromHeight(40),
+                          textStyle: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                          elevation: 0,
+                        ),
+                        child: const Text('Tiếp tục'),
                       ),
-                      child: const Text('Tiếp tục'),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
           ),
