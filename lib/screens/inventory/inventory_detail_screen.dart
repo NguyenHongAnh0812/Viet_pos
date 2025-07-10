@@ -348,201 +348,190 @@ class _InventoryDetailScreenState extends State<InventoryDetailScreen> {
     final hasFeedback = feedbackHistory.isNotEmpty;
     return Scaffold(
       backgroundColor: const Color(0xFFF6F7F8),
-      body: Stack(
+      body: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Heading xanh + progress bar
-              Container(
-                width: double.infinity,
-                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-                color: mainGreen,
-                child: Column(
+          // Heading xanh + progress bar
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+            color: mainGreen,
+            child: Column(
+              children: [
+                Row(
                   children: [
-                    Row(
-                      children: [
-                        IconButton(
-                          icon: const Icon(Icons.arrow_back, color: Colors.white),
-                          onPressed: () {
-                            // Luôn đảm bảo về danh sách kiểm kê
-                            Navigator.pushAndRemoveUntil(
-                              context,
-                              MaterialPageRoute(builder: (_) => MainLayout(initialPage: MainPage.inventory)),
-                              (route) => false,
-                            );
-                          },
-                        ),
-                        Expanded(
-                          child: Center(
-                            child: Text(
-                              'Kiểm kê kho',
-                              style: h2Mobile.copyWith(color: Colors.white, fontWeight: FontWeight.bold),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 48), // Để cân icon back
-                      ],
+                    IconButton(
+                      icon: const Icon(Icons.arrow_back, color: Colors.white),
+                      onPressed: () {
+                        Navigator.pushAndRemoveUntil(
+                          context,
+                          MaterialPageRoute(builder: (_) => MainLayout(initialPage: MainPage.inventory)),
+                          (route) => false,
+                        );
+                      },
                     ),
-                    const SizedBox(height: 8),
-                    Row(
-                      children: [
-                        Padding(
-                          padding: const EdgeInsets.only(left: 16),
-                          child: Text('$checkedCount/$totalProducts', style: body.copyWith(color: Colors.white, fontWeight: FontWeight.bold)),
+                    Expanded(
+                      child: Center(
+                        child: Text(
+                          'Kiểm kê kho',
+                          style: h2Mobile.copyWith(color: Colors.white, fontWeight: FontWeight.bold),
                         ),
-                        Expanded(
-                          child: Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 16),
-                            child: LinearProgressIndicator(
-                              value: totalProducts > 0 ? checkedCount / totalProducts : 0,
-                              backgroundColor: Colors.white.withOpacity(0.3),
-                              color: Colors.white,
-                              minHeight: 6,
-                            ),
-                          ),
+                      ),
+                    ),
+                    const SizedBox(width: 48),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.only(left: 16),
+                      child: Text('$checkedCount/$totalProducts', style: body.copyWith(color: Colors.white, fontWeight: FontWeight.bold)),
+                    ),
+                    Expanded(
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                        child: LinearProgressIndicator(
+                          value: totalProducts > 0 ? checkedCount / totalProducts : 0,
+                          backgroundColor: Colors.white.withOpacity(0.3),
+                          color: Colors.white,
+                          minHeight: 6,
                         ),
-                      ],
+                      ),
                     ),
                   ],
                 ),
-              ),
-              // Body
-              Expanded(
-                child: Container(
-                  color: Colors.transparent,
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 0),
-                  width: double.infinity,
-                  child: SingleChildScrollView(
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 0, vertical: 0),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const SizedBox(height: 12),
-                          
-                          // Hiển thị phản hồi nếu có
-                          if (hasFeedback) ...[
-                            Container(
-                              margin: const EdgeInsets.only(bottom: 16),
-                              padding: const EdgeInsets.all(16),
-                              decoration: BoxDecoration(
-                                color: Colors.white,
-                                borderRadius: BorderRadius.circular(12),
-                                border: Border.all(color: const Color(0xFFFF6B35), width: 1),
-                              ),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
+              ],
+            ),
+          ),
+          // Body
+          Expanded(
+            child: Container(
+              color: Colors.transparent,
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 0),
+              width: double.infinity,
+              child: SingleChildScrollView(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 0, vertical: 0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const SizedBox(height: 12),
+                      
+                      // Hiển thị phản hồi nếu có
+                      if (hasFeedback) ...[
+                        Container(
+                          margin: const EdgeInsets.only(bottom: 16),
+                          padding: const EdgeInsets.all(16),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(color: const Color(0xFFFF6B35), width: 1),
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
                                 children: [
-                                  Row(
-                                    children: [
-                                      Icon(
-                                        Icons.feedback,
-                                        color: const Color(0xFFFF6B35),
-                                        size: 20,
-                                      ),
-                                      const SizedBox(width: 8),
-                                      Text(
-                                        'Phản hồi gần nhất',
-                                        style: bodyLarge.copyWith(
-                                          color: const Color(0xFFFF6B35),
-                                          fontWeight: FontWeight.w600,
-                                        ),
-                                      ),
-                                    ],
+                                  Icon(
+                                    Icons.feedback,
+                                    color: const Color(0xFFFF6B35),
+                                    size: 20,
                                   ),
-                                  const SizedBox(height: 8),
+                                  const SizedBox(width: 8),
                                   Text(
-                                    feedbackHistory.last['note'] ?? 'Không có nội dung',
-                                    style: body.copyWith(color: textPrimary),
-                                  ),
-                                  const SizedBox(height: 4),
-                                  Text(
-                                    'Bởi: ${feedbackHistory.last['user'] ?? 'Không rõ'} - ${_formatDate(feedbackHistory.last['timestamp'])}',
-                                    style: bodySmall.copyWith(color: textSecondary),
-                                  ),
-                                  if (feedbackHistory.length > 1) ...[
-                                    const SizedBox(height: 8),
-                                    TextButton(
-                                      onPressed: () => _showFeedbackHistory(feedbackHistory),
-                                      child: Text(
-                                        'Xem tất cả phản hồi (${feedbackHistory.length})',
-                                        style: bodySmall.copyWith(color: mainGreen),
-                                      ),
+                                    'Phản hồi gần nhất',
+                                    style: bodyLarge.copyWith(
+                                      color: const Color(0xFFFF6B35),
+                                      fontWeight: FontWeight.w600,
                                     ),
-                                  ],
+                                  ),
                                 ],
                               ),
-                            ),
-                          ],
-                          
-                          ...filteredItems.map((item) => _buildStyledMobileProductCard(context, item)).toList(),
-                          const SizedBox(height: 80), // Để không bị che bởi footer
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          ),
-          // Footer cố định
-          Positioned(
-            left: 0, right: 0, bottom: 0,
-            child: SafeArea(
-              child: Container(
-                color: Colors.white,
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: OutlinedButton(
-                        onPressed: () {
-                          // Lưu tạm
-                          _saveAsDraft();
-                        },
-                        style: OutlinedButton.styleFrom(
-                          foregroundColor: textPrimary,
-                          side: const BorderSide(color: borderColor),
-                          minimumSize: const Size.fromHeight(40),
-                          textStyle: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                          backgroundColor: Colors.white,
-                        ),
-                        child: const Text('Lưu tạm'),
-                      ),
-                    ),
-                    const SizedBox(width: 16),
-                    Expanded(
-                      child: ElevatedButton(
-                        onPressed: (checkedCount == totalProducts && totalProducts > 0)
-                          ? () {
-                              // Chuyển sang màn xác nhận kiểm kê
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) => InventoryConfirmScreen(sessionId: widget.sessionId, fromDetail: true),
+                              const SizedBox(height: 8),
+                              Text(
+                                feedbackHistory.last['note'] ?? 'Không có nội dung',
+                                style: body.copyWith(color: textPrimary),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                'Bởi: ${feedbackHistory.last['user'] ?? 'Không rõ'} - ${_formatDate(feedbackHistory.last['timestamp'])}',
+                                style: bodySmall.copyWith(color: textSecondary),
+                              ),
+                              if (feedbackHistory.length > 1) ...[
+                                const SizedBox(height: 8),
+                                TextButton(
+                                  onPressed: () => _showFeedbackHistory(feedbackHistory),
+                                  child: Text(
+                                    'Xem tất cả phản hồi (${feedbackHistory.length})',
+                                    style: bodySmall.copyWith(color: mainGreen),
+                                  ),
                                 ),
-                              );
-                            }
-                          : null,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: mainGreen,
-                          foregroundColor: Colors.white,
-                          minimumSize: const Size.fromHeight(40),
-                          textStyle: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                          elevation: 0,
+                              ],
+                            ],
+                          ),
                         ),
-                        child: const Text('Tiếp tục'),
-                      ),
-                    ),
-                  ],
+                      ],
+                      
+                      ...filteredItems.map((item) => _buildStyledMobileProductCard(context, item)).toList(),
+                      const SizedBox(height: 80), // Để không bị che bởi footer
+                    ],
+                  ),
                 ),
               ),
             ),
           ),
         ],
+      ),
+      bottomNavigationBar: SafeArea(
+        child: Container(
+          color: Colors.white,
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          child: Row(
+            children: [
+              Expanded(
+                child: OutlinedButton(
+                  onPressed: () {
+                    _saveAsDraft();
+                  },
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: textPrimary,
+                    side: const BorderSide(color: borderColor),
+                    minimumSize: const Size.fromHeight(40),
+                    textStyle: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                    backgroundColor: Colors.white,
+                  ),
+                  child: const Text('Lưu tạm'),
+                ),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: ElevatedButton(
+                  onPressed: (checkedCount == totalProducts && totalProducts > 0)
+                    ? () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => InventoryConfirmScreen(sessionId: widget.sessionId, fromDetail: true),
+                          ),
+                        );
+                      }
+                    : null,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: mainGreen,
+                    foregroundColor: Colors.white,
+                    minimumSize: const Size.fromHeight(40),
+                    textStyle: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                    elevation: 0,
+                  ),
+                  child: const Text('Tiếp tục'),
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }

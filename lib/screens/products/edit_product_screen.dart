@@ -736,100 +736,92 @@ class _EditProductScreenState extends State<EditProductScreen> with TickerProvid
     final isTablet = MediaQuery.of(context).size.width > 768;
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFC),
-      body: Stack(
+      body: Column(
         children: [
-          Column(
-            children: [
-              Container(
-                color: mainGreen,
-                padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 12),
-                child: Row(
-                  children: [
-                    IconButton(
-                      icon: const Icon(Icons.arrow_back, color: Colors.white),
-                      onPressed: widget.onBack ?? () => Navigator.of(context).pop(),
-                    ),
-                    Expanded(
-                      child: Text(
-                        'Sửa sản phẩm',
-                        style: h2Mobile.copyWith(color: Colors.white),
-                        textAlign: TextAlign.left,
-                      ),
-                    ),
-                    TextButton.icon(
-                      onPressed: _fillSampleData,
-                      icon: const Icon(Icons.auto_fix_high, size: 18, color: Colors.white),
-                      label: Text(isDesktop ? 'Dữ liệu mẫu' : 'Mẫu', style: const TextStyle(color: Colors.white)),
-                    ),
-                  ],
+          Container(
+            color: mainGreen,
+            padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 12),
+            child: Row(
+              children: [
+                IconButton(
+                  icon: const Icon(Icons.arrow_back, color: Colors.white),
+                  onPressed: widget.onBack ?? () => Navigator.of(context).pop(),
                 ),
-              ),
-              Expanded(
-                child: Form(
-                  key: _formKey,
-                  child: SingleChildScrollView(
-                    padding: EdgeInsets.all(isDesktop ? 32 : 24),
-                    child: Center(
-                      child: ConstrainedBox(
-                        constraints: const BoxConstraints(maxWidth: 1400),
-                        child: isDesktop
-                            ? _buildDesktopLayout()
-                            : _buildMobileLayout(),
-                      ),
-                    ),
+                Expanded(
+                  child: Text(
+                    'Sửa sản phẩm',
+                    style: h2Mobile.copyWith(color: Colors.white),
+                    textAlign: TextAlign.left,
                   ),
                 ),
-              ),
-            ],
+                TextButton.icon(
+                  onPressed: _fillSampleData,
+                  icon: const Icon(Icons.auto_fix_high, size: 18, color: Colors.white),
+                  label: Text(isDesktop ? 'Dữ liệu mẫu' : 'Mẫu', style: const TextStyle(color: Colors.white)),
+                ),
+              ],
+            ),
           ),
-          // Footer nút Hủy/Lưu cố định
-          Positioned(
-            left: 0, right: 0, bottom: 0,
-            child: SafeArea(
-              child: Container(
-                color: Colors.white,
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: OutlinedButton(
-                        onPressed: _isSaving ? null : () {
-                          if (widget.onBack != null) {
-                            widget.onBack!();
-                          } else {
-                            Navigator.of(context).pop();
-                          }
-                        },
-                        style: OutlinedButton.styleFrom(
-                          foregroundColor: textPrimary,
-                          side: const BorderSide(color: borderColor),
-                          padding: const EdgeInsets.symmetric(vertical: 16),
-                          textStyle: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15),
-                        ),
-                        child: const Text('Hủy'),
-                      ),
-                    ),
-                    const SizedBox(width: 16),
-                    Expanded(
-                      child: ElevatedButton(
-                        onPressed: _isSaving ? null : _saveProduct,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: mainGreen,
-                          foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(vertical: 16),
-                          textStyle: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                          elevation: 0,
-                        ),
-                        child: Text(_isSaving ? 'Đang lưu...' : 'Lưu sản phẩm'),
-                      ),
-                    ),
-                  ],
+          Expanded(
+            child: Form(
+              key: _formKey,
+              child: SingleChildScrollView(
+                padding: EdgeInsets.all(isDesktop ? 32 : 24),
+                child: Center(
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 1400),
+                    child: isDesktop
+                        ? _buildDesktopLayout()
+                        : _buildMobileLayout(),
+                  ),
                 ),
               ),
             ),
           ),
         ],
+      ),
+      bottomNavigationBar: SafeArea(
+        child: Container(
+          color: Colors.white,
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          child: Row(
+            children: [
+              Expanded(
+                child: OutlinedButton(
+                  onPressed: _isSaving ? null : () {
+                    if (widget.onBack != null) {
+                      widget.onBack!();
+                    } else {
+                      Navigator.of(context).pop();
+                    }
+                  },
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: textPrimary,
+                    side: const BorderSide(color: borderColor),
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    textStyle: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15),
+                  ),
+                  child: const Text('Hủy'),
+                ),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: ElevatedButton(
+                  onPressed: _isSaving ? null : _saveProduct,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: mainGreen,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    textStyle: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                    elevation: 0,
+                  ),
+                  child: Text(_isSaving ? 'Đang lưu...' : 'Lưu sản phẩm'),
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
