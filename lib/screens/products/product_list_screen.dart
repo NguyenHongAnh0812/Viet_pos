@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import 'dart:convert';
 
 import '../../services/product_service.dart';
+import '../../services/product_category_service.dart';
+import '../../services/product_category_relation_service.dart';
+
 import '../../widgets/main_layout.dart';
 import 'product_detail_screen.dart';
 import 'edit_product_screen.dart';
@@ -100,7 +103,6 @@ class _ProductListScreenState extends State<ProductListScreen> {
   List<ProductCategory> selectedCategories = [];
   List<ProductCategory> allCategories = [];
   List<String> allTags = ['kháng sinh', 'phổ rộng', 'vitamin', 'bổ sung', 'NSAID', 'giảm đau', 'quinolone'];
-  String get selectedCategory => widget.filterCategory ?? 'Tất cả';
   // Getter lấy filter từ state, ưu tiên biến filter trong state, không lấy từ widget
   String get status => filterStatus ?? 'Tất cả';
   RangeValues get priceRange => filterPriceRange ?? RangeValues(0, maxPrice);
@@ -113,12 +115,6 @@ class _ProductListScreenState extends State<ProductListScreen> {
   int maxStock = 99999;
   double minPrice = 0;
   double maxPrice = 1000000;
-  String tempSelectedCategory = '';
-  RangeValues? tempPriceRange;
-  RangeValues? tempStockRange;
-  String tempStatus = '';
-  Set<String> tempSelectedTags = {};
-  String tempSearchText = '';
   // Multi-select state for checkboxes
   final ValueNotifier<Set<String>> selectedProductIds = ValueNotifier({});
   int currentProductCount = 0;
@@ -140,6 +136,65 @@ class _ProductListScreenState extends State<ProductListScreen> {
   RangeValues? filterPriceRange;
   RangeValues? filterStockRange;
   Set<String>? filterTags;
+
+  // Thêm biến để cache product-category relationships
+  Map<String, List<String>> _productCategoryCache = {};
+  Set<String> _loadedCategoryIds = {}; // Track đã load categories nào
+  bool _isLoadingCategories = false; // Loading state cho filter
+
+  // Method để load product-category relationships
+  Future<void> _loadProductCategoryRelationships() async {
+    // Chỉ load categories chưa được load
+    final categoriesToLoad = selectedCategories
+        .where((cat) => !_loadedCategoryIds.contains(cat.id))
+        .toList();
+    
+    if (categoriesToLoad.isEmpty) return;
+    
+    _isLoadingCategories = true;
+    if (mounted) setState(() {}); // Trigger loading UI
+    
+    debugPrint('Loading product-category relationships for ${categoriesToLoad.length} categories...');
+    
+    try {
+      final categoryService = ProductCategoryRelationService();
+      
+      // Load relationships cho categories chưa được load
+      for (final category in categoriesToLoad) {
+        final productIds = await categoryService.getProductIdsForCategoryAndChildren(category.id);
+        debugPrint('Category ${category.name}: ${productIds.length} products');
+        
+        // Cache results
+        for (final productId in productIds) {
+          if (!_productCategoryCache.containsKey(productId)) {
+            _productCategoryCache[productId] = [];
+          }
+          _productCategoryCache[productId]!.add(category.id);
+        }
+        
+        _loadedCategoryIds.add(category.id);
+      }
+      
+      debugPrint('Loaded relationships for ${_productCategoryCache.length} products');
+    } catch (e) {
+      debugPrint('Error loading product-category relationships: $e');
+    } finally {
+      _isLoadingCategories = false;
+      if (mounted) setState(() {}); // Trigger UI update
+    }
+  }
+
+  // Method để kiểm tra product có thuộc selected categories không
+  bool _productMatchesCategories(String productId, Set<String> selectedCategoryIds) {
+    // Kiểm tra cache trước
+    if (_productCategoryCache.containsKey(productId)) {
+      final productCategories = _productCategoryCache[productId]!;
+      return productCategories.any((catId) => selectedCategoryIds.contains(catId));
+    }
+    
+    // Nếu chưa có trong cache, return false (không match)
+    return false;
+  }
 
   final List<Map<String, dynamic>> sortOptions = [
     {
@@ -175,7 +230,7 @@ class _ProductListScreenState extends State<ProductListScreen> {
   ];
 
   List<Product> filterProducts(List<Product> products) {
-    debugPrint('FILTER: status=$status, priceRange=(${priceRange.start}, ${priceRange.end}), stockRange=(${stockRange.start}, ${stockRange.end}), selectedTags=$selectedTags');
+    debugPrint('FILTER: status=$status, priceRange=(${priceRange.start}, ${priceRange.end}), stockRange=(${stockRange.start}, ${stockRange.end}), selectedTags=$selectedTags, selectedCategories=${selectedCategories.map((c) => c.name).toList()}');
     return products.where((product) {
       // Tìm kiếm theo tên, mã vạch, SKU
       if (searchText.isNotEmpty) {
@@ -187,11 +242,22 @@ class _ProductListScreenState extends State<ProductListScreen> {
         if (!matchesSearch) return false;
       }
 
-      // Lọc theo danh mục
+      // Lọc theo danh mục - chỉ kiểm tra trong product_categories collection
       if (selectedCategories.isNotEmpty) {
-        final selectedIds = selectedCategories.map((c) => c.id).toSet();
-        if (!product.categoryIds.any((id) => selectedIds.contains(id))) {
+        final selectedCategoryIds = selectedCategories.map((c) => c.id).toSet();
+        
+        debugPrint('Product: ${product.tradeName}');
+        debugPrint('Selected Category IDs: $selectedCategoryIds');
+        
+        // Kiểm tra trong product_categories collection
+        bool matchesCategory = _productMatchesCategories(product.id, selectedCategoryIds);
+        debugPrint('Product ${product.tradeName} - checking product_categories collection: $matchesCategory');
+        
+        if (!matchesCategory) {
+          debugPrint('Product ${product.tradeName} does NOT match any selected categories');
           return false;
+        } else {
+          debugPrint('Product ${product.tradeName} matches selected categories');
         }
       }
       
@@ -603,13 +669,57 @@ class _ProductListScreenState extends State<ProductListScreen> {
     }
   }
 
+  void _testCategoryFilter() {
+    debugPrint('=== TESTING CATEGORY FILTER ===');
+    
+    // Test với một số categories mẫu
+    if (allCategories.isNotEmpty) {
+      final testCategory = allCategories.first;
+      debugPrint('Testing with category: ${testCategory.name} (ID: ${testCategory.id}, Path: ${testCategory.path})');
+      
+      // Tìm sub-categories
+      final subCategories = allCategories
+          .where((cat) => 
+            cat.path != null && 
+            cat.path!.isNotEmpty &&
+            (cat.path!.startsWith('${testCategory.path}/') || 
+             cat.path!.startsWith('${testCategory.path}')) && 
+            cat.id != testCategory.id
+          )
+          .toList();
+      
+      debugPrint('Found ${subCategories.length} sub-categories:');
+      for (final sub in subCategories) {
+        debugPrint('  - ${sub.name} (ID: ${sub.id}, Path: ${sub.path})');
+      }
+    }
+    
+    // Test với selected categories
+    if (selectedCategories.isNotEmpty) {
+      debugPrint('Current selected categories:');
+      for (final cat in selectedCategories) {
+        debugPrint('  - ${cat.name} (ID: ${cat.id}, Path: ${cat.path})');
+      }
+    } else {
+      debugPrint('No categories selected');
+    }
+  }
+
+
+
   @override
   void initState() {
     super.initState();
     _searchController.addListener(_onSearchChanged);
     // Load categories for filter
     _categoryService.getCategories().first.then((cats) {
-      if (mounted) setState(() => allCategories = cats);
+      if (mounted) {
+        setState(() => allCategories = cats);
+        debugPrint('Loaded ${cats.length} categories for filter');
+        for (final cat in cats.take(5)) {
+          debugPrint('Category: ${cat.name} (ID: ${cat.id}, Path: ${cat.path}, Level: ${cat.level})');
+        }
+      }
     });
   }
 
@@ -868,15 +978,7 @@ class _ProductListScreenState extends State<ProductListScreen> {
     );
   }
 
-  void _onAdvancedFilterApplied(RangeValues price, RangeValues stock, Set<String> tags) {
-    setState(() {
-      tempPriceRange = price;
-      tempStockRange = stock;
-      tempSelectedTags = tags;
-      // Áp dụng filter thực tế
-      // Có thể gọi _resetPagination hoặc filterProducts tuỳ logic
-    });
-  }
+
 
   void _showCategoryFilterModal() async {
     List<ProductCategory> tempSelected = List.from(selectedCategories);
@@ -888,67 +990,98 @@ class _ProductListScreenState extends State<ProductListScreen> {
         return StatefulBuilder(
           builder: (context, setModalState) {
             return Container(
-              margin: const EdgeInsets.only(top: 60),
+              margin: const EdgeInsets.only(top: 60, left: 0, right: 0),
               padding: const EdgeInsets.all(24),
               decoration: const BoxDecoration(
                 color: Colors.white,
                 borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
               ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      const Text('Chọn danh mục', style: TextStyle(color: mainGreen, fontWeight: FontWeight.bold, fontSize: 20)),
-                      TextButton(
-                        onPressed: () {
-                          setState(() {
-                            selectedCategories = List.from(tempSelected);
-                          });
-                          Navigator.pop(context);
-                        },
-                        child: const Text('Áp dụng', style: TextStyle(color: mainGreen, fontWeight: FontWeight.w600)),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 16),
-                  ...allCategories.map((cat) => Padding(
-                    padding: EdgeInsets.only(left: 20.0 * (cat.level ?? 0)),
-                    child: CheckboxListTile(
-                      value: tempSelected.any((c) => c.id == cat.id),
-                      onChanged: (checked) {
-                        setModalState(() {
-                          if (checked == true) {
-                            if (!tempSelected.any((c) => c.id == cat.id)) tempSelected.add(cat);
-                          } else {
-                            tempSelected.removeWhere((c) => c.id == cat.id);
-                          }
-                        });
-                      },
-                      title: Text(cat.name),
-                      controlAffinity: ListTileControlAffinity.leading,
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text('Chọn danh mục', style: h4.copyWith(color: mainGreen, fontWeight: FontWeight.bold)),
+                        Row(
+                          children: [
+                            if (tempSelected.isNotEmpty)
+                              TextButton(
+                                onPressed: () {
+                                  setModalState(() {
+                                    tempSelected.clear();
+                                  });
+                                },
+                                child: Text('Xóa tất cả', style: labelLarge.copyWith(color: Colors.red, fontWeight: FontWeight.bold)),
+                              ),
+                            TextButton(
+                              onPressed: () {
+                                setState(() {
+                                  selectedCategories = List.from(tempSelected);
+                                  _resetPagination();
+                                });
+                                
+                                // Load product-category relationships nếu có categories được chọn
+                                if (tempSelected.isNotEmpty) {
+                                  _loadProductCategoryRelationships().then((_) {
+                                    if (mounted) {
+                                      setState(() {}); // Trigger rebuild để áp dụng filter
+                                    }
+                                  });
+                                }
+                                
+                                Navigator.pop(context);
+                              },
+                              child: Text('Áp dụng', style: labelLarge.copyWith(color: mainGreen, fontWeight: FontWeight.bold)),
+                            ),
+                          ],
+                        ),
+                      ],
                     ),
-                  )),
-                ],
+                    const SizedBox(height: 20),
+                    Text('Danh mục sản phẩm', style: labelLarge.copyWith(fontWeight: FontWeight.w900)),
+                    const SizedBox(height: 8),
+                    Container(
+                      constraints: const BoxConstraints(maxHeight: 300),
+                      child: SingleChildScrollView(
+                        child: Column(
+                          children: allCategories.map((cat) => Padding(
+                            padding: EdgeInsets.only(left: 20.0 * (cat.level ?? 0)),
+                            child: CheckboxListTile(
+                              value: tempSelected.any((c) => c.id == cat.id),
+                              onChanged: (checked) {
+                                setModalState(() {
+                                  if (checked == true) {
+                                    if (!tempSelected.any((c) => c.id == cat.id)) tempSelected.add(cat);
+                                  } else {
+                                    tempSelected.removeWhere((c) => c.id == cat.id);
+                                  }
+                                });
+                              },
+                              title: Text(cat.name, style: body.copyWith(fontWeight: FontWeight.w500)),
+                              subtitle: cat.path != null && cat.path!.isNotEmpty 
+                                ? Text(cat.path!, style: bodySmall.copyWith(color: textSecondary))
+                                : null,
+                              controlAffinity: ListTileControlAffinity.leading,
+                              activeColor: mainGreen,
+                            ),
+                          )).toList(),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
               ),
             );
           },
         );
       },
     );
-    // Sau khi chọn xong, filter lại sản phẩm
-    setState(() {
-      // Nếu không chọn gì thì filterCategory = 'Tất cả'
-      if (selectedCategories.isEmpty) {
-        tempSelectedCategory = '';
-      } else {
-        tempSelectedCategory = selectedCategories.map((c) => c.id).join(',');
-      }
-      _resetPagination();
-    });
   }
+
+
 
   @override
   Widget build(BuildContext context) {
@@ -1004,6 +1137,10 @@ class _ProductListScreenState extends State<ProductListScreen> {
                             updateFilterRanges(products);
                             final filteredProducts = filterProducts(products);
                             debugPrint('After filtering: ${filteredProducts.length}');
+                            if (selectedCategories.isNotEmpty) {
+                              debugPrint('Selected categories: ${selectedCategories.map((c) => '${c.name} (${c.id})').toList()}');
+                              debugPrint('Sample product categories: ${products.take(3).map((p) => '${p.tradeName}: ${p.categoryIds}').toList()}');
+                            }
                             
                             final sortedProducts = sortProducts(filteredProducts);
                             debugPrint('After sorting: ${sortedProducts.length}');
@@ -1061,7 +1198,17 @@ class _ProductListScreenState extends State<ProductListScreen> {
                                             if (selectedCategories.isNotEmpty)
                                               Padding(
                                                 padding: const EdgeInsets.only(left: 4),
-                                                child: Icon(Icons.check_circle, color: Colors.white, size: 14),
+                                                child: Container(
+                                                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                                  decoration: BoxDecoration(
+                                                    color: Colors.white.withOpacity(0.2),
+                                                    borderRadius: BorderRadius.circular(10),
+                                                  ),
+                                                  child: Text(
+                                                    '${selectedCategories.length}',
+                                                    style: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
+                                                  ),
+                                                ),
                                               ),
                                           ],
                                         ),
@@ -1153,6 +1300,29 @@ class _ProductListScreenState extends State<ProductListScreen> {
                                         ),
                                       ),
                                       const Spacer(),
+                                                                            // Clear filters button
+                                      if (_hasActiveFilters)
+                                        IconButton(
+                                          icon: const Icon(Icons.clear, color: Colors.white, size: 20),
+                                          onPressed: () {
+                                            setState(() {
+                                              selectedCategories.clear();
+                                              searchText = '';
+                                              _searchController.clear();
+                                              filterStatus = null;
+                                              filterPriceRange = null;
+                                              filterStockRange = null;
+                                              filterTags = null;
+                                              _productCategoryCache.clear(); // Clear cache
+                                              _loadedCategoryIds.clear(); // Clear loaded categories
+                                              _isLoadingCategories = false; // Reset loading state
+                                              _resetPagination();
+                                            });
+                                          },
+                                          tooltip: 'Xóa bộ lọc',
+                                        ),
+
+
                                       // Icon filter
                                       IconButton(
                                         icon: const Icon(Icons.filter_alt_outlined, color: Colors.white, size: 22),
@@ -1175,6 +1345,32 @@ class _ProductListScreenState extends State<ProductListScreen> {
                                     padding: const EdgeInsets.symmetric(vertical: 32.0),
                                     child: Center(
                                       child: Text('Đang kiểm tra dữ liệu sản phẩm!'),
+                                    ),
+                                  ),
+                                ],
+                              );
+                            }
+
+                            // Hiển thị loading khi đang filter categories
+                            if (_isLoadingCategories && selectedCategories.isNotEmpty) {
+                              return Column(
+                                children: [
+                                  header,
+                                  Padding(
+                                    padding: const EdgeInsets.symmetric(vertical: 32.0),
+                                    child: Center(
+                                      child: Column(
+                                        children: [
+                                          const CircularProgressIndicator(
+                                            valueColor: AlwaysStoppedAnimation<Color>(mainGreen),
+                                          ),
+                                          const SizedBox(height: 16),
+                                          Text(
+                                            'Đang tải dữ liệu danh mục...',
+                                            style: TextStyle(color: textSecondary),
+                                          ),
+                                        ],
+                                      ),
                                     ),
                                   ),
                                 ],
