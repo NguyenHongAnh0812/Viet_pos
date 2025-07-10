@@ -93,12 +93,12 @@ class _InventoryHistoryScreenState extends State<InventoryHistoryScreen> {
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Colors.white),
           onPressed: () {
-            // Quay về danh sách kiểm kê
-            Navigator.of(context).popUntil((route) => route.isFirst);
-            final mainLayoutState = context.findAncestorStateOfType<MainLayoutState>();
-            if (mainLayoutState != null) {
-              mainLayoutState.onSidebarTap(MainPage.inventory);
-            }
+            // Luôn đảm bảo về danh sách kiểm kê
+            Navigator.pushAndRemoveUntil(
+              context,
+              MaterialPageRoute(builder: (_) => MainLayout(initialPage: MainPage.inventory)),
+              (route) => false,
+            );
           },
         ),
         centerTitle: true,

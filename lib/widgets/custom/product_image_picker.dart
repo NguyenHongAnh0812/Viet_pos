@@ -3,8 +3,6 @@ import 'package:flutter/foundation.dart';
 import 'dart:io';
 import 'dart:typed_data';
 import 'package:image_picker/image_picker.dart';
-// ignore: avoid_web_libraries_in_flutter
-import 'dart:html' as html;
 
 class ProductImagePicker extends StatefulWidget {
   final List<File> initialFiles;
@@ -85,37 +83,22 @@ class _ProductImagePickerState extends State<ProductImagePicker> {
     if (_totalCount >= widget.maxImages) return;
     
     if (kIsWeb) {
-      // Web: sử dụng html input element
-      final input = html.FileUploadInputElement()
-        ..accept = 'image/*'
-        ..multiple = true;
-      input.click();
-      
-      input.onChange.listen((event) {
-        final files = input.files;
-        if (files != null && files.isNotEmpty) {
-          int remain = widget.maxImages - _totalCount;
-          if (files.length > remain) {
-            // Hiển thị thông báo lỗi
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text('Chỉ được chọn tối đa ${widget.maxImages} ảnh')),
-            );
-          }
-          
-          for (final file in files.take(remain)) {
-            final reader = html.FileReader();
-            reader.readAsArrayBuffer(file);
-            reader.onLoadEnd.listen((event) {
-              if (reader.result != null) {
-                setState(() {
-                  _webImages.add(reader.result as Uint8List);
-                  _notifyChange();
-                });
-              }
+      // Web: use image_picker for web as well
+      final pickedFiles = await _picker.pickMultiImage(imageQuality: 80);
+      if (pickedFiles.isNotEmpty) {
+        int remain = widget.maxImages - _totalCount;
+        setState(() {
+          // For web, we'll convert to Uint8List
+          for (final pickedFile in pickedFiles.take(remain)) {
+            pickedFile.readAsBytes().then((bytes) {
+              setState(() {
+                _webImages.add(bytes);
+                _notifyChange();
+              });
             });
           }
-        }
-      });
+        });
+      }
     } else {
       // Mobile: sử dụng image_picker
       final pickedFiles = await _picker.pickMultiImage(imageQuality: 80);

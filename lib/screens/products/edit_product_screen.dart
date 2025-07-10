@@ -16,7 +16,7 @@ import 'package:image_picker/image_picker.dart';
 import 'dart:io';
 import 'package:flutter/foundation.dart';
 // ignore: avoid_web_libraries_in_flutter
-// import 'dart:html' as html;
+// import 'dart:html' as html if (dart.library.io) 'dart:io' as html;
 import 'package:collection/collection.dart';
 import '../../widgets/common/design_system.dart';
 import '../../models/product_category.dart';
@@ -58,10 +58,13 @@ class _EditProductScreenState extends State<EditProductScreen> with TickerProvid
   List<String> _selectedCompanyIds = [];
   List<Company> _allCompanies = [];
   bool _isActive = true;
-  // 1. State cho auto tính giá và lợi nhuận gộp
-  bool _autoCalculatePrice = true;
-  double _profitMargin = 20.0;
-  static const double _defaultProfitMargin = 20.0;
+  bool _autoCalculatePrice = true; // Đổi thành biến mutable
+  double _profitMarginMin = 20.0; // Thêm biến lợi nhuận gộp min
+  double _profitMarginMax = 30.0; // Thêm biến lợi nhuận gộp max
+  static const double _defaultProfitMarginMin = 20.0;
+  static const double _defaultProfitMarginMax = 30.0;
+  final _minPriceController = TextEditingController();
+  final _maxPriceController = TextEditingController();
   final _categoryService = ProductCategoryService();
   final _companyService = CompanyService();
   final _productCompanyService = ProductCompanyService();
@@ -77,16 +80,21 @@ class _EditProductScreenState extends State<EditProductScreen> with TickerProvid
   DateTime? _expDate;
   List<ProductCategory> _allCategories = [];
 
+  // Tab controller for modern tabbed interface
+  late TabController _tabController;
+
   @override
   void initState() {
     super.initState();
-    _profitMarginController.text = _defaultProfitMargin.toStringAsFixed(0);
+    _tabController = TabController(length: 3, vsync: this);
+    _profitMarginController.text = _defaultProfitMarginMin.toStringAsFixed(0);
     _autoCalculatePrice = true;
-    _profitMargin = double.tryParse(_profitMarginController.text) ?? 20.0;
+    _profitMarginMin = double.tryParse(_profitMarginController.text) ?? 20.0;
+    _profitMarginMax = _defaultProfitMarginMax;
     _loadCompanies();
     _loadCategories();
     _fillProductData();
-    _loadSelectedRelations(); // Thêm dòng này
+    _loadSelectedRelations();
   }
 
   Future<void> _loadSelectedRelations() async {
@@ -140,11 +148,17 @@ class _EditProductScreenState extends State<EditProductScreen> with TickerProvid
     if (product.costPrice > 0 && product.salePrice > 0) {
       final profitMargin = ((product.salePrice - product.costPrice) / product.costPrice * 100);
       _profitMarginController.text = profitMargin.toStringAsFixed(0);
+      // Set default min and max based on calculated margin
+      _profitMarginMin = profitMargin - 5; // 5% below calculated
+      _profitMarginMax = profitMargin + 5; // 5% above calculated
+      if (_profitMarginMin < 0) _profitMarginMin = 0;
+      if (_profitMarginMax > 100) _profitMarginMax = 100;
     }
   }
 
   @override
   void dispose() {
+    _tabController.dispose();
     _nameController.dispose();
     _commonNameController.dispose();
     _barcodeController.dispose();
@@ -164,6 +178,8 @@ class _EditProductScreenState extends State<EditProductScreen> with TickerProvid
     _contraindicationController.dispose();
     _directionController.dispose();
     _withdrawalTimeController.dispose();
+    _minPriceController.dispose();
+    _maxPriceController.dispose();
     super.dispose();
   }
 
@@ -183,17 +199,11 @@ class _EditProductScreenState extends State<EditProductScreen> with TickerProvid
     if (mounted) {
       setState(() {
         _allCategories = _buildCategoryTree(categories);
+        if (_selectedCategories.isNotEmpty && _selectedCategories.first is String) {
+          final idSet = Set<String>.from(_selectedCategories as List<String>);
+          _selectedCategories = _allCategories.where((c) => idSet.contains(c.id)).toList();
+        }
       });
-      // Sau khi load xong categories, lấy danh sách id từ bảng trung gian và map sang object
-      final categoryIds = await _productCategoryRelationService.getCategoryIdsForProduct(widget.product.id);
-      debugPrint('DEBUG: categoryIds from relation = ' + categoryIds.toString());
-      final selectedCats = _allCategories.where((c) => categoryIds.contains(c.id)).toList();
-      debugPrint('DEBUG: _selectedCategories = ' + selectedCats.map((c) => c.name + ' (${c.id})').toList().toString());
-      if (mounted) {
-        setState(() {
-          _selectedCategories = selectedCats;
-        });
-      }
     }
   }
 
@@ -213,6 +223,335 @@ class _EditProductScreenState extends State<EditProductScreen> with TickerProvid
     }
     addChildren(null, 0);
     return result;
+  }
+
+  void _addTag() {
+    final tag = _tagsController.text.trim();
+    if (tag.isNotEmpty && !_tags.contains(tag)) {
+      setState(() {
+        _tags.add(tag);
+        _tagsController.clear();
+      });
+    }
+  }
+
+  void _removeTag(String tag) {
+    setState(() {
+      _tags.remove(tag);
+    });
+  }
+
+  void _calculateSalePrice() {
+    if (!_autoCalculatePrice) return;
+    final costPriceStr = _costPriceController.text.replaceAll(RegExp(r'[^0-9]'), '');
+    final costPrice = double.tryParse(costPriceStr) ?? 0.0;
+    // Tính giá bán dựa trên trung bình của min và max
+    final averageProfitMargin = (_profitMarginMin + _profitMarginMax) / 2;
+    final salePrice = costPrice / (1 - averageProfitMargin / 100);
+    final formattedPrice = formatCurrency(salePrice);
+    _sellPriceController.value = TextEditingValue(
+      text: formattedPrice,
+      selection: TextSelection.collapsed(offset: formattedPrice.length),
+    );
+  }
+
+  // Helper methods để tính và hiển thị giá tiền
+  String _getMinPriceText() {
+    final costPriceStr = _costPriceController.text.replaceAll(RegExp(r'[^0-9]'), '');
+    final costPrice = double.tryParse(costPriceStr) ?? 0.0;
+    final minPrice = costPrice / (1 - _profitMarginMin / 100);
+    return formatCurrency(minPrice);
+  }
+
+  String _getMaxPriceText() {
+    final costPriceStr = _costPriceController.text.replaceAll(RegExp(r'[^0-9]'), '');
+    final costPrice = double.tryParse(costPriceStr) ?? 0.0;
+    final maxPrice = costPrice / (1 - _profitMarginMax / 100);
+    return formatCurrency(maxPrice);
+  }
+
+  String _getAveragePriceText() {
+    if (_autoCalculatePrice) {
+      final costPriceStr = _costPriceController.text.replaceAll(RegExp(r'[^0-9]'), '');
+      final costPrice = double.tryParse(costPriceStr) ?? 0.0;
+      final averageProfitMargin = (_profitMarginMin + _profitMarginMax) / 2;
+      final averagePrice = costPrice / (1 - averageProfitMargin / 100);
+      return formatCurrency(averagePrice);
+    } else {
+      // Tính trung bình từ giá min và max nhập thủ công
+      final minPrice = _parseCurrency(_minPriceController.text);
+      final maxPrice = _parseCurrency(_maxPriceController.text);
+      final averagePrice = (minPrice + maxPrice) / 2;
+      // Tự động cập nhật giá bán
+      _sellPriceController.text = formatCurrency(averagePrice);
+      return formatCurrency(averagePrice);
+    }
+  }
+
+  double _parseCurrency(String text) {
+    // Remove currency symbol and commas, then parse as double
+    final cleanText = text.replaceAll(RegExp(r'[^\d.]'), '');
+    return double.tryParse(cleanText) ?? 0.0;
+  }
+
+  // Tính lợi nhuận từ giá bán
+  double _calculateProfitFromSalePrice() {
+    final costPriceStr = _costPriceController.text.replaceAll(RegExp(r'[^0-9]'), '');
+    final costPrice = double.tryParse(costPriceStr) ?? 0.0;
+    final salePrice = _parseCurrency(_sellPriceController.text);
+    
+    if (costPrice > 0 && salePrice > 0) {
+      // Công thức: Lợi nhuận = (1 - Giá nhập / Giá bán) * 100
+      return ((1 - costPrice / salePrice) * 100).round().toDouble();
+    }
+    return 0.0;
+  }
+
+  Future<void> _pickMultiImageFromGallery() async {
+    // if (kIsWeb) {
+    //   final input = html.FileUploadInputElement()..accept = 'image/*'..multiple = true;
+    //   input.click();
+    //   input.onChange.listen((event) {
+    //     final files = input.files;
+    //     if (files != null && files.isNotEmpty) {
+    //       int remain = 5 - _webImageBytesList.length;
+    //       if (files.length > remain) {
+    //         _showPopupNotification('Chỉ được chọn tối đa 5 ảnh', Icons.error_outline);
+    //       }
+    //       for (final file in files.take(remain)) {
+    //         final reader = html.FileReader();
+    //         reader.readAsArrayBuffer(file);
+    //         reader.onLoadEnd.listen((event) {
+    //           setState(() {
+    //             _webImageBytesList.add(reader.result as Uint8List);
+    //           });
+    //         });
+    //       }
+    //     }
+    //   });
+    // } else {
+      final pickedFiles = await _picker.pickMultiImage(imageQuality: 80);
+      if (pickedFiles.isNotEmpty) {
+        int remain = 5 - _productImageFiles.length;
+        if (pickedFiles.length > remain) {
+          _showPopupNotification('Chỉ được chọn tối đa 5 ảnh', Icons.error_outline);
+        }
+        setState(() {
+          _productImageFiles.addAll(pickedFiles.take(remain).map((e) => File(e.path)));
+        });
+      }
+    // }
+  }
+
+  Future<void> _pickImageFromCamera() async {
+    if (kIsWeb) return;
+    if (_productImageFiles.length >= 5) {
+      _showPopupNotification('Chỉ được chọn tối đa 5 ảnh', Icons.error_outline);
+      return;
+    }
+    final pickedFile = await _picker.pickImage(source: ImageSource.camera, imageQuality: 80);
+    if (pickedFile != null) {
+      setState(() {
+        if (_productImageFiles.length < 5) {
+          _productImageFiles.add(File(pickedFile.path));
+        }
+      });
+    }
+  }
+
+  void _removeImage() {
+    setState(() {
+      _productImageFiles.clear();
+      _productImageUrls.clear();
+    });
+  }
+
+  Future<String?> _uploadImageToFirebase(File imageFile) async {
+    try {
+      final fileName = 'products/${DateTime.now().millisecondsSinceEpoch}_${imageFile.path.split('/').last}';
+      final ref = FirebaseStorage.instance.ref().child(fileName);
+      final uploadTask = await ref.putFile(imageFile);
+      final url = await uploadTask.ref.getDownloadURL();
+      return url;
+    } catch (e) {
+      debugPrint('Upload image error: $e');
+      return null;
+    }
+  }
+
+  Future<List<String>> _uploadAllImages() async {
+    List<String> urls = [];
+    if (kIsWeb && _webImageBytesList.isNotEmpty) {
+      for (final bytes in _webImageBytesList) {
+        final fileName = 'products/${DateTime.now().millisecondsSinceEpoch}_${urls.length}.web.jpg';
+        final ref = FirebaseStorage.instance.ref().child(fileName);
+        final uploadTask = await ref.putData(bytes);
+        final url = await uploadTask.ref.getDownloadURL();
+        urls.add(url);
+      }
+    } else if (_productImageFiles.isNotEmpty) {
+      for (final file in _productImageFiles) {
+        final url = await _uploadImageToFirebase(file);
+        if (url != null) urls.add(url);
+      }
+    }
+    return urls;
+  }
+
+  // Hàm kiểm tra trùng lặp trường dữ liệu
+  Future<bool> _isDuplicateField(String field, String value) async {
+    if (value.trim().isEmpty) return false;
+    final query = await FirebaseFirestore.instance
+        .collection('products')
+        .where(field, isEqualTo: value.trim())
+        .limit(1)
+        .get();
+    return query.docs.isNotEmpty;
+  }
+
+  Future<void> _saveProduct() async {
+    if (!_formKey.currentState!.validate()) return;
+    setState(() => _isSaving = true);
+    try {
+      // Upload new images
+      final newImageUrls = await _uploadAllImages();
+      final allImageUrls = [..._productImageUrls, ...newImageUrls];
+
+      // Prepare product data
+      final productData = {
+        'trade_name': _nameController.text.trim(),
+        'internal_name': _commonNameController.text.trim(),
+        'barcode': _barcodeController.text.trim().isEmpty ? null : _barcodeController.text.trim(),
+        'sku': _skuController.text.trim().isEmpty ? null : _skuController.text.trim(),
+        'unit': _unitController.text.trim(),
+        'stock_system': int.tryParse(_quantityController.text.replaceAll(RegExp(r'[^0-9]'), '')) ?? 0,
+        'cost_price': _parseCurrency(_costPriceController.text),
+        'sale_price': _parseCurrency(_sellPriceController.text),
+        'gross_profit': _parseCurrency(_sellPriceController.text) - _parseCurrency(_costPriceController.text),
+        'auto_price': _autoCalculatePrice,
+        'tags': _tags,
+        'description': _descriptionController.text.trim(),
+        'usage': _usageController.text.trim(),
+        'ingredients': _ingredientsController.text.trim(),
+        'notes': _notesController.text.trim(),
+        if (_originController.text.trim().isNotEmpty)
+          'origin': _originController.text.trim(),
+        'contraindication': _contraindicationController.text.trim(),
+        'direction': _directionController.text.trim(),
+        'withdrawal_time': _withdrawalTimeController.text.trim(),
+        'status': _isActive ? 'active' : 'inactive',
+        if (!_isActive && _discontinueReasonController.text.trim().isNotEmpty)
+          'discontinue_reason': _discontinueReasonController.text.trim(),
+        'images': allImageUrls,
+        'mainImageIndex': _mainImageIndex,
+        'updated_at': FieldValue.serverTimestamp(),
+      };
+
+      // Update product in Firestore
+      await FirebaseFirestore.instance
+          .collection('products')
+          .doc(widget.product.id)
+          .update(productData);
+      
+      // Lưu mối quan hệ Product-Category với hierarchy (Approach 2)
+      if (_selectedCategories.isNotEmpty) {
+        // Lấy tất cả category IDs (bao gồm cả parent categories)
+        final allCategoryIds = await _getAllCategoryIdsForProduct(_selectedCategories.map((c) => c.id).toList());
+        
+        // Lưu tất cả mối quan hệ vào product_categories collection
+        final batch = FirebaseFirestore.instance.batch();
+        for (final categoryId in allCategoryIds) {
+          final relationDocRef = FirebaseFirestore.instance.collection('product_categories').doc();
+          batch.set(relationDocRef, {
+            'product_id': widget.product.id,
+            'category_id': categoryId,
+            'created_at': FieldValue.serverTimestamp(),
+            'updated_at': FieldValue.serverTimestamp(),
+          });
+        }
+        await batch.commit();
+        
+        debugPrint('=== APPROACH 2: Đã lưu hierarchy ===');
+        debugPrint('Product ID: ${widget.product.id}');
+        debugPrint('Selected categories: $_selectedCategories');
+        debugPrint('All category IDs (including parents): $allCategoryIds');
+        debugPrint('Total relationships created: ${allCategoryIds.length}');
+      }
+      
+      // Lưu mối quan hệ Product-Company vào bảng trung gian
+      if (_selectedCompanyIds.isNotEmpty) {
+        await _productCompanyService.addProductCompanies(widget.product.id, _selectedCompanyIds);
+      }
+      
+      if (mounted) {
+        // Hiển thị popup thông báo thành công theo styleguide
+        _showPopupNotification('Cập nhật sản phẩm thành công!', Icons.check_circle);
+        
+        if (widget.onBack != null) widget.onBack!();
+      }
+    } catch (e) {
+      if (mounted) {
+        // Hiển thị popup thông báo lỗi theo styleguide
+        _showPopupNotification('Lỗi: $e', Icons.error_outline);
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isSaving = false);
+      }
+    }
+  }
+
+  void _fillSampleData() {
+    setState(() {
+      _commonNameController.text = 'Pro-cell';
+      _nameController.text = 'PC-001';
+      _barcodeController.text = '8938505970012';
+      _skuController.text = 'SKU-001';
+      _unitController.text = 'Hộp';
+      _ingredientsController.text = 'Thành phần mẫu';
+      _usageController.text = 'Công dụng mẫu';
+      _descriptionController.text = 'Mô tả sản phẩm mẫu';
+      _tags = ['kháng sinh', 'vitamin'];
+      _tagsController.clear();
+      _costPriceController.text = formatCurrency(100000);
+      _sellPriceController.text = formatCurrency(120000);
+      _profitMarginController.text = '20';
+      _quantityController.text = '50';
+      _isActive = true;
+      _notesController.text = 'Ghi chú sản phẩm mẫu';
+      _selectedCompanyIds = _allCompanies.isNotEmpty ? [_allCompanies.first.id] : [];
+      _mfgDate = DateTime(DateTime.now().year - 1, 1, 1);
+      _expDate = DateTime(DateTime.now().year + 1, 1, 1);
+      _originController.text = 'Việt Nam';
+      _contraindicationController.text = 'Không có';
+      _directionController.text = 'Không có';
+      _withdrawalTimeController.text = 'Không có';
+    });
+  }
+
+  Future<void> _createSampleCategories() async {
+    try {
+      final sampleCategories = [
+        ProductCategory(id: '', name: 'Kháng sinh', description: 'Thuốc kháng sinh'),
+        ProductCategory(id: '', name: 'Vitamin', description: 'Vitamin và khoáng chất'),
+        ProductCategory(id: '', name: 'Thuốc giảm đau', description: 'Thuốc giảm đau, hạ sốt'),
+        ProductCategory(id: '', name: 'Thuốc khác', description: 'Các loại thuốc khác'),
+      ];
+
+      for (final category in sampleCategories) {
+        await _categoryService.addCategory(category);
+      }
+
+      if (mounted) {
+        // Hiển thị popup thông báo thành công theo styleguide
+        _showPopupNotification('Đã tạo danh mục mẫu thành công!', Icons.check_circle);
+      }
+    } catch (e) {
+      if (mounted) {
+        // Hiển thị popup thông báo lỗi theo styleguide
+        _showPopupNotification('Lỗi: $e', Icons.error_outline);
+      }
+    }
   }
 
   // Helper method để lấy tất cả parent category IDs
@@ -250,130 +589,30 @@ class _EditProductScreenState extends State<EditProductScreen> with TickerProvid
     return allCategoryIds.toList();
   }
 
-  void _addTag() {
-    final tag = _tagsController.text.trim();
-    if (tag.isNotEmpty && !_tags.contains(tag)) {
-      setState(() {
-        _tags.add(tag);
-        _tagsController.clear();
-      });
+  // Debug method để hiển thị thông tin hierarchy
+  Future<void> _debugCategoryHierarchy() async {
+    if (_selectedCategories.isEmpty) {
+      debugPrint('Không có category nào được chọn');
+      return;
     }
-  }
-
-  void _removeTag(String tag) {
-    setState(() {
-      _tags.remove(tag);
-    });
-  }
-
-  void _calculateSalePrice() {
-    if (!_autoCalculatePrice) return;
-    final costPriceStr = _costPriceController.text.replaceAll(RegExp(r'[^0-9]'), '');
-    final costPrice = double.tryParse(costPriceStr) ?? 0.0;
-    final salePrice = costPrice * (1 + _profitMargin / 100);
-    final formattedPrice = formatCurrency(salePrice);
-    _sellPriceController.value = TextEditingValue(
-      text: formattedPrice,
-      selection: TextSelection.collapsed(offset: formattedPrice.length),
-    );
-  }
-
-  Future<void> _pickMultiImageFromGallery() async {
-    if (kIsWeb) {
-      // final input = html.FileUploadInputElement()..accept = 'image/*'..multiple = true;
-      // input.click();
-      // input.onChange.listen((event) {
-      //   final files = input.files;
-      //   if (files != null && files.isNotEmpty) {
-      //     int remain = 5 - _webImageBytesList.length;
-      //     if (files.length > remain) {
-      //       _showPopupNotification('Chỉ được chọn tối đa 5 ảnh', Icons.error_outline);
-      //     }
-      //     for (final file in files.take(remain)) {
-      //       final reader = html.FileReader();
-      //       reader.readAsArrayBuffer(file);
-      //       reader.onLoadEnd.listen((event) {
-      //         if (reader.result != null) {
-      //           setState(() {
-      //             _webImageBytesList.add(reader.result as Uint8List);
-      //           });
-      //         }
-      //       });
-      //     }
-      //   }
-    } else {
-      final List<XFile> images = await _picker.pickMultiImage();
-      if (images.isNotEmpty) {
-        int remain = 5 - _productImageFiles.length;
-        if (images.length > remain) {
-          _showPopupNotification('Chỉ được chọn tối đa 5 ảnh', Icons.error_outline);
-        }
-        setState(() {
-          for (final image in images.take(remain)) {
-            _productImageFiles.add(File(image.path));
-          }
-        });
-      }
-    }
-  }
-
-  void _removeImage(int index) {
-    setState(() {
-      if (index < _productImageFiles.length) {
-        _productImageFiles.removeAt(index);
-      } else {
-        final urlIndex = index - _productImageFiles.length;
-        if (urlIndex < _productImageUrls.length) {
-          _productImageUrls.removeAt(urlIndex);
-        }
-      }
-      if (_mainImageIndex >= _productImageFiles.length + _productImageUrls.length) {
-        _mainImageIndex = 0;
-      }
-    });
-  }
-
-  void _setMainImage(int index) {
-    setState(() {
-      _mainImageIndex = index;
-    });
-  }
-
-  Future<List<String>> _uploadImages() async {
-    final List<String> uploadedUrls = [];
     
-    // Upload new files
-    for (int i = 0; i < _productImageFiles.length; i++) {
-      final file = _productImageFiles[i];
-      final fileName = 'product_images/${widget.product.id}_${DateTime.now().millisecondsSinceEpoch}_$i.jpg';
-      final ref = FirebaseStorage.instance.ref().child(fileName);
-      final uploadTask = ref.putFile(file);
-      final snapshot = await uploadTask;
-      final downloadUrl = await snapshot.ref.getDownloadURL();
-      uploadedUrls.add(downloadUrl);
+    debugPrint('=== DEBUG CATEGORY HIERARCHY ===');
+    debugPrint('Selected categories: $_selectedCategories');
+    
+    for (final category in _selectedCategories) {
+      final parentIds = await _getAllParentCategoryIds(category.id);
+      debugPrint('Category ${category.id} -> Parent IDs: $parentIds');
     }
-
-    // Upload web images
-    for (int i = 0; i < _webImageBytesList.length; i++) {
-      final bytes = _webImageBytesList[i];
-      final fileName = 'product_images/${widget.product.id}_${DateTime.now().millisecondsSinceEpoch}_web_$i.jpg';
-      final ref = FirebaseStorage.instance.ref().child(fileName);
-      final uploadTask = ref.putData(bytes);
-      final snapshot = await uploadTask;
-      final downloadUrl = await snapshot.ref.getDownloadURL();
-      uploadedUrls.add(downloadUrl);
-    }
-
-    return uploadedUrls;
+    
+    final allCategoryIds = await _getAllCategoryIdsForProduct(_selectedCategories.map((c) => c.id).toList());
+    debugPrint('All category IDs (including parents): $allCategoryIds');
+    debugPrint('=== END DEBUG ===');
   }
 
-  double _parseCurrency(String text) {
-    // Remove currency symbol and commas, then parse as double
-    final cleanText = text.replaceAll(RegExp(r'[^\d.]'), '');
-    return double.tryParse(cleanText) ?? 0.0;
-  }
-
+  // Helper method để hiển thị popup thông báo
   void _showPopupNotification(String message, IconData icon) {
+    if (!mounted) return;
+    
     OverlayEntry? entry;
     entry = OverlayEntry(
       builder: (_) => DesignSystemSnackbar(
@@ -385,210 +624,116 @@ class _EditProductScreenState extends State<EditProductScreen> with TickerProvid
     Overlay.of(context).insert(entry);
   }
 
-  Future<void> _saveProduct() async {
-    if (!_formKey.currentState!.validate()) return;
-
-    setState(() => _isSaving = true);
-
+  // Test method để tạo category mới với Materialized Path
+  Future<void> _testCreateCategoryWithPath() async {
     try {
-      // Upload new images
-      // final newImageUrls = await _uploadImages();
-      // final allImageUrls = [..._productImageUrls, ...newImageUrls];
-      final allImageUrls = [..._productImageUrls];
-
-      // Prepare product data
-      final productData = {
-        'trade_name': _nameController.text.trim(),
-        'internal_name': _commonNameController.text.trim(),
-        'barcode': _barcodeController.text.trim().isEmpty ? null : _barcodeController.text.trim(),
-        'sku': _skuController.text.trim().isEmpty ? null : _skuController.text.trim(),
-        'unit': _unitController.text.trim(),
-        'stock_system': int.tryParse(_quantityController.text.replaceAll(RegExp(r'[^0-9]'), '')) ?? 0,
-        'cost_price': _parseCurrency(_costPriceController.text),
-        'sale_price': _parseCurrency(_sellPriceController.text),
-        'gross_profit': _parseCurrency(_sellPriceController.text) - _parseCurrency(_costPriceController.text),
-        'auto_price': _autoCalculatePrice,
-        'tags': _tags,
-        'description': _descriptionController.text.trim(),
-        'usage': _usageController.text.trim(),
-        'ingredients': _ingredientsController.text.trim(),
-        'notes': _notesController.text.trim(),
-        if (_originController.text.trim().isNotEmpty)
-          'origin': _originController.text.trim(),
-        'contraindication': _contraindicationController.text.trim(),
-        'direction': _directionController.text.trim(),
-        'withdrawal_time': _withdrawalTimeController.text.trim(),
-        'status': _isActive ? 'active' : 'inactive',
-        if (!_isActive && _discontinueReasonController.text.trim().isNotEmpty)
-          'discontinue_reason': _discontinueReasonController.text.trim(),
-        'images': allImageUrls,
-        'mainImageIndex': _mainImageIndex,
-        'updated_at': FieldValue.serverTimestamp(),
-      };
-
-      // Update product in Firestore
-      await FirebaseFirestore.instance
-          .collection('products')
-          .doc(widget.product.id)
-          .update(productData);
-
-      // Cập nhật mối quan hệ Product-Category
-      if (_selectedCategories.isNotEmpty) {
-        // Lấy tất cả category IDs (bao gồm cả parent categories)
-        final allCategoryIds = await _getAllCategoryIdsForProduct(_selectedCategories.map((c) => c.id).toList());
-        
-        // Xóa tất cả mối quan hệ cũ
-        await _productCategoryRelationService.deleteProductCategories(widget.product.id);
-        
-        // Lưu tất cả mối quan hệ mới vào product_categories collection
-        final batch = FirebaseFirestore.instance.batch();
-        for (final categoryId in allCategoryIds) {
-          final relationDocRef = FirebaseFirestore.instance.collection('product_categories').doc();
-          batch.set(relationDocRef, {
-            'product_id': widget.product.id,
-            'category_id': categoryId,
-            'created_at': FieldValue.serverTimestamp(),
-            'updated_at': FieldValue.serverTimestamp(),
-          });
-        }
-        await batch.commit();
-      }
-
-      // Cập nhật mối quan hệ Product-Company
-      await _productCompanyService.deleteProductCompanies(widget.product.id);
-      if (_selectedCompanyIds.isNotEmpty) {
-        await _productCompanyService.addProductCompanies(widget.product.id, _selectedCompanyIds);
-      }
-
+      debugPrint('=== TEST CREATE CATEGORY WITH PATH ===');
+      
+      // Tạo root category
+      final rootCategory = ProductCategory(
+        id: '',
+        name: 'Thuốc',
+        description: 'Danh mục thuốc chính',
+        parentId: null,
+      );
+      
+      await _categoryService.addCategory(rootCategory);
+      debugPrint('✅ Đã tạo root category: Thuốc');
+      
+      // Lấy root category ID
+      final categories = await _categoryService.getCategories().first;
+      final rootCat = categories.firstWhere((c) => c.name == 'Thuốc');
+      
+      // Tạo child category
+      final childCategory = ProductCategory(
+        id: '',
+        name: 'Vitamin',
+        description: 'Vitamin và khoáng chất',
+        parentId: rootCat.id,
+      );
+      
+      await _categoryService.addCategory(childCategory);
+      debugPrint('✅ Đã tạo child category: Vitamin (parent: ${rootCat.name})');
+      
+      // Lấy child category ID
+      final updatedCategories = await _categoryService.getCategories().first;
+      final vitaminCat = updatedCategories.firstWhere((c) => c.name == 'Vitamin');
+      
+      debugPrint('📊 Category info:');
+      debugPrint('   - ID: ${vitaminCat.id}');
+      debugPrint('   - Name: ${vitaminCat.name}');
+      debugPrint('   - Parent ID: ${vitaminCat.parentId}');
+      debugPrint('   - Path: ${vitaminCat.path}');
+      debugPrint('   - Path Array: ${vitaminCat.pathArray}');
+      debugPrint('   - Level: ${vitaminCat.level}');
+      
       if (mounted) {
-        _showPopupNotification('Cập nhật sản phẩm thành công!', Icons.check_circle);
-        Navigator.of(context).pop();
+        // Hiển thị popup thông báo thành công theo styleguide
+        _showPopupNotification('✅ Đã tạo category test thành công!', Icons.check_circle);
       }
+      
     } catch (e) {
+      debugPrint('❌ Lỗi test: $e');
       if (mounted) {
-        _showPopupNotification('Lỗi khi cập nhật sản phẩm: $e', Icons.error);
-      }
-    } finally {
-      if (mounted) {
-        setState(() => _isSaving = false);
+        // Hiển thị popup thông báo lỗi theo styleguide
+        _showPopupNotification('Lỗi: $e', Icons.error_outline);
       }
     }
   }
 
-  // 1. Sửa _buildFormField để input 1 dòng luôn height 40px
-  Widget _buildFormField({
-    required String label,
-    TextEditingController? controller,
-    Widget? child,
-    TextInputType? keyboardType,
-    int minLines = 1,
-    int maxLines = 1,
-    Function(String)? onChanged,
-    bool enabled = true,
-  }) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(label, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: textPrimary)),
-        const SizedBox(height: space8),
-        if (child != null)
-          child
-        else
-          SizedBox(
-            height: (maxLines == 1 && minLines == 1) ? inputHeight : null,
-            child: TextFormField(
-              controller: controller,
-              keyboardType: keyboardType,
-              minLines: minLines,
-              maxLines: maxLines,
-              style: const TextStyle(fontSize: 15),
-              decoration: InputDecoration(
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(borderRadiusMedium)),
-                contentPadding: EdgeInsets.symmetric(horizontal: inputPadding, vertical: minLines > 1 ? 12 : 0),
-                filled: true,
-                fillColor: Colors.white,
-              ),
-              onChanged: (val) {
-                // Format tiền cho trường Giá nhập
-                if (label.contains('Giá nhập') && controller != null) {
-                  String numbers = val.replaceAll(RegExp(r'[^0-9]'), '');
-                  if (numbers.isEmpty) {
-                    controller.text = '';
-                  } else {
-                    double value = double.tryParse(numbers) ?? 0;
-                    String formatted = formatCurrency(value);
-                    int newOffset = formatted.length;
-                    controller.value = TextEditingValue(
-                      text: formatted,
-                      selection: TextSelection.collapsed(offset: newOffset),
-                    );
-                  }
-                  if (onChanged != null) onChanged(val);
-                  if (_autoCalculatePrice) _calculateSalePrice();
-                } else {
-                  if (onChanged != null) onChanged(val);
-                }
-              },
-              validator: (value) {
-                if (label.contains('*') && (value == null || value.trim().isEmpty)) {
-                  return 'Vui lòng nhập $label';
-                }
-                return null;
-              },
-              enabled: enabled,
-            ),
-          ),
-      ],
+  Future<void> _pickMfgDate() async {
+    final now = DateTime.now();
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: _mfgDate ?? now,
+      firstDate: DateTime(now.year - 10),
+      lastDate: DateTime(now.year + 10),
+      helpText: 'Chọn năm sản xuất',
+      fieldLabelText: 'Năm sản xuất',
+      fieldHintText: 'yyyy',
+      initialEntryMode: DatePickerEntryMode.calendar,
     );
+    if (picked != null) {
+      setState(() => _mfgDate = picked);
+    }
   }
 
-  Widget _buildProductImageBlock() {
-    return ProductImagePicker(
-      initialFiles: _productImageFiles,
-      initialWebImages: _webImageBytesList,
-      initialUrls: _productImageUrls,
-      mainImageIndex: _mainImageIndex,
-      onChanged: (files, webImages, urls, mainIdx) {
-        setState(() {
-          _productImageFiles
-            ..clear()
-            ..addAll(files);
-          _webImageBytesList
-            ..clear()
-            ..addAll(webImages);
-          _productImageUrls = List<String>.from(urls);
-          _mainImageIndex = mainIdx;
-        });
-      },
-      onUploadImages: (files, webImages) async {
-        List<String> urls = [];
-        if (kIsWeb && webImages.isNotEmpty) {
-          for (final bytes in webImages) {
-            final fileName = 'products/${DateTime.now().millisecondsSinceEpoch}_${urls.length}.web.jpg';
-            final ref = FirebaseStorage.instance.ref().child(fileName);
-            final uploadTask = await ref.putData(bytes);
-            final url = await uploadTask.ref.getDownloadURL();
-            urls.add(url);
-          }
-        } else if (files.isNotEmpty) {
-          for (final file in files) {
-            final fileName = 'products/${DateTime.now().millisecondsSinceEpoch}_${file.path.split('/').last}';
-            final ref = FirebaseStorage.instance.ref().child(fileName);
-            final uploadTask = await ref.putFile(file);
-            final url = await uploadTask.ref.getDownloadURL();
-            urls.add(url);
-          }
-        }
-        return urls;
-      },
+  Future<void> _pickExpDate() async {
+    final now = DateTime.now();
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: _expDate ?? now,
+      firstDate: DateTime(now.year - 10),
+      lastDate: DateTime(now.year + 20),
+      helpText: 'Chọn năm hết hạn',
+      fieldLabelText: 'Năm hết hạn',
+      fieldHintText: 'yyyy',
+      initialEntryMode: DatePickerEntryMode.calendar,
     );
+    if (picked != null) {
+      setState(() => _expDate = picked);
+    }
+  }
+
+  void _removeImageAt(int index) {
+    setState(() {
+      if (kIsWeb && _webImageBytesList.isNotEmpty) {
+        _webImageBytesList.removeAt(index);
+      } else if (!kIsWeb && _productImageFiles.isNotEmpty) {
+        _productImageFiles.removeAt(index);
+      } else if (_productImageUrls.isNotEmpty) {
+        _productImageUrls.removeAt(index);
+      }
+      if (_mainImageIndex >= index && _mainImageIndex > 0) {
+        _mainImageIndex--;
+      }
+    });
   }
 
   @override
   Widget build(BuildContext context) {
     final isDesktop = MediaQuery.of(context).size.width > 1024;
     final isTablet = MediaQuery.of(context).size.width > 768;
-    
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFC),
       body: Stack(
@@ -602,7 +747,7 @@ class _EditProductScreenState extends State<EditProductScreen> with TickerProvid
                   children: [
                     IconButton(
                       icon: const Icon(Icons.arrow_back, color: Colors.white),
-                      onPressed: widget.onBack ?? () => Navigator.of(context).maybePop(),
+                      onPressed: widget.onBack ?? () => Navigator.of(context).pop(),
                     ),
                     Expanded(
                       child: Text(
@@ -610,6 +755,11 @@ class _EditProductScreenState extends State<EditProductScreen> with TickerProvid
                         style: h2Mobile.copyWith(color: Colors.white),
                         textAlign: TextAlign.left,
                       ),
+                    ),
+                    TextButton.icon(
+                      onPressed: _fillSampleData,
+                      icon: const Icon(Icons.auto_fix_high, size: 18, color: Colors.white),
+                      label: Text(isDesktop ? 'Dữ liệu mẫu' : 'Mẫu', style: const TextStyle(color: Colors.white)),
                     ),
                   ],
                 ),
@@ -630,7 +780,6 @@ class _EditProductScreenState extends State<EditProductScreen> with TickerProvid
                   ),
                 ),
               ),
-              const SizedBox(height: 64), // Để chừa chỗ cho footer
             ],
           ),
           // Footer nút Hủy/Lưu cố định
@@ -643,7 +792,13 @@ class _EditProductScreenState extends State<EditProductScreen> with TickerProvid
                 children: [
                   Expanded(
                     child: OutlinedButton(
-                      onPressed: _isSaving ? null : () => Navigator.of(context).maybePop(),
+                      onPressed: _isSaving ? null : () {
+                        if (widget.onBack != null) {
+                          widget.onBack!();
+                        } else {
+                          Navigator.of(context).pop();
+                        }
+                      },
                       style: OutlinedButton.styleFrom(
                         foregroundColor: textPrimary,
                         side: const BorderSide(color: borderColor),
@@ -665,7 +820,7 @@ class _EditProductScreenState extends State<EditProductScreen> with TickerProvid
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                         elevation: 0,
                       ),
-                      child: Text(_isSaving ? 'Đang lưu...' : 'Lưu sản phẩm'),
+                      child: Text(_isSaving ? 'Đang lưu...' : 'Cập nhật sản phẩm'),
                     ),
                   ),
                 ],
@@ -681,17 +836,12 @@ class _EditProductScreenState extends State<EditProductScreen> with TickerProvid
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Cột 7: Ảnh sản phẩm, Thông tin cơ bản, Thông tin y tế
+        // Cột 7: Thông tin cơ bản, Ảnh sản phẩm, Thông tin y tế
         Expanded(
           flex: 7,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Ảnh sản phẩm lên đầu - Tạm thời ẩn, sẽ phát triển sau
-              // SectionCard(
-              //   padding: const EdgeInsets.all(16),
-              //   child: _buildProductImageBlock(),
-              // ),
               // Thông tin cơ bản
               SectionCard(
                 child: Column(
@@ -699,23 +849,57 @@ class _EditProductScreenState extends State<EditProductScreen> with TickerProvid
                   children: [
                     Text('Thông tin cơ bản', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: mainGreen)),
                     const SizedBox(height: space16),
-                    _buildFormField(label: 'Tên thương mại *', controller: _commonNameController),
+                    _buildFormField(
+                      label: 'Tên thương mại *',
+                      controller: _commonNameController,
+                      validator: (val) {
+                        if (val == null || val.trim().isEmpty) return 'Vui lòng nhập tên thương mại';
+                        return null;
+                      },
+                    ),
                     const SizedBox(height: space12),
-                    _buildFormField(label: 'Tên nội bộ', controller: _nameController),
+                    _buildFormField(
+                      label: 'Tên nội bộ',
+                      controller: _nameController,
+                    ),
                     const SizedBox(height: space12),
                     _buildFormField(label: 'Mô tả', controller: _descriptionController, minLines: 4, maxLines: 6),
+                    
                     Row(
                       children: [
                         const SizedBox(height: space12),
-                        Expanded(child: _buildFormField(label: 'Barcode', controller: _barcodeController)),
+                        Expanded(
+                          child: _buildFormField(
+                            label: 'Barcode',
+                            controller: _barcodeController,
+                            validator: (val) {
+                              if (val == null || val.trim().isEmpty) return 'Vui lòng nhập Barcode';
+                              return null;
+                            },
+                          ),
+                        ),
                         const SizedBox(width: space12),
-                        Expanded(child: _buildFormField(label: 'SKU', controller: _skuController)),
+                        Expanded(
+                          child: _buildFormField(
+                            label: 'SKU',
+                            controller: _skuController,
+                            validator: (val) {
+                              if (val == null || val.trim().isEmpty) return 'Vui lòng nhập SKU';
+                              return null;
+                            },
+                          ),
+                        ),
                         const SizedBox(width: space12),
                         Expanded(child: _buildFormField(label: 'Đơn vị tính', controller: _unitController)),
                       ],
                     ),
                   ],
                 ),
+              ),
+              // Ảnh sản phẩm - Tạm thời ẩn, sẽ phát triển sau
+              SectionCard(
+                padding: const EdgeInsets.all(16),
+                child: _buildProductImageBlock(),
               ),
               // Thông tin y tế
               SectionCard(
@@ -733,6 +917,8 @@ class _EditProductScreenState extends State<EditProductScreen> with TickerProvid
                     _buildFormField(label: 'Cách dùng', controller: _directionController, maxLines: 2),
                     const SizedBox(height: space12),
                     _buildFormField(label: 'Thời gian ngưng sử dụng', controller: _withdrawalTimeController, maxLines: 1),
+                    const SizedBox(height: space12),
+                    _buildFormField(label: 'Nguồn gốc xuất xứ', controller: _originController),
                   ],
                 ),
               ),
@@ -803,6 +989,7 @@ class _EditProductScreenState extends State<EditProductScreen> with TickerProvid
                             onSelectionChanged: (values) { setState(() { _selectedCategories = values; }); },
                             hint: 'Chọn danh mục',
                             isTreeMode: true,
+                            selectedLabel: 'danh mục',
                           ),
                         ),
                       ),
@@ -822,6 +1009,7 @@ class _EditProductScreenState extends State<EditProductScreen> with TickerProvid
                           initialSelectedValues: _selectedCompanyIds,
                           onSelectionChanged: (values) { setState(() { _selectedCompanyIds = values; }); },
                           hint: 'Chọn nhà cung cấp',
+                          selectedLabel: 'nhà cung cấp',
                         ),
                       ),
                     )),
@@ -856,7 +1044,7 @@ class _EditProductScreenState extends State<EditProductScreen> with TickerProvid
               SectionCard(
                 padding: const EdgeInsets.all(20),
                 decoration: BoxDecoration(
-                  color: Color(0xFFF0FDF4),
+                  color: Colors.white,
                   borderRadius: BorderRadius.circular(6),
                 ),
                 child: Column(
@@ -866,11 +1054,379 @@ class _EditProductScreenState extends State<EditProductScreen> with TickerProvid
                     const SizedBox(height: space12),
                     Row(
                       children: [
-                        Expanded(child: _buildFormField(label: 'Giá nhập', controller: _costPriceController, keyboardType: TextInputType.number)),
-                        const SizedBox(width: space12),
-                        Expanded(child: _buildFormField(label: 'Giá bán', controller: _sellPriceController, keyboardType: TextInputType.number)),
+                        Checkbox(
+                          value: _autoCalculatePrice,
+                          onChanged: (val) {
+                            setState(() {
+                              _autoCalculatePrice = val ?? true;
+                              if (_autoCalculatePrice) _calculateSalePrice();
+                            });
+                          },
+                          activeColor: mainGreen,
+                        ),
+                        const Text('Tính giá tự động'),
                       ],
                     ),
+                    const SizedBox(height: 8),
+                    _buildFormField(
+                      label: 'Giá nhập *',
+                      controller: _costPriceController,
+                      keyboardType: TextInputType.number,
+                      onChanged: (val) {
+                        if (_autoCalculatePrice) {
+                          _calculateSalePrice();
+                          setState(() {}); // Trigger rebuild to update price displays
+                        }
+                      },
+                    ),
+                    if (_autoCalculatePrice) ...[
+                      const SizedBox(height: space16),
+                      // Min slider
+                      Row(
+                        children: [
+                          Expanded(
+                            flex: 3,
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Min: ${_profitMarginMin.round()}%',
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.w600,
+                                    color: mainGreen,
+                                    fontSize: 12,
+                                  ),
+                                ),
+                                const SizedBox(height: 8),
+                                SliderTheme(
+                                  data: SliderTheme.of(context).copyWith(
+                                    activeTrackColor: mainGreen,
+                                    inactiveTrackColor: mainGreen.withOpacity(0.15),
+                                    thumbColor: Colors.white,
+                                    overlayColor: mainGreen.withOpacity(0.15),
+                                    thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 8, elevation: 2, pressedElevation: 4),
+                                    trackHeight: 3,
+                                    valueIndicatorColor: mainGreen,
+                                    overlayShape: const RoundSliderOverlayShape(overlayRadius: 14),
+                                    tickMarkShape: const RoundSliderTickMarkShape(),
+                                    showValueIndicator: ShowValueIndicator.never,
+                                  ),
+                                  child: Slider(
+                                    value: _profitMarginMin,
+                                    min: 0,
+                                    max: 100,
+                                    divisions: 100,
+                                    label: '${_profitMarginMin.round()}%',
+                                    onChanged: (val) {
+                                      setState(() {
+                                        _profitMarginMin = val;
+                                        if (_profitMarginMin > _profitMarginMax) {
+                                          _profitMarginMax = _profitMarginMin;
+                                        }
+                                        _calculateSalePrice();
+                                      });
+                                    },
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          // Hiển thị giá tiền bên phải
+                          Expanded(
+                            flex: 1,
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.end,
+                              children: [
+                                Text(
+                                  'Giá min:',
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.w600,
+                                    color: textSecondary,
+                                    fontSize: 11,
+                                  ),
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  _getMinPriceText(),
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.w700,
+                                    color: mainGreen,
+                                    fontSize: 12,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: space12),
+                      // Max slider
+                      Row(
+                        children: [
+                          Expanded(
+                            flex: 3,
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Max: ${_profitMarginMax.round()}%',
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.w600,
+                                    color: mainGreen,
+                                    fontSize: 12,
+                                  ),
+                                ),
+                                const SizedBox(height: 8),
+                                SliderTheme(
+                                  data: SliderTheme.of(context).copyWith(
+                                    activeTrackColor: mainGreen,
+                                    inactiveTrackColor: mainGreen.withOpacity(0.15),
+                                    thumbColor: Colors.white,
+                                    overlayColor: mainGreen.withOpacity(0.15),
+                                    thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 8, elevation: 2, pressedElevation: 4),
+                                    trackHeight: 3,
+                                    valueIndicatorColor: mainGreen,
+                                    overlayShape: const RoundSliderOverlayShape(overlayRadius: 14),
+                                    tickMarkShape: const RoundSliderTickMarkShape(),
+                                    showValueIndicator: ShowValueIndicator.never,
+                                  ),
+                                  child: Slider(
+                                    value: _profitMarginMax,
+                                    min: 0,
+                                    max: 100,
+                                    divisions: 100,
+                                    label: '${_profitMarginMax.round()}%',
+                                    onChanged: (val) {
+                                      setState(() {
+                                        _profitMarginMax = val;
+                                        if (_profitMarginMax < _profitMarginMin) {
+                                          _profitMarginMin = _profitMarginMax;
+                                        }
+                                        _calculateSalePrice();
+                                      });
+                                    },
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          // Hiển thị giá tiền bên phải
+                          Expanded(
+                            flex: 1,
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.end,
+                              children: [
+                                Text(
+                                  'Giá max:',
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.w600,
+                                    color: textSecondary,
+                                    fontSize: 11,
+                                  ),
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  _getMaxPriceText(),
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.w700,
+                                    color: mainGreen,
+                                    fontSize: 12,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: space12),
+                      // Hiển thị giá trung bình
+                      Center(
+                        child: Column(
+                          children: [
+                            Text(
+                              'Giá bán (trung bình):',
+                              style: TextStyle(
+                                fontWeight: FontWeight.w600,
+                                color: textSecondary,
+                                fontSize: 11,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              _getAveragePriceText(),
+                              style: TextStyle(
+                                fontWeight: FontWeight.w700,
+                                color: mainGreen,
+                                fontSize: 14,
+                              ),
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              'Lợi nhuận: ${((_profitMarginMin + _profitMarginMax) / 2).round()}%',
+                              style: TextStyle(
+                                fontWeight: FontWeight.w600,
+                                color: textSecondary,
+                                fontSize: 10,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                    const SizedBox(height: 8),
+                    if (_autoCalculatePrice) ...[
+                      _buildFormField(
+                        label: 'Giá bán *',
+                        controller: _sellPriceController,
+                        keyboardType: TextInputType.number,
+                        enabled: false,
+                      ),
+                    ] else ...[
+                      Row(
+                        children: [
+                          Expanded(
+                            child: _buildFormField(
+                              label: 'Giá min',
+                              controller: _minPriceController,
+                              keyboardType: TextInputType.number,
+                              onChanged: (val) {
+                                // Format tiền cho trường Giá min
+                                // Kiểm tra nếu người dùng đang xóa hoặc chỉ có ký tự không phải số
+                                if (val.length < _minPriceController.text.length || val.replaceAll(RegExp(r'[^0-9]'), '').isEmpty) {
+                                  // Cho phép xóa bình thường
+                                  setState(() {}); // Trigger rebuild to update average price
+                                  return;
+                                }
+                                
+                                String numbers = val.replaceAll(RegExp(r'[^0-9]'), '');
+                                if (numbers.isEmpty) {
+                                  _minPriceController.text = '';
+                                } else {
+                                  double value = double.tryParse(numbers) ?? 0;
+                                  String formatted = formatCurrency(value);
+                                  int newOffset = formatted.length;
+                                  _minPriceController.value = TextEditingValue(
+                                    text: formatted,
+                                    selection: TextSelection.collapsed(offset: newOffset),
+                                  );
+                                }
+                                setState(() {}); // Trigger rebuild to update average price
+                              },
+                            ),
+                          ),
+                          const SizedBox(width: space12),
+                          Expanded(
+                            child: _buildFormField(
+                              label: 'Giá max',
+                              controller: _maxPriceController,
+                              keyboardType: TextInputType.number,
+                              onChanged: (val) {
+                                // Format tiền cho trường Giá max
+                                // Kiểm tra nếu người dùng đang xóa hoặc chỉ có ký tự không phải số
+                                if (val.length < _maxPriceController.text.length || val.replaceAll(RegExp(r'[^0-9]'), '').isEmpty) {
+                                  // Cho phép xóa bình thường
+                                  setState(() {}); // Trigger rebuild to update average price
+                                  return;
+                                }
+                                
+                                String numbers = val.replaceAll(RegExp(r'[^0-9]'), '');
+                                if (numbers.isEmpty) {
+                                  _maxPriceController.text = '';
+                                } else {
+                                  double value = double.tryParse(numbers) ?? 0;
+                                  String formatted = formatCurrency(value);
+                                  int newOffset = formatted.length;
+                                  _maxPriceController.value = TextEditingValue(
+                                    text: formatted,
+                                    selection: TextSelection.collapsed(offset: newOffset),
+                                  );
+                                }
+                                setState(() {}); // Trigger rebuild to update average price
+                              },
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: space12),
+                      // Hiển thị giá bán tự động tính từ trung bình và lợi nhuận
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Giá bán (tự động):',
+                                  style: TextStyle(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w500,
+                                    color: textPrimary,
+                                  ),
+                                ),
+                                const SizedBox(height: space8),
+                                Container(
+                                  height: inputHeight,
+                                  padding: const EdgeInsets.symmetric(horizontal: inputPadding),
+                                  decoration: BoxDecoration(
+                                    border: Border.all(color: Colors.grey[300]!),
+                                    borderRadius: BorderRadius.circular(borderRadiusMedium),
+                                    color: Colors.grey[100],
+                                  ),
+                                  child: Center(
+                                    child: Text(
+                                      _getAveragePriceText(),
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.w700,
+                                        color: mainGreen,
+                                        fontSize: 15,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(width: space12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Lợi nhuận:',
+                                  style: TextStyle(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w500,
+                                    color: textPrimary,
+                                  ),
+                                ),
+                                const SizedBox(height: space8),
+                                Container(
+                                  height: inputHeight,
+                                  padding: const EdgeInsets.symmetric(horizontal: inputPadding),
+                                  decoration: BoxDecoration(
+                                    border: Border.all(color: Colors.grey[300]!),
+                                    borderRadius: BorderRadius.circular(borderRadiusMedium),
+                                    color: Colors.white,
+                                  ),
+                                  child: Center(
+                                    child: Text(
+                                      '${_calculateProfitFromSalePrice().round()}%',
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.w700,
+                                        color: mainGreen,
+                                        fontSize: 15,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
                   ],
                 ),
               ),
@@ -878,7 +1434,7 @@ class _EditProductScreenState extends State<EditProductScreen> with TickerProvid
               SectionCard(
                 padding: const EdgeInsets.all(20),
                 decoration: BoxDecoration(
-                  color: Color(0xFFF0FDF4),
+                    color: Colors.white,
                   borderRadius: BorderRadius.circular(6),
                 ),
                 child: Column(
@@ -972,40 +1528,129 @@ class _EditProductScreenState extends State<EditProductScreen> with TickerProvid
     );
   }
 
+  Widget _buildSidebarCard({
+    required String title,
+    required IconData icon,
+    required List<Widget> children,
+  }) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(icon, color: Colors.grey[600], size: 18),
+              const SizedBox(width: 8),
+              Text(
+                title,
+                style: const TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          ...children,
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSidebarInfoItem({
+    required String label,
+    required String value,
+    required IconData icon,
+  }) {
+    return Row(
+      children: [
+        Icon(icon, size: 16, color: Colors.grey[600]),
+        const SizedBox(width: 8),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                label,
+                style: TextStyle(
+                  fontSize: 12,
+                  color: Colors.grey[600],
+                ),
+              ),
+              Text(
+                value,
+                style: const TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
   Widget _buildMobileLayout() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Ảnh sản phẩm lên đầu - Tạm thời ẩn, sẽ phát triển sau
-        // SectionCard(
-        //   padding: const EdgeInsets.all(16),
-        //   child: _buildProductImageBlock(),
-        // ),
-        // const SizedBox(height: 16),
-        // Thông tin cơ bản
+        // 1. Ảnh sản phẩm - Tạm thời ẩn, sẽ phát triển sau
+        _buildProductImageBlock(),
+        const SizedBox(height: 16),
+        // 2. Thông tin cơ bản
         SectionCard(
+          padding: const EdgeInsets.all(16),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text('Thông tin cơ bản', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: mainGreen)),
               const SizedBox(height: space16),
-              _buildFormField(label: 'Tên thương mại *', controller: _commonNameController),
+              _buildFormField(
+                label: 'Tên thương mại *',
+                controller: _commonNameController,
+                validator: (val) {
+                  if (val == null || val.trim().isEmpty) return 'Vui lòng nhập tên thương mại';
+                  return null;
+                },
+              ),
               const SizedBox(height: space12),
               _buildFormField(label: 'Tên nội bộ', controller: _nameController),
               const SizedBox(height: space12),
-              _buildFormField(label: 'Mô tả', controller: _descriptionController, minLines: 3, maxLines: 5),
+              _buildFormField(label: 'Mô tả', controller: _descriptionController, minLines: 4, maxLines: 6),
               const SizedBox(height: space12),
-              _buildFormField(label: 'Barcode', controller: _barcodeController),
+              _buildFormField(
+                label: 'Barcode',
+                controller: _barcodeController,
+                validator: (val) {
+                  if (val == null || val.trim().isEmpty) return 'Vui lòng nhập Barcode';
+                  return null;
+                },
+              ),
               const SizedBox(height: space12),
-              _buildFormField(label: 'SKU', controller: _skuController),
+              _buildFormField(
+                label: 'SKU',
+                controller: _skuController,
+                validator: (val) {
+                  if (val == null || val.trim().isEmpty) return 'Vui lòng nhập SKU';
+                  return null;
+                },
+              ),
               const SizedBox(height: space12),
               _buildFormField(label: 'Đơn vị tính', controller: _unitController),
+              const SizedBox(height: space12),
             ],
           ),
         ),
         const SizedBox(height: 16),
-        // Danh mục & Nhà cung cấp
+        // 3. Danh mục & Nhà phân phối
         SectionCard(
+          padding: const EdgeInsets.all(16),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -1028,6 +1673,7 @@ class _EditProductScreenState extends State<EditProductScreen> with TickerProvid
                       onSelectionChanged: (values) { setState(() { _selectedCategories = values; }); },
                       hint: 'Chọn danh mục',
                       isTreeMode: true,
+                      selectedLabel: 'danh mục',
                     ),
                   ),
                 ),
@@ -1047,6 +1693,7 @@ class _EditProductScreenState extends State<EditProductScreen> with TickerProvid
                     initialSelectedValues: _selectedCompanyIds,
                     onSelectionChanged: (values) { setState(() { _selectedCompanyIds = values; }); },
                     hint: 'Chọn nhà cung cấp',
+                    selectedLabel: 'nhà cung cấp',
                   ),
                 ),
               )),
@@ -1078,17 +1725,22 @@ class _EditProductScreenState extends State<EditProductScreen> with TickerProvid
           ),
         ),
         const SizedBox(height: 16),
-        // Giá & Tồn kho
+        // 4. Giá
         SectionCard(
-          padding: const EdgeInsets.all(20),
+          padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: Colors.white,
+             color: Colors.white,
             borderRadius: BorderRadius.circular(6),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('Giá', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: mainGreen)),
+              Row(
+                children: [
+                  const SizedBox(width: 8),
+                  Text('Giá', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: mainGreen)),
+                ],
+              ),
               const SizedBox(height: space16),
               Row(
                 children: [
@@ -1110,6 +1762,9 @@ class _EditProductScreenState extends State<EditProductScreen> with TickerProvid
                 label: 'Giá nhập *',
                 controller: _costPriceController,
                 keyboardType: TextInputType.number,
+                onChanged: (val) {
+                  if (_autoCalculatePrice) _calculateSalePrice();
+                },
               ),
               if (_autoCalculatePrice) ...[
                 const SizedBox(height: 16),
@@ -1128,42 +1783,197 @@ class _EditProductScreenState extends State<EditProductScreen> with TickerProvid
                         textAlign: TextAlign.left,
                       ),
                       const SizedBox(height: 10),
-                      SliderTheme(
-                        data: SliderTheme.of(context).copyWith(
-                          activeTrackColor: mainGreen,
-                          inactiveTrackColor: mainGreen.withOpacity(0.15),
-                          thumbColor: Colors.white,
-                          overlayColor: mainGreen.withOpacity(0.15),
-                          thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 12, elevation: 2, pressedElevation: 4),
-                          trackHeight: 4,
-                          valueIndicatorColor: mainGreen,
-                          overlayShape: const RoundSliderOverlayShape(overlayRadius: 18),
-                          tickMarkShape: const RoundSliderTickMarkShape(),
-                          showValueIndicator: ShowValueIndicator.never,
-                        ),
-                        child: Slider(
-                          value: _profitMargin,
-                          min: 0,
-                          max: 100,
-                          divisions: 100,
-                          label: '${_profitMargin.round()}%',
-                          onChanged: (val) {
-                            setState(() {
-                              _profitMargin = val;
-                              _profitMarginController.text = _profitMargin.toStringAsFixed(0);
-                              _calculateSalePrice();
-                            });
-                          },
-                        ),
-                      ),
-                      Center(
-                        child: Text(
-                          '${_profitMargin.round()}%',
-                          style: TextStyle(
-                            fontWeight: FontWeight.w700,
-                            color: mainGreen,
-                            fontSize: 16,
+                      // Min slider
+                      Row(
+                        children: [
+                          Expanded(
+                            flex: 3,
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Min: ${_profitMarginMin.round()}%',
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.w600,
+                                    color: mainGreen,
+                                    fontSize: 12,
+                                  ),
+                                ),
+                                const SizedBox(height: 8),
+                                SliderTheme(
+                                  data: SliderTheme.of(context).copyWith(
+                                    activeTrackColor: mainGreen,
+                                    inactiveTrackColor: mainGreen.withOpacity(0.15),
+                                    thumbColor: Colors.white,
+                                    overlayColor: mainGreen.withOpacity(0.15),
+                                    thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 10, elevation: 2, pressedElevation: 4),
+                                    trackHeight: 3,
+                                    valueIndicatorColor: mainGreen,
+                                    overlayShape: const RoundSliderOverlayShape(overlayRadius: 16),
+                                    tickMarkShape: const RoundSliderTickMarkShape(),
+                                    showValueIndicator: ShowValueIndicator.never,
+                                  ),
+                                  child: Slider(
+                                    value: _profitMarginMin,
+                                    min: 0,
+                                    max: 100,
+                                    divisions: 100,
+                                    label: '${_profitMarginMin.round()}%',
+                                    onChanged: (val) {
+                                      setState(() {
+                                        _profitMarginMin = val;
+                                        if (_profitMarginMin > _profitMarginMax) {
+                                          _profitMarginMax = _profitMarginMin;
+                                        }
+                                        _calculateSalePrice();
+                                      });
+                                    },
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
+                          const SizedBox(width: 16),
+                          // Hiển thị giá tiền bên phải
+                          Expanded(
+                            flex: 1,
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.end,
+                              children: [
+                                Text(
+                                  'Giá min:',
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.w600,
+                                    color: textSecondary,
+                                    fontSize: 12,
+                                  ),
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  _getMinPriceText(),
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.w700,
+                                    color: mainGreen,
+                                    fontSize: 14,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 16),
+                      // Max slider
+                      Row(
+                        children: [
+                          Expanded(
+                            flex: 3,
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Max: ${_profitMarginMax.round()}%',
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.w600,
+                                    color: mainGreen,
+                                    fontSize: 12,
+                                  ),
+                                ),
+                                const SizedBox(height: 8),
+                                SliderTheme(
+                                  data: SliderTheme.of(context).copyWith(
+                                    activeTrackColor: mainGreen,
+                                    inactiveTrackColor: mainGreen.withOpacity(0.15),
+                                    thumbColor: Colors.white,
+                                    overlayColor: mainGreen.withOpacity(0.15),
+                                    thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 10, elevation: 2, pressedElevation: 4),
+                                    trackHeight: 3,
+                                    valueIndicatorColor: mainGreen,
+                                    overlayShape: const RoundSliderOverlayShape(overlayRadius: 16),
+                                    tickMarkShape: const RoundSliderTickMarkShape(),
+                                    showValueIndicator: ShowValueIndicator.never,
+                                  ),
+                                  child: Slider(
+                                    value: _profitMarginMax,
+                                    min: 0,
+                                    max: 100,
+                                    divisions: 100,
+                                    label: '${_profitMarginMax.round()}%',
+                                    onChanged: (val) {
+                                      setState(() {
+                                        _profitMarginMax = val;
+                                        if (_profitMarginMax < _profitMarginMin) {
+                                          _profitMarginMin = _profitMarginMax;
+                                        }
+                                        _calculateSalePrice();
+                                      });
+                                    },
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(width: 16),
+                          // Hiển thị giá tiền bên phải
+                          Expanded(
+                            flex: 1,
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.end,
+                              children: [
+                                Text(
+                                  'Giá max:',
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.w600,
+                                    color: textSecondary,
+                                    fontSize: 12,
+                                  ),
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  _getMaxPriceText(),
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.w700,
+                                    color: mainGreen,
+                                    fontSize: 14,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 16),
+                      // Hiển thị giá trung bình
+                      Center(
+                        child: Column(
+                          children: [
+                            Text(
+                              'Giá bán (trung bình):',
+                              style: TextStyle(
+                                fontWeight: FontWeight.w600,
+                                color: textSecondary,
+                                fontSize: 12,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              _getAveragePriceText(),
+                              style: TextStyle(
+                                fontWeight: FontWeight.w700,
+                                color: mainGreen,
+                                fontSize: 16,
+                              ),
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              'Lợi nhuận: ${((_profitMarginMin + _profitMarginMax) / 2).round()}%',
+                              style: TextStyle(
+                                fontWeight: FontWeight.w600,
+                                color: textSecondary,
+                                fontSize: 11,
+                              ),
+                            ),
+                          ],
                         ),
                       ),
                     ],
@@ -1171,21 +1981,158 @@ class _EditProductScreenState extends State<EditProductScreen> with TickerProvid
                 ),
               ],
               const SizedBox(height: 8),
-              _buildFormField(
-                label: 'Giá bán *',
-                controller: _sellPriceController,
-                keyboardType: TextInputType.number,
-                enabled: !_autoCalculatePrice,
-              ),
+              if (_autoCalculatePrice) ...[
+                _buildFormField(
+                  label: 'Giá bán *',
+                  controller: _sellPriceController,
+                  keyboardType: TextInputType.number,
+                  enabled: false,
+                ),
+              ] else ...[
+                _buildFormField(
+                  label: 'Giá min',
+                  controller: _minPriceController,
+                  keyboardType: TextInputType.number,
+                  onChanged: (val) {
+                    // Format tiền cho trường Giá min
+                    // Kiểm tra nếu người dùng đang xóa hoặc chỉ có ký tự không phải số
+                    if (val.length < _minPriceController.text.length || val.replaceAll(RegExp(r'[^0-9]'), '').isEmpty) {
+                      // Cho phép xóa bình thường
+                      setState(() {}); // Trigger rebuild to update average price
+                      return;
+                    }
+                    
+                    String numbers = val.replaceAll(RegExp(r'[^0-9]'), '');
+                    if (numbers.isEmpty) {
+                      _minPriceController.text = '';
+                    } else {
+                      double value = double.tryParse(numbers) ?? 0;
+                      String formatted = formatCurrency(value);
+                      int newOffset = formatted.length;
+                      _minPriceController.value = TextEditingValue(
+                        text: formatted,
+                        selection: TextSelection.collapsed(offset: newOffset),
+                      );
+                    }
+                    setState(() {}); // Trigger rebuild to update average price
+                  },
+                ),
+                const SizedBox(height: space12),
+                _buildFormField(
+                  label: 'Giá max',
+                  controller: _maxPriceController,
+                  keyboardType: TextInputType.number,
+                  onChanged: (val) {
+                    // Format tiền cho trường Giá max
+                    // Kiểm tra nếu người dùng đang xóa hoặc chỉ có ký tự không phải số
+                    if (val.length < _maxPriceController.text.length || val.replaceAll(RegExp(r'[^0-9]'), '').isEmpty) {
+                      // Cho phép xóa bình thường
+                      setState(() {}); // Trigger rebuild to update average price
+                      return;
+                    }
+                    
+                    String numbers = val.replaceAll(RegExp(r'[^0-9]'), '');
+                    if (numbers.isEmpty) {
+                      _maxPriceController.text = '';
+                    } else {
+                      double value = double.tryParse(numbers) ?? 0;
+                      String formatted = formatCurrency(value);
+                      int newOffset = formatted.length;
+                      _maxPriceController.value = TextEditingValue(
+                        text: formatted,
+                        selection: TextSelection.collapsed(offset: newOffset),
+                      );
+                    }
+                    setState(() {}); // Trigger rebuild to update average price
+                  },
+                ),
+                const SizedBox(height: space12),
+                // Hiển thị giá bán tự động tính từ trung bình và lợi nhuận
+                Row(
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Giá bán (tự động):',
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w500,
+                              color: textPrimary,
+                            ),
+                          ),
+                          const SizedBox(height: space8),
+                          Container(
+                            height: inputHeight,
+                            padding: const EdgeInsets.symmetric(horizontal: inputPadding),
+                            decoration: BoxDecoration(
+                              border: Border.all(color: Colors.grey[300]!),
+                              borderRadius: BorderRadius.circular(borderRadiusMedium),
+                              color: Colors.grey[100],
+                            ),
+                            child: Center(
+                              child: Text(
+                                _getAveragePriceText(),
+                                style: TextStyle(
+                                  fontWeight: FontWeight.w700,
+                                  color: mainGreen,
+                                  fontSize: 15,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: space12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Lợi nhuận:',
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w500,
+                              color: textPrimary,
+                            ),
+                          ),
+                          const SizedBox(height: space8),
+                          Container(
+                            height: inputHeight,
+                            padding: const EdgeInsets.symmetric(horizontal: inputPadding),
+                            decoration: BoxDecoration(
+                              border: Border.all(color: Colors.grey[300]!),
+                              borderRadius: BorderRadius.circular(borderRadiusMedium),
+                              color: Colors.white,
+                            ),
+                            child: Center(
+                              child: Text(
+                                '${_calculateProfitFromSalePrice().round()}%',
+                                style: TextStyle(
+                                  fontWeight: FontWeight.w700,
+                                  color: mainGreen,
+                                  fontSize: 15,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ],
             ],
           ),
         ),
         const SizedBox(height: 16),
-        // Tồn kho
+        // 5. Tồn kho
         SectionCard(
-          padding: const EdgeInsets.all(20),
+          padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-             color: Colors.white,
+            color: Colors.white,
             borderRadius: BorderRadius.circular(6),
           ),
           child: Column(
@@ -1196,34 +2143,38 @@ class _EditProductScreenState extends State<EditProductScreen> with TickerProvid
                   Text('Tồn kho', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: mainGreen)),
                 ],
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: space16),
               _buildFormField(label: 'Số lượng', controller: _quantityController, keyboardType: TextInputType.number),
             ],
           ),
         ),
         const SizedBox(height: 16),
-        // Thông tin y tế
+        // 6. Thông tin y tế
         SectionCard(
+          padding: const EdgeInsets.all(16),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text('Thông tin y tế', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: mainGreen)),
               const SizedBox(height: space16),
-              _buildFormField(label: 'Thành phần', controller: _ingredientsController, minLines: 3, maxLines: 5),
+              _buildFormField(label: 'Thành phần', controller: _ingredientsController, minLines: 4, maxLines: 6),
               const SizedBox(height: space12),
-              _buildFormField(label: 'Chỉ định', controller: _usageController, minLines: 3, maxLines: 5),
+              _buildFormField(label: 'Chỉ định', controller: _usageController, minLines: 4, maxLines: 6),
               const SizedBox(height: space12),
               _buildFormField(label: 'Chống chỉ định', controller: _contraindicationController, maxLines: 2),
               const SizedBox(height: space12),
               _buildFormField(label: 'Cách dùng', controller: _directionController, maxLines: 2),
               const SizedBox(height: space12),
               _buildFormField(label: 'Thời gian ngưng sử dụng', controller: _withdrawalTimeController, maxLines: 1),
+              const SizedBox(height: space12),
+              _buildFormField(label: 'Nguồn gốc xuất xứ', controller: _originController),
             ],
           ),
         ),
         const SizedBox(height: 16),
-        // Trạng thái
+        // 7. Trạng thái
         SectionCard(
+          padding: const EdgeInsets.all(16),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -1256,8 +2207,9 @@ class _EditProductScreenState extends State<EditProductScreen> with TickerProvid
           ),
         ),
         const SizedBox(height: 16),
-        // Tags
+        // 8. Tag
         SectionCard(
+          padding: const EdgeInsets.all(16),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -1324,45 +2276,388 @@ class _EditProductScreenState extends State<EditProductScreen> with TickerProvid
           ),
         ),
         const SizedBox(height: 16),
-        // Ghi chú
+        // 9. Ghi chú
         SectionCard(
+          padding: const EdgeInsets.all(16),
           child: _buildFormField(label: 'Ghi chú', controller: _notesController, minLines: 2, maxLines: 4),
         ),
       ],
     );
   }
+
+  Widget _buildProductImageBlock() {
+    return ProductImagePicker(
+      initialFiles: _productImageFiles,
+      initialWebImages: _webImageBytesList,
+      initialUrls: _productImageUrls,
+      mainImageIndex: _mainImageIndex,
+      onChanged: (files, webImages, urls, mainIdx) {
+        setState(() {
+          _productImageFiles
+            ..clear()
+            ..addAll(files);
+          _webImageBytesList
+            ..clear()
+            ..addAll(webImages);
+          _productImageUrls = List<String>.from(urls);
+          _mainImageIndex = mainIdx;
+        });
+      },
+      onUploadImages: (files, webImages) async {
+        // Gọi upload ảnh như cũ
+        List<String> urls = [];
+        if (kIsWeb && webImages.isNotEmpty) {
+          for (final bytes in webImages) {
+            final fileName = 'products/ [200~ [0m${DateTime.now().millisecondsSinceEpoch}_${urls.length}.web.jpg';
+            final ref = FirebaseStorage.instance.ref().child(fileName);
+            final uploadTask = await ref.putData(bytes);
+            final url = await uploadTask.ref.getDownloadURL();
+            urls.add(url);
+          }
+        } else if (files.isNotEmpty) {
+          for (final file in files) {
+            final fileName = 'products/${DateTime.now().millisecondsSinceEpoch}_${file.path.split('/').last}';
+            final ref = FirebaseStorage.instance.ref().child(fileName);
+            final uploadTask = await ref.putFile(file);
+            final url = await uploadTask.ref.getDownloadURL();
+            urls.add(url);
+          }
+        }
+        return urls;
+      },
+    );
+  }
+
+  Widget _buildGridImage(Widget image, {required VoidCallback onRemove}) {
+    return Stack(
+      children: [
+        ClipRRect(
+          borderRadius: BorderRadius.circular(12),
+          child: Container(
+            width: double.infinity,
+            height: double.infinity,
+            color: const Color(0xFFF3F4F6),
+            child: image,
+          ),
+        ),
+        Positioned(
+          top: 4,
+          right: 4,
+          child: GestureDetector(
+            onTap: onRemove,
+            child: Container(
+              decoration: const BoxDecoration(
+                color: Colors.white,
+                shape: BoxShape.circle,
+                boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 2)],
+              ),
+              child: const Icon(Icons.close, size: 18, color: Colors.red),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildGridAddButton() {
+    return GestureDetector(
+      onTap: (kIsWeb ? _webImageBytesList.length : _productImageFiles.length) < 5 ? _pickMultiImageFromGallery : null,
+      child: Container(
+        decoration: BoxDecoration(
+          color: const Color(0xFFF3F4F6),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: const Color(0xFFE5E7EB)),
+        ),
+        child: const Center(
+          child: Icon(Icons.add_a_photo, size: 36, color: Color(0xFF9CA3AF)),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSectionHeader({
+    required String title,
+    required String subtitle,
+    required IconData icon,
+    required Color color,
+  }) {
+    return Row(
+      children: [
+        Container(
+          padding: const EdgeInsets.all(8),
+          decoration: BoxDecoration(
+            color: color.withOpacity(0.1),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Icon(icon, color: color, size: 20),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                title,
+                style: const TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              Text(
+                subtitle,
+                style: TextStyle(
+                  color: Colors.grey[600],
+                  fontSize: 14,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildSectionCard({
+    required List<Widget> children,
+  }) {
+    return Container(
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: children,
+      ),
+    );
+  }
+
+  Widget _buildFormField({
+    required String label,
+    TextEditingController? controller,
+    String? suffix,
+    TextInputType? keyboardType,
+    List<TextInputFormatter>? inputFormatters,
+    bool enabled = true,
+    int maxLines = 1,
+    int? minLines,
+    Function(String)? onChanged,
+    String? Function(String?)? validator,
+    Widget? child,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Text(
+              label,
+              style: const TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w700,
+                color: Colors.black87,
+              ),
+            ),
+            if (suffix != null) ...[
+              const SizedBox(width: 4),
+              Text(
+                suffix,
+                style: TextStyle(
+                  fontSize: 14,
+                  color: Colors.grey[600],
+                ),
+              ),
+            ],
+          ],
+        ),
+        const SizedBox(height: 8),
+        if (child != null)
+          child
+        else
+          SizedBox(
+            height: (maxLines == 1 && (minLines == null || minLines == 1)) ? inputHeight : null,
+            child: TextFormField(
+              controller: controller,
+              enabled: enabled,
+              keyboardType: keyboardType,
+              inputFormatters: inputFormatters,
+              maxLines: maxLines,
+              minLines: minLines,
+              onChanged: (val) {
+                // Format tiền cho trường Giá nhập
+                if (label.contains('Giá nhập') && controller != null) {
+                  // Kiểm tra nếu người dùng đang xóa (val ngắn hơn text hiện tại hoặc chỉ có ký tự đ)
+                  if (val.length < controller.text.length || val == 'đ') {
+                    // Cho phép xóa bình thường
+                    if (onChanged != null) onChanged(val);
+                    return;
+                  }
+                  
+                  String numbers = val.replaceAll(RegExp(r'[^0-9]'), '');
+                  if (numbers.isEmpty) {
+                    controller.text = '';
+                    if (onChanged != null) onChanged('');
+                  } else {
+                    double value = double.tryParse(numbers) ?? 0;
+                    String formatted = formatCurrency(value);
+                    int newOffset = formatted.length;
+                    controller.value = TextEditingValue(
+                      text: formatted,
+                      selection: TextSelection.collapsed(offset: newOffset),
+                    );
+                    if (onChanged != null) onChanged(formatted);
+                  }
+                  // Nếu tự động tính giá bán thì cập nhật luôn
+                  if (_autoCalculatePrice) {
+                    _calculateSalePrice();
+                    setState(() {}); // Trigger rebuild to update price displays
+                  }
+                } else {
+                  if (onChanged != null) onChanged(val);
+                }
+              },
+              validator: validator,
+              style: const TextStyle(fontSize: 15, height: 1.2),
+              decoration: designSystemInputDecoration(),
+            ),
+          ),
+      ],
+    );
+  }
 }
 
-// SectionCard widget for consistent styling
 class SectionCard extends StatelessWidget {
   final Widget child;
   final EdgeInsetsGeometry? padding;
   final BoxDecoration? decoration;
-
-  const SectionCard({
-    super.key,
-    required this.child,
-    this.padding,
-    this.decoration,
-  });
-
+  const SectionCard({super.key, required this.child, this.padding, this.decoration});
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: padding ?? const EdgeInsets.all(20),
+      margin: const EdgeInsets.only(bottom: 20),
+      padding: padding ?? const EdgeInsets.all(cardPadding),
       decoration: decoration ?? BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.grey.shade200),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 2),
-          ),
-        ],
+        color: cardBackground,
+        borderRadius: BorderRadius.circular(6),
       ),
       child: child,
+    );
+  }
+}
+
+// Thêm widget _ProductSearchSheet để fix lỗi linter
+class _ProductSearchSheet extends StatefulWidget {
+  final Function(Product)? onProductSelected;
+  const _ProductSearchSheet({this.onProductSelected});
+
+  @override
+  State<_ProductSearchSheet> createState() => _ProductSearchSheetState();
+}
+
+class _ProductSearchSheetState extends State<_ProductSearchSheet> {
+  final TextEditingController _controller = TextEditingController();
+  List<Product> _results = [];
+  bool _loading = false;
+
+  void _onChanged() async {
+    final query = _controller.text.trim().toLowerCase();
+    if (query.isEmpty) {
+      setState(() => _results = []);
+      return;
+    }
+    setState(() => _loading = true);
+    final products = await FirebaseFirestore.instance.collection('products').get();
+    setState(() {
+      _results = products.docs.map((doc) => Product.fromMap(doc.id, doc.data())).where((p) =>
+        p.internalName.toLowerCase().contains(query) ||
+        p.tradeName.toLowerCase().contains(query) ||
+        (p.barcode?.toLowerCase().contains(query) ?? false) ||
+        (p.sku?.toLowerCase().contains(query) ?? false)
+      ).toList();
+      _loading = false;
+    });
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return SafeArea(
+      child: Container(
+        height: MediaQuery.of(context).size.height * 0.98,
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        ),
+        child: Column(
+          children: [
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              child: Row(
+                children: [
+                  IconButton(
+                    icon: const Icon(Icons.arrow_back),
+                    onPressed: () => Navigator.of(context).pop(),
+                  ),
+                  Expanded(
+                    child: TextField(
+                      controller: _controller,
+                      autofocus: true,
+                      decoration: const InputDecoration(
+                        hintText: 'Tìm kiếm sản phẩm theo tên, mã vạch, SKU...',
+                        border: InputBorder.none,
+                      ),
+                      onChanged: (val) => _onChanged(),
+                    ),
+                  ),
+                  if (_controller.text.isNotEmpty)
+                    IconButton(
+                      icon: const Icon(Icons.clear),
+                      onPressed: () {
+                        _controller.clear();
+                        setState(() => _results = []);
+                      },
+                    ),
+                ],
+              ),
+            ),
+            const Divider(height: 1),
+            if (_loading)
+              const Padding(
+                padding: EdgeInsets.all(24),
+                child: CircularProgressIndicator(),
+              )
+            else if (_results.isEmpty && _controller.text.isNotEmpty)
+              const Padding(
+                padding: EdgeInsets.all(32),
+                child: Text('Không tìm thấy sản phẩm phù hợp', style: TextStyle(color: Colors.grey)),
+              )
+            else
+              Expanded(
+                child: ListView.separated(
+                  itemCount: _results.length,
+                  separatorBuilder: (_, __) => const Divider(height: 1),
+                  itemBuilder: (context, index) {
+                    final p = _results[index];
+                    return ListTile(
+                      title: Text(p.tradeName.isNotEmpty ? p.tradeName : p.internalName),
+                      subtitle: Text('Barcode: ${p.barcode ?? ''} | SKU: ${p.sku ?? ''}'),
+                      onTap: () {
+                        if (widget.onProductSelected != null) widget.onProductSelected!(p);
+                        Navigator.of(context).pop();
+                      },
+                    );
+                  },
+                ),
+              ),
+          ],
+        ),
+      ),
     );
   }
 } 
