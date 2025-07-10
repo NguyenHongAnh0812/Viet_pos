@@ -1204,65 +1204,13 @@ class _ProductListScreenState extends State<ProductListScreen> {
                             return Column(
                               children: [
                                 header,
-                                // BỎ HOÀN TOÀN PHẦN FILTER BAR MÀU TRẮNG BÊN DƯỚI
-                                // const Divider(height: 1, color: Color(0xFFE5E7EB)),
-       
-                                    // Product List with modern card design
+                                // Product List with mobile layout for both desktop and mobile
                                 Container(
                                   decoration: BoxDecoration(
-                                        // color: Colors.grey[50], // Bỏ nền xám, để transparent
-                                        borderRadius: BorderRadius.circular(0),
+                                    borderRadius: BorderRadius.circular(0),
                                   ),
                                   child: Column(
                                     children: [
-                                      if (!isMobile)
-                                        Container(
-                                              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-                                          decoration: BoxDecoration(
-                                                color: Colors.white,
-                                            borderRadius: const BorderRadius.only(
-                                                  topLeft: Radius.circular(12),
-                                                  topRight: Radius.circular(12),
-                                                ),
-                                                boxShadow: [
-                                                  BoxShadow(
-                                                    color: Colors.black.withOpacity(0.05),
-                                                    blurRadius: 10,
-                                                    offset: const Offset(0, 2),
-                                                  ),
-                                                ],
-                                          ),
-                                          child: Row(
-                                            children: [
-                                              Expanded(
-                                                flex: 1,
-                                                child: Align(
-                                                  alignment: Alignment.centerLeft,
-                                                child: ValueListenableBuilder<Set<String>>(
-                                                  valueListenable: selectedProductIds,
-                                                  builder: (context, selected, _) {
-                                                    return Checkbox(
-                                                      value: selected.length == pagedProducts.length,
-                                                      onChanged: pagedProducts.isEmpty ? null : (checked) {
-                                                        if (checked == true) {
-                                                          selectedProductIds.value = Set<String>.from(pagedProducts.map((p) => p.id));
-                                                        } else {
-                                                          selectedProductIds.value = {};
-                                                        }
-                                                      },
-                                                    );
-                                                  },
-                                                ),
-                                              ),
-                                              ),
-                                                  Expanded(flex: 3, child: Text('Tên sản phẩm', style: TextStyle(color: textMuted, fontWeight: FontWeight.w600, fontSize: 14))),
-                                                  Expanded(flex: 2, child: Text('Giá nhập', textAlign: TextAlign.center, style: TextStyle(color: textMuted, fontWeight: FontWeight.w600, fontSize: 14))),
-                                                  Expanded(flex: 2, child: Text('Đơn vị', textAlign: TextAlign.center, style: TextStyle(color: textMuted, fontWeight: FontWeight.w600, fontSize: 14))),
-                                                  Expanded(flex: 2, child: Text('Tồn kho hóa đơn', textAlign: TextAlign.center, style: TextStyle(color: textMuted, fontWeight: FontWeight.w600, fontSize: 14))),
-                                                  Expanded(flex: 2, child: Text('Tồn kho hệ thống', textAlign: TextAlign.center, style: TextStyle(color: textMuted, fontWeight: FontWeight.w600, fontSize: 14))),
-                                            ],
-                                          ),
-                                        ),
                                       // Danh sách sản phẩm hoặc thông báo trống
                                       if (pagedProducts.isEmpty)
                                         Padding(
@@ -1286,295 +1234,144 @@ class _ProductListScreenState extends State<ProductListScreen> {
                                       else
                                         SizedBox(
                                           height: MediaQuery.of(context).size.height * 0.8,
-                                            child: ListView.builder(
-                                                itemCount: pagedProducts.length,
-                                              itemBuilder: (context, index) {
-                                                final product = pagedProducts[index];
-                                                final isMobile = MediaQuery.of(context).size.width < 600;
-
-                                                if (isMobile) {
-                                                    // Mobile: render dạng item phẳng, nối liền, đúng design mới, có thể swipe để xóa
-                                                    return Dismissible(
-                                                      key: ValueKey(product.id),
-                                                      direction: DismissDirection.endToStart,
-                                                      background: Container(
-                                                        alignment: Alignment.centerRight,
-                                                        color: Colors.redAccent,
-                                                        padding: const EdgeInsets.symmetric(horizontal: 24),
-                                                        child: const Icon(Icons.delete, color: Colors.white, size: 32),
-                                                      ),
-                                                      confirmDismiss: (direction) async {
-                                                        return await showDialog<bool>(
-                                                          context: context,
-                                                          builder: (context) => AlertDialog(
-                                                            title: const Text('Xác nhận xóa'),
-                                                            content: Text('Bạn có chắc chắn muốn xóa sản phẩm "${product.tradeName}"?'),
-                                                            actions: [
-                                                              TextButton(
-                                                                onPressed: () => Navigator.pop(context, false),
-                                                                child: const Text('Hủy'),
-                                                              ),
-                                                              TextButton(
-                                                                onPressed: () => Navigator.pop(context, true),
-                                                                style: TextButton.styleFrom(foregroundColor: Colors.red),
-                                                                child: const Text('Xóa'),
-                                                              ),
-                                                            ],
-                                                          ),
-                                                        );
-                                                      },
-                                                      onDismissed: (direction) async {
-                                                        await FirebaseFirestore.instance.collection('products').doc(product.id).delete();
-                                                        if (mounted) {
-                                                          OverlayEntry? entry;
-                                                          entry = OverlayEntry(
-                                                            builder: (_) => DesignSystemSnackbar(
-                                                              message: 'Đã xóa sản phẩm thành công',
-                                                              icon: Icons.check_circle,
-                                                              onDismissed: () => entry?.remove(),
-                                                            ),
-                                                          );
-                                                          Overlay.of(context).insert(entry);
-                                                        }
-                                                        setState(() {}); // Cập nhật lại UI
-                                                      },
-                                                      child: InkWell(
-                                                        onTap: () => Navigator.of(context).push(
-                                                          MaterialPageRoute(
-                                                            builder: (context) => EditProductScreen(product: product),
-                                                          ),
+                                          child: ListView.builder(
+                                            itemCount: pagedProducts.length,
+                                            itemBuilder: (context, index) {
+                                              final product = pagedProducts[index];
+                                              
+                                              // Mobile layout for both desktop and mobile
+                                              return Dismissible(
+                                                key: ValueKey(product.id),
+                                                direction: DismissDirection.endToStart,
+                                                background: Container(
+                                                  alignment: Alignment.centerRight,
+                                                  color: Colors.redAccent,
+                                                  padding: const EdgeInsets.symmetric(horizontal: 24),
+                                                  child: const Icon(Icons.delete, color: Colors.white, size: 32),
+                                                ),
+                                                confirmDismiss: (direction) async {
+                                                  return await showDialog<bool>(
+                                                    context: context,
+                                                    builder: (context) => AlertDialog(
+                                                      title: const Text('Xác nhận xóa'),
+                                                      content: Text('Bạn có chắc chắn muốn xóa sản phẩm "${product.tradeName}"?'),
+                                                      actions: [
+                                                        TextButton(
+                                                          onPressed: () => Navigator.pop(context, false),
+                                                          child: const Text('Hủy'),
                                                         ),
-                                                    child: Container(
-                                                          color: Colors.white,
-                                                          width: double.infinity,
-                                                          child: Column(
-                                                            children: [
-                                                              Row(
-                                                                crossAxisAlignment: CrossAxisAlignment.start,
+                                                        TextButton(
+                                                          onPressed: () => Navigator.pop(context, true),
+                                                          style: TextButton.styleFrom(foregroundColor: Colors.red),
+                                                          child: const Text('Xóa'),
+                                                        ),
+                                                      ],
+                                                    ),
+                                                  );
+                                                },
+                                                onDismissed: (direction) async {
+                                                  await FirebaseFirestore.instance.collection('products').doc(product.id).delete();
+                                                  if (mounted) {
+                                                    OverlayEntry? entry;
+                                                    entry = OverlayEntry(
+                                                      builder: (_) => DesignSystemSnackbar(
+                                                        message: 'Đã xóa sản phẩm thành công',
+                                                        icon: Icons.check_circle,
+                                                        onDismissed: () => entry?.remove(),
+                                                      ),
+                                                    );
+                                                    Overlay.of(context).insert(entry);
+                                                  }
+                                                  setState(() {}); // Cập nhật lại UI
+                                                },
+                                                child: InkWell(
+                                                  onTap: () => Navigator.of(context).push(
+                                                    MaterialPageRoute(
+                                                      builder: (context) => EditProductScreen(product: product),
+                                                    ),
+                                                  ),
+                                                  child: Container(
+                                                    color: Colors.white,
+                                                    width: double.infinity,
+                                                    child: Column(
+                                                      children: [
+                                                        Row(
+                                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                                          children: [
+                                                            // Ảnh placeholder
+                                                            Container(
+                                                              width: 56,
+                                                              height: 56,
+                                                              margin: const EdgeInsets.only(right: 16, top: 12, bottom: 12, left: 16),
+                                                              decoration: BoxDecoration(
+                                                                color: Colors.grey[300],
+                                                                borderRadius: BorderRadius.circular(8),
+                                                              ),
+                                                              child: const Icon(Icons.image, color: Colors.white54, size: 32),
+                                                            ),
+                                                            // Thông tin sản phẩm
+                                                            Expanded(
+                                                              child: Stack(
                                                                 children: [
-                                                                  // Ảnh placeholder
-                                                                  Container(
-                                                                    width: 56,
-                                                                    height: 56,
-                                                                    margin: const EdgeInsets.only(right: 16, top: 12, bottom: 12, left: 16),
-                                                      decoration: BoxDecoration(
-                                                                      color: Colors.grey[300],
-                                                                      borderRadius: BorderRadius.circular(8),
-                                                                    ),
-                                                                    child: const Icon(Icons.image, color: Colors.white54, size: 32),
-                                                                  ),
-                                                                  // Thông tin sản phẩm
-                                                                  Expanded(
-                                                                    child: Stack(
+                                                                  Padding(
+                                                                    padding: const EdgeInsets.only(right: 16, top: 12, bottom: 12),
+                                                                    child: Column(
+                                                                      crossAxisAlignment: CrossAxisAlignment.start,
                                                                       children: [
+                                                                        Text(product.tradeName, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+                                                                        if (product.internalName.isNotEmpty)
+                                                                          Padding(
+                                                                            padding: const EdgeInsets.only(top: 2),
+                                                                            child: Text(product.internalName, style: const TextStyle(fontSize: 12, color: Colors.black54)),
+                                                                          ),
+                                                                        if ((product.barcode ?? '').isNotEmpty)
+                                                                          Padding(
+                                                                            padding: const EdgeInsets.only(top: 2),
+                                                                            child: Text(product.barcode!, style: const TextStyle(fontSize: 12, color: Colors.black54)),
+                                                                          ),
                                                                         Padding(
-                                                                          padding: const EdgeInsets.only(right: 16, top: 12, bottom: 12),
-                                                      child: Column(
-                                                        crossAxisAlignment: CrossAxisAlignment.start,
-                                                        children: [
-                                                                              Text(product.tradeName, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
-                                                          if (product.internalName.isNotEmpty)
-                                                            Padding(
-                                                              padding: const EdgeInsets.only(top: 2),
-                                                                                  child: Text(product.internalName, style: const TextStyle(fontSize: 12, color: Colors.black54)),
-                                                                                ),
-                                                                              if ((product.barcode ?? '').isNotEmpty)
-                                                                                Padding(
-                                                                                  padding: const EdgeInsets.only(top: 2),
-                                                                                  child: Text(product.barcode!, style: const TextStyle(fontSize: 12, color: Colors.black54)),
-                                                                                ),
-                                                                              Padding(
-                                                                                padding: const EdgeInsets.only(top: 8),
-                                                                                child: Text('Giá bán: ${formatCurrency(product.salePrice)}', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
-                                                                              ),
-                                                                            ],
-                                                                          ),
-                                                                        ),
-                                                                        // Số lượng (chip bo tròn, viền xanh, góc trên phải)
-                                                                        Positioned(
-                                                                          top: 12,
-                                                                          right: 16,
-                                                                          child: Container(
-                                                                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                                                                            decoration: BoxDecoration(
-                                                                              color: Colors.white,
-                                                                              border: Border.all(color: mainGreen, width: 1),
-                                                                              borderRadius: BorderRadius.circular(20),
-                                                                            ),
-                                                                            child: Text('${product.stockSystem} ${product.unit}', style: const TextStyle(color: mainGreen, fontSize: 12, fontWeight: FontWeight.w500)),
-                                                                          ),
+                                                                          padding: const EdgeInsets.only(top: 8),
+                                                                          child: Text('Giá bán: ${formatCurrency(product.salePrice)}', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
                                                                         ),
                                                                       ],
                                                                     ),
                                                                   ),
+                                                                  // Số lượng (chip bo tròn, viền xanh, góc trên phải)
+                                                                  Positioned(
+                                                                    top: 12,
+                                                                    right: 16,
+                                                                    child: Container(
+                                                                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                                                                      decoration: BoxDecoration(
+                                                                        color: Colors.white,
+                                                                        border: Border.all(color: mainGreen, width: 1),
+                                                                        borderRadius: BorderRadius.circular(20),
+                                                                      ),
+                                                                      child: Text('${product.stockSystem} ${product.unit}', style: const TextStyle(color: mainGreen, fontSize: 12, fontWeight: FontWeight.w500)),
+                                                                    ),
+                                                                  ),
                                                                 ],
                                                               ),
-                                                              // Border xám nhạt dưới cùng
-                                                              Container(
-                                                                height: 1,
-                                                                color: Colors.grey[200],
-                                                                margin: const EdgeInsets.only(left: 88), // thẳng hàng với text, không kéo dài dưới avatar
-                                                              ),
-                                                            ],
-                                                          ),
-                                                      ),
+                                                            ),
+                                                          ],
+                                                        ),
+                                                        // Border xám nhạt dưới cùng
+                                                        Container(
+                                                          height: 1,
+                                                          color: Colors.grey[200],
+                                                          margin: const EdgeInsets.only(left: 88), // thẳng hàng với text, không kéo dài dưới avatar
+                                                        ),
+                                                      ],
                                                     ),
-                                                  );
-                                                } else {
-                                                    // Desktop/tablet: render dạng bảng hiện đại
-                                                    return Container(
-                                                      margin: const EdgeInsets.symmetric(vertical: 4),
-                                                      decoration: BoxDecoration(
-                                                        color: Colors.white,
-                                                        borderRadius: BorderRadius.circular(8),
-                                                        boxShadow: [
-                                                          BoxShadow(
-                                                            color: Colors.black.withOpacity(0.04),
-                                                            blurRadius: 4,
-                                                            offset: const Offset(0, 1),
-                                                          ),
-                                                        ],
-                                                      ),
-                                                      child: InkWell(
-                                                        onTap: () => widget.onProductTap?.call(product),
-                                                        borderRadius: BorderRadius.circular(8),
-                                                        child: Padding(
-                                                          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-                                                      child: Row(
-                                                        children: [
-                                                          Expanded(
-                                                            flex: 1,
-                                                            child: Align(
-                                                              alignment: Alignment.centerLeft,
-                                                            child: ValueListenableBuilder<Set<String>>(
-                                                              valueListenable: selectedProductIds,
-                                                              builder: (context, selected, _) {
-                                                                return Checkbox(
-                                                                  value: selected.contains(product.id),
-                                                                  onChanged: (checked) {
-                                                                    final newSet = Set<String>.from(selected);
-                                                                    if (checked == true) {
-                                                                      newSet.add(product.id);
-                                                                    } else {
-                                                                      newSet.remove(product.id);
-                                                                    }
-                                                                    selectedProductIds.value = newSet;
-                                                                  },
-                                                                );
-                                                              },
-                                                              ),
-                                                            ),
-                                                          ),
-                                                          Expanded(
-                                                            flex: 3,
-                                                            child: Column(
-                                                              crossAxisAlignment: CrossAxisAlignment.start,
-                                                              children: [
-                                                                    Text(
-                                                                      product.tradeName,
-                                                                      style: bodyLarge.copyWith(
-                                                                        fontWeight: FontWeight.w600,
-                                                                        color: Colors.black87,
-                                                                        fontSize: 14,
-                                                                      ),
-                                                                    ),
-                                                                if (product.internalName.isNotEmpty)
-                                                                      Padding(
-                                                                        padding: const EdgeInsets.only(top: 2),
-                                                                        child: Text(
-                                                                          product.internalName,
-                                                                          style: body.copyWith(
-                                                                            color: Colors.grey[600],
-                                                                            fontSize: 13,
-                                                                          ),
-                                                                        ),
-                                                                      ),
-                                                                    ],
-                                                                  ),
-                                                                ),
-                                                          Expanded(
-                                                            flex: 2,
-                                                            child: Align(
-                                                              alignment: Alignment.center,
-                                                                  child: Text(
-                                                                    formatCurrency(product.costPrice),
-                                                                    style: body.copyWith(
-                                                                      fontWeight: FontWeight.w600,
-                                                                      color: Colors.black87,
-                                                                    ),
-                                                                  ),
-                                                            ),
-                                                          ),
-                                                          Expanded(
-                                                            flex: 2,
-                                                            child: Align(
-                                                              alignment: Alignment.center,
-                                                                  child: Container(
-                                                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                                                                    decoration: BoxDecoration(
-                                                                      color: Colors.grey[100],
-                                                                      borderRadius: BorderRadius.circular(4),
-                                                                    ),
-                                                                    child: Text(
-                                                                      product.unit,
-                                                                      style: body.copyWith(
-                                                                        fontSize: 12,
-                                                                        fontWeight: FontWeight.w500,
-                                                                      ),
-                                                                    ),
-                                                                  ),
-                                                            ),
-                                                          ),
-                                                          Expanded(
-                                                            flex: 2,
-                                                            child: Align(
-                                                              alignment: Alignment.center,
-                                                                  child: Text(
-                                                                    '${product.stockInvoice}',
-                                                                    style: bodyLarge.copyWith(
-                                                                      fontWeight: FontWeight.w600,
-                                                                      color: Colors.blue[700],
-                                                                    ),
-                                                                  ),
-                                                            ),
-                                                          ),
-                                                          Expanded(
-                                                            flex: 2,
-                                                            child: Align(
-                                                              alignment: Alignment.center,
-                                                                  child: Container(
-                                                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                                                                    decoration: BoxDecoration(
-                                                                      color: product.stockSystem > 10 ? Colors.green[50] : Colors.orange[50],
-                                                                      borderRadius: BorderRadius.circular(4),
-                                                                      border: Border.all(
-                                                                        color: product.stockSystem > 10 ? Colors.green[200]! : Colors.orange[200]!,
-                                                                        width: 1,
-                                                                      ),
-                                                                    ),
-                                                                    child: Text(
-                                                                      '${product.stockSystem}',
-                                                                      style: bodyLarge.copyWith(
-                                                                        fontWeight: FontWeight.w600,
-                                                                        fontSize: 13,
-                                                                        color: product.stockSystem > 10 ? Colors.green[700] : Colors.orange[700],
-                                                                      ),
-                                                                    ),
-                                                                  ),
-                                                            ),
-                                                          ),
-                                                        ],
-                                                          ),
-                                                      ),
-                                                    ),
-                                                  );
-                                                }
-                                              },
-                                            ),
+                                                  ),
+                                                ),
+                                              );
+                                            },
                                           ),
-                                        ],
-                                      ),
-                                    ),
+                                        ),
+                                    ],
+                                  ),
+                                ),
                                     // Pagination controls
                                     if (filteredProducts.length > itemsPerPage) ...[
                                       const SizedBox(height: 16),
