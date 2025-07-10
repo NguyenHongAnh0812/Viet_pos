@@ -38297,7 +38297,7 @@ $S:3}
 A.bcp.prototype={
 $1(a){var s=A.ii().b
 s=s==null?null:s.canvasKitBaseUrl
-return(s==null?"https://www.gstatic.com/flutter-canvaskit/109150893958777c8f2215f6cfd3e89e984e8dea/":s)+a},
+return(s==null?"https://www.gstatic.com/flutter-canvaskit/dd93de6fb1776398bf586cbd477deade1391c7e4/":s)+a},
 $S:42}
 A.Wt.prototype={
 fd(a,b){var s,r=this.a

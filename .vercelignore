@@ -1,0 +1,40 @@
+# Flutter build artifacts (except web)
+build/android/
+build/ios/
+build/macos/
+build/windows/
+build/linux/
+
+# Development files
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.pub-cache/
+.pub/
+
+# IDE files
+.vscode/
+.idea/
+*.iml
+*.ipr
+*.iws
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Test files
+test/
+
+# Documentation
+*.md
+!README.md
+
+# Templates
+templates/
+
+# Devtools
+devtools/ 
